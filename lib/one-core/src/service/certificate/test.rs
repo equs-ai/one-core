@@ -3,7 +3,7 @@ use std::sync::Arc;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::proto::session_provider::test::StaticSessionProvider;

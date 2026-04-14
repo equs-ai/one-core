@@ -1,5 +1,5 @@
 use super::JsonLdService;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::service::error::ServiceError;
 
 impl JsonLdService {

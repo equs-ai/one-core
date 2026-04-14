@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::ProofService;
 use super::error::ProofServiceError;
 use crate::config::core_config::{TransportType, VerificationEngagement};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::proof::{Proof, ProofRole, ProofStateEnum};
 use crate::model::proof_schema::ProofSchema;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::Handover;

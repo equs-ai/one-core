@@ -10,7 +10,7 @@ use super::mappers::decode_client_id_with_scheme;
 use super::model::{
     OpenID4VP25AuthorizationRequest, OpenID4VP25AuthorizationRequestQueryParams, OpenID4Vp25Params,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::{

@@ -9,7 +9,7 @@ use crate::config::core_config::{ConfigExt, CoreConfig, DatatypeType, FormatType
 use crate::config::validator::datatype::validate_datatypes;
 use crate::config::validator::format::validate_format;
 use crate::config::validator::revocation::validate_revocation;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::credential_schema::KeyStorageSecurity;
 use crate::provider::credential_formatter::CredentialFormatter;

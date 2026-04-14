@@ -3,7 +3,7 @@ use secrecy::{ExposeSecret, SecretSlice, SecretString};
 use time::OffsetDateTime;
 
 use crate::config::{ConfigValidationError, core_config};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::credential::{
     Clearable, Credential, CredentialStateEnum, UpdateCredentialRequest,

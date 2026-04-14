@@ -11,8 +11,8 @@ use tokio::select;
 use tokio_util::sync::CancellationToken;
 
 use crate::config::core_config::TransportType;
-use crate::error::ContextWithErrorCode;
-use crate::error::ErrorCode::BR_0000;
+use one_core_asdk::error::ContextWithErrorCode;
+use one_core_asdk::error::ErrorCode::BR_0000;
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::interaction::UpdateInteractionRequest;
 use crate::model::proof::{ProofStateEnum, UpdateProofRequest};

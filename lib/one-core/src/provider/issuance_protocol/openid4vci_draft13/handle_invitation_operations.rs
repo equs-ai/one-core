@@ -11,7 +11,7 @@ use super::mapper::{
 };
 use super::model::OpenID4VCICredentialConfigurationData;
 use crate::config::core_config::{CoreConfig, FormatType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::claim::Claim;
 use crate::model::credential_schema::{
     BackgroundProperties, CredentialSchema, LayoutProperties, LayoutType, LogoProperties,

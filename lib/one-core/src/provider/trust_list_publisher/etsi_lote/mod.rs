@@ -17,7 +17,7 @@ use standardized_types::jades::JadesHeader;
 use time::OffsetDateTime;
 
 use crate::config::core_config::{IdentifierType, KeyAlgorithmType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::certificate::CertificateRelations;
 use crate::model::identifier::{Identifier, IdentifierRelations};

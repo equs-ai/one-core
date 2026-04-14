@@ -10,7 +10,7 @@ use super::dto::{
 use super::error::ProofSchemaServiceError;
 use super::mapper::create_unique_name_check_request;
 use crate::config::core_config::{ConfigExt, CoreConfig};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::CredentialSchema;

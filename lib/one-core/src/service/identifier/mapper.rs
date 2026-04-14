@@ -6,7 +6,7 @@ use super::dto::{
     GetIdentifierResponseDTO,
 };
 use super::error::IdentifierServiceError;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::identifier::{GetIdentifierList, Identifier, IdentifierType};
 use crate::service::did::dto::CreateDidRequestDTO;
 

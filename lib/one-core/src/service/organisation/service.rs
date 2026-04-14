@@ -10,7 +10,7 @@ use super::dto::{
 use super::error::OrganisationServiceError;
 use super::mapper::detail_from_model;
 use super::validator::{validate_wallet_provider, validate_wallet_provider_issuer};
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::identifier::{Identifier, IdentifierFilterValue, IdentifierListQuery};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::organisation::{OrganisationListQuery, OrganisationRelations};

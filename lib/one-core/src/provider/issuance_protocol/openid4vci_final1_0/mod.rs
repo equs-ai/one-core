@@ -45,7 +45,7 @@ use super::{
     deserialize_interaction_data, serialize_interaction_data,
 };
 use crate::config::core_config::{CoreConfig, DidType as ConfigDidType, FormatType};
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::mapper::oidc::map_from_oidc_format_to_core_detailed;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::certificate::CertificateRelations;

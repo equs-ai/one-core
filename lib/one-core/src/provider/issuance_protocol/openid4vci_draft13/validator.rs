@@ -1,7 +1,7 @@
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialStateEnum};
 use crate::model::identifier::IdentifierType;
 use crate::model::interaction::Interaction;

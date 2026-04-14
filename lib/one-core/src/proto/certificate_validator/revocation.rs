@@ -6,7 +6,7 @@ use x509_parser::prelude::{
 };
 
 use super::{CertificateValidatorImpl, CrlMode, Error};
-use crate::error::ErrorCodeMixinExt;
+use one_core_asdk::error::ErrorCodeMixinExt;
 use crate::provider::caching_loader::CacheError;
 use crate::provider::caching_loader::android_attestation_crl::CertificateStatus;
 
@@ -97,50 +97,44 @@ impl CertificateValidatorImpl {
         if !key_usage.value.crl_sign() {
             return Err(Error::CRLCheckFailed(
                 "CRL signer certificate_validator key usage does not include crlSign".to_string(),
-            ));
+            )
+                .into());
         }
 
-        let Some(parent_cert_key_identifier) = parent.extensions().iter().find_map(|extension| {
-            if let ParsedExtension::SubjectKeyIdentifier(key_identifier) =
-                extension.parsed_extension()
-            {
-                Some(key_identifier)
+        // Try to match key identifiers if both are present
+        let parent_ski = parent.extensions().iter().find_map(|ext| {
+            if let ParsedExtension::SubjectKeyIdentifier(ski) = ext.parsed_extension() {
+                Some(ski)
             } else {
                 None
             }
-        }) else {
-            return Err(Error::CRLCheckFailed(
-                "Parent CA cert subject key identifier not found".to_string(),
-            ));
-        };
+        });
 
-        let Some(crl_authority_key_identifier) = crl.extensions().iter().find_map(|extension| {
-            if let ParsedExtension::AuthorityKeyIdentifier(key_identifier) =
-                extension.parsed_extension()
-            {
-                key_identifier.key_identifier.as_ref()
+        let crl_aki = crl.extensions().iter().find_map(|ext| {
+            if let ParsedExtension::AuthorityKeyIdentifier(aki) = ext.parsed_extension() {
+                aki.key_identifier.as_ref()
             } else {
                 None
             }
-        }) else {
-            return Err(Error::CRLCheckFailed(
-                "CRL authority key identifier not found".to_string(),
-            ));
-        };
+        });
 
-        if crl_authority_key_identifier == parent_cert_key_identifier {
-            crl.verify_signature(parent.public_key()).map_err(|err| {
-                if err == X509Error::SignatureUnsupportedAlgorithm {
-                    Error::CRLCheckFailed(err.to_string())
-                } else {
-                    Error::CRLSignatureInvalid
-                }
-            })?;
-        } else {
-            return Err(Error::CRLCheckFailed(
-                "Parent CA key not matching CRL signer".to_string(),
-            ));
+        // If both identifiers exist, they must match
+        if let (Some(ski), Some(aki)) = (parent_ski, crl_aki) {
+            if ski != aki {
+                return Err(Error::CRLCheckFailed(
+                    "Parent CA key not matching CRL signer".to_string(),
+                )
+                    .into());
+            }
         }
+
+        crl.verify_signature(parent.public_key()).map_err(|err| {
+            if err == X509Error::SignatureUnsupportedAlgorithm {
+                Error::CRLCheckFailed(err.to_string())
+            } else {
+                Error::CRLSignatureInvalid
+            }
+        })?;
 
         Ok(())
     }

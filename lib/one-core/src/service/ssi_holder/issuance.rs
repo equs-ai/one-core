@@ -16,7 +16,7 @@ use super::validator::{
     validate_initiate_issuance_request,
 };
 use crate::config::core_config::FormatType;
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::mapper::value_to_model_claims;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::claim::Claim;

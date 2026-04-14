@@ -8,7 +8,7 @@ use super::DidService;
 use super::dto::{CreateDidRequestDTO, CreateDidRequestKeysDTO, DidPatchRequestDTO};
 use super::error::DidServiceError;
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::did::{
     Did, DidListQuery, DidRelations, DidType, GetDidList, KeyRole, RelatedKey,
 };

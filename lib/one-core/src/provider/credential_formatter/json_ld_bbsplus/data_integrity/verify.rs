@@ -11,7 +11,7 @@ use super::base_proof::{
 use super::canonicalize::{create_label_map_function, label_replacement_canonicalize_json_ld};
 use super::parse_derived_proof_value;
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::json_ld_bbsplus::model::BbsBaseProofComponents;
 use crate::provider::credential_formatter::model::{PublicKeySource, TokenVerifier};
@@ -207,7 +207,7 @@ mod test {
     use one_crypto::hasher::sha256::SHA256;
 
     use super::*;
-    use crate::error::ContextWithErrorCode;
+    use one_core_asdk::error::ContextWithErrorCode;
     use crate::provider::credential_formatter::json_ld_bbsplus::data_integrity::test_data::document_loader;
     use crate::provider::credential_formatter::model::MockTokenVerifier;
     use crate::provider::key_algorithm::KeyAlgorithm;

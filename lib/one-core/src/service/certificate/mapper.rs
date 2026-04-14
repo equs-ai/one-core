@@ -2,7 +2,7 @@ use one_dto_mapper::convert_inner;
 
 use super::dto::CertificateResponseDTO;
 use super::error::CertificateServiceError;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::Certificate;
 use crate::proto::certificate_validator::parse::parse_chain_to_x509_attributes;
 

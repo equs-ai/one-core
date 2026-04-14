@@ -25,14 +25,14 @@ pub struct HistoryErrorMetadata {
     pub message: String,
 }
 
-impl<T: ErrorCodeMixin> From<T> for HistoryMetadata {
-    fn from(value: T) -> Self {
-        Self::ErrorMetadata(HistoryErrorMetadata {
-            error_code: value.error_code(),
-            message: value.to_string(),
-        })
-    }
-}
+// impl<T: ErrorCodeMixin> From<T> for HistoryMetadata {
+//     fn from(value: T) -> Self {
+//         Self::ErrorMetadata(HistoryErrorMetadata {
+//             error_code: value.error_code(),
+//             message: value.to_string(),
+//         })
+//     }
+// }
 
 impl From<Box<dyn ErrorCodeMixin>> for HistoryMetadata {
     fn from(value: Box<dyn ErrorCodeMixin>) -> Self {

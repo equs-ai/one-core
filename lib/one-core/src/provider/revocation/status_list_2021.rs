@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use shared_types::{RevocationListEntryId, RevocationListId};
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::Certificate;
 use crate::model::credential::Credential;
 use crate::model::did::KeyRole;

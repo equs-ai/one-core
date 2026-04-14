@@ -12,7 +12,7 @@ pub mod model;
 mod test;
 
 use crate::config::core_config::{FormatType, KeyAlgorithmType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::proto::http_client::HttpClient;
 use crate::provider::caching_loader::json_ld_context::{ContextCache, JsonLdCachingLoader};

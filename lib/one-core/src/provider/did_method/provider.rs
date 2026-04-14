@@ -21,14 +21,18 @@ use crate::config::core_config::{
     CacheEntitiesConfig, CacheEntityCacheType, CacheEntityConfig, CoreConfig, DidType, Fields,
 };
 use crate::config::{ConfigValidationError, core_config};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::http_client::HttpClient;
-use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
+use crate::provider::key_algorithm::provider::{KeyAlgorithmProvider, KeyAlgorithmProviderImpl};
 use crate::provider::key_storage::provider::KeyProvider;
+use crate::provider::remote_entity_storage::RemoteEntityStorage;
+use crate::provider::remote_entity_storage::RemoteEntityType;
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
-use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
+use crate::config::core_config::KeyAlgorithmType;
+use crate::provider::key_algorithm::KeyAlgorithm;
+use crate::provider::key_algorithm::eddsa::Eddsa;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
@@ -67,6 +71,46 @@ impl DidMethodProviderImpl {
             did_methods,
             resolver: Arc::new(resolver),
         }
+    }
+}
+
+impl Default for DidMethodProviderImpl {
+    fn default() -> Self {
+        let caching_loader = DidCachingLoader::new(
+            RemoteEntityType::DidDocument,
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            100,
+            Duration::minutes(1),
+            Duration::minutes(1),
+        );
+        let key_algorithm_provider = Arc::new(KeyAlgorithmProviderImpl::new(
+            HashMap::from_iter(vec![
+                (
+                    KeyAlgorithmType::Eddsa,
+                    Arc::new(Eddsa) as Arc<dyn KeyAlgorithm>,
+                ),
+                (
+                    KeyAlgorithmType::Ecdsa,
+                    Arc::new(Eddsa) as Arc<dyn KeyAlgorithm>,
+                ),
+            ]),
+            Default::default(),
+        ));
+
+        DidMethodProviderImpl::new(
+            caching_loader,
+            IndexMap::from_iter(vec![
+                (
+                    "JWK".to_owned(),
+                    Arc::new(JWKDidMethod::new(key_algorithm_provider.clone()))
+                        as Arc<dyn DidMethod>,
+                ),
+                (
+                    "KEY".to_owned(),
+                    Arc::new(KeyDidMethod::new(key_algorithm_provider)) as Arc<dyn DidMethod>,
+                ),
+            ]),
+        )
     }
 }
 

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use shared_types::{ClaimId, CredentialId, InteractionId};
 
 use crate::config::core_config::CoreConfig;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::credential::{
     Credential, CredentialRelations, CredentialStateEnum, GetCredentialList, GetCredentialQuery,
     UpdateCredentialRequest,

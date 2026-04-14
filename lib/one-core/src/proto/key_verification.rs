@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use shared_types::DidValue;
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::{
@@ -142,7 +142,7 @@ mod test {
     use standardized_types::jwk::{PublicJwk, PublicJwkEc};
 
     use super::*;
-    use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+    use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
     use crate::proto::certificate_validator::MockCertificateValidator;
     use crate::provider::did_method::error::DidMethodError;
     use crate::provider::did_method::model::{DidDocument, DidVerificationMethod};

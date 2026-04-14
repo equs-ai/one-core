@@ -13,7 +13,7 @@ use super::dto::{
 };
 use super::error::CredentialServiceError;
 use crate::config::core_config::{CoreConfig, DatatypeType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::blob::{Blob, BlobType};
 use crate::model::certificate::Certificate;

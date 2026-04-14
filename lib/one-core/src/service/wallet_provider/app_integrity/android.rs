@@ -3,7 +3,7 @@ use itertools::Itertools;
 use x509_parser::der_parser::error::BerError;
 use x509_parser::der_parser::parse_der;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::proto::certificate_validator::{
     CertSelection, CertificateValidationOptions, CertificateValidator, CrlMode, ParsedCertificate,

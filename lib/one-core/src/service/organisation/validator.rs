@@ -2,7 +2,7 @@ use shared_types::{IdentifierId, OrganisationId};
 
 use super::error::OrganisationServiceError;
 use crate::config::core_config::{ConfigExt, CoreConfig, KeyAlgorithmType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::CertificateRelations;
 use crate::model::did::DidRelations;
 use crate::model::identifier::IdentifierRelations;

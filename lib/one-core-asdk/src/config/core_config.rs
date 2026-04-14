@@ -3,25 +3,23 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::path::Path;
-
-use figment::Figment;
+use super::{ConfigParsingError, ConfigValidationError};
+use crate::model::credential_schema::KeyStorageSecurity;
 #[cfg(feature = "config_env")]
 use figment::providers::Env;
 #[cfg(feature = "config_json")]
 use figment::providers::Json;
 #[cfg(feature = "config_yaml")]
 use figment::providers::Yaml;
+use figment::Figment;
 use figment::providers::{Data, Format};
 use one_dto_mapper::{From, Into};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{Value, json};
-use serde_with::{DurationSeconds, serde_as, skip_serializing_none};
+use serde_json::{json, Value};
+use serde_with::{serde_as, skip_serializing_none, DurationSeconds};
 use shared_types::{CredentialFormat, RevocationMethodId, TaskId, TrustListSubscriberId};
 use strum::{AsRefStr, Display, EnumString};
-
-use super::{ConfigParsingError, ConfigValidationError};
-use crate::model::credential_schema::KeyStorageSecurity;
 
 type Dict<K, V> = BTreeMap<K, V>;
 
@@ -944,7 +942,7 @@ where
         self.0.iter_mut().map(|(k, v)| (k as _, v))
     }
 
-    #[cfg(test)]
+    #[cfg(feature = "test-utils")]
     pub fn insert(&mut self, key: K, fields: Fields<T>) {
         self.0.insert(key, fields);
     }
@@ -1134,7 +1132,7 @@ pub struct Params {
 impl Params {
     // Merge public and private params.
     // Public params will override private ones if there have the same keys
-    pub(crate) fn merge(&self) -> Option<Value> {
+    pub fn merge(&self) -> Option<Value> {
         let mut map = serde_json::map::Map::new();
 
         if let Some(private) = &self.private {
@@ -1156,7 +1154,7 @@ impl Params {
 }
 
 // deserialize into a map while checking for overlapping keys
-fn deserialize_params<'de, D>(t: D) -> Result<Option<Params>, D::Error>
+pub fn deserialize_params<'de, D>(t: D) -> Result<Option<Params>, D::Error>
 where
     D: Deserializer<'de>,
 {

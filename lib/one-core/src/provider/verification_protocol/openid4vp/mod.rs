@@ -10,7 +10,7 @@ use one_dto_mapper::convert_inner;
 use super::dto::{CredentialGroup, CredentialGroupItem, PresentationDefinitionResponseDTO};
 use super::{FormatMapper, StorageAccess, TypeToDescriptorMapper, VerificationProtocolError};
 use crate::config::core_config::CoreConfig;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::oidc::map_from_openid4vp_format;
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::key::Key;

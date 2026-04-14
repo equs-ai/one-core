@@ -1,8 +1,9 @@
 use std::borrow::Cow;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use coset::{RegisteredLabelWithPrivate, SignatureContext, iana};
+use coset::{iana, RegisteredLabelWithPrivate, SignatureContext};
 use serde::Deserialize;
 use shared_types::DidValue;
 use standardized_types::jwk::PublicJwk;
@@ -16,27 +17,37 @@ use self::model::{
 use self::session_transcript::iso_18013_7::OID4VPDraftHandover;
 use self::session_transcript::{Handover, SessionTranscript};
 use crate::config::core_config::{FormatType, KeyAlgorithmType, VerificationProtocolType};
-use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::pem_chain_into_x5c;
+use one_core_asdk::error::ContextWithErrorCode;
+use crate::mapper::x509::{last_cert_authority_key_identifier_from_pem_chain, pem_chain_into_x5c};
 use crate::mapper::{decode_cbor_base64, encode_cbor_base64};
-use crate::proto::certificate_validator::CertificateValidator;
+use crate::proto::certificate_validator::{CertificateValidator, CertificateValidatorImpl};
+use crate::proto::clock::DefaultClock;
 use crate::proto::cose::{CoseSign1, CoseSign1Builder};
+use crate::proto::http_client::reqwest_client::ReqwestClient;
 use crate::proto::jwt::TokenError;
+use crate::provider::caching_loader::android_attestation_crl::{
+    AndroidAttestationCrlCache, AndroidAttestationCrlResolver,
+};
+use crate::provider::caching_loader::x509_crl::{X509CrlCache, X509CrlResolver};
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::mdoc_formatter::util::{
-    EmbeddedCbor, IssuerSigned, extract_certificate_from_x5chain_header,
-    try_build_algorithm_header, try_extract_holder_public_key, try_extract_mobile_security_object,
+    extract_certificate_from_x5chain_header, try_build_algorithm_header, try_extract_holder_public_key,
+    try_extract_mobile_security_object, EmbeddedCbor, IssuerSigned,
 };
 use crate::provider::credential_formatter::model::{
     AuthenticationFn, IdentifierDetails, PublicKeySource, SignatureProvider, TokenVerifier,
     VerificationFn,
 };
-use crate::provider::presentation_formatter::PresentationFormatter;
+use crate::provider::key_algorithm::provider::KeyAlgorithmProviderImpl;
+use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::presentation_formatter::model::{
     CredentialToPresent, ExtractPresentationCtx, ExtractedPresentation, FormatPresentationCtx,
     FormattedPresentation,
 };
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::openid4vp_final1_0::OID4VPFinal1_0Handover;
+use crate::provider::presentation_formatter::PresentationFormatter;
+use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
+use time::Duration;
 
 pub(crate) mod model;
 pub(crate) mod session_transcript;
@@ -62,6 +73,54 @@ impl MsoMdocPresentationFormatter {
             certificate_validator,
             params: Params { leeway: 60 },
         }
+    }
+}
+
+impl Default for MsoMdocPresentationFormatter {
+    fn default() -> Self {
+        let key_algorithm_provider = Arc::new(KeyAlgorithmProviderImpl::new(
+            HashMap::from_iter(vec![
+                (
+                    KeyAlgorithmType::Eddsa,
+                    Arc::new(crate::provider::key_algorithm::eddsa::Eddsa) as Arc<dyn KeyAlgorithm>,
+                ),
+                (
+                    KeyAlgorithmType::Ecdsa,
+                    Arc::new(crate::provider::key_algorithm::ecdsa::Ecdsa) as Arc<dyn KeyAlgorithm>,
+                ),
+            ]),
+            Default::default(),
+        ));
+
+        let crl_cache = Arc::new(X509CrlCache::new(
+            Arc::new(X509CrlResolver::new(Some(Arc::new(
+                ReqwestClient::default(),
+            )))),
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            100,
+            Duration::hours(1),
+            Duration::hours(1),
+        ));
+
+        let android_key_attestation_crl_cache = Arc::new(AndroidAttestationCrlCache::new(
+            Arc::new(AndroidAttestationCrlResolver::new(Arc::new(
+                ReqwestClient::default(),
+            ))),
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            1,
+            Duration::hours(1),
+            Duration::hours(1),
+        ));
+
+        let cert_val_provider = Arc::new(CertificateValidatorImpl::new(
+            key_algorithm_provider.clone(),
+            crl_cache,
+            Arc::new(DefaultClock),
+            Duration::minutes(1),
+            android_key_attestation_crl_cache,
+        ));
+
+        MsoMdocPresentationFormatter::new(cert_val_provider, None)
     }
 }
 
@@ -169,8 +228,13 @@ impl PresentationFormatter for MsoMdocPresentationFormatter {
             )
             .await?;
 
-            let x5c = pem_chain_into_x5c(&cert_details.chain).error_while("parsing PEM chain")?;
-            try_verify_issuer_auth(&issuer_signed.issuer_auth, &x5c, &verification_fn).await?;
+            try_verify_issuer_auth(
+                &issuer_signed.issuer_auth,
+                cert_details.chain.as_str(),
+                context.trusted_certs_skids.as_ref(),
+                &verification_fn,
+            )
+            .await?;
 
             let holder_jwk = try_extract_holder_public_key(&issuer_signed.issuer_auth)?;
 
@@ -250,7 +314,6 @@ impl MsoMdocPresentationFormatter {
         &self,
         context: &ExtractPresentationCtx,
     ) -> Result<(SessionTranscript, Option<String>), FormatterError> {
-        // ISO mDL:
         if context.verification_protocol_type == VerificationProtocolType::IsoMdl {
             let Some(session_transcript) = context.mdoc_session_transcript.as_ref() else {
                 return Err(FormatterError::CouldNotExtractPresentation(
@@ -340,9 +403,28 @@ impl MsoMdocPresentationFormatter {
 
 async fn try_verify_issuer_auth(
     CoseSign1(cose_sign1): &CoseSign1,
-    chain: &[String],
+    pem_chain: &str,
+    trusted_certs_skids: Option<&HashSet<String>>,
     verifier: &dyn TokenVerifier,
 ) -> Result<(), FormatterError> {
+    // check if the last certificate in the chain is trusted
+    if let Some(trusted_certs_skids) = trusted_certs_skids {
+        let root_ca_skid =
+            last_cert_authority_key_identifier_from_pem_chain(pem_chain).map_err(|e| {
+                FormatterError::CouldNotVerify(format!("Failed to extract AKI of certificate: {e}"))
+            })?;
+
+        if !trusted_certs_skids.contains(&root_ca_skid) {
+            return Err(FormatterError::CouldNotVerify(
+                "Root CA certificate of a chain is not trusted".to_owned(),
+            ));
+        }
+    }
+
+    let x5c = pem_chain_into_x5c(pem_chain).map_err(|err| {
+        FormatterError::CouldNotExtractPresentation(format!("Failed to create x5c: {err}"))
+    })?;
+
     let token = coset::sig_structure_data(
         SignatureContext::CoseSign1,
         cose_sign1.protected.clone(),
@@ -355,7 +437,7 @@ async fn try_verify_issuer_auth(
         FormatterError::CouldNotVerify("IssuerAuth is missing algorithm information".to_owned())
     })?;
 
-    let params = PublicKeySource::X5c { x5c: chain };
+    let params = PublicKeySource::X5c { x5c: &x5c };
     Ok(verifier
         .verify(params, algorithm, &token, &cose_sign1.signature)
         .await

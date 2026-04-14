@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use shared_types::DidValue;
 
 use super::model::VcClaim;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::{

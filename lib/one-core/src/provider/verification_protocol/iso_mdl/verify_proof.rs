@@ -5,7 +5,7 @@ use shared_types::{ClaimSchemaId, CredentialSchemaId};
 
 use super::common::to_cbor;
 use crate::config::core_config::VerificationProtocolType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::{NESTED_CLAIM_MARKER, extracted_credential_to_model};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
@@ -85,6 +85,7 @@ pub(crate) async fn validate_proof(
                 client_id: None,
                 response_uri: None,
                 verifier_key: None,
+                trusted_certs_skids: None,
             },
         )
         .await

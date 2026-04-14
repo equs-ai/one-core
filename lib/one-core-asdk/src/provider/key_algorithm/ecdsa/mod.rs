@@ -238,7 +238,7 @@ impl PrivateKeyAgreementHandle for EcdsaPrivateKeyHandle {
     }
 }
 
-pub(crate) fn ecdsa_public_key_as_jwk(
+pub fn ecdsa_public_key_as_jwk(
     public_key: &[u8],
     r#use: Option<JwkUse>,
 ) -> Result<PublicJwk, KeyHandleError> {
@@ -260,7 +260,7 @@ pub(crate) fn ecdsa_public_key_as_jwk(
     }))
 }
 
-pub(crate) fn ecdsa_public_key_as_multibase(public_key: &[u8]) -> Result<String, KeyHandleError> {
+pub fn ecdsa_public_key_as_multibase(public_key: &[u8]) -> Result<String, KeyHandleError> {
     let codec = &[0x80, 0x24];
     let key = ECDSASigner::parse_public_key(public_key, true)?;
     let data = [codec, key.as_slice()].concat();

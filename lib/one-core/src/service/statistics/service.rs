@@ -1,7 +1,7 @@
 use one_dto_mapper::convert_inner;
 use shared_types::OrganisationId;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::common::SortDirection;
 use crate::model::history::{
     IssuerStatsQuery, SystemInteractionStatsQuery, SystemManagementStatsQuery, VerifierStatsQuery,

@@ -309,7 +309,7 @@ impl PublicKeyAgreementHandle for X25519PublicKeyHandle {
     }
 }
 
-pub(crate) fn eddsa_public_key_as_jwk(
+pub fn eddsa_public_key_as_jwk(
     public_key: &[u8],
     curve: &str,
     r#use: Option<JwkUse>,
@@ -329,14 +329,14 @@ pub(crate) fn eddsa_public_key_as_jwk(
     }))
 }
 
-pub(crate) fn eddsa_public_key_as_multibase(public_key: &[u8]) -> Result<String, KeyHandleError> {
+pub fn eddsa_public_key_as_multibase(public_key: &[u8]) -> Result<String, KeyHandleError> {
     let codec = &[0xed, 0x1];
     let key = EDDSASigner::check_public_key(public_key)?;
     let data = [codec, key.as_slice()].concat();
     Ok(format!("z{}", bs58::encode(data).into_string()))
 }
 
-pub(crate) fn x25519_public_key_as_multibase(public_key: &[u8]) -> Result<String, KeyHandleError> {
+pub fn x25519_public_key_as_multibase(public_key: &[u8]) -> Result<String, KeyHandleError> {
     let codec = &[0xec, 0x1];
     let key = EDDSASigner::check_x25519_public_key(public_key)?;
     let data = [codec, key.as_slice()].concat();

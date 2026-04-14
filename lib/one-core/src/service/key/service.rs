@@ -5,11 +5,11 @@ use standardized_types::jwk::PrivateJwk;
 use uuid::Uuid;
 
 use super::KeyService;
-use super::dto::{GetKeyListResponseDTO, KeyRequestDTO};
+use super::dto::{KeyRequestDTO};
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
-use crate::model::key::{KeyListQuery, KeyRelations};
+use crate::model::key::{GetKeyListResponseDTO, KeyListQuery, KeyRelations};
 use crate::model::organisation::OrganisationRelations;
 use crate::proto::session_provider::SessionExt;
 use crate::repository::error::DataLayerError;

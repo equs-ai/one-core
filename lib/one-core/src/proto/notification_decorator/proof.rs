@@ -4,7 +4,7 @@ use anyhow::Context;
 use shared_types::{InteractionId, OrganisationId, ProofId};
 
 use crate::config::core_config::CoreConfig;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::claim::Claim;
 use crate::model::common::LockType;
 use crate::model::history::HistoryErrorMetadata;

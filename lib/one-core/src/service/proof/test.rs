@@ -20,7 +20,7 @@ use super::error::ProofServiceError;
 use crate::config::core_config::{
     CoreConfig, Fields, IdentifierType, KeyStorageType, TransportType, VerificationProtocolType,
 };
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::{Claim, ClaimRelations};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};

@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::{Signer, access_certificate, registration_certificate, x509_certificate};
 use crate::config::core_config::{ConfigExt, CoreConfig, RevocationConfig, SignerType};
 use crate::config::{ConfigValidationError, ProviderReference};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::revocation_list::RevocationListEntityInfo;
 use crate::proto::clock::Clock;
 use crate::proto::session_provider::SessionProvider;

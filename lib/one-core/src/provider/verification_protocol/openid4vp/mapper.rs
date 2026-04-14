@@ -25,7 +25,7 @@ use super::model::{
 };
 use super::{JWTSigner, get_jwt_signer, jwe_presentation};
 use crate::config::core_config::{CoreConfig, FormatType, VerificationProtocolType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::mapper::{
@@ -468,6 +468,7 @@ pub fn extract_presentation_ctx_from_interaction_content(
         expiration_date: None,
         mdoc_session_transcript: None,
         verifier_key: content.encryption_key,
+        trusted_certs_skids: None,
     }
 }
 

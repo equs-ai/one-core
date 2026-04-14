@@ -1,4 +1,4 @@
-pub mod datatype;
+pub use one_core_asdk::config::validator::*;
 pub mod did;
 pub mod format;
 pub mod protocol;

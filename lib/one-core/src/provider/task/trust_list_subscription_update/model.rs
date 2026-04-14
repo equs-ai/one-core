@@ -1,6 +1,6 @@
 use url::ParseError;
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::history::{HistoryAction, HistoryMetadata};
 use crate::model::trust_list_subscription::TrustListSubscriptionState;
 

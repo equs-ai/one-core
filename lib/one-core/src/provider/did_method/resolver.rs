@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use shared_types::DidValue;
 use time::OffsetDateTime;
 
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::provider::caching_loader::{CachingLoader, ResolveResult, Resolver};
 use crate::provider::did_method::DidMethod;
 use crate::provider::did_method::dto::DidDocumentDTO;

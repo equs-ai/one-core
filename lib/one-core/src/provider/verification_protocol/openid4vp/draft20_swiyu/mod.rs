@@ -10,7 +10,7 @@ use time::Duration;
 use url::Url;
 
 use crate::config::core_config::{DidType, IdentifierType, TransportType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::organisation::Organisation;
 use crate::model::proof::Proof;
 use crate::proto::http_client::HttpClient;

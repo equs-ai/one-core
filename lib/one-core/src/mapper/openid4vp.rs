@@ -1,6 +1,6 @@
 use one_dto_mapper::{convert_inner, convert_inner_of_inner};
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::RemoteIdentifierRelation;
 use crate::model::credential::Credential;
 use crate::model::credential_schema::CredentialSchema;

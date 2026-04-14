@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use standardized_types::jwk::PublicJwk;
@@ -46,4 +47,5 @@ pub struct ExtractPresentationCtx {
     pub client_id: Option<String>,
     pub response_uri: Option<String>,
     pub verifier_key: Option<PublicJwk>,
+    pub trusted_certs_skids: Option<HashSet<String>>,
 }

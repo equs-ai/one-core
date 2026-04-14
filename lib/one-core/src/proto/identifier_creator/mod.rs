@@ -2,7 +2,7 @@ use shared_types::{DidValue, IdentifierId, KeyId};
 use strum::Display;
 
 use crate::config::core_config::SignerType;
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::certificate::Certificate;
 use crate::model::did::Did;
 use crate::model::identifier::{Identifier, IdentifierType};

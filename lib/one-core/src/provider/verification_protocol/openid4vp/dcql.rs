@@ -12,7 +12,7 @@ use shared_types::{CredentialId, OrganisationId};
 use standardized_types::x509::AuthorityKeyIdentifier;
 
 use crate::config::core_config::{CoreConfig, FormatType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::credential_schema_claim::claim_schema_from_metadata_claim_schema;
 use crate::mapper::x509::get_akis_for_pem_chain;
 use crate::model::claim::Claim;
@@ -1247,15 +1247,4 @@ fn stringify_value(value: &ClaimValue) -> String {
     }
 }
 
-impl From<FormatType> for CredentialFormat {
-    fn from(value: FormatType) -> Self {
-        match value {
-            FormatType::Jwt => CredentialFormat::JwtVc,
-            FormatType::SdJwt => CredentialFormat::W3cSdJwt,
-            FormatType::SdJwtVc => CredentialFormat::SdJwt,
-            FormatType::JsonLdClassic => CredentialFormat::LdpVc,
-            FormatType::JsonLdBbsPlus => CredentialFormat::LdpVc,
-            FormatType::Mdoc => CredentialFormat::MsoMdoc,
-        }
-    }
-}
+// impl From<FormatType> for CredentialFormat is moved to one-core-asdk

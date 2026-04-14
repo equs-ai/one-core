@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::config::core_config;
-use crate::error::ErrorCode;
+use one_core_asdk::error::ErrorCode;
 use crate::proto::identifier_creator::IdentifierCreator;
 use crate::proto::session_provider::SessionProvider;
 use crate::repository::identifier_repository::IdentifierRepository;

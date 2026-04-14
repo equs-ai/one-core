@@ -28,7 +28,7 @@ use super::{
 use crate::config::core_config::{
     CoreConfig, DidType, IdentifierType, TransportType, VerificationEngagement,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::{NESTED_CLAIM_MARKER, decode_cbor_base64};
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofRole, ProofStateEnum};

@@ -7,7 +7,7 @@ use standardized_types::openid4vp::ResponseMode;
 use time::Duration;
 use url::Url;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::jwt::model::{JWTHeader, JWTPayload};
 use crate::proto::jwt::{Jwt, TokenError};
 use crate::provider::verification_protocol::model::CommonParams;

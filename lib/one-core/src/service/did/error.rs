@@ -1,6 +1,6 @@
 use shared_types::{DidId, KeyId, OrganisationId};
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum DidServiceError {

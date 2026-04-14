@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::config::core_config::{
     ConfigBlock, ConfigExt, DidConfig, DidType, IdentifierConfig, IdentifierType,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::identifier::Identifier;
 use crate::service::error::{BusinessLogicError, ServiceError, ValidationError};
 

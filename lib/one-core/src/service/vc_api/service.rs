@@ -8,7 +8,7 @@ use super::dto::{
 };
 use super::validation::{validate_verifiable_credential, validate_verifiable_presentation};
 use crate::config::core_config::VerificationProtocolType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::did::{DidRelations, KeyRole};
 use crate::model::key::KeyRelations;
 use crate::proto::certificate_validator::CertificateValidator;
@@ -321,6 +321,7 @@ impl VCAPIService {
                     response_uri: None,
                     mdoc_session_transcript: None,
                     verifier_key: None,
+                    trusted_certs_skids: None,
                 },
             )
             .await

@@ -12,7 +12,7 @@ use x509_parser::prelude::{GeneralName, ParsedExtension, X509Certificate};
 
 use super::error::SignerError;
 use super::x509_certificate::dto::{IssuerAlternativeNameRequest, IssuerAlternativeNameType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::SigningKeyAdapter;
 use crate::model::certificate::Certificate;
 use crate::model::identifier::Identifier;

@@ -4,7 +4,7 @@ use one_dto_mapper::convert_inner;
 use serde_json::{Value, json};
 use shared_types::{HolderWalletUnitId, VerifierInstanceId};
 
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::holder_wallet_unit::HolderWalletUnitRelations;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::organisation::OrganisationRelations;

@@ -13,8 +13,8 @@ use super::common::{
 };
 use super::device_engagement::{BleOptions, DeviceEngagement};
 use super::session::{Command, SessionData, SessionEstablishment, StatusCode};
-use crate::error::ContextWithErrorCode;
-use crate::error::ErrorCode::BR_0000;
+use one_core_asdk::error::ContextWithErrorCode;
+use one_core_asdk::error::ErrorCode::BR_0000;
 use crate::mapper::{NESTED_CLAIM_MARKER, encode_cbor_base64};
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::proof::{Proof, ProofStateEnum, UpdateProofRequest};

@@ -9,7 +9,7 @@ use strum::Display;
 use url::Url;
 use x509_parser::oid_registry::OID_X509_EXT_SUBJECT_KEY_IDENTIFIER;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::key::Key;
 use crate::model::trust_list_role::TrustListRoleEnum;

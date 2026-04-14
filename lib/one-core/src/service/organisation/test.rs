@@ -8,7 +8,7 @@ use uuid::Uuid;
 use super::OrganisationService;
 use super::dto::CreateOrganisationRequestDTO;
 use super::error::OrganisationServiceError;
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::organisation::{
     GetOrganisationList, OrganisationListQuery, OrganisationRelations,
 };

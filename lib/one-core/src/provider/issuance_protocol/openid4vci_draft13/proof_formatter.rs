@@ -5,7 +5,7 @@ use shared_types::DidValue;
 use standardized_types::jwk::PublicJwk;
 use tokio_util::either::Either;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::jwt::model::{DecomposedJwt, JWTPayload};
 use crate::proto::jwt::{Jwt, JwtPublicKeyInfo};
 use crate::provider::credential_formatter::error::FormatterError;

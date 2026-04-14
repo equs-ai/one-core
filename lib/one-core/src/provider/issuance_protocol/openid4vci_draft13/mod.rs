@@ -18,7 +18,6 @@ use standardized_types::jwk::PublicJwk;
 use time::{Duration, OffsetDateTime};
 use url::Url;
 use uuid::Uuid;
-
 use super::dto::{ContinueIssuanceDTO, IssuanceProtocolCapabilities};
 use super::{
     BasicSchemaData, HolderBindingInput, IssuanceProtocol, IssuanceProtocolError, StorageAccess,
@@ -26,7 +25,7 @@ use super::{
 use crate::config::core_config::{
     CoreConfig, DidType as ConfigDidType, FormatType, IssuanceProtocolType,
 };
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::mapper::oidc::{detect_format_with_crypto_suite, map_to_openid4vp_format};
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};

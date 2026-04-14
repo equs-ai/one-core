@@ -50,7 +50,7 @@ pub trait KeyAlgorithm: Send + Sync {
     fn parse_raw(&self, public_key_der: &[u8]) -> Result<KeyHandle, KeyAlgorithmError>;
 }
 
-pub(crate) fn parse_multibase_with_tag(
+pub fn parse_multibase_with_tag(
     encoded: &str,
     expected_tag: &[u8],
 ) -> Result<Vec<u8>, KeyAlgorithmError> {

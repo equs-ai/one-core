@@ -8,7 +8,7 @@ use shared_types::DidValue;
 use time::Duration;
 
 use crate::config::core_config::FormatType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::http_client::HttpClient;
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::error::FormatterError;

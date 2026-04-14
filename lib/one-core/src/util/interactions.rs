@@ -1,7 +1,7 @@
 use shared_types::InteractionId;
 use time::OffsetDateTime;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::repository::interaction_repository::InteractionRepository;

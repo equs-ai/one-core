@@ -1,8 +1,7 @@
-use one_dto_mapper::convert_inner;
 use shared_types::KeyId;
 
-use super::dto::{GetKeyListResponseDTO, KeyRequestDTO};
-use crate::model::key::{GetKeyList, Key};
+use super::dto::KeyRequestDTO;
+use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::provider::key_storage::model::StorageGeneratedKey;
 use crate::service::key::dto::KeyResponseDTO;
@@ -54,12 +53,4 @@ impl TryFrom<Key> for KeyResponseDTO {
     }
 }
 
-impl From<GetKeyList> for GetKeyListResponseDTO {
-    fn from(value: GetKeyList) -> Self {
-        Self {
-            values: convert_inner(value.values),
-            total_pages: value.total_pages,
-            total_items: value.total_items,
-        }
-    }
-}
+// impl From<GetKeyList> for GetKeyListResponseDTO is moved to one-core-asdk

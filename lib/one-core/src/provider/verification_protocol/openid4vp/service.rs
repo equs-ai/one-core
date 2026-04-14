@@ -9,7 +9,7 @@ use super::model::{
     AuthorizationEncryptedResponseAlgorithm, EncryptionInfo, OpenID4VPClientMetadata,
     OpenID4VPHolderInteractionData,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::proof::Proof;
 use crate::proto::http_client::HttpClient;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;

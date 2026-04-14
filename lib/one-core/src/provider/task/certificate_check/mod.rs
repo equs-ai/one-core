@@ -5,7 +5,7 @@ use serde_json::Value;
 use shared_types::{CertificateId, IdentifierId};
 
 use super::Task;
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{
     CertificateFilterValue, CertificateListQuery, CertificateState, UpdateCertificateRequest,
 };

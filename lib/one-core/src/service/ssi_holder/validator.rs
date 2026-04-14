@@ -2,7 +2,7 @@ use super::dto::InitiateIssuanceRequestDTO;
 use super::error::HolderServiceError;
 use crate::config::core_config::CoreConfig;
 use crate::config::validator::protocol::validate_protocol_type;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierType;
 use crate::proto::session_provider::SessionProvider;

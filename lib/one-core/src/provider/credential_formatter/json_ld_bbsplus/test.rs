@@ -6,7 +6,7 @@ use one_crypto::hasher::sha256::SHA256;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::credential_formatter::json_ld_bbsplus::data_integrity::base_proof::create_base_proof;
 use crate::provider::credential_formatter::json_ld_bbsplus::data_integrity::test_data::{

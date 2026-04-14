@@ -18,7 +18,7 @@ use super::error::ProofSchemaServiceError;
 use crate::config::core_config::{
     ConfigEntryDisplay, CoreConfig, KeySecurityLevelFields, KeySecurityLevelType,
 };
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
 use crate::model::common::GetListResponse;
 use crate::model::credential_schema::{

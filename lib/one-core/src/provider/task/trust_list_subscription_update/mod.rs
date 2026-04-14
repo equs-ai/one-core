@@ -11,7 +11,7 @@ use shared_types::TrustListSubscriptionId;
 use url::Url;
 use uuid::Uuid;
 
-use crate::error::{ContextWithErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
 use crate::model::common::SortDirection;
 use crate::model::history::{History, HistoryEntityType, HistorySource};
 use crate::model::list_query::{ListPagination, ListSorting};

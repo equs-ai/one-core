@@ -13,7 +13,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::config::core_config::{KeyAlgorithmType, RevocationType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::did::KeyRole;
 use crate::model::identifier::Identifier;

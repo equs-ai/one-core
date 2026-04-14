@@ -15,7 +15,7 @@ use super::error::TrustCollectionServiceError;
 use super::mapper::{
     get_public_dto, map_create_trust_collection_request, map_create_trust_list_subscription_request,
 };
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_into;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;

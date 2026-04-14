@@ -54,9 +54,18 @@ pub trait KeyAlgorithmProvider: Send + Sync {
     fn ordered_by_holder_priority(&self) -> Vec<(KeyAlgorithmType, Arc<dyn KeyAlgorithm>)>;
 }
 
-struct KeyAlgorithmProviderImpl {
+pub struct KeyAlgorithmProviderImpl {
     algorithms: HashMap<KeyAlgorithmType, Arc<dyn KeyAlgorithm>>,
     config: KeyAlgorithmConfig,
+}
+
+impl KeyAlgorithmProviderImpl {
+    pub fn new(
+        algorithms: HashMap<KeyAlgorithmType, Arc<dyn KeyAlgorithm>>,
+        config: KeyAlgorithmConfig,
+    ) -> Self {
+        Self { algorithms, config }
+    }
 }
 
 impl KeyAlgorithmProvider for KeyAlgorithmProviderImpl {
@@ -178,7 +187,7 @@ impl KeyAlgorithmProvider for KeyAlgorithmProviderImpl {
     }
 }
 
-pub(crate) fn key_algorithm_provider_from_config(
+pub fn key_algorithm_provider_from_config(
     config: &mut CoreConfig,
 ) -> Result<Arc<dyn KeyAlgorithmProvider>, ConfigValidationError> {
     let mut algorithms: HashMap<KeyAlgorithmType, Arc<dyn KeyAlgorithm>> = HashMap::new();

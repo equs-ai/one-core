@@ -1,6 +1,6 @@
 use shared_types::{DidId, IdentifierId, ProofId, ProofSchemaId};
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::did::KeyRole;
 use crate::model::identifier::IdentifierType;
 use crate::model::proof::{ProofRole, ProofStateEnum};

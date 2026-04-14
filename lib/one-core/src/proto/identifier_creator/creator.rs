@@ -7,7 +7,7 @@ use super::{
     RemoteIdentifierRelation,
 };
 use crate::config::core_config::CoreConfig;
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::model::identifier::Identifier;
 use crate::model::organisation::Organisation;
 use crate::proto::csr_creator::CsrCreator;

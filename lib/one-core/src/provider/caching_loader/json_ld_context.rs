@@ -7,7 +7,7 @@ use time::macros::offset;
 use time::{Duration, OffsetDateTime};
 
 use crate::config::core_config::{CacheEntityCacheType, CacheEntityConfig, CoreConfig};
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::proto::http_client::HttpClient;
 use crate::provider::caching_loader::{CachingLoader, ResolveResult, Resolver};
 use crate::provider::remote_entity_storage::db_storage::DbStorage;

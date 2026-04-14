@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use shared_types::HolderWalletUnitId;
 use time::Duration;
 
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::holder_wallet_unit::{HolderWalletUnit, HolderWalletUnitRelations};
 use crate::model::key::{Key, KeyRelations};

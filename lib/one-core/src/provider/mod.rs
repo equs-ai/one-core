@@ -1,10 +1,10 @@
 pub mod blob_storage_provider;
 pub mod caching_loader;
 pub mod credential_formatter;
-pub mod data_type;
+pub use one_core_asdk::provider::data_type;
 pub mod did_method;
 pub mod issuance_protocol;
-pub mod key_algorithm;
+pub use one_core_asdk::provider::key_algorithm;
 pub mod key_security_level;
 pub mod key_storage;
 pub mod presentation_formatter;

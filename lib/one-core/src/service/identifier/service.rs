@@ -10,7 +10,7 @@ use super::error::IdentifierServiceError;
 use super::mapper::to_create_did_request;
 use super::validator::validate_identifier_type;
 use crate::config::core_config;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::CertificateRelations;
 use crate::model::did::DidRelations;
 use crate::model::identifier::{IdentifierListQuery, IdentifierRelations};

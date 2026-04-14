@@ -5,7 +5,7 @@ use shared_types::{
     TrustListPublisherId,
 };
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::{list_response_into, list_response_try_into};
 use crate::model::certificate::CertificateRelations;
 use crate::model::identifier::{Identifier, IdentifierRelations};

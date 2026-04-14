@@ -23,7 +23,7 @@ use super::validator::{
     check_background_properties, check_claims_presence_in_layout_properties, check_logo_properties,
 };
 use crate::config::core_config::CoreConfig;
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
 use crate::model::credential_schema::{
     CredentialSchema, CredentialSchemaRelations, GetCredentialSchemaList, KeyStorageSecurity,

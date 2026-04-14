@@ -11,7 +11,7 @@ use time::{Date, OffsetDateTime};
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{ConfigExt, DatatypeConfig, DatatypeType};
 
-pub(crate) const DATE_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
+pub const DATE_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
 
 #[derive(Debug, Error)]
 pub enum DatatypeValidationError {
@@ -308,7 +308,7 @@ struct FileParams {
     pub encode_as_mdl_portrait: Option<bool>,
 }
 
-pub(crate) fn validate_picture(
+pub fn validate_picture(
     value: &str,
     max_size: Option<usize>,
     accept: Option<&[String]>,
@@ -365,7 +365,7 @@ pub(crate) fn validate_picture(
     Ok(())
 }
 
-pub(crate) fn base64_byte_length(data: &str) -> usize {
+pub fn base64_byte_length(data: &str) -> usize {
     let num_bytes = if data.ends_with("==") {
         2
     } else if data.ends_with('=') {
@@ -400,7 +400,7 @@ pub fn parse_min_max_date(value: &str) -> Result<Date, DatatypeValidationError> 
     Ok(Date::parse(value, DATE_FORMAT)?)
 }
 
-pub(crate) fn parse_min_max_datetime(
+pub fn parse_min_max_datetime(
     value: &str,
 ) -> Result<OffsetDateTime, DatatypeValidationError> {
     if value == "NOW" {

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shared_types::OrganisationId;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::{CredentialFilterValue, CredentialRole, GetCredentialQuery};
 use crate::model::list_filter::ListFilterValue;
 use crate::proto::credential_validity_manager::CredentialValidityManager;

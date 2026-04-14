@@ -21,7 +21,7 @@ use super::model::{
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, DatatypeType, IdentifierType, Params};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::model::certificate::Certificate;

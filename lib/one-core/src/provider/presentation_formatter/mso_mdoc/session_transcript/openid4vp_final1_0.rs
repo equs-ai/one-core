@@ -7,6 +7,9 @@ use standardized_types::jwk::PublicJwk;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::mdoc_formatter::util::Bstr;
 
+const OID4VP_HANDOVER_ID: &str = "OpenID4VPHandover";
+const OID4VP_DCAPI_HANDOVER_ID: &str = "OpenID4VPDCAPIHandover";
+
 /// OpenID4VP Final Handover
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1>
 ///
@@ -14,6 +17,7 @@ use crate::provider::credential_formatter::mdoc_formatter::util::Bstr;
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct OID4VPFinal1_0Handover {
     openid4vp_handover_info_hash: Bstr,
+    openid4vp_handover_identifier: String,
 }
 
 impl OID4VPFinal1_0Handover {
@@ -35,6 +39,27 @@ impl OID4VPFinal1_0Handover {
 
         Ok(Self {
             openid4vp_handover_info_hash,
+            openid4vp_handover_identifier: OID4VP_HANDOVER_ID.to_string(),
+        })
+    }
+
+    pub(crate) fn compute_for_dc_api(
+        origin: &str,
+        nonce: &str,
+        verifier_key: Option<&PublicJwk>,
+    ) -> Result<Self, anyhow::Error> {
+        let jwk_thumbprint = verifier_key.map(jwk_thumbprint).transpose()?.map(Bstr);
+
+        let openid4vp_handover_info_bytes =
+            cbor!([origin, nonce, jwk_thumbprint])?.to_vec()?;
+
+        let openid4vp_handover_info_hash =
+            Bstr(Sha256::digest(&openid4vp_handover_info_bytes).to_vec());
+
+
+        Ok(Self {
+            openid4vp_handover_info_hash,
+            openid4vp_handover_identifier: OID4VP_DCAPI_HANDOVER_ID.to_string(),
         })
     }
 }
@@ -44,9 +69,12 @@ impl Serialize for OID4VPFinal1_0Handover {
     where
         S: Serializer,
     {
-        cbor!(["OpenID4VPHandover", self.openid4vp_handover_info_hash])
-            .map_err(ser::Error::custom)?
-            .serialize(serializer)
+        cbor!([
+            self.openid4vp_handover_identifier,
+            self.openid4vp_handover_info_hash
+        ])
+        .map_err(ser::Error::custom)?
+        .serialize(serializer)
     }
 }
 
@@ -60,7 +88,7 @@ impl<'a> Deserialize<'a> for OID4VPFinal1_0Handover {
                 .deserialized()
                 .map_err(de::Error::custom)?;
 
-        if fixed_id != "OpenID4VPHandover" {
+        if fixed_id != OID4VP_HANDOVER_ID && fixed_id != OID4VP_DCAPI_HANDOVER_ID {
             return Err(de::Error::custom(format!(
                 "Invalid leading identifier: {fixed_id}"
             )));
@@ -68,6 +96,7 @@ impl<'a> Deserialize<'a> for OID4VPFinal1_0Handover {
 
         Ok(Self {
             openid4vp_handover_info_hash,
+            openid4vp_handover_identifier: fixed_id,
         })
     }
 }

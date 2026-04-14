@@ -9,7 +9,7 @@ use standardized_types::openid4vp::{
 use url::Url;
 
 use crate::config::core_config::{CoreConfig, KeyStorageType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::did::KeyRole;
 use crate::model::identifier::IdentifierType;
 use crate::model::proof::Proof;

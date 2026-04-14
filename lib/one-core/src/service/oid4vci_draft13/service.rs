@@ -16,7 +16,7 @@ use super::OID4VCIDraft13Service;
 use super::dto::{OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO};
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{self, FormatType, IssuanceProtocolType};
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::exchange::{
     get_issuance_param_pre_authorization_expires_in, get_issuance_param_refresh_token_expires_in,
     get_issuance_param_token_expires_in,

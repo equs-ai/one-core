@@ -8,7 +8,7 @@ use uuid::Uuid;
 use super::{Error, NotificationPayload, NotificationScheduler, NotificationSchedulerImpl};
 use crate::config::core_config::TaskType;
 use crate::config::{ConfigValidationError, ProviderReference};
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::notification::Notification;
 use crate::model::proof::ProofStateEnum;
 use crate::provider::task::webhook_notify::model::WebhookNotifyParams;

@@ -15,8 +15,8 @@ use crate::provider::verification_protocol::dto::PresentationDefinitionVersion;
 use crate::service::error::{BusinessLogicError, ServiceError, ValidationError};
 
 pub(crate) mod key_security;
-pub(crate) mod permissions;
-pub(crate) mod x509;
+pub mod permissions;
+pub mod x509;
 
 pub(crate) fn throw_if_org_not_matching_session(
     organisation_id: &OrganisationId,

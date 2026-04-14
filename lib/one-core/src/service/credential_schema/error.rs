@@ -2,7 +2,7 @@ use shared_types::{
     ClaimSchemaId, CredentialFormat, CredentialSchemaId, OrganisationId, RevocationMethodId,
 };
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential_schema::KeyStorageSecurity;
 
 #[derive(thiserror::Error, Debug)]

@@ -2909,6 +2909,15 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -3904,7 +3913,7 @@ dependencies = [
  "human-sort",
  "indexmap 2.12.1",
  "indoc",
- "itertools",
+ "itertools 0.14.0",
  "json-ld",
  "json-syntax",
  "jsonptr",
@@ -3916,6 +3925,7 @@ dependencies = [
  "multihash",
  "ndef-rs",
  "num-traits",
+ "one-core-asdk",
  "one-crypto",
  "one-dto-mapper",
  "ouroboros",
@@ -3961,6 +3971,43 @@ dependencies = [
  "x509-parser",
  "yasna",
  "zip 7.0.0",
+]
+
+[[package]]
+name = "one-core-asdk"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert2",
+ "async-trait",
+ "bs58",
+ "ciborium",
+ "ct-codecs",
+ "dcql",
+ "figment",
+ "hex",
+ "hex-literal",
+ "indoc",
+ "itertools 0.13.0",
+ "mime",
+ "mockall",
+ "one-crypto",
+ "one-dto-mapper",
+ "regex",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serde_yaml",
+ "shared-types",
+ "similar-asserts",
+ "standardized-types",
+ "strum 0.27.2",
+ "thiserror 2.0.17",
+ "time",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -6208,7 +6255,7 @@ dependencies = [
  "autometrics",
  "futures",
  "hex",
- "itertools",
+ "itertools 0.14.0",
  "migration",
  "mockall",
  "one-core",

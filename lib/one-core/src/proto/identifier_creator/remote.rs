@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use super::creator::IdentifierCreatorProto;
 use super::{Error, IdentifierRole};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::{
     Certificate, CertificateFilterValue, CertificateListQuery, CertificateState,
 };

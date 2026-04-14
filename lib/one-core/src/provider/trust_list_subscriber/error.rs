@@ -2,7 +2,7 @@ use shared_types::IdentifierId;
 use thiserror::Error;
 use x509_parser::error::X509Error;
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::identifier::IdentifierType;
 
 #[derive(Debug, Error)]

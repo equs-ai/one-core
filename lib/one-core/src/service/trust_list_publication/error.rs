@@ -2,7 +2,7 @@ use shared_types::{IdentifierId, TrustEntryId, TrustListPublicationId, TrustList
 use thiserror::Error;
 
 use crate::config::core_config::{IdentifierType, KeyAlgorithmType};
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::trust_list_role::TrustListRoleEnum;
 
 #[derive(Debug, Error)]

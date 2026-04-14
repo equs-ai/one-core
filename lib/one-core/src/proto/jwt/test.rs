@@ -10,7 +10,7 @@ use time::macros::datetime;
 use super::model::JWTPayload;
 use super::{Jwt, TokenError, TokenVerifier};
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ErrorCodeMixinExt;
+use one_core_asdk::error::ErrorCodeMixinExt;
 use crate::provider::credential_formatter::common::MockAuth;
 use crate::provider::credential_formatter::model::PublicKeySource;
 use crate::provider::key_algorithm::MockKeyAlgorithm;

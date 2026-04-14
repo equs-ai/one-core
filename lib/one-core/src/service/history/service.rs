@@ -3,7 +3,7 @@ use shared_types::HistoryId;
 use super::HistoryService;
 use super::dto::{CreateHistoryRequestDTO, GetHistoryListResponseDTO, HistoryResponseDTO};
 use super::error::HistoryServiceError;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::history::{History, HistoryListQuery, HistorySource};
 use crate::proto::session_provider::SessionExt;
 

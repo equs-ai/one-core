@@ -22,7 +22,7 @@ use time::format_description::well_known::Rfc3339;
 use time::macros::format_description;
 use time::{Date, Duration, OffsetDateTime};
 use uuid::Uuid;
-
+pub use one_core_asdk::provider::credential_formatter::mdoc_formatter::*;
 use self::util::{
     Bstr, DataElementValue, DateTime, DeviceKey, DeviceKeyInfo, DigestAlgorithm, DigestIDs,
     EmbeddedCbor, IssuerSigned, IssuerSignedItem, MobileSecurityObject,
@@ -35,7 +35,7 @@ use crate::config::core_config::{
     DatatypeConfig, DatatypeType, DidType, IdentifierType, IssuanceProtocolType, KeyAlgorithmType,
     KeyStorageType, RevocationType, VerificationProtocolType,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::mapper::{NESTED_CLAIM_MARKER, decode_cbor_base64, encode_cbor_base64};
 use crate::model::claim::Claim;
@@ -109,6 +109,64 @@ impl MdocFormatter {
             datatype_provider,
             key_algorithm_provider,
         }
+    }
+
+    pub async fn extract_credentials(
+        certificate_validator: &dyn CertificateValidator,
+        token: &str,
+        verify: bool,
+    ) -> Result<DetailCredential, FormatterError> {
+        let issuer_signed: IssuerSigned = decode_cbor_base64(token)?;
+        let issuer_cert = extract_certificate_from_x5chain_header(
+            certificate_validator,
+            &issuer_signed.issuer_auth,
+            verify,
+        )
+        .await?;
+        let mso = try_extract_mobile_security_object(&issuer_signed.issuer_auth)?;
+        let Some(namespaces) = issuer_signed.name_spaces else {
+            return Err(FormatterError::CouldNotExtractCredentials(
+                "IssuerSigned object is missing namespaces".to_owned(),
+            ));
+        };
+
+        let issuer_auth = &issuer_signed.issuer_auth;
+        let holder_jwk = try_extract_holder_public_key(issuer_auth)?;
+
+        if verify {
+            verify_digests(&mso, &namespaces)?;
+        }
+
+        let mut claims = extract_claims(namespaces)?;
+        claims.insert(
+            "doctype".to_string(),
+            CredentialClaim {
+                selectively_disclosable: false,
+                metadata: true,
+                value: CredentialClaimValue::String(mso.doc_type.clone()),
+            },
+        );
+
+        Ok(DetailCredential {
+            id: None,
+            issuance_date: Some(mso.validity_info.signed.into()),
+            valid_from: Some(mso.validity_info.valid_from.into()),
+            valid_until: Some(mso.validity_info.valid_until.into()),
+            update_at: mso
+                .validity_info
+                .expected_update
+                .map(|update| update.into()),
+            invalid_before: None,
+            issuer: IdentifierDetails::Certificate(issuer_cert),
+            subject: Some(IdentifierDetails::Key(holder_jwk)),
+            claims: CredentialSubject { claims, id: None },
+            status: vec![],
+            credential_schema: Some(CredentialSchema {
+                id: mso.doc_type,
+                r#type: "mdoc".to_string(),
+                metadata: None,
+            }),
+        })
     }
 }
 
@@ -265,7 +323,7 @@ impl CredentialFormatter for MdocFormatter {
         _credential_schema: Option<&'a crate::model::credential_schema::CredentialSchema>,
         _verification: VerificationFn,
     ) -> Result<DetailCredential, FormatterError> {
-        extract_credentials_internal(&*self.certificate_validator, token, true).await
+        MdocFormatter::extract_credentials(&*self.certificate_validator, token, true).await
     }
 
     async fn extract_credentials_unverified<'a>(
@@ -273,7 +331,7 @@ impl CredentialFormatter for MdocFormatter {
         token: &str,
         _credential_schema: Option<&'a crate::model::credential_schema::CredentialSchema>,
     ) -> Result<DetailCredential, FormatterError> {
-        extract_credentials_internal(&*self.certificate_validator, token, false).await
+        MdocFormatter::extract_credentials(&*self.certificate_validator, token, false).await
     }
 
     // Extract issuer_signed, keep only the claims that the verifier asked for, re-encode issuer_signed that back to the same format
@@ -537,64 +595,6 @@ impl CredentialFormatter for MdocFormatter {
     }
 }
 
-async fn extract_credentials_internal(
-    certificate_validator: &dyn CertificateValidator,
-    token: &str,
-    verify: bool,
-) -> Result<DetailCredential, FormatterError> {
-    let issuer_signed: IssuerSigned = decode_cbor_base64(token)?;
-    let issuer_cert = extract_certificate_from_x5chain_header(
-        certificate_validator,
-        &issuer_signed.issuer_auth,
-        verify,
-    )
-    .await?;
-    let mso = try_extract_mobile_security_object(&issuer_signed.issuer_auth)?;
-    let Some(namespaces) = issuer_signed.name_spaces else {
-        return Err(FormatterError::CouldNotExtractCredentials(
-            "IssuerSigned object is missing namespaces".to_owned(),
-        ));
-    };
-
-    let issuer_auth = &issuer_signed.issuer_auth;
-    let holder_jwk = try_extract_holder_public_key(issuer_auth)?;
-
-    if verify {
-        verify_digests(&mso, &namespaces)?;
-    }
-
-    let mut claims = extract_claims(namespaces)?;
-    claims.insert(
-        "doctype".to_string(),
-        CredentialClaim {
-            selectively_disclosable: false,
-            metadata: true,
-            value: CredentialClaimValue::String(mso.doc_type.clone()),
-        },
-    );
-
-    Ok(DetailCredential {
-        id: None,
-        issuance_date: Some(mso.validity_info.signed.into()),
-        valid_from: Some(mso.validity_info.valid_from.into()),
-        valid_until: Some(mso.validity_info.valid_until.into()),
-        update_at: mso
-            .validity_info
-            .expected_update
-            .map(|update| update.into()),
-        invalid_before: None,
-        issuer: IdentifierDetails::Certificate(issuer_cert),
-        subject: Some(IdentifierDetails::Key(holder_jwk)),
-        claims: CredentialSubject { claims, id: None },
-        status: vec![],
-        credential_schema: Some(CredentialSchema {
-            id: mso.doc_type,
-            r#type: "mdoc".to_string(),
-            metadata: None,
-        }),
-    })
-}
-
 fn verify_digests(
     mso: &MobileSecurityObject,
     namespaces: &Namespaces,
@@ -751,10 +751,6 @@ fn build_ciborium_value(
         }
     }
 }
-
-// full-date (ISO mDL 7.2.1)
-pub(crate) const FULL_DATE_TAG: u64 = 1004;
-pub(crate) const TDATE_TAG: u64 = 0;
 
 fn map_to_ciborium_value(
     claim: &PublishedClaim,

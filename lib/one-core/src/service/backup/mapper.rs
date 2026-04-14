@@ -2,7 +2,7 @@ use one_dto_mapper::convert_inner;
 
 use super::error::BackupServiceError;
 use crate::config::core_config::CoreConfig;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::backup::UnexportableEntities;
 use crate::service::backup::dto::UnexportableEntitiesResponseDTO;
 use crate::service::credential::dto::CredentialAttestationBlobs;

@@ -13,7 +13,7 @@ use super::utils::{
     build_metadata_file_content, create_backup_history_event, create_zip, dir_path_from_file_path,
     get_metadata_from_zip, hash_reader, load_db_from_zip,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::history::HistoryAction;
 use crate::model::organisation::OrganisationListQuery;
 use crate::repository::error::DataLayerError;

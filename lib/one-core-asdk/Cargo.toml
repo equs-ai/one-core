@@ -1,0 +1,55 @@
+[package]
+name = "one-core-asdk"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace             = true
+async-trait.workspace        = true
+bs58.workspace               = true
+ciborium                     = { version = "0.2" }
+ct-codecs.workspace          = true
+dcql                         = { version = "0.1.0", path = "../dcql" }
+figment                      = { version = "0.10", default-features = false }
+hex.workspace                = true
+hex-literal.workspace        = true
+indoc.workspace              = true
+itertools                    = { version = "0.13" }
+mime                         = { version = "0.3" }
+mockall                      = { workspace = true, optional = true }
+one-crypto                   = { path = "../one-crypto" }
+one-dto-mapper.workspace     = true
+regex.workspace              = true
+secrecy                      = { workspace = true }
+serde.workspace              = true
+serde_json.workspace         = true
+serde_with.workspace         = true
+serde_yaml                   = { version = "0.9" }
+shared-types                 = { path = "../shared-types" }
+standardized-types.workspace = true
+strum.workspace              = true
+thiserror.workspace          = true
+time.workspace               = true
+tracing.workspace            = true
+tokio                        = { workspace = true, features = ["macros"] }
+uuid                         = { workspace = true, features = ["serde"] }
+
+[dev-dependencies]
+assert2                   = { version = "0.3" }
+mockall.workspace         = true
+one-crypto                = { version = "0.1.0", path = "../one-crypto", features = ["mock"] }
+tokio                     = { workspace = true, features = ["rt-multi-thread", "macros"] }
+similar-asserts.workspace = true
+
+[features]
+config_env  = ["figment/env"]
+config_json = ["figment/json"]
+config_yaml = ["figment/yaml"]
+default     = ["config_yaml"]
+test-utils  = []
+mock        = ["mockall", "one-crypto/mock"]
+
+[lints]
+workspace = true

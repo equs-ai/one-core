@@ -3,7 +3,7 @@ use one_dto_mapper::convert_inner;
 use shared_types::BlobId;
 use uuid::Uuid;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::encode_cbor_base64;
 use crate::mapper::openid4vp::credential_from_proved;
 use crate::model::common::LockType;

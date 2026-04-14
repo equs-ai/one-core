@@ -17,7 +17,7 @@ use strum::Display;
 use thiserror::Error;
 use time::OffsetDateTime;
 
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::remote_entity_cache::RemoteEntityCacheEntry;
 
 pub mod db_storage;

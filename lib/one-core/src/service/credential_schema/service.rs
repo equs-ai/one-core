@@ -10,7 +10,7 @@ use super::dto::{
 use super::error::CredentialSchemaServiceError;
 use super::mapper::from_create_request_with_id;
 use super::validator::UniquenessCheckResult;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::credential_schema_claim::claim_schema_from_metadata_claim_schema;
 use crate::mapper::list_response_into;
 use crate::model::claim_schema::ClaimSchemaRelations;

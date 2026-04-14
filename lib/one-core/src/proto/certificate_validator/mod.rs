@@ -4,16 +4,19 @@ use std::sync::Arc;
 use time::Duration;
 use x509_parser::certificate::X509Certificate;
 
+use crate::config::core_config::KeyAlgorithmType;
 use crate::config::core_config::{CacheEntityCacheType, CacheEntityConfig, CoreConfig};
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::proto::clock::{Clock, DefaultClock};
 use crate::proto::http_client::HttpClient;
+use crate::proto::http_client::reqwest_client::ReqwestClient;
 use crate::provider::caching_loader::android_attestation_crl::{
     AndroidAttestationCrlCache, AndroidAttestationCrlResolver,
 };
 use crate::provider::caching_loader::x509_crl::{X509CrlCache, X509CrlResolver};
+use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::key::KeyHandle;
-use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
+use crate::provider::key_algorithm::provider::{KeyAlgorithmProvider, KeyAlgorithmProviderImpl};
 use crate::provider::remote_entity_storage::RemoteEntityStorage;
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
@@ -28,7 +31,7 @@ pub(crate) mod x509_extension;
 mod test;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
+pub enum Error {
     #[error("No certificates specified in the chain")]
     EmptyChain,
     #[error("Unsupported algorithm: `{0}`")]
@@ -98,7 +101,7 @@ impl ErrorCodeMixin for Error {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
-pub(crate) trait CertificateValidator: Send + Sync {
+pub trait CertificateValidator: Send + Sync {
     /// Extract leaf certificate_validator from the provided PEM chain
     /// Optionally validate the chain depending on the options
     async fn parse_pem_chain(
@@ -148,9 +151,9 @@ pub enum EnforceKeyUsage {
     CRLSign,
 }
 
-pub(crate) type LeafValidation = fn(&X509Certificate) -> Result<(), Error>;
+pub type LeafValidation = fn(&X509Certificate) -> Result<(), Error>;
 
-pub(crate) struct CertificateValidationOptions {
+pub struct CertificateValidationOptions {
     /// will fail if the chain is not complete
     pub require_root_termination: bool,
     /// will fail if the CA path-len limits are violated, a signature doesn't match, or an unknown critical extension is used
@@ -235,6 +238,50 @@ impl CertificateValidatorImpl {
             clock_leeway,
             android_attestation_crl_cache,
         }
+    }
+}
+
+impl Default for CertificateValidatorImpl {
+    fn default() -> Self {
+        let key_algorithm_provider = Arc::new(KeyAlgorithmProviderImpl::new(
+            HashMap::from_iter(vec![
+                (
+                    KeyAlgorithmType::Eddsa,
+                    Arc::new(crate::provider::key_algorithm::eddsa::Eddsa) as Arc<dyn KeyAlgorithm>,
+                ),
+                (
+                    KeyAlgorithmType::Ecdsa,
+                    Arc::new(crate::provider::key_algorithm::ecdsa::Ecdsa) as Arc<dyn KeyAlgorithm>,
+                ),
+            ]),
+            Default::default(),
+        ));
+
+        let crl_cache = Arc::new(X509CrlCache::new(
+            Arc::new(X509CrlResolver::new(Some(Arc::new(ReqwestClient::default())))),
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            100,
+            Duration::hours(1),
+            Duration::hours(1),
+        ));
+
+        let android_key_attestation_crl_cache = Arc::new(AndroidAttestationCrlCache::new(
+            Arc::new(AndroidAttestationCrlResolver::new(Arc::new(
+                ReqwestClient::default(),
+            ))),
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            1,
+            Duration::hours(1),
+            Duration::hours(1),
+        ));
+
+        CertificateValidatorImpl::new(
+            key_algorithm_provider.clone(),
+            crl_cache,
+            Arc::new(DefaultClock),
+            Duration::minutes(1),
+            android_key_attestation_crl_cache,
+        )
     }
 }
 

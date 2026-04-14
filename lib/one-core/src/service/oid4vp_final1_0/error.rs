@@ -1,7 +1,7 @@
 use shared_types::{InteractionId, ProofId};
 use thiserror::Error;
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 
 #[derive(Debug, Error)]

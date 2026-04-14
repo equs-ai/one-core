@@ -3,7 +3,7 @@ use url::Url;
 
 use super::JWTFormatter;
 use super::model::{TokenStatusListContent, TokenStatusListSubject, VcClaim};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::certificate::CertificateState;
 use crate::model::identifier::{Identifier, IdentifierType};

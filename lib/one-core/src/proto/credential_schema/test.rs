@@ -7,7 +7,7 @@ use similar_asserts::assert_eq;
 use uuid::Uuid;
 
 use crate::config::core_config::CoreConfig;
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{
     CredentialSchema, GetCredentialSchemaList, KeyStorageSecurity, LayoutType, TransactionCodeType,

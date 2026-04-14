@@ -4,7 +4,7 @@ use shared_types::DidValue;
 use url::Url;
 
 use crate::config::core_config::{TransportType, VerificationProtocolType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::interaction::UpdateInteractionRequest;
 use crate::model::organisation::Organisation;
 use crate::proto::identifier_creator::{IdentifierCreator, IdentifierRole};

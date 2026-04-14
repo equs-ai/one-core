@@ -5,7 +5,7 @@ use shared_types::{KeyId, OrganisationId, TrustCollectionId};
 
 use super::dto::{HolderWalletUnitResponseDTO, TrustCollectionInfoDTO};
 use super::error::HolderWalletUnitError;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::holder_wallet_unit::HolderWalletUnit;
 use crate::model::key::Key;
 use crate::model::list_filter::ListFilterValue;

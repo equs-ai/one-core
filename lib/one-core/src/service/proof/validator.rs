@@ -8,7 +8,7 @@ use crate::config::core_config::{
     CoreConfig, IdentifierType, VerificationEngagement, VerificationEngagementConfig,
     VerificationProtocolConfig, VerificationProtocolType,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::did::{Did, KeyRole};
 use crate::model::key::Key;
 use crate::model::proof::ProofStateEnum::Requested;

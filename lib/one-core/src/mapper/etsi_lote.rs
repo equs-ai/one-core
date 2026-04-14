@@ -1,6 +1,6 @@
 use standardized_types::etsi_119_602::LoTEType;
 
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::trust_list_role::TrustListRoleEnum;
 
 impl TryFrom<LoTEType> for TrustListRoleEnum {

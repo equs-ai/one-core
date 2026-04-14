@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::config;
 use crate::config::core_config::{CoreConfig, Fields, KeyAlgorithmType, Params};
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;

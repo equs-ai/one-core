@@ -22,7 +22,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::key::{Key, PrivateJwkExt};
 use crate::proto::http_client::HttpClient;
 use crate::provider::key_algorithm::ecdsa::{

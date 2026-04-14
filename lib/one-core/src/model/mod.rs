@@ -1,8 +1,8 @@
+pub use one_core_asdk::model::*;
 pub mod backup;
 pub mod blob;
 pub mod certificate;
 pub mod claim;
-pub mod claim_schema;
 pub mod common;
 pub mod credential;
 pub mod credential_schema;
@@ -12,8 +12,6 @@ pub mod holder_wallet_unit;
 pub mod identifier;
 pub mod interaction;
 pub mod key;
-pub mod list_filter;
-pub mod list_query;
 pub mod notification;
 pub mod organisation;
 pub mod proof;

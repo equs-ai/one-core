@@ -13,7 +13,7 @@ use super::{
     Error, ParsedCertificate, x509_extension,
 };
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::{authority_key_identifier, subject_key_identifier};
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::key::KeyHandle;
@@ -121,8 +121,8 @@ impl CertificateValidatorImpl {
 
             if let Some(crl_mode) = validation.validity_check {
                 self.check_validity_with_leeway(current, self.clock_leeway)?;
-
-                self.check_revocation(current, chain.peek().copied(), crl_mode)
+                self
+                    .check_revocation(current, chain.peek().copied(), crl_mode)
                     .await?;
             }
 

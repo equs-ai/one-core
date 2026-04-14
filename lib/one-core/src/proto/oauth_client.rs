@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
 
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::proto::http_client::HttpClient;
 use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
     OAuthAuthorizationServerMetadata, OAuthCodeChallengeMethod,

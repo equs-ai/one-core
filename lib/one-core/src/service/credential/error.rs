@@ -1,7 +1,7 @@
 use shared_types::{ClaimSchemaId, CredentialId, CredentialSchemaId, DidId, IdentifierId};
 
 use crate::config::ConfigValidationError;
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential::CredentialStateEnum;
 use crate::model::identifier::IdentifierType;
 

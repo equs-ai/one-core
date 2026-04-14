@@ -1,11 +1,12 @@
-use one_dto_mapper::{From, Into};
-use serde::{Deserialize, Serialize};
+use one_core_asdk::model::common::GetListQueryParams;
+use one_dto_mapper::Into;
 use shared_types::OrganisationId;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::model::common::{GetListQueryParams, GetListResponse};
-use crate::model::key::{Key, SortableKeyColumn};
+use one_core_asdk::model::key::SortableKeyColumn;
+
+pub use one_core_asdk::service::key::dto::*;
 
 pub struct KeyRequestDTO {
     pub organisation_id: OrganisationId,
@@ -29,23 +30,9 @@ pub struct KeyResponseDTO {
     pub is_remote: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, From)]
-#[from(Key)]
-pub struct KeyListItemResponseDTO {
-    pub id: Uuid,
-    #[serde(with = "time::serde::rfc3339")]
-    pub created_date: OffsetDateTime,
-    #[serde(with = "time::serde::rfc3339")]
-    pub last_modified: OffsetDateTime,
-    pub name: String,
-    pub public_key: Vec<u8>,
-    pub key_type: String,
-    pub storage_type: String,
-    #[from(rename = "key_reference", with_fn_ref = "Option::is_none")]
-    pub is_remote: bool,
-}
+/// KeyListItemResponseDTO is moved to one-core-asdk
+/// GetKeyListResponseDTO is moved to one-core-asdk
 
-pub type GetKeyListResponseDTO = GetListResponse<KeyListItemResponseDTO>;
 pub type GetKeyQueryDTO = GetListQueryParams<SortableKeyColumn>;
 
 #[derive(Debug, Clone, Into)]

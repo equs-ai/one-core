@@ -13,7 +13,7 @@ use super::dto::{
     ImportCredentialSchemaLayoutPropertiesDTO, ImportCredentialSchemaRequestDTO,
 };
 use crate::config::core_config::{ConfigExt, CoreConfig, DatatypeType, FormatType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{
@@ -544,7 +544,7 @@ mod test {
     use crate::config::core_config::{
         ConfigEntryDisplay, CoreConfig, DatatypeType, Fields, FormatType, RevocationType,
     };
-    use crate::error::{ErrorCode, ErrorCodeMixin};
+    use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
     use crate::model::claim_schema::ClaimSchema;
     use crate::model::credential_schema::CodeTypeEnum;
     use crate::proto::credential_schema::dto::{

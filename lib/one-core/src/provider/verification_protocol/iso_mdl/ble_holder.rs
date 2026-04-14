@@ -16,8 +16,8 @@ use super::common::{
 use super::device_engagement::DeviceEngagement;
 use super::session::{Command, SessionData, SessionEstablishment, StatusCode};
 use crate::config::core_config::VerificationEngagement;
-use crate::error::ErrorCode::BR_0000;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_asdk::error::ErrorCode::BR_0000;
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::interaction::Interaction;
 use crate::model::proof::{ProofStateEnum, UpdateProofRequest};

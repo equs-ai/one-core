@@ -8,7 +8,7 @@ use super::jwt::Jwt;
 use super::jwt::model::{JWTHeader, JWTPayload};
 use super::key_verification::KeyVerification;
 use crate::KeyProvider;
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::did::KeyRole;
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::provider::credential_formatter::model::VerificationFn;

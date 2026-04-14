@@ -3,7 +3,7 @@ use std::sync::Arc;
 use shared_types::{CredentialId, NotificationId, OrganisationId, ProofId, TaskId};
 
 use crate::config::core_config::CoreConfig;
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential::CredentialStateEnum;
 use crate::model::proof::ProofStateEnum;
 use crate::proto::notification_sender::NotificationSender;

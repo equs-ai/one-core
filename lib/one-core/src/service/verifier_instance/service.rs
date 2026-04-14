@@ -12,7 +12,7 @@ use super::dto::{
     RegisterVerifierInstanceResponseDTO,
 };
 use super::error::VerifierInstanceServiceError;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::verifier_instance::{VerifierInstance, VerifierInstanceRelations};
 use crate::proto::session_provider::SessionExt;

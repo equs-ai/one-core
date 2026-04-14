@@ -11,7 +11,7 @@ use time::Duration;
 use x509_parser::pem::Pem;
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::proto::certificate_validator::{
     CertSelection, CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl,
     CrlMode,

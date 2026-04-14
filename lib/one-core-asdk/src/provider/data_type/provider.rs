@@ -193,7 +193,7 @@ impl DataTypeProvider for DataTypeProviderImpl {
     }
 }
 
-pub(crate) fn data_type_provider_from_config(
+pub fn data_type_provider_from_config(
     config: &mut CoreConfig,
 ) -> Result<Arc<dyn DataTypeProvider>, ConfigValidationError> {
     let mut data_type_provider = vec![];

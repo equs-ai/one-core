@@ -14,7 +14,7 @@ use super::mapper::{encrypted_params, unencrypted_params};
 use crate::config::core_config::{
     CoreConfig, DidType, IdentifierType, TransportType, VerificationProtocolType,
 };
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::interaction::Interaction;
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofStateEnum, UpdateProofRequest};

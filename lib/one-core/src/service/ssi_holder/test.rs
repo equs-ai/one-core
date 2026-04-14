@@ -17,7 +17,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use crate::config::core_config;
 use crate::config::core_config::TransportType;
-use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum};

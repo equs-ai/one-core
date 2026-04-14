@@ -4,7 +4,7 @@ use super::dto::{NoncePayload, WalletProviderParams};
 use super::error::WalletProviderError;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, RevocationType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::organisation::Organisation;
 use crate::proto::jwt::model::DecomposedJwt;
 use crate::validator::{

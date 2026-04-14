@@ -9,7 +9,7 @@ use super::dto::{
     UpdateTrustEntityActionFromDidRequestDTO, UpdateTrustEntityFromDidRequestDTO,
 };
 use super::error::TrustEntityServiceError;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::did::{Did, DidRelations};
 use crate::model::identifier::IdentifierRelations;
 use crate::model::key::KeyRelations;

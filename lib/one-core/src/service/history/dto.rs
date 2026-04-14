@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use shared_types::{EntityId, HistoryId, OrganisationId};
 use time::OffsetDateTime;
 
-use crate::error::ErrorCode;
+use one_core_asdk::error::ErrorCode;
 use crate::model::common::GetListResponse;
 use crate::model::history::{
     History, HistoryAction, HistoryEntityType, HistoryErrorMetadata, HistoryMetadata, HistorySource,

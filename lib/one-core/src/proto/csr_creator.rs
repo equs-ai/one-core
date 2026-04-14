@@ -1,13 +1,12 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use error::ErrorCode;
+use one_core_asdk::error::ErrorCode;
 use rcgen::{CertificateParams, CustomExtension, DistinguishedName, DnType, KeyUsagePurpose};
 use yasna::models::ObjectIdentifier;
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin, NestedError};
 use crate::mapper::x509::SigningKeyAdapter;
 use crate::model::key::Key;
 use crate::provider::key_algorithm::model::Features;

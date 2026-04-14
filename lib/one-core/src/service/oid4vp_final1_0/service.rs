@@ -12,8 +12,8 @@ use super::proof_request::{
     generate_authorization_request_params_final1_0, select_key_agreement_key_from_proof,
 };
 use crate::config::core_config::VerificationProtocolType;
-use crate::error::ContextWithErrorCode;
-use crate::error::ErrorCode::BR_0000;
+use one_core_asdk::error::ContextWithErrorCode;
+use one_core_asdk::error::ErrorCode::BR_0000;
 use crate::model::blob::{Blob, BlobType};
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim_schema::ClaimSchemaRelations;

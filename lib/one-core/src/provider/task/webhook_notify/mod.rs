@@ -6,7 +6,7 @@ use shared_types::TaskId;
 
 use self::dto::WebhookNotificationResultDTO;
 use super::Task;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::common::SortDirection;
 use crate::model::list_filter::{ComparisonType, ListFilterValue, ValueComparison};
 use crate::model::list_query::ListSorting;

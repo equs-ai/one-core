@@ -8,7 +8,7 @@ use super::Error;
 use super::creator::IdentifierCreatorProto;
 use crate::config::core_config::SignerType;
 use crate::config::validator::did::validate_did_method;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::{Certificate, CertificateRelations, CertificateState};
 use crate::model::did::Did;
 use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierState, IdentifierType};

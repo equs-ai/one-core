@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use shared_types::{CredentialFormat, CredentialSchemaId, RevocationMethodId};
 use strum::Display;
+use shared_types::{CredentialFormat, CredentialSchemaId, RevocationMethodId};
 use time::OffsetDateTime;
 
 use super::claim_schema::{ClaimSchema, ClaimSchemaRelations};
@@ -13,6 +13,8 @@ use super::organisation::{Organisation, OrganisationRelations};
 use crate::service::credential_schema::dto::{
     CredentialSchemaFilterValue, CredentialSchemaListIncludeEntityTypeEnum,
 };
+
+pub use one_core_asdk::model::credential_schema::*;
 
 pub type CredentialSchemaName = String;
 
@@ -83,16 +85,7 @@ pub enum LayoutType {
     SingleAttribute,
 }
 
-#[derive(
-    Clone, Copy, Debug, Eq, Serialize, Deserialize, PartialEq, Display, Hash, PartialOrd, Ord,
-)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum KeyStorageSecurity {
-    High,
-    Moderate,
-    EnhancedBasic,
-    Basic,
-}
+/// KeyStorageSecurity is moved to one-core-asdk
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TransactionCode {

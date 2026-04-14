@@ -9,7 +9,7 @@ use shared_types::KeyId;
 use standardized_types::jwk::PrivateJwk;
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::params::deserialize_encryption_key;
 use crate::model::key::{Key, PrivateJwkExt};
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;

@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::error::OID4VCIFinal1_0ServiceError;
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::{DecomposedJwt, JWTPayload};
 use crate::provider::credential_formatter::error::FormatterError;

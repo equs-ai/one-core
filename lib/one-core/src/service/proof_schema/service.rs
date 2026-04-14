@@ -20,7 +20,7 @@ use super::validator::{
     throw_if_invalid_credential_combination, validate_create_request,
     validate_imported_proof_schema,
 };
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_into;
 use crate::model::claim_schema::ClaimSchemaRelations;
 use crate::model::credential_schema::{

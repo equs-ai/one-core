@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use self::dto::InteractionExpirationCheckResultDTO;
 use super::Task;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialRelations, CredentialRole};
 use crate::model::credential_schema::CredentialSchemaRelations;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};

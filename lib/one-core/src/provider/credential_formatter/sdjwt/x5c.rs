@@ -2,7 +2,7 @@ use serde::Deserialize;
 use standardized_types::jwk::PublicJwk;
 use url::Url;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::http_client::HttpClient;
 use crate::provider::credential_formatter::error::FormatterError;
 

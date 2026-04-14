@@ -4,7 +4,7 @@ use super::NfcService;
 use super::dto::NfcScanRequestDTO;
 use super::error::NfcServiceError;
 use crate::config::core_config::VerificationEngagement;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::nfc::NfcError;
 use crate::proto::nfc::apdu::Response;
 use crate::proto::nfc::command::KnownCommand;

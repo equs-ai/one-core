@@ -4,7 +4,7 @@ use one_crypto::SignerError;
 use one_crypto::encryption::EncryptionError;
 use thiserror::Error;
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::provider::key_storage::model::Features;
 
 #[derive(Debug, Error)]

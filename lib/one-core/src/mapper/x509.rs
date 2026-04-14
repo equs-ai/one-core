@@ -1,5 +1,5 @@
 use std::sync::Arc;
-
+use anyhow::Context;
 use ct_codecs::{Base64, Decoder, Encoder};
 use one_crypto::signer::ecdsa::ECDSASigner;
 use standardized_types::x509::AuthorityKeyIdentifier;
@@ -11,11 +11,11 @@ use x509_parser::oid_registry::{
 use x509_parser::pem::Pem;
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::key::Key;
 use crate::provider::key_storage::KeyStorage;
 
-pub(crate) fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, CertificateParsingError> {
+pub fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, CertificateParsingError> {
     Pem::iter_from_buffer(pem_chain.as_bytes())
         .map(|pem| {
             let encoded = Base64::encode_to_string(pem?.contents)?;
@@ -24,8 +24,22 @@ pub(crate) fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, Certifi
         .collect()
 }
 
+pub fn last_cert_authority_key_identifier_from_pem_chain(pem_chain: &str) -> anyhow::Result<String> {
+    let pem = Pem::iter_from_buffer(pem_chain.as_bytes())
+        .last()
+        .context("failed to parse x509 certificate from pem chain")??;
+
+    let cert = pem
+        .parse_x509()
+        .context("failed to parse x509 certificate")?;
+
+    authority_key_identifier(&cert)
+        .context("failed to get Authority Key Identifier (AKI)")?
+        .ok_or_else(|| anyhow::Error::msg("missing Authority Key Identifier(AKI) of certificate"))
+}
+
 /// For each certificate in the chain, retrieve the authority key identifier.
-pub(crate) fn pem_chain_to_authority_key_identifiers(
+pub fn pem_chain_to_authority_key_identifiers(
     pem_chain: &str,
 ) -> Result<Vec<String>, CertificateParsingError> {
     Pem::iter_from_buffer(pem_chain.as_bytes())
@@ -41,7 +55,7 @@ pub(crate) fn pem_chain_to_authority_key_identifiers(
         .collect()
 }
 
-pub(crate) fn x5c_into_pem_chain(x5c: &[String]) -> Result<String, CertificateParsingError> {
+pub fn x5c_into_pem_chain(x5c: &[String]) -> Result<String, CertificateParsingError> {
     let der_chain = x5c.iter().try_fold(Vec::new(), |mut aggr, item| {
         aggr.push(Base64::decode_to_vec(item, None)?);
         Ok::<_, CertificateParsingError>(aggr)
@@ -49,7 +63,7 @@ pub(crate) fn x5c_into_pem_chain(x5c: &[String]) -> Result<String, CertificatePa
     Ok(der_chain_into_pem_chain(der_chain))
 }
 
-pub(crate) fn der_chain_into_pem_chain(der_chain: Vec<Vec<u8>>) -> String {
+pub fn der_chain_into_pem_chain(der_chain: Vec<Vec<u8>>) -> String {
     use pem::{EncodeConfig, LineEnding, Pem, encode_many_config};
     let pems = der_chain
         .into_iter()
@@ -84,9 +98,7 @@ impl ErrorCodeMixin for CertificateParsingError {
     }
 }
 
-pub(crate) fn subject_key_identifier(
-    cert: &X509Certificate,
-) -> Result<Option<String>, CertificateParsingError> {
+pub fn subject_key_identifier(cert: &X509Certificate) -> Result<Option<String>, CertificateParsingError> {
     Ok(cert
         .get_extension_unique(&OID_X509_EXT_SUBJECT_KEY_IDENTIFIER)?
         .map(|ext| ext.parsed_extension())
@@ -98,7 +110,7 @@ pub(crate) fn subject_key_identifier(
         .map(|key_id| format!("{key_id:x}")))
 }
 
-pub(crate) fn authority_key_identifier(
+pub fn authority_key_identifier(
     cert: &X509Certificate,
 ) -> Result<Option<String>, CertificateParsingError> {
     Ok(cert

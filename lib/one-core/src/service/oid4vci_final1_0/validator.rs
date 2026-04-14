@@ -5,7 +5,7 @@ use standardized_types::jwk::PublicJwk;
 use super::error::OID4VCIFinal1_0ServiceError;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, IssuanceProtocolType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential_schema::CredentialSchema;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::DecomposedJwt;

@@ -18,7 +18,7 @@ use super::dto::{
 use super::error::HolderWalletUnitError;
 use super::mapper::{key_from_generated_key, prepare_trust_collection_info};
 use crate::config::core_config::{KeyAlgorithmType, KeyStorageType};
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::holder_wallet_unit::{
     CreateHolderWalletUnitRequest, HolderWalletUnitRelations, UpdateHolderWalletUnitRequest,

@@ -10,7 +10,7 @@ use strum::Display;
 
 use crate::config::core_config;
 use crate::config::core_config::BlobStorageConfig;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::blob::{Blob, UpdateBlobRequest};
 use crate::provider::blob_storage_provider::error::BlobStorageError;
 use crate::repository::blob_repository::BlobRepository;

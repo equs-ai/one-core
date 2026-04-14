@@ -4,7 +4,7 @@ use dto::{ProviderTrustCollectionDTO, VerifierProviderMetadataResponseDTO};
 use error::VerifierProviderError;
 use mapper::params_into_display_names;
 
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::provider::verifier::provider::VerifierProvider;

@@ -4,7 +4,7 @@ use json_ld::{BlankIdBuf, JsonLdProcessor, Loader, RemoteDocument, rdf_types};
 use sophia_api::quad::Spog;
 
 use super::skolemize::to_deskolemized_nquads;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::util::rdf_canonization::TermAdapter;
 

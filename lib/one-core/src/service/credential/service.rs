@@ -18,7 +18,7 @@ use super::validator::{
     validate_redirect_uri, validate_webhook_url,
 };
 use crate::config::validator::protocol::validate_protocol_did_compatibility;
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_try_into;
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::ClaimRelations;

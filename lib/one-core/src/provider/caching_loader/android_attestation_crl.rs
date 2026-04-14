@@ -6,7 +6,7 @@ use serde_with::skip_serializing_none;
 use time::{Duration, OffsetDateTime};
 
 use super::{CacheError, CachingLoader, ResolveResult, Resolver, ResolverError};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::http_client::HttpClient;
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 

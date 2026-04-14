@@ -1,6 +1,6 @@
 use super::{JsonLdBbsplus, data_integrity};
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::VerificationFn;
 use crate::provider::credential_formatter::vcdm::VcdmCredential;

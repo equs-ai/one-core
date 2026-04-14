@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use super::error::FormatterError;
 use super::model::{CredentialClaim, CredentialClaimValue};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;

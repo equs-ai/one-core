@@ -2,7 +2,7 @@ use shared_types::{
     DidId, DidValue, IdentifierId, OrganisationId, TrustAnchorId, TrustEntityId, TrustEntityKey,
 };
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::provider::trust_management::error::TrustManagementError;
 
 #[derive(thiserror::Error, Debug)]

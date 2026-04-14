@@ -7,7 +7,7 @@ use shared_types::CredentialId;
 use uuid::Uuid;
 
 use super::Task;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::claim::ClaimRelations;
 use crate::model::credential::{CredentialFilterValue, CredentialRelations, GetCredentialQuery};
 use crate::model::history::{HistoryAction, HistoryEntityType, HistoryFilterValue};

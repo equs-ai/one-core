@@ -4,7 +4,7 @@ use one_crypto::encryption::EncryptionError;
 use shared_types::{CredentialId, CredentialSchemaId, RevocationMethodId};
 
 use crate::config::core_config::{CoreConfig, FormatType};
-use crate::error::{
+use one_core_asdk::error::{
     ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt, NestedError,
 };
 use crate::model::certificate::CertificateRelations;

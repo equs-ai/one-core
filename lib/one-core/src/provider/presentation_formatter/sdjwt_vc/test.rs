@@ -147,6 +147,7 @@ async fn test_extract_presentation() {
                 response_uri: None,
                 mdoc_session_transcript: None,
                 verifier_key: None,
+                trusted_certs_skids: None,
             },
         )
         .await;
@@ -269,6 +270,7 @@ async fn test_extract_presentation_with_holder_binding() {
                 response_uri: None,
                 mdoc_session_transcript: None,
                 verifier_key: None,
+                trusted_certs_skids: None,
             },
         )
         .await;
@@ -382,6 +384,7 @@ async fn test_extract_presentation_with_wrong_nonce() {
                 response_uri: None,
                 mdoc_session_transcript: None,
                 verifier_key: None,
+                trusted_certs_skids: None,
             },
         )
         .await;

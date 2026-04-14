@@ -6,7 +6,7 @@ use shared_types::Permission;
 use uuid::Uuid;
 
 use crate::config::core_config::{IdentifierType, KeyAlgorithmType, RevocationType};
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::session_provider::SessionProvider;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::RevocationMethod;

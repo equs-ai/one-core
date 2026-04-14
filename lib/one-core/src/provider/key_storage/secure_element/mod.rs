@@ -7,7 +7,7 @@ use shared_types::KeyId;
 use standardized_types::jwk::{PrivateJwk, PublicJwk};
 
 use crate::config::core_config::KeyAlgorithmType;
-use crate::error::ContextWithErrorCode;
+use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::key_algorithm::ecdsa::{
     ecdsa_public_key_as_jwk, ecdsa_public_key_as_multibase,
