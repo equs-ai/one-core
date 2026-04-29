@@ -1,4 +1,4 @@
-use ml_dsa::signature::{Signer as MlDsaSignerTrait, Verifier};
+use ml_dsa::signature::{Keypair, Signer as MlDsaSignerTrait, Verifier};
 use ml_dsa::{
     B32, EncodedSignature, EncodedVerifyingKey, KeyGen, MlDsa65, Signature, VerifyingKey,
 };
