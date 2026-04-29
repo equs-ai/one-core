@@ -189,7 +189,7 @@ async fn test_parse_credential() {
         "VerifiableCredential",
         "8761JsonLd"
       ],
-      "issuer": "did:tdw:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7",
+      "issuer": "did:webvh:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7",
       "validFrom": "2026-02-19T09:18:33.007487222Z",
       "validUntil": "2028-02-19T09:18:33.007487222Z",
       "credentialSubject": {
@@ -207,7 +207,7 @@ async fn test_parse_credential() {
         "type": "DataIntegrityProof",
         "created": "2026-02-19T09:18:33.007490458Z",
         "cryptosuite": "ecdsa-rdfc-2019",
-        "verificationMethod": "did:tdw:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7#key-7ec02a62-d61d-4838-b8e0-0c99ad1d6079",
+        "verificationMethod": "did:webvh:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7#key-7ec02a62-d61d-4838-b8e0-0c99ad1d6079",
         "proofPurpose": "assertionMethod",
         "proofValue": "z2sToy5rhNkV8WPGA8FfxDkYWyK5vR4etvSdWj3WPCbXpTYcQBUcgY6Xur6935Ks5VHHSASQyJhdketMmbpbeyJDu"
       },
@@ -276,7 +276,7 @@ async fn test_parse_credential() {
     let issuer = credential.issuer_identifier.as_ref().unwrap();
     assert_eq!(
         issuer.did.as_ref().unwrap().did.to_string(),
-        "did:tdw:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7"
+        "did:webvh:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7"
     );
 
     let holder = credential.holder_identifier.as_ref().unwrap();

@@ -75,7 +75,7 @@ struct TransformedDid<'a> {
 
 // https://identity.foundation/didwebvh/v0.3/#the-did-to-https-transformation
 fn transform_did_to_https(did: &str) -> Result<TransformedDid<'_>, DidMethodError> {
-    const METHOD_PREFIX: &str = "did:tdw:";
+    const METHOD_PREFIX: &str = "did:webvh:";
 
     let Some(did_suffix) = did.strip_prefix(METHOD_PREFIX) else {
         return Err(DidMethodError::ResolutionError(format!(
@@ -157,19 +157,19 @@ mod test {
     fn test_transform_did_webvh_to_https() {
         for (did, expected) in [
             (
-                "did:tdw:{SCID}:example.com",
+                "did:webvh:{SCID}:example.com",
                 "https://example.com/.well-known/did.jsonl",
             ),
             (
-                "did:tdw:{SCID}:issuer.example.com",
+                "did:webvh:{SCID}:issuer.example.com",
                 "https://issuer.example.com/.well-known/did.jsonl",
             ),
             (
-                "did:tdw:{SCID}:example.com:dids:issuer",
+                "did:webvh:{SCID}:example.com:dids:issuer",
                 "https://example.com/dids/issuer/did.jsonl",
             ),
             (
-                "did:tdw:{SCID}:example.com%3A3000:dids:issuer",
+                "did:webvh:{SCID}:example.com%3A3000:dids:issuer",
                 "https://example.com:3000/dids/issuer/did.jsonl",
             ),
         ] {
@@ -187,12 +187,12 @@ mod test {
                 { "prerotation":true,
                   "updateKeys": ["z82LkvR3CBNkb9tUVps4GhGpNvEVP6vWzdwgGwQbA1iYoZwd7m1F1hSvkJFSe6sWci7JiXc"],
                   "nextKeyHashes": ["QmcbM5bppyT4yyaL35TQQJ2XdSrSNAhH5t6f4ZcuyR4VSv"],
-                  "method":"did:tdw:0.3",
+                  "method":"did:webvh:0.3",
                   "scid":"Qma6mc1qZw3NqxwX6SB5GPQYzP4pGN2nXD15Jwi4bcDBKu"
                 },
                 { "value": {
                     "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
-                    "id": "did:tdw:Qma6mc1qZw3NqxwX6SB5GPQYzP4pGN2nXD15Jwi4bcDBKu:domain.example"
+                    "id": "did:webvh:Qma6mc1qZw3NqxwX6SB5GPQYzP4pGN2nXD15Jwi4bcDBKu:domain.example"
                   }
                 },
                 [{
@@ -237,7 +237,7 @@ mod test {
                     "https://www.w3.org/ns/did/v1",
                     "https://w3id.org/security/multikey/v1"
                 ]),
-                id: "did:tdw:Qma6mc1qZw3NqxwX6SB5GPQYzP4pGN2nXD15Jwi4bcDBKu:domain.example"
+                id: "did:webvh:Qma6mc1qZw3NqxwX6SB5GPQYzP4pGN2nXD15Jwi4bcDBKu:domain.example"
                     .parse()
                     .unwrap(),
                 verification_method: vec![],
@@ -274,7 +274,7 @@ mod test {
         let did_method_provider = test_did_method_provider();
 
         let did_log = include_str!("test_data/success/did_long_log.jsonl");
-        let did: DidValue = "did:tdw:QmRXEKqsStiagD4DBZG1gwrtpoNfxSUwHd8vxQMBytR5zW:example.com"
+        let did: DidValue = "did:webvh:Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9:example.com"
             .parse()
             .unwrap();
         let url = "https://example.com/.well-known/did.jsonl";
@@ -343,7 +343,7 @@ mod test {
         let did_method_provider = test_did_method_provider();
 
         let did_log = include_str!("test_data/success/did_long_log.jsonl");
-        let did: DidValue = "did:tdw:QmRXEKqsStiagD4DBZG1gwrtpoNfxSUwHd8vxQMBytR5zW:example.com"
+        let did: DidValue = "did:webvh:Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9:example.com"
             .parse()
             .unwrap();
         let url = "https://example.com/.well-known/did.jsonl";
@@ -406,7 +406,7 @@ mod test {
 
         // did value with different domain (compared to what's listed in the document / log)
         let mismatched_did =
-            "did:tdw:QmRXEKqsStiagD4DBZG1gwrtpoNfxSUwHd8vxQMBytR5zW:evil-example.com"
+            "did:webvh:Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9:evil-example.com"
                 .parse()
                 .unwrap();
         let document = resolve(
@@ -444,15 +444,15 @@ mod test {
     #[tokio::test]
     async fn test_didwebvh_failure() {
         let expected_errors = hashmap! {
-            "entry_hash_mismatch.jsonl" => ResolutionError("Entry hash mismatch, expected QmQikVGn3cLzaQ8PwqS4KNXtrfCr9Rbf5kTz9ayWXDAZZo, got QmVdZgk73vwTHX7wbNd7bd6jcMZeae88gxCuNqwMTT6PCQ.".to_owned()),
+            "entry_hash_mismatch.jsonl" => ResolutionError("Entry hash mismatch, expected QmZKUb9sQtZZnVoPBmuWH78697R2ryMkx4Fnqyi85mdkYd, got QmXVv8BrCY9EYBfLhVXgLy7osRRPxchPuU1EnX5kVJXoVn.".to_owned()),
             "invalid_proof_verification_method_key.jsonl" => ResolutionError("Proof verification failed: verification method did:key:z6MkkuVyV9TbCGwhoJyJfhsFwFZjJ1833oWYtbh5mXGZxDTH#z6MkkuVyV9TbCGwhoJyJfhsFwFZjJ1833oWYtbh5mXGZxDTH is not allowed update_key".to_owned()),
-            "wrong_index.jsonl" => ResolutionError("Unexpected versionId '1-QmUcfiZ4jTAYXuMjo4Fxoi3BHP2fjyZVeXCyugYYgdA4hW', expected index 2, got 1.".to_owned()),
-            "invalid_sig.jsonl" => ResolutionError("Failed to verify integrity proof for log entry 1-QmQ5sMLi5vKyHhdaL1LaD3b2C1JY2rCckr2uyGN9KyxMy2: Signer error: `Invalid signature`".to_owned()),
-            "invalid_scid.jsonl" => ResolutionError("Invalid SCID: expected QmRXEKqsStiagD4DBZG1gwrtpoNfxSUwHd8vxQMBytR5zY, got QmRXEKqsStiagD4DBZG1gwrtpoNfxSUwHd8vxQMBytR5zW".to_owned()),
+            "wrong_index.jsonl" => ResolutionError("Unexpected versionId '1-QmedUFuV35pJHskk7xTCB5EPE8NY5Mjg1GDHwHVyjaMvdc', expected index 2, got 1.".to_owned()),
+            "invalid_sig.jsonl" => ResolutionError("Failed to verify integrity proof for log entry 1-QmZcQX1TDh7jNrchRqUHQSd8fPRrsAsRHPEd3ycMvL8mva: Signer error: `Invalid signature`".to_owned()),
+            "invalid_scid.jsonl" => ResolutionError("Invalid SCID: expected Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqbY, got Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9".to_owned()),
             "proof_too_old.jsonl" => ResolutionError("Invalid proof: created time is before entry time.".to_owned()),
             "portable_true_after_first_entry.jsonl" => ResolutionError("portable flag can only be set to true in first entry".to_owned()),
-            "entry_timestamp_too_old.jsonl" => ResolutionError("Invalid log entry 2-QmaidiuDMxyJc8rXAVv8QEY3k4yj96rTW1mzJjxagpNMTF: version time 2025-03-24 16:27:36.0 +00:00:00 is before version time of the previous entry".to_owned()),
-            "challenge_mismatch.jsonl" => ResolutionError("Proof challenge mismatch, expected 2-QmUcfiZ4jTAYXuMjo4Fxoi3BHP2fjyZVeXCyugYYgdA4hW, got 1-QmUcfiZ4jTAYXuMjo4Fxoi3BHP2fjyZVeXCyugYYgdA4hW.".to_owned()),
+            "entry_timestamp_too_old.jsonl" => ResolutionError("Invalid log entry 2-QmTsdQzwixuf7R8mF3SBqp8PA7jxPLv85zj6MNfsj1oy78: version time 2025-03-24 16:27:36.0 +00:00:00 is before version time of the previous entry".to_owned()),
+            "challenge_mismatch.jsonl" => ResolutionError("Proof challenge mismatch, expected 2-QmedUFuV35pJHskk7xTCB5EPE8NY5Mjg1GDHwHVyjaMvdc, got 1-QmedUFuV35pJHskk7xTCB5EPE8NY5Mjg1GDHwHVyjaMvdc.".to_owned()),
             "invalid_update_key_for_prerotation.jsonl" => ResolutionError("Update key z6MkfrBuadijZeorSayJDG9LQi6BBh3Cn73zhqYucWErRjXV not found in nextKeyHashes".to_owned()),
             "deactivated.jsonl" => Deactivated,
         };

@@ -122,7 +122,20 @@ impl<Subject: Serialize + SerdeSkippable, CustomPayload: WithMetadata + Serializ
         let mut result = HashMap::new();
         for key in ["iss", "aud", "sub", "jti", "exp", "nbf", "iat"] {
             let Some(claim) = obj.get(key) else { continue };
-            let mut claim = CredentialClaim::try_from(claim.clone())
+            let normalized_claim = if key == "iss" {
+                if let serde_json::Value::String(s) = claim {
+                    if let Some(rest) = s.strip_prefix("did:tdw:") {
+                        serde_json::Value::String(format!("did:webvh:{rest}"))
+                    } else {
+                        claim.clone()
+                    }
+                } else {
+                    claim.clone()
+                }
+            } else {
+                claim.clone()
+            };
+            let mut claim = CredentialClaim::try_from(normalized_claim)
                 .error_while("extracting metadata claim")?;
             claim.set_metadata(true);
             result.insert(key.to_string(), claim);

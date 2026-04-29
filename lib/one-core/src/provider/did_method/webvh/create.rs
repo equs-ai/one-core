@@ -62,7 +62,7 @@ async fn create_with_options(
     options: Options,
 ) -> Result<(DidValue, String), DidMethodError> {
     check_keys(&update_keys)?;
-    let did_placeholder = format!("did:tdw:{SCID_PLACEHOLDER}:{domain}");
+    let did_placeholder = format!("did:webvh:{SCID_PLACEHOLDER}:{domain}");
     let active_key = common::make_keyref(update_keys.active, key_provider)?;
 
     let prerotation = !update_keys.next.is_empty();
@@ -346,7 +346,7 @@ mod test {
 
         assert_eq!(
             did.to_string(),
-            "did:tdw:QmbbXWLTC8nCFRbZq9ZzGQLW9pbzWTvjX128beHDNQRgBA:test-domain.com"
+            "did:webvh:QmX2AugQtPMcRF7ViRMHeV1J2KYA4ZsfGYYcqeDUuq9QdF:test-domain.com"
         );
 
         let expected_log = include_str!("test_data/success/create_did_web_ok.jsonl");
@@ -395,7 +395,7 @@ mod test {
 
         assert_eq!(
             did.to_string(),
-            "did:tdw:QmQ6bD4CoN2o6FAxJyHFM2Xx22LKWK1Ux8Hru1k9Q9yTcW:test-domain.com"
+            "did:webvh:Qmf2a8ZxvD3gBMMbV7a7R4KsHj6HhUkjy1GTDdeHhMfpb5:test-domain.com"
         );
 
         let expected_log =
@@ -445,7 +445,7 @@ mod test {
 
         assert_eq!(
             did.to_string(),
-            "did:tdw:QmRuwExX7ouarvGrEBb6UaajjmWRzVLFDnNYTzQNxsXJfj:test-domain.com"
+            "did:webvh:QmeYXE62ZcGT1M4Fg2TXz4yqdHeLt9jb9ViJeVhP5iMYtP:test-domain.com"
         );
 
         let expected_log =
@@ -609,4 +609,5 @@ mod test {
             document_key: did_doc_key,
         }
     }
+
 }

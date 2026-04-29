@@ -234,7 +234,7 @@ impl DidMethod for DidWebVh {
         DidCapabilities {
             operations: vec![Operation::CREATE, Operation::RESOLVE, Operation::DEACTIVATE],
             key_algorithms: vec![KeyAlgorithmType::Ecdsa],
-            method_names: vec!["tdw".to_string()],
+            method_names: vec!["webvh".to_string()],
             features: vec![Feature::SupportsExternalHosting],
             supported_update_key_types: vec![KeyAlgorithmType::Eddsa],
         }

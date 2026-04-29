@@ -103,7 +103,7 @@ impl DidService {
         )
     }
 
-    /// Returns did log for did:webvh(did:tdw)
+    /// Returns did log for did:webvh(did:webvh)
     ///
     /// # Arguments
     ///

@@ -68,9 +68,9 @@ pub(crate) async fn get_did_web_document(
         (status = 500, description = "internal server error"),
     ),
     tag = "ssi",
-    summary = "Retrieve did:webvh(did:tdw) document",
+    summary = "Retrieve did:webvh(did:webvh) document",
     description = indoc::formatdoc! {"
-        Retrieve a `did:webvh` (or `did:tdw`) document by its UUID.
+        Retrieve a `did:webvh` (or `did:webvh`) document by its UUID.
     "},
 )]
 pub(crate) async fn get_did_webvh_log(

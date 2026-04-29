@@ -95,6 +95,13 @@ impl FromStr for DidValue {
     type Err = DidValueError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let normalized;
+        let s = if s.starts_with("did:tdw:") {
+            normalized = s.replacen("did:tdw:", "did:webvh:", 1);
+            normalized.as_str()
+        } else {
+            s
+        };
         let url = Url::parse(s)?;
 
         if url.scheme() != "did" {

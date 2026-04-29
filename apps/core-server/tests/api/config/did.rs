@@ -177,7 +177,7 @@ async fn test_webvh_did_method_config() {
         resp["did"]["WEBVH"]["capabilities"]["methodNames"]
             .as_array()
             .unwrap(),
-        &["tdw"]
+        &["webvh"]
     );
     assert_eq!(
         resp["did"]["WEBVH"]["capabilities"]["operations"]

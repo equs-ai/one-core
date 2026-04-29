@@ -23,7 +23,7 @@ pub struct DidLogEntry {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum DidMethodVersion {
-    #[serde(rename = "did:tdw:0.3")]
+    #[serde(rename = "did:webvh:0.3")]
     V3,
 }
 
