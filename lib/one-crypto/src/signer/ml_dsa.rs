@@ -6,6 +6,7 @@ use rand_chacha_new::ChaCha20Rng;
 use rand_new::SeedableRng;
 use rand_new::rngs::SysRng;
 use secrecy::{ExposeSecret, SecretSlice};
+use ml_dsa::signature::Keypair;
 
 use crate::{Signer, SignerError};
 
