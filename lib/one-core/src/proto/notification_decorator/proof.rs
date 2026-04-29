@@ -4,7 +4,6 @@ use anyhow::Context;
 use shared_types::{InteractionId, OrganisationId, ProofId};
 
 use crate::config::core_config::CoreConfig;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::claim::Claim;
 use crate::model::common::LockType;
 use crate::model::history::HistoryErrorMetadata;
@@ -18,6 +17,7 @@ use crate::provider::verification_protocol::model::CommonParams;
 use crate::repository::error::DataLayerError;
 use crate::repository::proof_repository::ProofRepository;
 use crate::service::error::{ServiceError, ValidationError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub struct ProofNotificationDecorator {
     pub inner: Arc<dyn ProofRepository>,

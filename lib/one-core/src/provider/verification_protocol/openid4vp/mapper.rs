@@ -25,7 +25,6 @@ use super::model::{
 };
 use super::{JWTSigner, get_jwt_signer, jwe_presentation};
 use crate::config::core_config::{CoreConfig, FormatType, VerificationProtocolType};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::mapper::{
@@ -63,6 +62,7 @@ use crate::provider::verification_protocol::openid4vp::{
     FormatMapper, TypeToDescriptorMapper, VerificationProtocolError,
 };
 use crate::service::error::{BusinessLogicError, ServiceError};
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(super) fn presentation_definition_from_interaction_data(
     proof_id: ProofId,

@@ -30,7 +30,6 @@ use crate::config::validator::protocol::{
 use crate::config::validator::transport::{
     SelectedTransportType, validate_and_select_transport_type,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::list_response_try_into;
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::ClaimRelations;
@@ -76,6 +75,7 @@ use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
+use one_core_asdk::error::ContextWithErrorCode;
 
 const DEFAULT_ENGAGEMENT: &str = "QR_CODE";
 

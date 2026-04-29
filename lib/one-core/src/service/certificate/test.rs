@@ -3,7 +3,6 @@ use std::sync::Arc;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::proto::session_provider::test::StaticSessionProvider;
@@ -12,6 +11,7 @@ use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::service::certificate::CertificateService;
 use crate::service::certificate::error::CertificateServiceError;
 use crate::service::test_utilities::{dummy_identifier, get_dummy_date};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 #[tokio::test]
 async fn test_get_cert_fail_session_org_mismatch() {

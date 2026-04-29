@@ -14,7 +14,6 @@ use super::mapper::{
 };
 use super::validator::validate_deactivation_request;
 use crate::config::core_config::{KeyAlgorithmType, KeyStorageType};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::did::{DidListQuery, DidRelations, RelatedKey};
 use crate::model::identifier::{IdentifierState, UpdateIdentifierRequest};
 use crate::model::key::{Key, KeyRelations};
@@ -28,6 +27,7 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl DidService {
     /// Returns did document for did:web

@@ -400,9 +400,7 @@ pub fn parse_min_max_date(value: &str) -> Result<Date, DatatypeValidationError> 
     Ok(Date::parse(value, DATE_FORMAT)?)
 }
 
-pub fn parse_min_max_datetime(
-    value: &str,
-) -> Result<OffsetDateTime, DatatypeValidationError> {
+pub fn parse_min_max_datetime(value: &str) -> Result<OffsetDateTime, DatatypeValidationError> {
     if value == "NOW" {
         return Ok(crate::clock::now_utc());
     }

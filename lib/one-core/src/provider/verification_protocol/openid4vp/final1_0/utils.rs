@@ -10,7 +10,6 @@ use url::Url;
 
 use super::mappers::decode_client_id_with_scheme;
 use super::model::{AuthorizationRequest, AuthorizationRequestQueryParams, Params};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::{
@@ -37,6 +36,7 @@ use crate::provider::verification_protocol::openid4vp::validator::{
     validate_x509_hash_matching_client_id,
 };
 use crate::validator::x509::is_dns_name_matching;
+use one_core_asdk::error::ContextWithErrorCode;
 
 async fn parse_referenced_data_from_x509_san_dns_token(
     request_token: DecomposedJwt<AuthorizationRequest>,

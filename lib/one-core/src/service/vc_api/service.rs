@@ -8,7 +8,6 @@ use super::dto::{
 };
 use super::validation::{validate_verifiable_credential, validate_verifiable_presentation};
 use crate::config::core_config::VerificationProtocolType;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::did::{DidRelations, KeyRole};
 use crate::model::key::KeyRelations;
 use crate::proto::certificate_validator::CertificateValidator;
@@ -26,6 +25,7 @@ use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::service::error::{MissingProviderError, ServiceError};
 use crate::service::vc_api::model::LdCredential;
+use one_core_asdk::error::ContextWithErrorCode;
 
 impl VCAPIService {
     #[expect(clippy::too_many_arguments)]

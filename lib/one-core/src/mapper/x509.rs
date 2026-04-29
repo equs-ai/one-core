@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use anyhow::Context;
 use ct_codecs::{Base64, Decoder, Encoder};
 use one_crypto::signer::ecdsa::ECDSASigner;
 use standardized_types::x509::AuthorityKeyIdentifier;
+use std::sync::Arc;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::extensions::ParsedExtension;
 use x509_parser::oid_registry::{
@@ -11,9 +11,9 @@ use x509_parser::oid_registry::{
 use x509_parser::pem::Pem;
 
 use crate::config::core_config::KeyAlgorithmType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::key::Key;
 use crate::provider::key_storage::KeyStorage;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 pub fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, CertificateParsingError> {
     Pem::iter_from_buffer(pem_chain.as_bytes())
@@ -24,7 +24,9 @@ pub fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, CertificatePar
         .collect()
 }
 
-pub fn last_cert_authority_key_identifier_from_pem_chain(pem_chain: &str) -> anyhow::Result<String> {
+pub fn last_cert_authority_key_identifier_from_pem_chain(
+    pem_chain: &str,
+) -> anyhow::Result<String> {
     let pem = Pem::iter_from_buffer(pem_chain.as_bytes())
         .last()
         .context("failed to parse x509 certificate from pem chain")??;
@@ -98,7 +100,9 @@ impl ErrorCodeMixin for CertificateParsingError {
     }
 }
 
-pub fn subject_key_identifier(cert: &X509Certificate) -> Result<Option<String>, CertificateParsingError> {
+pub fn subject_key_identifier(
+    cert: &X509Certificate,
+) -> Result<Option<String>, CertificateParsingError> {
     Ok(cert
         .get_extension_unique(&OID_X509_EXT_SUBJECT_KEY_IDENTIFIER)?
         .map(|ext| ext.parsed_extension())

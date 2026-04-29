@@ -1,7 +1,7 @@
-use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use standardized_types::jwk::PublicJwk;
+use std::collections::HashSet;
 use time::OffsetDateTime;
 
 use crate::config::core_config::{FormatType, VerificationProtocolType};

@@ -8,7 +8,6 @@ use shared_types::{KeyId, OrganisationId};
 use std::str::FromStr;
 use time::OffsetDateTime;
 
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Key {
     pub id: KeyId,

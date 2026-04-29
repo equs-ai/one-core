@@ -8,7 +8,6 @@ use super::DidService;
 use super::dto::{CreateDidRequestDTO, CreateDidRequestKeysDTO, DidPatchRequestDTO};
 use super::error::DidServiceError;
 use crate::config::core_config::KeyAlgorithmType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::did::{
     Did, DidListQuery, DidRelations, DidType, GetDidList, KeyRole, RelatedKey,
 };
@@ -27,6 +26,7 @@ use crate::repository::did_repository::MockDidRepository;
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::test_utilities::{dummy_did, dummy_identifier, dummy_organisation};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(
     did_repository: MockDidRepository,

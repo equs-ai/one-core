@@ -3,9 +3,9 @@
 use shared_types::{CredentialId, IdentifierId};
 use thiserror::Error;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::did::KeyRole;
 use crate::model::identifier::IdentifierType;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum RevocationError {

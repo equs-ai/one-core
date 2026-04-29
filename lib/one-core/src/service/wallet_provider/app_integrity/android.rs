@@ -3,7 +3,6 @@ use itertools::Itertools;
 use x509_parser::der_parser::error::BerError;
 use x509_parser::der_parser::parse_der;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::proto::certificate_validator::{
     CertSelection, CertificateValidationOptions, CertificateValidator, CrlMode, ParsedCertificate,
@@ -13,6 +12,7 @@ use crate::service::wallet_provider::dto::AndroidBundle;
 use crate::service::wallet_provider::error::WalletProviderError::{
     self, AppIntegrityValidationError,
 };
+use one_core_asdk::error::ContextWithErrorCode;
 
 // https://source.android.com/docs/security/features/keystore/attestation#attestation-extension
 static ATTESTATION_EXTENSION_OID: &str = "1.3.6.1.4.1.11129.2.1.17";

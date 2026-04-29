@@ -1,7 +1,7 @@
 use standardized_types::etsi_119_602::LoTEType;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::trust_list_role::TrustListRoleEnum;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 impl TryFrom<LoTEType> for TrustListRoleEnum {
     type Error = LoTEMappingError;

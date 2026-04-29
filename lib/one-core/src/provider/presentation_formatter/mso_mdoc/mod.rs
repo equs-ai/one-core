@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use coset::{iana, RegisteredLabelWithPrivate, SignatureContext};
+use coset::{RegisteredLabelWithPrivate, SignatureContext, iana};
 use serde::Deserialize;
 use shared_types::DidValue;
 use standardized_types::jwk::PublicJwk;
@@ -17,7 +17,6 @@ use self::model::{
 use self::session_transcript::iso_18013_7::OID4VPDraftHandover;
 use self::session_transcript::{Handover, SessionTranscript};
 use crate::config::core_config::{FormatType, KeyAlgorithmType, VerificationProtocolType};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::{last_cert_authority_key_identifier_from_pem_chain, pem_chain_into_x5c};
 use crate::mapper::{decode_cbor_base64, encode_cbor_base64};
 use crate::proto::certificate_validator::{CertificateValidator, CertificateValidatorImpl};
@@ -31,22 +30,23 @@ use crate::provider::caching_loader::android_attestation_crl::{
 use crate::provider::caching_loader::x509_crl::{X509CrlCache, X509CrlResolver};
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::mdoc_formatter::util::{
-    extract_certificate_from_x5chain_header, try_build_algorithm_header, try_extract_holder_public_key,
-    try_extract_mobile_security_object, EmbeddedCbor, IssuerSigned,
+    EmbeddedCbor, IssuerSigned, extract_certificate_from_x5chain_header,
+    try_build_algorithm_header, try_extract_holder_public_key, try_extract_mobile_security_object,
 };
 use crate::provider::credential_formatter::model::{
     AuthenticationFn, IdentifierDetails, PublicKeySource, SignatureProvider, TokenVerifier,
     VerificationFn,
 };
-use crate::provider::key_algorithm::provider::KeyAlgorithmProviderImpl;
 use crate::provider::key_algorithm::KeyAlgorithm;
+use crate::provider::key_algorithm::provider::KeyAlgorithmProviderImpl;
+use crate::provider::presentation_formatter::PresentationFormatter;
 use crate::provider::presentation_formatter::model::{
     CredentialToPresent, ExtractPresentationCtx, ExtractedPresentation, FormatPresentationCtx,
     FormattedPresentation,
 };
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::openid4vp_final1_0::OID4VPFinal1_0Handover;
-use crate::provider::presentation_formatter::PresentationFormatter;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
+use one_core_asdk::error::ContextWithErrorCode;
 use time::Duration;
 
 pub(crate) mod model;
@@ -113,7 +113,7 @@ impl Default for MsoMdocPresentationFormatter {
         ));
 
         let cert_val_provider = Arc::new(CertificateValidatorImpl::new(
-            key_algorithm_provider.clone(),
+            key_algorithm_provider,
             crl_cache,
             Arc::new(DefaultClock),
             Duration::minutes(1),

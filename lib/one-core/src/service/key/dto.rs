@@ -30,8 +30,8 @@ pub struct KeyResponseDTO {
     pub is_remote: bool,
 }
 
-/// KeyListItemResponseDTO is moved to one-core-asdk
-/// GetKeyListResponseDTO is moved to one-core-asdk
+// KeyListItemResponseDTO is moved to one-core-asdk
+// GetKeyListResponseDTO is moved to one-core-asdk
 
 pub type GetKeyQueryDTO = GetListQueryParams<SortableKeyColumn>;
 

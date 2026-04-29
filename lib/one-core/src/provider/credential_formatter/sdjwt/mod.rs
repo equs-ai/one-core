@@ -13,7 +13,6 @@ use super::model::{
     AuthenticationFn, CertificateDetails, CredentialClaim, HolderBindingCtx, IdentifierDetails,
     PublicKeySource, SettableClaims, SignatureProvider, VerificationFn,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::{pem_chain_into_x5c, x5c_into_pem_chain};
 use crate::model::did::KeyRole;
 use crate::model::identifier::IdentifierType;
@@ -39,6 +38,7 @@ use crate::provider::did_method::error::DidMethodError;
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
+use one_core_asdk::error::ContextWithErrorCode;
 pub mod disclosures;
 pub mod mapper;
 pub mod model;

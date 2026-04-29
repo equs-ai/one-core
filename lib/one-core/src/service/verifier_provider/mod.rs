@@ -4,11 +4,11 @@ use dto::{ProviderTrustCollectionDTO, VerifierProviderMetadataResponseDTO};
 use error::VerifierProviderError;
 use mapper::params_into_display_names;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::provider::verifier::provider::VerifierProvider;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub mod dto;
 pub mod error;

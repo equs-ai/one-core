@@ -21,7 +21,6 @@ use super::model::{
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, DatatypeType, IdentifierType, Params};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::model::certificate::Certificate;
@@ -56,6 +55,7 @@ use crate::provider::issuance_protocol::openid4vci_draft13::model::{
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::service::credential_schema::dto::CredentialClaimSchemaDTO;
 use crate::service::error::ValidationError;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) fn prepare_nested_representation(
     credential_schema: &CredentialSchema,

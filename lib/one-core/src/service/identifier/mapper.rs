@@ -6,9 +6,9 @@ use super::dto::{
     GetIdentifierResponseDTO,
 };
 use super::error::IdentifierServiceError;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::identifier::{GetIdentifierList, Identifier, IdentifierType};
 use crate::service::did::dto::CreateDidRequestDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 impl TryFrom<Identifier> for GetIdentifierResponseDTO {
     type Error = IdentifierServiceError;

@@ -39,7 +39,6 @@ use crate::config::core_config::{
     DatatypeConfig, DatatypeType, DidType, IdentifierType, IssuanceProtocolType, KeyAlgorithmType,
     KeyStorageType, RevocationType, VerificationProtocolType,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum};
 use crate::model::credential_schema::{CredentialSchema, LayoutType};
@@ -57,6 +56,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::bitstring_status_list::model::StatusPurpose;
 use crate::provider::revocation::token_status_list::credential_status_from_sdjwt_status;
 use crate::service::credential_schema::dto::CreateCredentialSchemaRequestDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 const JPEG_DATA_URI_PREFIX: &str = "data:image/jpeg;base64,";
 const PNG_DATA_URI_PREFIX: &str = "data:image/png;base64,";

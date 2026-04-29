@@ -192,8 +192,14 @@ async fn test_get_credential_issuer_metadata_for_mdoc() {
     let resp = resp.json_value().await;
 
     let metadata = &resp["credential_configurations_supported"]["schema-id"];
-    let expected_binding_methods =
-        HashSet::from(["did:key", "did:web", "did:jwk", "did:ion", "did:webvh", "jwk"]);
+    let expected_binding_methods = HashSet::from([
+        "did:key",
+        "did:web",
+        "did:jwk",
+        "did:ion",
+        "did:webvh",
+        "jwk",
+    ]);
     let cryptographic_binding_methods_supported =
         &metadata["cryptographic_binding_methods_supported"]
             .as_array()

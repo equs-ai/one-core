@@ -4,7 +4,6 @@ use uuid::Uuid;
 
 use super::error::FormatterError;
 use super::model::{CredentialClaim, CredentialClaimValue};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
@@ -13,6 +12,7 @@ use crate::model::key::Key;
 use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::provider::data_type::provider::DataTypeProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
+use one_core_asdk::error::ContextWithErrorCode;
 
 /// Parse model claims/claimSchemas from a JSON-based credential
 pub fn parse_claims(

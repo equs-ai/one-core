@@ -28,7 +28,6 @@ use super::{
 use crate::config::core_config::{
     CoreConfig, DidType, IdentifierType, TransportType, VerificationEngagement,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::{NESTED_CLAIM_MARKER, decode_cbor_base64};
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofRole, ProofStateEnum};
@@ -50,6 +49,7 @@ use crate::provider::verification_protocol::deserialize_interaction_data;
 use crate::service::credential::dto::CredentialAttestationBlobs;
 use crate::service::credential::mapper::credential_detail_response_from_model;
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 mod ble;
 pub(crate) mod ble_holder;

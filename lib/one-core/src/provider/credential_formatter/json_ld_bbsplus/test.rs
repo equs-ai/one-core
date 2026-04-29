@@ -6,7 +6,6 @@ use one_crypto::hasher::sha256::SHA256;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::credential_formatter::json_ld_bbsplus::data_integrity::base_proof::create_base_proof;
 use crate::provider::credential_formatter::json_ld_bbsplus::data_integrity::test_data::{
@@ -24,6 +23,7 @@ use crate::provider::key_algorithm::bbs::BBS;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::provider::key_storage::provider::SignatureProviderImpl;
 use crate::util::rdf_canonization::json_ld_processor_options;
+use one_core_asdk::error::ContextWithErrorCode;
 
 #[tokio::test]
 async fn test_create_and_verify_base_and_derived_proof() {

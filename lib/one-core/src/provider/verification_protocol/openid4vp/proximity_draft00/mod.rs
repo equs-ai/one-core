@@ -32,7 +32,6 @@ use super::proximity_draft00::mqtt::MqttHolderTransport;
 use crate::config::core_config::{
     CoreConfig, DidType, FormatType, IdentifierType, TransportType, VerificationProtocolType,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::did::{Did, KeyRole};
 use crate::model::identifier::Identifier;
 use crate::model::interaction::{Interaction, InteractionType};
@@ -71,6 +70,7 @@ use crate::repository::proof_repository::ProofRepository;
 use crate::service::proof::dto::{CreateProofInteractionData, ShareProofRequestParamsDTO};
 use crate::service::storage_proxy::StorageAccess;
 use crate::util::key_selection::KeyFilter;
+use one_core_asdk::error::ContextWithErrorCode;
 
 mod async_verifier_flow;
 pub mod ble;

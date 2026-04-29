@@ -16,7 +16,6 @@ use super::{
     TransferSummaryReport,
 };
 use crate::config::core_config::TransportType;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::bluetooth_low_energy::BleError;
 use crate::proto::bluetooth_low_energy::ble_resource::{Abort, BleWaiter, OnConflict};
 use crate::proto::bluetooth_low_energy::low_level::ble_central::{BleCentral, TrackingBleCentral};
@@ -36,6 +35,7 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::holder_flow::{
     HolderCommonVPInteractionData, ProximityHolderTransport,
 };
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) struct BleHolderTransport {
     ble: BleWaiter,
@@ -574,7 +574,7 @@ async fn read_presentation_request(
         ));
     }
 
-    received_chunks.sort_by(|a, b| a.index.cmp(&b.index));
+    received_chunks.sort_by_key(|c| c.index);
 
     let presentation_request: Vec<u8> = received_chunks
         .into_iter()

@@ -1,10 +1,10 @@
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::provider::did_method::error::DidMethodError;
 use crate::provider::presentation_formatter::jwt_vp_json::model::{VP, VerifiableCredential};
 use crate::provider::presentation_formatter::model::ExtractedPresentation;
+use one_core_asdk::error::ContextWithErrorCode;
 
 impl TryFrom<Jwt<VP>> for ExtractedPresentation {
     type Error = FormatterError;

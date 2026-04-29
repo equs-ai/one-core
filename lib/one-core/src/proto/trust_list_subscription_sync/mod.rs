@@ -4,7 +4,6 @@ use futures::FutureExt;
 use shared_types::TrustCollectionId;
 use uuid::Uuid;
 
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::trust_collection::TrustCollection;
 use crate::model::trust_list_subscription::{
@@ -15,6 +14,7 @@ use crate::proto::http_client::HttpClient;
 use crate::proto::transaction_manager::TransactionManager;
 use crate::proto::trust_list_subscription_sync::dto::RemoteTrustCollection;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 
 mod dto;
 #[cfg(test)]

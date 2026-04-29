@@ -6,7 +6,6 @@ use x509_parser::certificate::X509Certificate;
 
 use crate::config::core_config::KeyAlgorithmType;
 use crate::config::core_config::{CacheEntityCacheType, CacheEntityConfig, CoreConfig};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::proto::clock::{Clock, DefaultClock};
 use crate::proto::http_client::HttpClient;
 use crate::proto::http_client::reqwest_client::ReqwestClient;
@@ -22,6 +21,7 @@ use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 use crate::service::certificate::dto::CertificateX509AttributesDTO;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub mod parse;
 mod revocation;
@@ -61,10 +61,8 @@ pub enum Error {
 
     #[error("PEM error: `{0}`")]
     PEMError(#[from] x509_parser::error::PEMError),
-    #[expect(clippy::enum_variant_names)]
     #[error("X509 nom error: `{0}`")]
     X509NomError(#[from] x509_parser::nom::Err<x509_parser::error::X509Error>),
-    #[expect(clippy::enum_variant_names)]
     #[error("X509 error: `{0}`")]
     X509ParserError(#[from] x509_parser::error::X509Error),
     #[error("Hash error: `{0}`")]
@@ -258,7 +256,9 @@ impl Default for CertificateValidatorImpl {
         ));
 
         let crl_cache = Arc::new(X509CrlCache::new(
-            Arc::new(X509CrlResolver::new(Some(Arc::new(ReqwestClient::default())))),
+            Arc::new(X509CrlResolver::new(Some(Arc::new(
+                ReqwestClient::default(),
+            )))),
             Arc::new(InMemoryStorage::new(HashMap::new())),
             100,
             Duration::hours(1),
@@ -276,7 +276,7 @@ impl Default for CertificateValidatorImpl {
         ));
 
         CertificateValidatorImpl::new(
-            key_algorithm_provider.clone(),
+            key_algorithm_provider,
             crl_cache,
             Arc::new(DefaultClock),
             Duration::minutes(1),

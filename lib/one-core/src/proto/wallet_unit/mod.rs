@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use shared_types::HolderWalletUnitId;
 use time::Duration;
 
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::holder_wallet_unit::{HolderWalletUnit, HolderWalletUnitRelations};
 use crate::model::key::{Key, KeyRelations};
@@ -32,6 +31,7 @@ use crate::service::wallet_provider::dto::{
     IssueWalletUnitAttestationRequestDTO, IssueWalletUnitAttestationResponseDTO,
     IssueWiaRequestDTO, IssueWuaRequestDTO, WalletUnitAttestationClaims,
 };
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 pub enum IssueWalletAttestationRequest<'a> {
     Wia,
     Wua(&'a Key, KeyStorageSecurityLevel),

@@ -4,20 +4,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use indexmap::IndexMap;
-use one_crypto::encryption::{decrypt_string, encrypt_string};
-use one_crypto::utilities::generate_alphanumeric;
-use one_dto_mapper::convert_inner;
-use secrecy::{ExposeSecret, SecretString};
-use serde::Deserialize;
-use shared_types::{
-    BlobId, CredentialFormat, CredentialId, DidValue, HolderWalletUnitId, InteractionId,
-};
-use standardized_types::jwk::PublicJwk;
-use time::{Duration, OffsetDateTime};
-use url::Url;
-use uuid::Uuid;
 use super::dto::{ContinueIssuanceDTO, IssuanceProtocolCapabilities};
 use super::{
     BasicSchemaData, HolderBindingInput, IssuanceProtocol, IssuanceProtocolError, StorageAccess,
@@ -25,7 +11,6 @@ use super::{
 use crate::config::core_config::{
     CoreConfig, DidType as ConfigDidType, FormatType, IssuanceProtocolType,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::mapper::oidc::{detect_format_with_crypto_suite, map_to_openid4vp_format};
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
@@ -112,6 +97,21 @@ use crate::service::ssi_holder::dto::InitiateIssuanceAuthorizationDetailDTO;
 use crate::util::key_selection::KeyFilter;
 use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
 use crate::validator::{validate_expiration_time, validate_issuance_time};
+use async_trait::async_trait;
+use indexmap::IndexMap;
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_crypto::encryption::{decrypt_string, encrypt_string};
+use one_crypto::utilities::generate_alphanumeric;
+use one_dto_mapper::convert_inner;
+use secrecy::{ExposeSecret, SecretString};
+use serde::Deserialize;
+use shared_types::{
+    BlobId, CredentialFormat, CredentialId, DidValue, HolderWalletUnitId, InteractionId,
+};
+use standardized_types::jwk::PublicJwk;
+use time::{Duration, OffsetDateTime};
+use url::Url;
+use uuid::Uuid;
 
 pub mod handle_invitation_operations;
 pub(crate) mod mapper;

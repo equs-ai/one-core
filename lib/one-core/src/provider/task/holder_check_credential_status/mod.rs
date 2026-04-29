@@ -9,13 +9,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shared_types::OrganisationId;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::{CredentialFilterValue, CredentialRole, GetCredentialQuery};
 use crate::model::list_filter::ListFilterValue;
 use crate::proto::credential_validity_manager::CredentialValidityManager;
 use crate::provider::task::Task;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::service::error::ServiceError;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub struct HolderCheckCredentialStatus {
     params: Option<Params>,

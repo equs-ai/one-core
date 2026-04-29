@@ -6,9 +6,9 @@ use x509_parser::prelude::{
 };
 
 use super::{CertificateValidatorImpl, CrlMode, Error};
-use one_core_asdk::error::ErrorCodeMixinExt;
 use crate::provider::caching_loader::CacheError;
 use crate::provider::caching_loader::android_attestation_crl::CertificateStatus;
+use one_core_asdk::error::ErrorCodeMixinExt;
 
 impl CertificateValidatorImpl {
     /// Returns `Ok` if not revoked, `Err(CertificateRevoked)` if certificate revoked,
@@ -97,8 +97,7 @@ impl CertificateValidatorImpl {
         if !key_usage.value.crl_sign() {
             return Err(Error::CRLCheckFailed(
                 "CRL signer certificate_validator key usage does not include crlSign".to_string(),
-            )
-                .into());
+            ));
         }
 
         // Try to match key identifiers if both are present
@@ -119,13 +118,12 @@ impl CertificateValidatorImpl {
         });
 
         // If both identifiers exist, they must match
-        if let (Some(ski), Some(aki)) = (parent_ski, crl_aki) {
-            if ski != aki {
-                return Err(Error::CRLCheckFailed(
-                    "Parent CA key not matching CRL signer".to_string(),
-                )
-                    .into());
-            }
+        if let (Some(ski), Some(aki)) = (parent_ski, crl_aki)
+            && ski != aki
+        {
+            return Err(Error::CRLCheckFailed(
+                "Parent CA key not matching CRL signer".to_string(),
+            ));
         }
 
         crl.verify_signature(parent.public_key()).map_err(|err| {

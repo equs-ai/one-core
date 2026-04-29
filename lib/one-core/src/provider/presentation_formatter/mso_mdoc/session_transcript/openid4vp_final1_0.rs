@@ -43,6 +43,7 @@ impl OID4VPFinal1_0Handover {
         })
     }
 
+    #[allow(dead_code)]
     pub(crate) fn compute_for_dc_api(
         origin: &str,
         nonce: &str,
@@ -50,12 +51,10 @@ impl OID4VPFinal1_0Handover {
     ) -> Result<Self, anyhow::Error> {
         let jwk_thumbprint = verifier_key.map(jwk_thumbprint).transpose()?.map(Bstr);
 
-        let openid4vp_handover_info_bytes =
-            cbor!([origin, nonce, jwk_thumbprint])?.to_vec()?;
+        let openid4vp_handover_info_bytes = cbor!([origin, nonce, jwk_thumbprint])?.to_vec()?;
 
         let openid4vp_handover_info_hash =
             Bstr(Sha256::digest(&openid4vp_handover_info_bytes).to_vec());
-
 
         Ok(Self {
             openid4vp_handover_info_hash,

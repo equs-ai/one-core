@@ -11,12 +11,12 @@ use super::base_proof::{
 use super::canonicalize::{create_label_map_function, label_replacement_canonicalize_json_ld};
 use super::parse_derived_proof_value;
 use crate::config::core_config::KeyAlgorithmType;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::json_ld_bbsplus::model::BbsBaseProofComponents;
 use crate::provider::credential_formatter::model::{PublicKeySource, TokenVerifier};
 use crate::provider::credential_formatter::vcdm::{VcdmCredential, VcdmProof};
 use crate::util::rdf_canonization::rdf_canonize;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub async fn verify_base_proof(
     vcdm: &VcdmCredential,
@@ -207,12 +207,12 @@ mod test {
     use one_crypto::hasher::sha256::SHA256;
 
     use super::*;
-    use one_core_asdk::error::ContextWithErrorCode;
     use crate::provider::credential_formatter::json_ld_bbsplus::data_integrity::test_data::document_loader;
     use crate::provider::credential_formatter::model::MockTokenVerifier;
     use crate::provider::key_algorithm::KeyAlgorithm;
     use crate::provider::key_algorithm::bbs::BBS;
     use crate::util::rdf_canonization::json_ld_processor_options;
+    use one_core_asdk::error::ContextWithErrorCode;
 
     #[tokio::test]
     // from https://www.w3.org/TR/vc-di-bbs/#example-signed-base-document

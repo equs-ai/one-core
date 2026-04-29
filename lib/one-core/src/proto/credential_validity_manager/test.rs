@@ -9,7 +9,6 @@ use time::Duration;
 use uuid::Uuid;
 
 use crate::config::core_config::CoreConfig;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::{
@@ -41,6 +40,7 @@ use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::credential_repository::MockCredentialRepository;
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::service::test_utilities::{dummy_did_document, dummy_organisation, generic_config};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Repositories {

@@ -5,7 +5,6 @@ use serde_json::Value;
 use shared_types::{CertificateId, IdentifierId};
 
 use super::Task;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{
     CertificateFilterValue, CertificateListQuery, CertificateState, UpdateCertificateRequest,
 };
@@ -15,6 +14,7 @@ use crate::proto::certificate_validator::{CertificateValidationOptions, Certific
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::service::error::{EntityNotFoundError, ServiceError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 
 pub mod dto;
 

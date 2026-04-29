@@ -9,7 +9,6 @@ use url::Url;
 use super::model::{
     OpenID4VP20AuthorizationRequest, OpenID4VP20AuthorizationRequestQueryParams, OpenID4Vp20Params,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::{
@@ -35,6 +34,7 @@ use crate::provider::verification_protocol::openid4vp::validator::{
     validate_against_redirect_uris, validate_san_dns_matching_client_id,
 };
 use crate::validator::x509::is_dns_name_matching;
+use one_core_asdk::error::ContextWithErrorCode;
 
 async fn parse_referenced_data_from_x509_san_dns_token(
     request_token: DecomposedJwt<OpenID4VP20AuthorizationRequest>,
@@ -581,16 +581,16 @@ pub(crate) fn validate_interaction_data(
     };
 
     match mso_vp {
-        Some(PresentationFormat::GenericAlgList(mso_mdoc)) => {
+        Some(PresentationFormat::GenericAlgList(mso_mdoc))
             if !mso_mdoc.alg.contains(&"ES256".to_string())
-                && !mso_mdoc.alg.contains(&"EdDSA".to_string())
-            {
-                Err(VerificationProtocolError::InvalidRequest(
-                    "client_metadata.vp_formats[\"mso_mdoc\"] must contain 'ES256' or 'EdDSA' algorithms"
-                        .to_string(),
-                ))?;
-            }
+                && !mso_mdoc.alg.contains(&"EdDSA".to_string()) =>
+        {
+            Err(VerificationProtocolError::InvalidRequest(
+                "client_metadata.vp_formats[\"mso_mdoc\"] must contain 'ES256' or 'EdDSA' algorithms"
+                    .to_string(),
+            ))?;
         }
+        Some(PresentationFormat::GenericAlgList(_)) => {}
         // As per the spec ONE-4912 - the mso_mdoc may contain no algorithms / be an empty object
         Some(PresentationFormat::Empty(_)) => {
             return Ok(());
