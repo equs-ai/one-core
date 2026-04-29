@@ -18,7 +18,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use one_core_asdk::error::ContextWithErrorCode;
 
 #[derive(Clone)]
-pub(crate) struct KeyVerification {
+pub struct KeyVerification {
     pub did_method_provider: Arc<dyn DidMethodProvider>,
     pub key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     pub certificate_validator: Arc<dyn CertificateValidator>,

@@ -64,7 +64,7 @@ pub struct MsoMdocPresentationFormatter {
 }
 
 impl MsoMdocPresentationFormatter {
-    pub(crate) fn new(
+    pub fn new(
         certificate_validator: Arc<dyn CertificateValidator>,
         base_url: Option<String>,
     ) -> Self {

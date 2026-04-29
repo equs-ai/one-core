@@ -213,7 +213,7 @@ impl CertificateValidationOptions {
 }
 
 #[derive(Clone)]
-pub(crate) struct CertificateValidatorImpl {
+pub struct CertificateValidatorImpl {
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     crl_cache: Arc<X509CrlCache>,
     clock: Arc<dyn Clock>,
@@ -222,7 +222,7 @@ pub(crate) struct CertificateValidatorImpl {
 }
 
 impl CertificateValidatorImpl {
-    pub(crate) fn new(
+    pub fn new(
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
         crl_cache: Arc<X509CrlCache>,
         clock: Arc<dyn Clock>,

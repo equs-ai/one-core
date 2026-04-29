@@ -51,14 +51,14 @@ pub trait DidMethodProvider: Send + Sync {
     fn supported_method_names(&self) -> Vec<String>;
 }
 
-struct DidMethodProviderImpl {
+pub struct DidMethodProviderImpl {
     caching_loader: DidCachingLoader,
     did_methods: IndexMap<String, Arc<dyn DidMethod>>,
     resolver: Arc<DidResolver>,
 }
 
 impl DidMethodProviderImpl {
-    fn new(
+    pub fn new(
         caching_loader: DidCachingLoader,
         did_methods: IndexMap<String, Arc<dyn DidMethod>>,
     ) -> Self {
