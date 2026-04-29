@@ -350,24 +350,36 @@ impl MsoMdocPresentationFormatter {
                 )
             })?;
 
-        let response_uri = context
-            .response_uri
-            .as_deref()
-            .unwrap_or(client_id.as_str());
-
         let handover = match &context.verification_protocol_type {
             VerificationProtocolType::OpenId4VpFinal1_0 => {
-                Handover::OID4VPFinal1_0(OID4VPFinal1_0Handover::compute(
-                    &client_id,
-                    response_uri,
-                    &nonce,
-                    context.verifier_key.as_ref(),
-                )?)
+                if let Some(response_uri) = context.response_uri.as_deref() {
+                    Handover::OID4VPFinal1_0(OID4VPFinal1_0Handover::compute(
+                        &client_id,
+                        response_uri,
+                        &nonce,
+                        context.verifier_key.as_ref(),
+                    )?)
+                } else {
+                    Handover::OID4VPFinal1_0(
+                        OID4VPFinal1_0Handover::compute_for_dc_api(
+                            &client_id,
+                            &nonce,
+                            context.verifier_key.as_ref(),
+                        )
+                        .map_err(|e| {
+                            FormatterError::CouldNotExtractPresentation(e.to_string())
+                        })?,
+                    )
+                }
             }
             // proximity V2 (using dcql)
             VerificationProtocolType::OpenId4VpProximityDraft00
                 if context.format_nonce.is_none() =>
             {
+                let response_uri = context
+                    .response_uri
+                    .as_deref()
+                    .unwrap_or(client_id.as_str());
                 Handover::OID4VPFinal1_0(OID4VPFinal1_0Handover::compute(
                     &client_id,
                     response_uri,
@@ -376,6 +388,10 @@ impl MsoMdocPresentationFormatter {
                 )?)
             }
             _ => {
+                let response_uri = context
+                    .response_uri
+                    .as_deref()
+                    .unwrap_or(client_id.as_str());
                 let mdoc_generated_nonce = context.format_nonce.as_ref().ok_or(
                     FormatterError::CouldNotExtractPresentation(
                         "Missing mdoc_generated_nonce".to_owned(),
