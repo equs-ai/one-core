@@ -44,6 +44,9 @@ impl OID4VPFinal1_0Handover {
     }
 
     #[allow(dead_code)]
+    // This function expects origin as verifier url yet context has client_id that is provided
+    // and is not exactly verifier url but OID4VP client id
+    // Please take a look at https://git.slock.it/open-source/one-core-new/-/merge_requests/3#note_497758
     pub(crate) fn compute_for_dc_api(
         origin: &str,
         nonce: &str,
