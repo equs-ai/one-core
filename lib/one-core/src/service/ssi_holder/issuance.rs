@@ -16,7 +16,6 @@ use super::validator::{
     validate_initiate_issuance_request,
 };
 use crate::config::core_config::FormatType;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::mapper::value_to_model_claims;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::claim::Claim;
@@ -50,6 +49,7 @@ use crate::validator::{
     throw_if_credential_state_not_eq, throw_if_org_not_matching_session,
     throw_if_org_relation_not_matching_session,
 };
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 
 const STATE: &str = "state";
 const AUTHORIZATION_CODE: &str = "code";

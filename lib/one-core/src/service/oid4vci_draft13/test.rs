@@ -14,7 +14,6 @@ use uuid::Uuid;
 
 use super::OID4VCIDraft13Service;
 use crate::config::core_config::{CoreConfig, KeyAlgorithmType};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum};
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaRelations, LayoutType};
@@ -46,6 +45,7 @@ use crate::repository::credential_schema_repository::MockCredentialSchemaReposit
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::service::error::ServiceError;
 use crate::service::test_utilities::*;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Mocks {

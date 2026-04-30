@@ -11,7 +11,6 @@ use shared_types::TrustListSubscriptionId;
 use url::Url;
 use uuid::Uuid;
 
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
 use crate::model::common::SortDirection;
 use crate::model::history::{History, HistoryEntityType, HistorySource};
 use crate::model::list_query::{ListPagination, ListSorting};
@@ -30,6 +29,7 @@ use crate::provider::trust_list_subscriber::provider::TrustListSubscriberProvide
 use crate::repository::history_repository::HistoryRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 use crate::service::error::{MissingProviderError, ServiceError};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
 
 pub(crate) struct TrustListSubscriptionUpdateTask {
     subscriber_provider: Arc<dyn TrustListSubscriberProvider>,

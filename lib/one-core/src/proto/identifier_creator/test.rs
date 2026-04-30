@@ -13,7 +13,6 @@ use super::{
     CreateLocalIdentifierRequest, IdentifierCreator, IdentifierRole, RemoteIdentifierRelation,
 };
 use crate::config::core_config::{CoreConfig, KeyAlgorithmType};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState, GetCertificateList};
 use crate::model::identifier::{GetIdentifierList, Identifier};
 use crate::model::key::{GetKeyList, Key};
@@ -41,6 +40,7 @@ use crate::service::did::dto::{CreateDidRequestDTO, CreateDidRequestKeysDTO};
 use crate::service::test_utilities::{
     dummy_identifier, dummy_key, dummy_organisation, generic_config,
 };
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Mocks {

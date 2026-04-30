@@ -10,7 +10,6 @@ use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, DatatypeType, IdentifierType};
 use crate::config::validator::datatype::{DatatypeValidationError, validate_datatype_value};
 use crate::config::validator::protocol::validate_protocol_type;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::mapper::exchange::get_issuance_param_redirect_uri;
 use crate::model::claim_schema::ClaimSchema;
@@ -19,6 +18,7 @@ use crate::model::credential_schema::CredentialSchema;
 use crate::proto::notification_scheduler::NotificationScheduler;
 use crate::provider::credential_formatter::model::FormatterCapabilities;
 use crate::provider::issuance_protocol::model::CommonParams;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) fn throw_if_credential_state_eq(
     credential: &Credential,

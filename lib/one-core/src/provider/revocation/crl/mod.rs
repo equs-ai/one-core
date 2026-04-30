@@ -13,7 +13,6 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::model::{CredentialRevocationInfo, Operation};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::mapper::x509::SigningKeyAdapter;
 use crate::model::certificate::{Certificate, CertificateRelations};
 use crate::model::credential::Credential;
@@ -37,6 +36,7 @@ use crate::provider::revocation::model::{
 };
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::service::error::MissingProviderError;
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 
 #[cfg(test)]
 mod test;

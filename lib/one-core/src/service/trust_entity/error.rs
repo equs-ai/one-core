@@ -2,8 +2,8 @@ use shared_types::{
     DidId, DidValue, IdentifierId, OrganisationId, TrustAnchorId, TrustEntityId, TrustEntityKey,
 };
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::provider::trust_management::error::TrustManagementError;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum TrustEntityServiceError {

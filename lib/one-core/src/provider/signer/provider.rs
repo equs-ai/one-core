@@ -9,7 +9,6 @@ use uuid::Uuid;
 use super::{Signer, access_certificate, registration_certificate, x509_certificate};
 use crate::config::core_config::{ConfigExt, CoreConfig, RevocationConfig, SignerType};
 use crate::config::{ConfigValidationError, ProviderReference};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::revocation_list::RevocationListEntityInfo;
 use crate::proto::clock::Clock;
 use crate::proto::session_provider::SessionProvider;
@@ -18,6 +17,7 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::service::error::{EntityNotFoundError, MissingProviderError, ServiceError};
+use one_core_asdk::error::ContextWithErrorCode;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]

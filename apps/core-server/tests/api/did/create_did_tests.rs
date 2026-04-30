@@ -455,7 +455,7 @@ async fn test_create_did_webvh_success() {
     assert_eq!(did.did_method, "WEBVH");
     assert_eq!(did.did_type, DidType::Local);
 
-    assert!(did.did.as_str().starts_with("did:tdw:"));
+    assert!(did.did.as_str().starts_with("did:webvh:"));
     assert!(
         did.did
             .as_str()

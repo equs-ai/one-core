@@ -15,7 +15,6 @@ use super::dto::{
 };
 use super::error::ProofServiceError;
 use crate::config::core_config::{CoreConfig, DatatypeType};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::{NESTED_CLAIM_MARKER, NESTED_CLAIM_MARKER_STR};
 use crate::model::certificate::Certificate;
 use crate::model::claim_schema::ClaimSchema;
@@ -33,6 +32,7 @@ use crate::service::credential::dto::{
 };
 use crate::service::credential::mapper::credential_detail_response_from_model;
 use crate::service::proof_schema::dto::ProofClaimSchemaResponseDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 fn build_claim_from_credential_claims(
     claims: &[ClaimSchema],

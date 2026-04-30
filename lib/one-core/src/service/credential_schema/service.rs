@@ -10,7 +10,6 @@ use super::dto::{
 use super::error::CredentialSchemaServiceError;
 use super::mapper::from_create_request_with_id;
 use super::validator::UniquenessCheckResult;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::credential_schema_claim::claim_schema_from_metadata_claim_schema;
 use crate::mapper::list_response_into;
 use crate::model::claim_schema::ClaimSchemaRelations;
@@ -21,6 +20,7 @@ use crate::util::logging::quoted_opt_provider;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl CredentialSchemaService {
     /// Creates a credential schema according to request

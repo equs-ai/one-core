@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use shared_types::DidValue;
 use standardized_types::jwk::PublicJwk;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::jwt::model::{DecomposedJwt, JWTPayload};
 use crate::proto::jwt::{Jwt, JwtPublicKeyInfo};
 use crate::provider::credential_formatter::error::FormatterError;
@@ -13,6 +12,7 @@ use crate::provider::credential_formatter::model::{
 };
 use crate::provider::did_method::error::DidMethodError;
 use crate::service::wallet_provider::dto::WalletUnitAttestationClaims;
+use one_core_asdk::error::ContextWithErrorCode;
 
 const JWT_PROOF_TYPE: &str = "openid4vci-proof+jwt";
 

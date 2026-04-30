@@ -11,7 +11,6 @@ use super::mapper::{
 };
 use super::model::OpenID4VCICredentialConfigurationData;
 use crate::config::core_config::{CoreConfig, FormatType};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::claim::Claim;
 use crate::model::credential_schema::{
     BackgroundProperties, CredentialSchema, LayoutProperties, LayoutType, LogoProperties,
@@ -31,6 +30,7 @@ use crate::provider::issuance_protocol::openid4vci_draft13::model::{
     OpenID4VCIIssuerMetadataResponseDTO,
 };
 use crate::service::ssi_issuer::dto::SdJwtVcTypeMetadataResponseDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) struct BuildCredentialSchemaResponse {
     pub claims: Vec<Claim>,

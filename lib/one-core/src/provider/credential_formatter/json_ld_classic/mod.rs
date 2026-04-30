@@ -27,7 +27,6 @@ use crate::config::core_config::{
     DidType, IdentifierType, IssuanceProtocolType, KeyAlgorithmType, KeyStorageType,
     RevocationType, VerificationProtocolType,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum};
 use crate::model::credential_schema::{CredentialSchema, LayoutType};
 use crate::model::identifier::Identifier;
@@ -40,6 +39,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::bitstring_status_list::model::StatusPurpose;
 use crate::util::rdf_canonization::{json_ld_processor_options, rdf_canonize};
 use crate::util::vcdm_jsonld_contexts::{is_context_list_valid, jsonld_forbidden_claim_names};
+use one_core_asdk::error::ContextWithErrorCode;
 #[cfg(test)]
 mod test;
 

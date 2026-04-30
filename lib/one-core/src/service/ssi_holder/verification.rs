@@ -16,7 +16,6 @@ use super::mapper::holder_did_key_jwk_from_credential;
 use crate::config::validator::transport::{
     SelectedTransportType, validate_and_select_transport_type,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
 use crate::mapper::oidc::detect_format_with_crypto_suite;
 use crate::mapper::{NESTED_CLAIM_MARKER, paths_to_leafs};
 use crate::model::claim::{Claim, ClaimRelations};
@@ -47,6 +46,7 @@ use crate::service::credential::dto::{
 };
 use crate::service::error::MissingProviderError;
 use crate::validator::{throw_if_endpoint_version_incompatible, throw_if_proof_state_not_eq};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
 
 impl SSIHolderService {
     pub async fn reject_proof_request(

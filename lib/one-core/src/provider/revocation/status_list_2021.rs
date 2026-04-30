@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use shared_types::{RevocationListEntryId, RevocationListId};
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::certificate::Certificate;
 use crate::model::credential::Credential;
 use crate::model::did::KeyRole;
@@ -25,6 +24,7 @@ use crate::provider::revocation::model::{
     RevocationState,
 };
 use crate::provider::revocation::utils::status_purpose_to_revocation_state;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) struct StatusList2021 {
     pub key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,

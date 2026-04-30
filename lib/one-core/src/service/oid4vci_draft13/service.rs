@@ -16,7 +16,6 @@ use super::OID4VCIDraft13Service;
 use super::dto::{OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO};
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{self, FormatType, IssuanceProtocolType};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::exchange::{
     get_issuance_param_pre_authorization_expires_in, get_issuance_param_refresh_token_expires_in,
     get_issuance_param_token_expires_in,
@@ -68,6 +67,7 @@ use crate::service::oid4vci_draft13::validator::{
 };
 use crate::service::ssi_validator::validate_issuance_protocol_type;
 use crate::validator::throw_if_credential_state_not_eq;
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl OID4VCIDraft13Service {
     pub async fn oauth_authorization_server(

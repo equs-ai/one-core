@@ -20,7 +20,6 @@ use super::error::ProofServiceError;
 use crate::config::core_config::{
     CoreConfig, Fields, IdentifierType, KeyStorageType, TransportType, VerificationProtocolType,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::{Claim, ClaimRelations};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
@@ -94,6 +93,7 @@ use crate::repository::validity_credential_repository::MockValidityCredentialRep
 use crate::service::test_utilities::{
     dummy_identifier, dummy_organisation, generic_config, get_dummy_date,
 };
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Repositories {

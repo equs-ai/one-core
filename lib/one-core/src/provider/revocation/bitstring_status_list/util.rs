@@ -4,8 +4,8 @@ use bit_vec::BitVec;
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder, Encoder};
 use thiserror::Error;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 use crate::provider::revocation::utils::{gzip_compress, gzip_decompress};
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Debug, Error)]
 pub(crate) enum BitstringError {

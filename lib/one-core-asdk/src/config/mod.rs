@@ -1,8 +1,8 @@
-use strum::Display;
-use shared_types::{RevocationMethodId, TaskId};
 use crate::config::validator::datatype::DatatypeValidationError;
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::provider::data_type::model::ValueType;
+use shared_types::{RevocationMethodId, TaskId};
+use strum::Display;
 
 pub mod core_config;
 pub mod validator;

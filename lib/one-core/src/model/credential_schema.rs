@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use strum::Display;
 use shared_types::{CredentialFormat, CredentialSchemaId, RevocationMethodId};
+use strum::Display;
 use time::OffsetDateTime;
 
 use super::claim_schema::{ClaimSchema, ClaimSchemaRelations};

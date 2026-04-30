@@ -8,7 +8,6 @@ use super::Error;
 use super::creator::IdentifierCreatorProto;
 use crate::config::core_config::SignerType;
 use crate::config::validator::did::validate_did_method;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::{Certificate, CertificateRelations, CertificateState};
 use crate::model::did::Did;
 use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierState, IdentifierType};
@@ -31,6 +30,7 @@ use crate::service::did::validator::validate_request_amount_of_keys;
 use crate::service::error::MissingProviderError;
 use crate::service::identifier::dto::CreateCertificateAuthorityRequestDTO;
 use crate::service::key::dto::KeyGenerateCSRRequestProfile;
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl IdentifierCreatorProto {
     pub(super) async fn create_local_did_identifier(

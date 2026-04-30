@@ -43,6 +43,10 @@ impl OID4VPFinal1_0Handover {
         })
     }
 
+    #[allow(dead_code)]
+    // This function expects origin as verifier url yet context has client_id that is provided
+    // and is not exactly verifier url but OID4VP client id
+    // Please take a look at https://git.slock.it/open-source/one-core-new/-/merge_requests/3#note_497758
     pub(crate) fn compute_for_dc_api(
         origin: &str,
         nonce: &str,
@@ -50,12 +54,10 @@ impl OID4VPFinal1_0Handover {
     ) -> Result<Self, anyhow::Error> {
         let jwk_thumbprint = verifier_key.map(jwk_thumbprint).transpose()?.map(Bstr);
 
-        let openid4vp_handover_info_bytes =
-            cbor!([origin, nonce, jwk_thumbprint])?.to_vec()?;
+        let openid4vp_handover_info_bytes = cbor!([origin, nonce, jwk_thumbprint])?.to_vec()?;
 
         let openid4vp_handover_info_hash =
             Bstr(Sha256::digest(&openid4vp_handover_info_bytes).to_vec());
-
 
         Ok(Self {
             openid4vp_handover_info_hash,

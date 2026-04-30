@@ -2,7 +2,6 @@ use shared_types::{DidValue, IdentifierId, KeyId};
 use strum::Display;
 
 use crate::config::core_config::SignerType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::certificate::Certificate;
 use crate::model::did::Did;
 use crate::model::identifier::{Identifier, IdentifierType};
@@ -12,6 +11,7 @@ use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::service::certificate::dto::CreateCertificateRequestDTO;
 use crate::service::did::dto::CreateDidRequestDTO;
 use crate::service::identifier::dto::CreateCertificateAuthorityRequestDTO;
+use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub(crate) mod creator;
 mod local;

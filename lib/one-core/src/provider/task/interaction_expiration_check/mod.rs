@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use self::dto::InteractionExpirationCheckResultDTO;
 use super::Task;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialRelations, CredentialRole};
 use crate::model::credential_schema::CredentialSchemaRelations;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
@@ -18,6 +17,7 @@ use crate::repository::history_repository::HistoryRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::proof_repository::ProofRepository;
 use crate::service::error::{EntityNotFoundError, ServiceError};
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub mod dto;
 

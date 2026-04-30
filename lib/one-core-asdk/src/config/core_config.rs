@@ -1,24 +1,24 @@
-use std::borrow::Borrow;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-use std::path::Path;
 use super::{ConfigParsingError, ConfigValidationError};
 use crate::model::credential_schema::KeyStorageSecurity;
+use figment::Figment;
 #[cfg(feature = "config_env")]
 use figment::providers::Env;
 #[cfg(feature = "config_json")]
 use figment::providers::Json;
 #[cfg(feature = "config_yaml")]
 use figment::providers::Yaml;
-use figment::Figment;
 use figment::providers::{Data, Format};
 use one_dto_mapper::{From, Into};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
-use serde_with::{serde_as, skip_serializing_none, DurationSeconds};
+use serde_json::{Value, json};
+use serde_with::{DurationSeconds, serde_as, skip_serializing_none};
 use shared_types::{CredentialFormat, RevocationMethodId, TaskId, TrustListSubscriberId};
+use std::borrow::Borrow;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
+use std::path::Path;
 use strum::{AsRefStr, Display, EnumString};
 
 type Dict<K, V> = BTreeMap<K, V>;

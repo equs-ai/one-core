@@ -7,7 +7,6 @@ use standardized_types::openid4vp::ResponseMode;
 use time::Duration;
 use url::Url;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::jwt::model::{JWTHeader, JWTPayload};
 use crate::proto::jwt::{Jwt, TokenError};
 use crate::provider::verification_protocol::model::CommonParams;
@@ -19,6 +18,7 @@ use crate::provider::verification_protocol::openid4vp::model::{
     default_presentation_url_scheme,
 };
 use crate::service::error::ServiceError;
+use one_core_asdk::error::ContextWithErrorCode;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -5,7 +5,6 @@ use standardized_types::jwk::PublicJwk;
 use super::error::OID4VCIFinal1_0ServiceError;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, IssuanceProtocolType};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::credential_schema::CredentialSchema;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::DecomposedJwt;
@@ -23,6 +22,7 @@ use crate::service::wallet_provider::dto::{
 use crate::validator::{
     validate_expiration_time, validate_issuance_time, validate_not_before_time,
 };
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) fn throw_if_credential_request_invalid(
     schema: &CredentialSchema,

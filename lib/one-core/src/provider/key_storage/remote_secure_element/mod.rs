@@ -7,7 +7,6 @@ use standardized_types::jwk::{PrivateJwk, PublicJwk};
 
 use super::secure_element::NativeKeyStorage;
 use crate::config::core_config::KeyAlgorithmType;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::key_algorithm::eddsa::{
     eddsa_public_key_as_jwk, eddsa_public_key_as_multibase,
@@ -19,6 +18,7 @@ use crate::provider::key_algorithm::key::{
 use crate::provider::key_storage::KeyStorage;
 use crate::provider::key_storage::error::KeyStorageError;
 use crate::provider::key_storage::model::{Features, KeyStorageCapabilities, StorageGeneratedKey};
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub struct RemoteSecureElementKeyProvider {
     native_storage: Arc<dyn NativeKeyStorage>,

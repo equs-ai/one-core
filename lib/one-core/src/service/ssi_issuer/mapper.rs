@@ -11,7 +11,6 @@ use super::dto::{
     SdJwtVcSimpleRenderingLogoDTO, SdJwtVcTypeMetadataResponseDTO,
 };
 use super::error::IssuerServiceError;
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{
@@ -19,6 +18,7 @@ use crate::model::credential_schema::{
     CredentialSchemaClaimsNestedView,
 };
 use crate::service::credential_schema::dto::CredentialSchemaLayoutPropertiesResponseDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 impl Default for JsonLDContextDTO {
     fn default() -> Self {

@@ -16,7 +16,6 @@ use uuid::Uuid;
 use self::resolver::StatusListCachingLoader;
 use self::util::{PREFERRED_ENTRY_SIZE, calculate_preferred_token_size};
 use crate::config::core_config::{FormatType, RevocationType};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::certificate::{Certificate, CertificateRelations, CertificateState};
 use crate::model::common::LockType;
 use crate::model::credential::Credential;
@@ -58,6 +57,7 @@ use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::repository::wallet_unit_repository::WalletUnitRepository;
 use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
+use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 pub mod resolver;
 pub mod util;

@@ -10,7 +10,6 @@ use super::dto::{
 use super::error::ProofSchemaServiceError;
 use super::mapper::create_unique_name_check_request;
 use crate::config::core_config::{ConfigExt, CoreConfig};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::CredentialSchema;
@@ -19,6 +18,7 @@ use crate::provider::credential_formatter::model::{Features, SelectiveDisclosure
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::repository::proof_schema_repository::ProofSchemaRepository;
 use crate::service::error::MissingProviderError;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub async fn proof_schema_name_already_exists(
     repository: &dyn ProofSchemaRepository,

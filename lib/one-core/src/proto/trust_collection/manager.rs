@@ -7,13 +7,13 @@ use uuid::Uuid;
 
 use super::dto::RemoteTrustCollectionInfoDTO;
 use super::{Error, TrustCollectionManager};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::trust_collection::{
     GetTrustCollectionList, TrustCollection, TrustCollectionFilterValue, TrustCollectionListQuery,
 };
 use crate::proto::transaction_manager::TransactionManager;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) struct TrustCollectionManagerImpl {
     repository: Arc<dyn TrustCollectionRepository>,

@@ -11,8 +11,6 @@ use tokio::select;
 use tokio_util::sync::CancellationToken;
 
 use crate::config::core_config::TransportType;
-use one_core_asdk::error::ContextWithErrorCode;
-use one_core_asdk::error::ErrorCode::BR_0000;
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::interaction::UpdateInteractionRequest;
 use crate::model::proof::{ProofStateEnum, UpdateProofRequest};
@@ -32,6 +30,8 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::key_agreement_key::KeyAgreementKey;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::proof_repository::ProofRepository;
+use one_core_asdk::error::ContextWithErrorCode;
+use one_core_asdk::error::ErrorCode::BR_0000;
 
 #[async_trait]
 pub(super) trait ProximityVerifierTransport: Send + Sync {

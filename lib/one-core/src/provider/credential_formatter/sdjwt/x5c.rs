@@ -2,9 +2,9 @@ use serde::Deserialize;
 use standardized_types::jwk::PublicJwk;
 use url::Url;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::http_client::HttpClient;
 use crate::provider::credential_formatter::error::FormatterError;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub async fn resolve_jwks_url(
     issuer_url: Url,

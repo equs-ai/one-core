@@ -14,7 +14,6 @@ use super::mapper::{encrypted_params, unencrypted_params};
 use crate::config::core_config::{
     CoreConfig, DidType, IdentifierType, TransportType, VerificationProtocolType,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::interaction::Interaction;
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofStateEnum, UpdateProofRequest};
@@ -51,6 +50,7 @@ use crate::provider::verification_protocol::{
 };
 use crate::service::oid4vp_draft20::proof_request::generate_authorization_request_params_draft20;
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub mod mappers;
 pub(crate) mod model;

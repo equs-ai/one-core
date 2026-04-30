@@ -1,4 +1,5 @@
-use ml_dsa::signature::{Signer as MlDsaSignerTrait, Verifier};
+#[allow(unused_imports)] // verifying_key() is a trait method in ml-dsa >=rc.8; kept for downstream callers using that version
+use ml_dsa::signature::{Keypair, Signer as MlDsaSignerTrait, Verifier};
 use ml_dsa::{
     B32, EncodedSignature, EncodedVerifyingKey, KeyGen, MlDsa65, Signature, VerifyingKey,
 };

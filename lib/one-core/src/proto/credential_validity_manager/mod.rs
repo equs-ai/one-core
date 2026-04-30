@@ -4,9 +4,6 @@ use one_crypto::encryption::EncryptionError;
 use shared_types::{CredentialId, CredentialSchemaId, RevocationMethodId};
 
 use crate::config::core_config::{CoreConfig, FormatType};
-use one_core_asdk::error::{
-    ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt, NestedError,
-};
 use crate::model::certificate::CertificateRelations;
 use crate::model::credential::{
     Clearable, CredentialRelations, CredentialRole, CredentialStateEnum, UpdateCredentialRequest,
@@ -33,6 +30,9 @@ use crate::repository::interaction_repository::InteractionRepository;
 use crate::service::error::{EntityNotFoundError, MissingProviderError};
 use crate::validator::{
     throw_if_credential_schema_not_in_session_org, throw_if_org_relation_not_matching_session,
+};
+use one_core_asdk::error::{
+    ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt, NestedError,
 };
 
 mod mdoc;

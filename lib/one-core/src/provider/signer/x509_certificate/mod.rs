@@ -6,7 +6,6 @@ use shared_types::Permission;
 use uuid::Uuid;
 
 use crate::config::core_config::{IdentifierType, KeyAlgorithmType, RevocationType};
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::proto::session_provider::SessionProvider;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::RevocationMethod;
@@ -24,6 +23,7 @@ use crate::provider::signer::x509_utils::{
     signing_key_adapter,
 };
 use crate::validator::permissions::RequiredPermissions;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) mod dto;
 mod mapper;

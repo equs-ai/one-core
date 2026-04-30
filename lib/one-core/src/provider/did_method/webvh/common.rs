@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use time::OffsetDateTime;
 
-use one_core_asdk::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::credential_formatter::vcdm::VcdmProof;
 use crate::provider::did_method::error::DidMethodError;
@@ -13,6 +12,7 @@ use crate::provider::did_method::webvh::serialize::DidLogEntry;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::service::error::MissingProviderError;
+use one_core_asdk::error::ContextWithErrorCode;
 
 pub(super) const CRYPTOSUITE: &str = "eddsa-jcs-2022";
 
