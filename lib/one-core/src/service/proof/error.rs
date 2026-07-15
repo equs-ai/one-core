@@ -59,6 +59,8 @@ pub enum ProofServiceError {
     #[error("BBS not supported")]
     BBSNotSupported,
 
+    #[error("Duplicit transaction data")]
+    DuplicitTransactionData,
     #[error("Credential schema `{0}` format does not support transaction data")]
     TransactionDataFormatUnsupported(CredentialSchemaId),
     #[error("Transaction data references credential schema `{0}` not part of the proof schema")]
@@ -101,6 +103,7 @@ impl ErrorCodeMixin for ProofServiceError {
             Self::MissingProofSchema(_) => ErrorCode::BR_0020,
             Self::MissingDid(_) => ErrorCode::BR_0024,
             Self::MissingIdentifier(_) => ErrorCode::BR_0207,
+            Self::DuplicitTransactionData => ErrorCode::BR_0458,
             Self::TransactionDataFormatUnsupported(_) => ErrorCode::BR_0460,
             Self::TransactionDataUnknownCredentialSchema(_) => ErrorCode::BR_0461,
             Self::TransactionDataNotFound(_) => ErrorCode::BR_0462,

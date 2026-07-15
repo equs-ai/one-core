@@ -535,7 +535,8 @@ impl ProofService {
         };
 
         if multiple_transports || !request.transaction_data.is_empty() {
-            let mut transaction_data = Vec::with_capacity(request.transaction_data.len());
+            let mut transaction_data: Vec<TransactionDataRequest> =
+                Vec::with_capacity(request.transaction_data.len());
             for tx_data in &request.transaction_data {
                 let provider = self
                     .transaction_data_provider
@@ -548,6 +549,11 @@ impl ProofService {
                 let encoded = provider
                     .prepare_transaction_data(credential_ids.clone(), tx_data.data.clone())
                     .error_while("preparing transaction data")?;
+
+                if transaction_data.iter().any(|data| data.encoded == encoded) {
+                    return Err(ProofServiceError::DuplicitTransactionData);
+                }
+
                 transaction_data.push(TransactionDataRequest {
                     r#type: tx_data.r#type.clone(),
                     credential_ids,

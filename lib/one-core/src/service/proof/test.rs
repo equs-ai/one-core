@@ -6,7 +6,7 @@ use mockall::Sequence;
 use mockall::predicate::*;
 use rstest::rstest;
 use secrecy::SecretSlice;
-use shared_types::{EntityId, InteractionId, ProofId};
+use shared_types::{EntityId, InteractionId, ProofId, TransactionDataType};
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
 use uuid::Uuid;
@@ -72,6 +72,7 @@ use crate::provider::key_storage::MockKeyStorage;
 use crate::provider::key_storage::model::KeyStorageCapabilities;
 use crate::provider::key_storage::provider::MockKeyProvider;
 use crate::provider::presentation_formatter::provider::MockPresentationFormatterProvider;
+use crate::provider::transaction_data::MockTransactionData;
 use crate::provider::transaction_data::provider::MockTransactionDataProvider;
 use crate::provider::verification_protocol::MockVerificationProtocol;
 use crate::provider::verification_protocol::dto::{
@@ -92,6 +93,7 @@ use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::repository::proof_repository::MockProofRepository;
 use crate::repository::proof_schema_repository::MockProofSchemaRepository;
 use crate::service::common_dto::ListQueryDTO;
+use crate::service::proof::dto::CreateProofRequestTransactionDataDTO;
 use crate::service::test_utilities::{
     dummy_identifier, dummy_organisation, generic_config, get_dummy_date,
 };
@@ -3009,6 +3011,154 @@ async fn test_create_proof_with_related_key() {
 
     let result = service.create_proof(request).await;
     assert_eq!(result.unwrap(), proof_id);
+}
+
+#[tokio::test]
+async fn test_create_proof_fail_duplicit_transaction_data() {
+    let exchange_type = VerificationProtocolType::OpenId4VpFinal1_0;
+    let verifier_key_id = Uuid::new_v4().into();
+
+    let transaction_data = CreateProofRequestTransactionDataDTO {
+        r#type: "transaction-type".into(),
+        credential_schema_ids: vec![],
+        data: None,
+    };
+    let request = CreateProofRequestDTO {
+        proof_schema_id: Uuid::new_v4().into(),
+        verifier_did_id: Some(Uuid::new_v4().into()),
+        verifier_identifier_id: None,
+        protocol: exchange_type.to_string(),
+        redirect_uri: None,
+        verifier_key: Some(verifier_key_id),
+        verifier_certificate: None,
+        iso_mdl_engagement: None,
+        transport: None,
+        profile: None,
+        engagement: None,
+        webhook_destination_url: None,
+        subscriber_information: None,
+        transaction_data: vec![transaction_data.clone(), transaction_data],
+    };
+
+    let mut proof_schema_repository = MockProofSchemaRepository::default();
+    proof_schema_repository
+        .expect_get_proof_schema()
+        .once()
+        .withf(move |id, _| &request.proof_schema_id == id)
+        .return_once(|id, _| {
+            Ok(Some(ProofSchema {
+                id: id.to_owned(),
+                imported_source_url: Some("CORE_URL".to_string()),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                deleted_at: None,
+                name: "proof schema".to_string(),
+                expire_duration: 0,
+                organisation: Some(dummy_organisation(None)),
+                input_schemas: Some(vec![generic_proof_input_schema()]),
+            }))
+        });
+
+    let verifier_did = Did {
+        deleted_at: None,
+        id: request.verifier_did_id.unwrap(),
+        created_date: crate::clock::now_utc(),
+        last_modified: crate::clock::now_utc(),
+        name: "did".to_string(),
+        did: "did:example:123".parse().unwrap(),
+        did_type: DidType::Local,
+        did_method: "KEY".into(),
+        organisation: dummy_organisation(None).into(),
+        keys: vec![RelatedKey {
+            role: KeyRole::Authentication,
+            key: Key {
+                id: verifier_key_id,
+                created_date: get_dummy_date(),
+                last_modified: get_dummy_date(),
+                public_key: vec![],
+                name: "key".to_string(),
+                key_reference: None,
+                storage_type: "INTERNAL".to_string(),
+                key_type: "EDDSA".to_string(),
+                organisation: dummy_organisation(None).into(),
+            },
+            reference: "1".to_string(),
+        }]
+        .into(),
+        deactivated: false,
+        log: None,
+    };
+
+    let mut identifier_repository = MockIdentifierRepository::default();
+    identifier_repository
+        .expect_get_from_did_id()
+        .return_once(|_, _| {
+            Ok(Some(Identifier {
+                did: Some((verifier_did).into()),
+                ..dummy_identifier()
+            }))
+        });
+
+    let mut formatter = MockCredentialFormatter::default();
+    let mut credential_formatter_provider = MockCredentialFormatterProvider::default();
+    formatter
+        .expect_get_capabilities()
+        .times(3)
+        .returning(move || FormatterCapabilities {
+            proof_exchange_protocols: vec![exchange_type],
+            verification_key_storages: vec![KeyStorageType::Internal],
+            verification_identifier_types: vec![IdentifierType::Did],
+            ..Default::default()
+        });
+
+    let formatter: Arc<dyn CredentialFormatter> = Arc::new(formatter);
+    credential_formatter_provider
+        .expect_get_credential_formatter()
+        .times(3)
+        .returning(move |_| Ok(formatter.clone()));
+
+    let mut transaction_data_provider = MockTransactionDataProvider::default();
+    transaction_data_provider
+        .expect_get_transaction_data_by_name()
+        .times(2)
+        .with(eq::<TransactionDataType>("transaction-type".into()))
+        .returning(|_| {
+            let mut transaction_data = MockTransactionData::new();
+            transaction_data
+                .expect_prepare_transaction_data()
+                .return_once(|_, _| Ok("encoded".to_string()));
+            Ok(Arc::new(transaction_data))
+        });
+
+    let mut protocol_provider = MockVerificationProtocolProvider::default();
+    protocol_provider.expect_get_protocol().return_once(|_| {
+        let mut protocol = MockVerificationProtocol::default();
+
+        protocol.expect_get_capabilities().times(1).returning(|| {
+            VerificationProtocolCapabilities {
+                features: vec![],
+                supported_transports: vec![TransportType::Http],
+                did_methods: vec![crate::config::core_config::DidType::Key],
+                verifier_identifier_types: vec![IdentifierType::Did],
+                supported_presentation_definition: vec![],
+            }
+        });
+
+        Ok(Arc::new(protocol))
+    });
+
+    let service = setup_service(Repositories {
+        transaction_data_provider,
+        identifier_repository,
+        proof_schema_repository,
+        credential_formatter_provider,
+        protocol_provider,
+        config: generic_config().core,
+        ..Default::default()
+    });
+
+    let result = service.create_proof(request).await;
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0458);
 }
 
 #[tokio::test]
