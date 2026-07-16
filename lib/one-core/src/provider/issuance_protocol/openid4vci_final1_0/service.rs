@@ -94,7 +94,7 @@ pub(crate) async fn credential_configuration_supported(
 ) -> Result<OpenID4VCICredentialConfigurationData, OpenID4VCIError> {
     let credential_metadata_claims =
         create_claims_dtos_from_claims(credential_schema, format).await?;
-    let display_dtos = create_display_dtos_from_schema(credential_schema).await?;
+    let display_dtos = create_display_dtos_from_schema(credential_schema, format).await?;
 
     let credential_metadata = OpenID4VCICredentialMetadataResponseDTO {
         display: Some(display_dtos),
@@ -204,12 +204,13 @@ async fn create_claims_dtos_from_claims(
     Ok(result)
 }
 
-fn create_display_dto_from_schema(
+async fn create_display_dto_from_schema(
     credential_schema: &CredentialSchema,
-) -> OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO {
+    format: &CredentialSchemaFormat,
+) -> Result<OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO, OpenID4VCIError> {
     let mut display = OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO {
         name: credential_schema.name.clone(),
-        locale: Some("en".to_string()),
+        locale: None,
         logo: None,
         background_color: None,
         text_color: None,
@@ -218,54 +219,78 @@ fn create_display_dto_from_schema(
         procivis_design: None,
     };
 
-    if let Some(layout_properties) = &credential_schema.layout_properties {
+    if let Some(layout_properties) = credential_schema.layout_properties.to_owned() {
         // Extract background
-        if let Some(background) = &layout_properties.background {
-            if let Some(color) = &background.color {
-                display.background_color = Some(color.clone());
-            }
-            if let Some(image) = &background.image {
-                display.background_image =
-                    Some(OpenID4VCIIssuerMetadataCredentialMetadataImage { uri: image.clone() });
-            }
+        if let Some(background) = layout_properties.background {
+            display.background_color = background.color;
+            display.background_image = background
+                .image
+                .map(|uri| OpenID4VCIIssuerMetadataCredentialMetadataImage { uri });
         }
 
         // Extract logo
-        if let Some(logo) = &layout_properties.logo {
-            // Use font_color as text_color
-            if let Some(font_color) = &logo.font_color {
-                display.text_color = Some(font_color.clone());
-            }
-
-            // Create logo DTO if image is available
-            if let Some(image) = &logo.image {
-                display.logo = Some(OpenID4VCIIssuerMetadataLogoDTO {
-                    uri: image.clone(),
-                    alt_text: Some(format!("{} logo", credential_schema.name)),
-                });
-            }
+        if let Some(logo) = layout_properties.logo {
+            display.text_color = logo.font_color;
+            display.logo = logo.image.map(|uri| OpenID4VCIIssuerMetadataLogoDTO {
+                uri,
+                alt_text: Some(format!("{} logo", credential_schema.name)),
+            });
         }
 
+        // procivis custom attributes
+        let claim_schemas = credential_schema
+            .claim_schemas
+            .as_ref()
+            .await
+            .map_err(|err| OpenID4VCIError::RuntimeError(err.to_string()))?;
+        let claim_mappings = format
+            .claim_mappings
+            .as_ref()
+            .await
+            .map_err(|err| OpenID4VCIError::RuntimeError(err.to_string()))?;
+        let attribute_to_technical_path =
+            move |attribute: Option<String>| -> Result<Option<String>, OpenID4VCIError> {
+                let Some(attribute) = attribute else {
+                    return Ok(None);
+                };
+
+                let claim_schema_id = claim_schemas
+                    .iter()
+                    .find(|cs| cs.key == attribute)
+                    .ok_or(OpenID4VCIError::RuntimeError(format!(
+                        "No claim schema found for attribute: {attribute}"
+                    )))?
+                    .id;
+
+                let mapping = claim_mappings
+                    .iter()
+                    .find(|m| m.claim_schema_id == claim_schema_id)
+                    .ok_or(OpenID4VCIError::RuntimeError(format!(
+                        "No mapping for claim schema ID: {claim_schema_id}"
+                    )))?;
+
+                Ok(Some(mapping.technical_key.to_owned()))
+            };
+
         display.procivis_design = Some(OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign {
-            primary_attribute: layout_properties.primary_attribute.to_owned(),
-            secondary_attribute: layout_properties.secondary_attribute.to_owned(),
-            picture_attribute: layout_properties.picture_attribute.to_owned(),
-            code_attribute: layout_properties
-                .code
-                .as_ref()
-                .map(|code| code.attribute.to_owned()),
-            code_type: layout_properties
-                .code
-                .as_ref()
-                .map(|code| code.r#type.to_owned()),
+            primary_attribute: attribute_to_technical_path(layout_properties.primary_attribute)?,
+            secondary_attribute: attribute_to_technical_path(
+                layout_properties.secondary_attribute,
+            )?,
+            picture_attribute: attribute_to_technical_path(layout_properties.picture_attribute)?,
+            code_type: layout_properties.code.as_ref().map(|code| code.r#type),
+            code_attribute: attribute_to_technical_path(
+                layout_properties.code.map(|code| code.attribute),
+            )?,
         });
     }
 
-    display
+    Ok(display)
 }
 
 async fn create_display_dtos_from_schema(
     credential_schema: &CredentialSchema,
+    format: &CredentialSchemaFormat,
 ) -> Result<Vec<OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO>, OpenID4VCIError> {
     let translations = credential_schema
         .translations
@@ -274,10 +299,12 @@ async fn create_display_dtos_from_schema(
         .map_err(|e| OpenID4VCIError::RuntimeError(e.to_string()))?;
 
     if translations.is_empty() {
-        return Ok(vec![create_display_dto_from_schema(credential_schema)]);
+        return Ok(vec![
+            create_display_dto_from_schema(credential_schema, format).await?,
+        ]);
     }
 
-    let visual_base = create_display_dto_from_schema(credential_schema);
+    let visual_base = create_display_dto_from_schema(credential_schema, format).await?;
 
     let mut by_lang: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
     for translation in &translations {

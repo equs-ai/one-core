@@ -226,7 +226,7 @@ pub struct CodeProperties {
     pub r#type: CodeTypeEnum,
 }
 
-#[derive(Clone, Debug, Eq, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CodeTypeEnum {
     Barcode,

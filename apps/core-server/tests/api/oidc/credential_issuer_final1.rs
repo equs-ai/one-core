@@ -1,3 +1,4 @@
+use maplit::hashmap;
 use mime::Mime;
 use one_core::mapper::x509::pem_chain_into_x5c;
 use one_core::model::blob::BlobType;
@@ -346,6 +347,59 @@ async fn test_get_credential_issuer_metadata_with_disclosure_policy() {
             },
             "description": "description",
             "url": "https://url",
+        })
+    );
+}
+
+#[tokio::test]
+async fn test_get_credential_issuer_metadata_with_claim_mappings() {
+    // GIVEN
+    let (context, organisation, identifier, ..) =
+        TestContext::new_with_certificate_identifier(None).await;
+
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "test-schema",
+            &organisation,
+            TestingCreateSchemaParams {
+                claim_mappings: Some(hashmap! {
+                    "firstName".to_string() => "firstName_Mapped".to_string(),
+                    "isOver18".to_string() => "isOver18_Mapped".to_string()
+                }),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // WHEN
+    let resp = context
+        .api
+        .ssi
+        .openid_credential_issuer_final1(
+            "OPENID4VCI_FINAL1",
+            identifier.id,
+            credential_schema.id,
+            mime::APPLICATION_JSON.into(),
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let body: Value = resp.json_value().await;
+
+    let schema_id = credential_schema.schema_id().await.unwrap();
+    // layout properties are using mapped paths
+    assert_eq!(
+        body["credential_configurations_supported"][schema_id.as_str()]["credential_metadata"]["display"]
+            [0]["procivis_design"],
+        serde_json::json!({
+             "primary_attribute": "firstName_Mapped",
+             "secondary_attribute": "firstName_Mapped",
+             "picture_attribute": "firstName_Mapped",
+             "code_attribute": "firstName_Mapped",
+             "code_type": "BARCODE",
         })
     );
 }
