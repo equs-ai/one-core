@@ -94,8 +94,14 @@ impl WalletProviderClient for HTTPWalletProviderClient {
 
         if response.status.is_client_error() {
             let error_body: ErrorBody = serde_json::from_slice(&response.body)?;
-            if error_body.code == ErrorCode::BR_0153 {
-                return Err(WalletProviderClientError::WalletUnitNonceExpired);
+            match error_body.code {
+                ErrorCode::BR_0153 => {
+                    return Err(WalletProviderClientError::WalletUnitNonceExpired);
+                }
+                ErrorCode::BR_0297 => {
+                    return Err(WalletProviderClientError::InsufficientSecurityLevel);
+                }
+                _ => {}
             }
         }
 

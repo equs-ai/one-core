@@ -11,6 +11,8 @@ pub enum WalletProviderClientError {
     IntegrityCheckNotRequired,
     #[error("Wallet unit attestation nonce expired")]
     WalletUnitNonceExpired,
+    #[error("Insufficient security level")]
+    InsufficientSecurityLevel,
 
     #[error("Unknown provider type: `{0}`")]
     UnsupportedType(WalletProviderType),
@@ -30,9 +32,9 @@ impl ErrorCodeMixin for WalletProviderClientError {
             Self::IntegrityCheckRequired => ErrorCode::BR_0280,
             Self::IntegrityCheckNotRequired => ErrorCode::BR_0281,
             Self::WalletUnitNonceExpired => ErrorCode::BR_0153,
-            Self::UnsupportedType(_) | Self::URLError(_) | Self::JsonError(_) | Self::Nested(_) => {
-                ErrorCode::BR_0264
-            }
+            Self::InsufficientSecurityLevel => ErrorCode::BR_0297,
+            Self::UnsupportedType(_) | Self::URLError(_) | Self::JsonError(_) => ErrorCode::BR_0264,
+            Self::Nested(nested) => nested.error_code(),
         }
     }
 }

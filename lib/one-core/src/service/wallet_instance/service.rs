@@ -792,7 +792,10 @@ impl WalletUnitService {
             Err(WalletProviderClientError::WalletUnitNonceExpired) => {
                 return Err(HolderWalletInstanceError::WalletUnitRegistrationExpired);
             }
-            Err(err) if err.error_code() == ErrorCode::BR_0395 => {
+            Err(err)
+                if err.error_code() == ErrorCode::BR_0395
+                    || matches!(err, WalletProviderClientError::InsufficientSecurityLevel) =>
+            {
                 tracing::warn!("Activation request failed: {err}");
                 return Ok(RegistrationStatus::Unattested { wallet_instance_id });
             }
