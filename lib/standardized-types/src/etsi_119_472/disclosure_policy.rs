@@ -19,9 +19,9 @@ pub struct DisclosurePolicy {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "policy")]
 pub enum PolicyType {
-    None,
-    AllowList { options: AllowListOptions },
     RootOfTrust { options: RootOfTrustOptions },
+    AllowList { options: AllowListOptions },
+    None,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -55,6 +55,8 @@ pub struct RootOfTrustOptions {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct RootOfTrustOption {
+    #[cfg_attr(feature = "utoipa", schema(example = "C=CH, O=Procivis"))]
     pub dn: String,
+    #[cfg_attr(feature = "utoipa", schema(example = "a1:b2:c3:d4:e5:f6:07:18:29:30"))]
     pub serial: String,
 }
