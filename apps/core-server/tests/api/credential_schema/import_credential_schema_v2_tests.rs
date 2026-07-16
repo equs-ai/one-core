@@ -252,6 +252,91 @@ async fn test_import_credential_schema_v2_imports_claim_translations() {
 }
 
 #[tokio::test]
+async fn test_import_credential_schema_v2_multiple_formats_with_shared_metadata_claims() {
+    // GIVEN
+    // JWT and SD_JWT formatters both emit the same metadata claims (iss, sub, aud, ...),
+    // which must be deduplicated on import to not violate the unique
+    // (key, credential_schema_id) index on claim_schema
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
+    let import_schema = serde_json::json!(
+    {
+      "allowSuspension": false,
+      "claims": [
+        {
+          "array": false,
+          "claims": [],
+          "createdDate": "2026-07-03T11:44:45.285Z",
+          "datatype": "STRING",
+          "id": "98d0312c-9c69-48dc-a759-946964520cfe",
+          "key": "firstName",
+          "lastModified": "2026-07-03T11:44:45.285Z",
+          "required": true,
+          "translations": {
+            "name": {
+              "en": "firstName"
+            }
+          }
+        }
+      ],
+      "createdDate": "2026-07-03T11:44:45.285Z",
+      "formats": [
+        {
+          "format": "JWT",
+          "schemaId": "http://example.com/schema/jwt"
+        },
+        {
+          "format": "SD_JWT",
+          "schemaId": "http://example.com/schema/sd-jwt"
+        }
+      ],
+      "id": "efced6c9-7257-424c-be4e-c68554509540",
+      "importedSourceUrl": "http://127.0.0.1:51147/ssi/schema/v2/efced6c9-7257-424c-be4e-c68554509540",
+      "lastModified": "2026-07-03T11:44:45.285Z",
+      "layoutType": "CARD",
+      "name": "multi-format schema",
+      "organisationId": "18364c17-06a1-4b93-9a4b-c440f2bc2420",
+      "requiresWalletInstanceAttestation": false
+    });
+
+    // WHEN
+    let import_resp = context
+        .api
+        .credential_schemas
+        .import_v2(organisation.id, import_schema)
+        .await;
+
+    // THEN
+    assert_eq!(import_resp.status(), 201);
+    let imported_id = import_resp.json_value().await["id"].parse();
+    let imported_schema = context.db.credential_schemas.get(&imported_id).await;
+
+    let claim_schemas = imported_schema.claim_schemas.as_ref().await.unwrap();
+    let mut keys: Vec<_> = claim_schemas.iter().map(|cs| cs.key.as_str()).collect();
+    keys.sort_unstable();
+    let total_keys = keys.len();
+    keys.dedup();
+    assert_eq!(keys.len(), total_keys, "duplicate claim schema keys");
+
+    // shared metadata claims are mapped in both formats
+    let iss_claim_schema = claim_schemas
+        .iter()
+        .find(|cs| cs.key == "iss" && cs.metadata)
+        .expect("iss metadata claim should be present");
+    let formats = imported_schema.formats.as_ref().await.unwrap();
+    assert_eq!(formats.len(), 2);
+    for format in &formats {
+        let claim_mappings = format.claim_mappings.as_ref().await.unwrap();
+        assert!(
+            claim_mappings
+                .iter()
+                .any(|m| m.claim_schema_id == iss_claim_schema.id),
+            "format `{}` should have a mapping for the shared iss metadata claim",
+            format.format
+        );
+    }
+}
+
+#[tokio::test]
 async fn test_import_credential_schema_v2_without_translation() {
     // GIVEN
     let (context, organisation) = TestContext::new_with_organisation(None).await;

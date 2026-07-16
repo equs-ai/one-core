@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use one_dto_mapper::convert_inner;
 use shared_types::{CredentialFormat, CredentialSchemaId};
@@ -175,6 +176,7 @@ impl CredentialSchemaImportParser for CredentialSchemaImportParserImpl {
             .iter()
             .map(|(cs, _)| cs.clone())
             .collect();
+        let mut metadata_claim_schemas = IndexMap::new();
         for format_req in &dto.schema.formats {
             let formatter = self
                 .formatter_provider
@@ -182,18 +184,19 @@ impl CredentialSchemaImportParser for CredentialSchemaImportParserImpl {
 
             let schema_id =
                 self.parse_schema_id(format_req.schema_id.clone(), formatter.as_ref())?;
-            let (format, format_specific_claim_schemas) = self.parse_format_with_claim_mappings(
+            let format = self.parse_format_with_claim_mappings(
                 credential_schema_id,
                 schema_id,
                 format_req.format.clone(),
                 now,
                 &claim_schemas_with_raw_mappings,
                 formatter.as_ref(),
+                &mut metadata_claim_schemas,
             )?;
 
             formats.push(format);
-            claim_schemas.extend(format_specific_claim_schemas);
         }
+        claim_schemas.extend(metadata_claim_schemas.into_values());
 
         Ok(CredentialSchema {
             id: credential_schema_id,
@@ -442,6 +445,7 @@ impl CredentialSchemaImportParserImpl {
             .try_collect()
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn parse_format_with_claim_mappings(
         &self,
         credential_schema_id: CredentialSchemaId,
@@ -450,36 +454,23 @@ impl CredentialSchemaImportParserImpl {
         now: OffsetDateTime,
         claim_schemas_to_mappings: &[(ClaimSchema, Vec<CredentialClaimSchemaMappingDTO>)],
         formatter: &dyn CredentialFormatter,
-    ) -> Result<(CredentialSchemaFormat, Vec<ClaimSchema>), Error> {
+        metadata_claim_schemas: &mut IndexMap<String, ClaimSchema>,
+    ) -> Result<CredentialSchemaFormat, Error> {
         let format_id = Uuid::new_v4().into();
         let uses_namespaces = formatter
             .get_capabilities()
             .features
             .contains(&Features::RequiresNamespaces);
 
-        let metadata_claims_with_mappings = formatter
-            .get_metadata_claims()
-            .into_iter()
-            .map(|metadata_claim| {
-                (
-                    claim_schema_from_metadata_claim_schema(metadata_claim, now),
-                    vec![],
-                )
-            })
-            .collect::<Vec<_>>();
-
         let mut mappings = vec![];
-        for (claim_schema, claim_mappings) in claim_schemas_to_mappings
-            .iter()
-            .chain(metadata_claims_with_mappings.iter())
-        {
+        for (claim_schema, claim_mappings) in claim_schemas_to_mappings {
             let mapping_for_format = claim_mappings.iter().find(|m| m.format == format);
 
             let technical_key = mapping_for_format
                 .map(|m| m.technical_key.clone())
                 .unwrap_or_else(|| claim_schema.key.clone());
 
-            let namespace = if uses_namespaces && !claim_schema.metadata {
+            let namespace = if uses_namespaces {
                 Some(
                     mapping_for_format
                         .ok_or(Error::MissingNamespace)?
@@ -503,21 +494,32 @@ impl CredentialSchemaImportParserImpl {
             });
         }
 
-        Ok((
-            CredentialSchemaFormat {
-                id: format_id,
+        for metadata_claim in formatter.get_metadata_claims() {
+            // the metadata claim could already have been created by a different formatter of the same type
+            let claim_schema = metadata_claim_schemas
+                .entry(metadata_claim.key.clone())
+                .or_insert_with(|| claim_schema_from_metadata_claim_schema(metadata_claim, now));
+
+            mappings.push(CredentialSchemaFormatClaimSchema {
+                id: Uuid::new_v4().into(),
                 created_date: now,
                 last_modified: now,
-                credential_schema_id,
-                format,
-                schema_id,
-                claim_mappings: RelatedVec::from(mappings),
-            },
-            metadata_claims_with_mappings
-                .into_iter()
-                .map(|(claim_schema, _)| claim_schema)
-                .collect(),
-        ))
+                credential_schema_format_id: format_id,
+                claim_schema_id: claim_schema.id,
+                technical_key: claim_schema.key.clone(),
+                namespace: None,
+            });
+        }
+
+        Ok(CredentialSchemaFormat {
+            id: format_id,
+            created_date: now,
+            last_modified: now,
+            credential_schema_id,
+            format,
+            schema_id,
+            claim_mappings: RelatedVec::from(mappings),
+        })
     }
 
     pub(super) fn parse_claim_schema(
