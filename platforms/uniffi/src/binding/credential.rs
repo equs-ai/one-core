@@ -367,4 +367,5 @@ pub struct CredentialListItemBindingDTO {
     pub consumed_at: Option<String>,
     pub r#type: CredentialTypeBindingEnum,
     pub parent_id: Option<String>,
+    pub redirect_uri: Option<String>,
 }

@@ -475,6 +475,7 @@ pub(super) async fn to_credential_list_response(
         profile: credential.profile,
         webhook_destination_url: credential.webhook_url,
         parent_id: credential.parent.map(|parent| parent.id()),
+        redirect_uri: credential.redirect_uri,
     })
 }
 

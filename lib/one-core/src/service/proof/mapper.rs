@@ -175,6 +175,7 @@ impl TryFrom<Proof> for ProofListItemResponseDTO {
             schema: value.schema.map(|schema| schema.into()),
             profile: value.profile,
             webhook_destination_url: value.webhook_url,
+            redirect_uri: value.redirect_uri,
         })
     }
 }

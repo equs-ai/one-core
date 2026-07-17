@@ -70,6 +70,8 @@ pub(crate) struct CredentialListItemResponseRestDTO {
     #[from(with_fn = convert_inner)]
     pub profile: Option<String>,
     pub webhook_destination_url: Option<String>,
+    /// URI holder is redirected to after credential issuance.
+    pub redirect_uri: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema, From)]

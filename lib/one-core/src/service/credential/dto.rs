@@ -40,6 +40,7 @@ pub struct CredentialListItemResponseDTO {
     pub profile: Option<String>,
     pub webhook_destination_url: Option<String>,
     pub parent_id: Option<CredentialId>,
+    pub redirect_uri: Option<String>,
 }
 
 #[skip_serializing_none]

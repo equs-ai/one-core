@@ -323,6 +323,7 @@ pub(crate) struct ProofListItemResponseRestDTO {
     /// Profile associated with this proof request
     pub profile: Option<String>,
     pub webhook_destination_url: Option<String>,
+    pub redirect_uri: Option<String>,
 }
 
 // detail endpoint

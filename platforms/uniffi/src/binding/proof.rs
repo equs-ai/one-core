@@ -368,6 +368,7 @@ pub struct ProofListItemBindingDTO {
     pub retain_until_date: Option<String>,
     /// Country profile associated with this request.
     pub profile: Option<String>,
+    pub redirect_uri: Option<String>,
 }
 
 #[derive(Clone, Debug, uniffi::Record)]

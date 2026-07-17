@@ -163,6 +163,7 @@ impl From<CredentialListItemResponseDTO> for CredentialListItemBindingDTO {
             protocol: value.protocol,
             profile: value.profile,
             parent_id: value.parent_id.map(|parent_id| parent_id.to_string()),
+            redirect_uri: value.redirect_uri,
         }
     }
 }

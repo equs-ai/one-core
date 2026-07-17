@@ -126,6 +126,7 @@ pub struct ProofListItemResponseDTO {
     pub schema: Option<GetProofSchemaListItemDTO>,
     pub profile: Option<String>,
     pub webhook_destination_url: Option<String>,
+    pub redirect_uri: Option<String>,
 }
 
 #[derive(Clone, Debug)]
