@@ -168,8 +168,9 @@ signer:
         payload:
           issuer: "https://issuer.example"
           audience: ["bli", "bla"]
-          maxValidityDuration: 2592000 # 30 days
         revocationMethod: TOKENSTATUSLIST
+      public:
+        maxValidityDuration: 2592000 # 30 days
   ACCESS_CERTIFICATE:
     display:
       en: "Wallet Relying Party Access Certificate"
@@ -178,9 +179,9 @@ signer:
     type: ACCESS_CERTIFICATE
     params:
       private:
-        payload:
-          maxValidityDuration: 157680000 # 5 years
         revocationMethod: CRL
+      public:
+        maxValidityDuration: 157680000 # 5 years
   X509_CERTIFICATE:
     display:
       en: "X.509 Certificate Issuer"

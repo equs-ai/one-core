@@ -39,6 +39,8 @@ use crate::util::key_selection::{CertificateFilter, KeyFilter, KeySelection, Sel
 #[serde(rename_all = "camelCase")]
 pub struct Params {
     pub payload: PayloadParams,
+    /// exposed publicly via `GET /api/config/v1`
+    pub max_validity_duration: i64,
     pub revocation_method: RevocationMethodId,
 }
 
@@ -47,7 +49,6 @@ pub struct Params {
 pub struct PayloadParams {
     pub issuer: Option<Url>,
     pub audience: Option<Vec<String>>,
-    pub max_validity_duration: i64,
 }
 
 #[derive(Provider)]
@@ -136,7 +137,7 @@ impl Signer for RegistrationCertificate {
     ) -> Result<CreateSignatureResponseDTO, SignerError> {
         let now = self.clock.now_utc();
         let SignatureValidity { start, end } = calculate_signature_validity(
-            Duration::seconds(self.params.payload.max_validity_duration),
+            Duration::seconds(self.params.max_validity_duration),
             &request,
         )?;
         let payload: model::RequestData = serde_json::from_value(request.data.clone())?;
@@ -237,7 +238,7 @@ impl TryFrom<Option<&crate::config::core_config::Params>> for Params {
 
         // GEN-5.2.4-08: The `exp` field in the WRPRC payload shall indicate a time not later than
         // 12 months after the issuance time specified in the `iat` field specified in GEN-5.2.4-01.
-        if Duration::seconds(result.payload.max_validity_duration) > Duration::days(365) {
+        if Duration::seconds(result.max_validity_duration) > Duration::days(365) {
             return Err(Error::custom(
                 "expiry cannot occur later than 12 months after issuance (GEN-5.2.4-08)",
             ));

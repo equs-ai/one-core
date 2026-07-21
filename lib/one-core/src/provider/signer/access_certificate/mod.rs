@@ -28,20 +28,16 @@ use crate::provider::signer::x509_utils::{
     CaSigningInfo, IdentifierInfo, RevocationInfo, prepare_params_and_ca_issuer,
 };
 
-#[derive(Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Params {
-    pub payload: PayloadParams,
-    pub revocation_method: Option<RevocationMethodId>,
-}
-
 #[serde_as]
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PayloadParams {
+pub struct Params {
+    /// exposed publicly via `GET /api/config/v1`
     #[serde_as(as = "DurationSeconds<i64>")]
     pub max_validity_duration: Duration,
+    pub revocation_method: Option<RevocationMethodId>,
 }
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct RequestData {
@@ -153,7 +149,7 @@ impl Signer for AccessCertificateSigner {
         };
 
         let SignatureValidity { start, end } =
-            calculate_signature_validity(self.params.payload.max_validity_duration, &request)?;
+            calculate_signature_validity(self.params.max_validity_duration, &request)?;
         let request_data: RequestData = serde_json::from_value(request.data)?;
         let pub_key = validated_pubkey_from_csr(&request_data.csr)?;
 
