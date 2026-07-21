@@ -348,6 +348,14 @@ impl RequestBuilder {
     }
 }
 
+/// Checks whether a Content-Type header value matches the expected media type,
+/// ignoring parameters such as `charset`.
+pub fn is_media_type(content_type: &str, expected: &str) -> bool {
+    content_type
+        .parse::<mime::Mime>()
+        .is_ok_and(|mime| mime.essence_str() == expected)
+}
+
 fn format_headers(headers: &Headers) -> String {
     match headers.is_empty() {
         true => "<None>".to_string(),
@@ -373,4 +381,34 @@ fn log_request_details(location: &std::panic::Location, request: &Request) {
     );
 
     tracing::trace!(%trace_request, %location);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_media_type;
+
+    #[test]
+    fn test_is_media_type() {
+        assert!(is_media_type("application/jwt", "application/jwt"));
+        assert!(is_media_type(
+            "application/jwt; charset=utf-8",
+            "application/jwt"
+        ));
+        assert!(is_media_type(
+            "Application/JWT; charset=\"UTF-8\"",
+            "application/jwt"
+        ));
+        assert!(is_media_type(
+            "application/json;charset=utf-8",
+            "application/json"
+        ));
+
+        assert!(!is_media_type("application/json", "application/jwt"));
+        assert!(!is_media_type(
+            "text/html; charset=utf-8",
+            "application/jwt"
+        ));
+        assert!(!is_media_type("", "application/jwt"));
+        assert!(!is_media_type("not a mime type", "application/jwt"));
+    }
 }

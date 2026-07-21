@@ -9,7 +9,7 @@ use url::Url;
 use super::{CacheError, CachingLoader, ResolveResult, Resolver, ResolverError};
 use crate::config::core_config::{CacheEntityCacheType, CoreConfig};
 use crate::error::ContextWithErrorCode;
-use crate::proto::http_client::HttpClient;
+use crate::proto::http_client::{HttpClient, is_media_type};
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::DecomposedJwt;
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
@@ -123,7 +123,7 @@ impl Resolver for OpenIDMetadataResolver {
         let content = response.body;
 
         if let Some(mime) = &media_type
-            && mime != &accept_mime
+            && !is_media_type(mime, &accept_mime)
         {
             return Err(ResolverError::InvalidResponse(format!(
                 "Unexpected Content-Type: {mime}"

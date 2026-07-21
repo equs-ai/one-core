@@ -83,7 +83,7 @@ use crate::model::organisation::Organisation;
 use crate::model::relation::Related;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::credential_schema::importer::CredentialSchemaImporter;
-use crate::proto::http_client::{HttpClient, Response};
+use crate::proto::http_client::{HttpClient, Response, is_media_type};
 use crate::proto::identifier_creator::IdentifierCreator;
 use crate::proto::jwt::model::DecomposedJwt;
 use crate::proto::key_verification::KeyVerification;
@@ -851,7 +851,7 @@ impl OpenID4VCIFinal1_0 {
                     .ok_or(IssuanceProtocolError::Failed(
                         "Missing response content type".to_string(),
                     ))?;
-            if content_type != "application/jwt" {
+            if !is_media_type(content_type, "application/jwt") {
                 return Err(IssuanceProtocolError::Failed(format!(
                     "Requested encrypted response (application/jwt), but got `{content_type}`"
                 )));
