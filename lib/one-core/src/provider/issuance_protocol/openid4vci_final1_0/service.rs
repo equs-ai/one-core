@@ -248,7 +248,7 @@ async fn create_display_dto_from_schema(
             .as_ref()
             .await
             .map_err(|err| OpenID4VCIError::RuntimeError(err.to_string()))?;
-        let attribute_to_technical_path =
+        let attribute_to_claim_path =
             move |attribute: Option<String>| -> Result<Option<String>, OpenID4VCIError> {
                 let Some(attribute) = attribute else {
                     return Ok(None);
@@ -269,17 +269,25 @@ async fn create_display_dto_from_schema(
                         "No mapping for claim schema ID: {claim_schema_id}"
                     )))?;
 
-                Ok(Some(mapping.technical_key.to_owned()))
+                let attribute_path = match (&mapping.namespace, &mapping.technical_key) {
+                    (Some(namespace), technical_key) => {
+                        // We need to prepend namespace on server side for 2 reasons:
+                        // 1. mdoc formatter prepends namespace into the technical key on holder side
+                        // 2. technical keys are not unique, combinations with namespace are
+                        format!("{namespace}_{technical_key}")
+                    }
+                    (&None, technical_key) => technical_key.to_owned(),
+                };
+
+                Ok(Some(attribute_path))
             };
 
         display.procivis_design = Some(OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign {
-            primary_attribute: attribute_to_technical_path(layout_properties.primary_attribute)?,
-            secondary_attribute: attribute_to_technical_path(
-                layout_properties.secondary_attribute,
-            )?,
-            picture_attribute: attribute_to_technical_path(layout_properties.picture_attribute)?,
+            primary_attribute: attribute_to_claim_path(layout_properties.primary_attribute)?,
+            secondary_attribute: attribute_to_claim_path(layout_properties.secondary_attribute)?,
+            picture_attribute: attribute_to_claim_path(layout_properties.picture_attribute)?,
             code_type: layout_properties.code.as_ref().map(|code| code.r#type),
-            code_attribute: attribute_to_technical_path(
+            code_attribute: attribute_to_claim_path(
                 layout_properties.code.map(|code| code.attribute),
             )?,
         });
