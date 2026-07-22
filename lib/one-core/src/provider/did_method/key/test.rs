@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::KeyDidMethod;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::model::key::Key;
+use crate::provider::did_method::error::DidMethodError;
 use crate::provider::did_method::model::{DidDocument, DidVerificationMethod};
 use crate::provider::did_method::{DidKeys, DidMethod};
 use crate::provider::key_algorithm::MockKeyAlgorithm;
@@ -131,6 +132,65 @@ async fn test_did_key_resolve_details_eddsa() {
         also_known_as: None,
         service: None,
     });
+}
+
+// test vector generated via https://hub.ebsi.eu/docs/onboarding/natural-person/did-key-method
+#[tokio::test]
+async fn test_did_key_resolve_details_ebsi_jwk_jcs_pub() {
+    const DID: &str = "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9KbshxY7sR7iADMcVXpArH41HqEWtgdzMD9vp5uD2G5HBu7kmWucFvYHwdAp1WQf71GDuhZTYhAy2d7UvNwkWUWxgEyrYy3AAb2cYioozhAytVoQ2BvkoS2THBgsatQRnZdiL";
+
+    let did_method = KeyDidMethod::new("key".into(), Arc::new(MockKeyAlgorithmProvider::new()));
+
+    let result = did_method.resolve(&DID.parse().unwrap()).await.unwrap();
+
+    let verification_method_id = format!("{DID}#{}", &DID["did:key:".len()..]);
+    assert_eq!(
+        result,
+        DidDocument {
+            context: json!([
+                "https://www.w3.org/ns/did/v1",
+                "https://w3id.org/security/suites/jws-2020/v1",
+            ]),
+            id: DID.parse().unwrap(),
+            verification_method: vec![DidVerificationMethod {
+                id: verification_method_id.to_owned(),
+                r#type: "JsonWebKey2020".to_owned(),
+                controller: DID.to_owned(),
+                public_key_jwk: PublicJwk::Ec(PublicJwkEc {
+                    alg: None,
+                    r#use: None,
+                    kid: None,
+                    crv: "P-256".to_owned(),
+                    x: "tuw-MgSQaYfss6aSVxdqWRr7ZQBtlN6OflJ6oHyQf-0".to_owned(),
+                    y: Some("h746G-P1ykTVjy6z7MeOykM_TzzK_xZ0PlK--O0ixJ0".to_owned()),
+                }),
+            }],
+            authentication: Some(vec![verification_method_id.to_owned()]),
+            assertion_method: Some(vec![verification_method_id.to_owned()]),
+            key_agreement: Some(vec![verification_method_id.to_owned()]),
+            capability_invocation: Some(vec![verification_method_id.to_owned()]),
+            capability_delegation: Some(vec![verification_method_id]),
+            also_known_as: None,
+            service: None,
+        }
+    );
+}
+
+#[tokio::test]
+async fn test_did_key_resolve_jwk_jcs_pub_rejects_non_canonical_payload() {
+    // key order not JCS canonical
+    let payload = br#"{"kty":"EC","crv":"P-256","x":"tuw-MgSQaYfss6aSVxdqWRr7ZQBtlN6OflJ6oHyQf-0","y":"h746G-P1ykTVjy6z7MeOykM_TzzK_xZ0PlK--O0ixJ0"}"#;
+    let multibase = bs58::encode([&[0xd1, 0xd6, 0x03], payload.as_slice()].concat()).into_string();
+
+    let did_method = KeyDidMethod::new("key".into(), Arc::new(MockKeyAlgorithmProvider::new()));
+
+    let result = did_method
+        .resolve(&format!("did:key:z{multibase}").parse().unwrap())
+        .await;
+
+    assert!(
+        matches!(result, Err(DidMethodError::ResolutionError(msg)) if msg.contains("not JCS canonical"))
+    );
 }
 
 // https://github.com/w3c-ccg/did-method-key/blob/main/test-vectors/nist-curves.json

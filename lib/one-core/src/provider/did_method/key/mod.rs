@@ -14,7 +14,9 @@ use crate::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::did_method::DidMethod;
 use crate::provider::did_method::error::DidMethodError;
-use crate::provider::did_method::key_helpers::{decode_did, generate_document};
+use crate::provider::did_method::key_helpers::{
+    DecodedDidKeyMaterial, decode_did, generate_document,
+};
 use crate::provider::did_method::keys::Keys;
 use crate::provider::did_method::model::{DidCapabilities, DidDocument, Operation};
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
@@ -56,21 +58,24 @@ impl DidMethod for KeyDidMethod {
     async fn resolve(&self, did_value: &DidValue) -> Result<DidDocument, DidMethodError> {
         let decoded = decode_did(did_value)?;
 
-        let jwk = self
-            .key_algorithm_provider
-            .key_algorithm_from_type(decoded.r#type)?
-            .reconstruct_key(&decoded.decoded_multibase, None, None)
-            .map_err(|err| {
-                DidMethodError::ResolutionError(format!(
-                    "Could not create jwk representation: {err}"
-                ))
-            })?
-            .public_key_as_jwk()
-            .map_err(|err| {
-                DidMethodError::ResolutionError(format!(
-                    "Could not create jwk representation: {err}"
-                ))
-            })?;
+        let jwk = match &decoded.key {
+            DecodedDidKeyMaterial::Raw { r#type, public_key } => self
+                .key_algorithm_provider
+                .key_algorithm_from_type(*r#type)?
+                .reconstruct_key(public_key, None, None)
+                .map_err(|err| {
+                    DidMethodError::ResolutionError(format!(
+                        "Could not create jwk representation: {err}"
+                    ))
+                })?
+                .public_key_as_jwk()
+                .map_err(|err| {
+                    DidMethodError::ResolutionError(format!(
+                        "Could not create jwk representation: {err}"
+                    ))
+                })?,
+            DecodedDidKeyMaterial::JcsJwk(jwk) => jwk.clone(),
+        };
 
         Ok(generate_document(decoded, did_value, jwk))
     }
