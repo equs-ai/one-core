@@ -29,7 +29,13 @@ use crate::router::AppState;
         ("bearer" = [])
     ),
     summary = "Create a trust collection",
-    description = "Creates an empty collection of trust lists.",
+    description = indoc::formatdoc! {"
+        Creates an empty collection of trust lists. Add trust lists to the
+        collection to subscribe.
+
+        See [Subscribing to Trust Lists](https://docs.procivis.ch/trust/subscribing)
+        for details.
+    "},
 )]
 pub(crate) async fn post_trust_collection(
     state: State<AppState>,
@@ -155,7 +161,12 @@ pub(crate) async fn delete_trust_collection(
         ("bearer" = [])
     ),
     summary = "Create a trust list subscription",
-    description = "Adds a trust list subscription to a trust collection.",
+    description = indoc::formatdoc! {"
+        Adds a trust list subscription to a trust collection.
+
+        See [Subscribing to Trust Lists](https://docs.procivis.ch/trust/subscribing)
+        for details.
+    "},
 )]
 pub(crate) async fn post_trust_list_subscription(
     state: State<AppState>,

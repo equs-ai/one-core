@@ -13,7 +13,7 @@ use one_core::service::trust_collection::dto::{
     TrustListSubscriptionFilterParamsDTO, TrustListSubscriptionListItemResponseDTO,
 };
 use one_dto_mapper::{From, Into, TryInto, convert_inner, convert_inner_of_inner};
-use proc_macros::options_not_nullable;
+use proc_macros::{ModifySchema, options_not_nullable};
 use serde::{Deserialize, Serialize};
 use shared_types::{
     OrganisationId, TrustCollectionId, TrustListSubscriberId, TrustListSubscriptionId,
@@ -155,12 +155,13 @@ pub(crate) enum SortableTrustCollectionColumnRestEnum {
 }
 
 #[options_not_nullable]
-#[derive(Debug, Deserialize, ToSchema, Into)]
+#[derive(Debug, Deserialize, ToSchema, Into, ModifySchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[into(CreateTrustListSubscriptionRequestDTO)]
 pub struct CreateTrustListSubscriptionRequestRestDTO {
     /// Provide a name for this subscription.
     pub name: String,
+    /// For Lists of Trusted Entities (ETSI LoTE) only.
     /// Specify which ecosystem role this list corresponds to.
     #[into(with_fn = convert_inner)]
     pub role: Option<TrustListRoleRestEnum>,
@@ -168,7 +169,8 @@ pub struct CreateTrustListSubscriptionRequestRestDTO {
     pub reference: Url,
     /// The configured `trustListSubscriber` instance the trust list
     /// conforms to.
-    pub r#type: TrustListSubscriberId,
+    #[modify_schema(field = trust_list_subscriber)]
+    pub r#type: String,
 }
 
 pub(crate) type GetTrustListSubscriptionListResponseRestDTO =
