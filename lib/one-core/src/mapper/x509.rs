@@ -260,7 +260,10 @@ impl rcgen::SigningKey for SigningKeyAdapter {
 
             Ok(signature)
         });
-        block_on(handle)
+        // block_in_place keeps the runtime workers available to drive the
+        // HTTP futures of remote key storages while this thread blocks;
+        // requires a multi-thread runtime (tests need the multi_thread flavor)
+        tokio::task::block_in_place(|| block_on(handle))
     }
 }
 
