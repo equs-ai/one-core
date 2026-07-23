@@ -33,6 +33,7 @@ ignore = [
     { id = "RUSTSEC-2026-0097", reason = "`rand` unsound with custom logger, v0.8.x as indirect dependency" },
     { id = "RUSTSEC-2026-0183", reason = "git2 as dependency of shadow-rs, ub when listing remotes when there are none -> not affected" },
     { id = "RUSTSEC-2026-0184", reason = "git2 as dependency of shadow-rs, ub when using git blame -> not affected" },
+    { id = "RUSTSEC-2026-0215", reason = "`smallstr` crate unmaintained, dependency of json-syntax" },
 ]
 
 # This section is considered when running `cargo deny check licenses`
