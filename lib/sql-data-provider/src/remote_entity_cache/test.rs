@@ -24,6 +24,12 @@ async fn setup() -> TestSetup {
     let data_layer = setup_test_data_layer_and_connection().await;
     let db = data_layer.db;
 
+    // remove pre-populated entries
+    remote_entity_cache::Entity::delete_many()
+        .exec(&db)
+        .await
+        .unwrap();
+
     TestSetup {
         provider: RemoteEntityCacheProvider {
             db: TransactionManagerImpl::new(db.clone()),

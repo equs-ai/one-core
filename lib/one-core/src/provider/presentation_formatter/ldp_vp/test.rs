@@ -111,6 +111,7 @@ async fn test_format_presentation_multi_tokens() {
                     "@context": {
                         "@version": 1.1,
                         "@protected": true,
+                        "@vocab": "https://www.w3.org/ns/credentials/issuer-dependent#",
                         "id": "@id",
                         "type": "@type",
                         "TestCredential": {
@@ -315,6 +316,7 @@ async fn test_parse_presentation_multi_tokens() {
                     "@context": {
                         "@version": 1.1,
                         "@protected": true,
+                        "@vocab": "https://www.w3.org/ns/credentials/issuer-dependent#",
                         "id": "@id",
                         "type": "@type",
                         "TestCredential": {

@@ -149,7 +149,8 @@ mod test {
     use similar_asserts::assert_eq;
 
     use super::*;
-    use crate::proto::http_client::MockHttpClient;
+    use crate::proto::http_client::reqwest_client::ReqwestClient;
+    use crate::proto::http_client::{HttpClient, MockHttpClient};
     use crate::provider::caching_loader::json_ld_context::ContextCache;
     use crate::util::test_utilities::prepare_caching_loader;
 
@@ -243,9 +244,34 @@ _:c14n1 <https://schema.org/name> "Bachelor of Science and Arts" .
         );
     }
 
+    const CONTEXT_V2: &str = include_str!("context_vc2_0.jsonld");
     fn v2_context() -> json_syntax::Value {
-        let context = include_str!("context_vc2_0.jsonld");
-        json_syntax::Value::from_str(context).unwrap()
+        json_syntax::Value::from_str(CONTEXT_V2).unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_context_v2_up_to_date() {
+        let client = ReqwestClient::new(Default::default()).unwrap();
+        let downloaded: Result<serde_json::Value, _> = async {
+            client
+                .get("https://www.w3.org/ns/credentials/v2")
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+        }
+        .await;
+
+        if matches!(
+            downloaded,
+            Err(crate::proto::http_client::Error::StatusCodeError(_))
+        ) {
+            // if context download fails (e.g. rate-limit), skip the check
+            return;
+        }
+
+        let preloaded: serde_json::Value = serde_json::from_str(CONTEXT_V2).unwrap();
+        assert_eq!(preloaded, downloaded.unwrap())
     }
 
     fn example_context() -> json_syntax::Value {

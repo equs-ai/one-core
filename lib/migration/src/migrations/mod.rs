@@ -30,3 +30,4 @@ pub mod m20260701_033735_did_organisation_id_mandatory;
 pub mod m20260701_064657_certificate_organisation_id_mandatory;
 pub mod m20260701_090000_clear_stale_lotl_lote_cache;
 pub mod m20260703_120000_add_history_target_index;
+pub mod m20260717_084043_common_json_ld_context;

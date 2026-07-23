@@ -25,7 +25,9 @@ use crate::provider::credential_formatter::model::{
     CredentialData, CredentialSchema, CredentialSchemaMetadata, Issuer, MockSignatureProvider,
     MockTokenVerifier, PublishedClaim, PublishedClaimValue,
 };
-use crate::provider::credential_formatter::vcdm::{VcdmCredential, VcdmCredentialSubject};
+use crate::provider::credential_formatter::vcdm::{
+    ContextType, VcdmCredential, VcdmCredentialSubject,
+};
 use crate::provider::credential_formatter::{CredentialFormatter, nest_claims};
 use crate::provider::data_type::model::ExtractedClaim;
 use crate::provider::data_type::provider::MockDataTypeProvider;
@@ -81,6 +83,18 @@ async fn create_token(include_layout: bool) -> Value {
         }),
     };
 
+    // universal context for unknown claims expansion
+    let schema_context = ContextType::Object(
+        json!({
+            "@vocab": "https://www.w3.org/ns/credentials/issuer-dependent#",
+            "id": "@id",
+            "type": "@type"
+        })
+        .as_object()
+        .unwrap()
+        .to_owned(),
+    );
+
     let claims = vec![PublishedClaim {
         key: "a/b/c".to_string(),
         value: PublishedClaimValue::String("15".to_string()),
@@ -98,6 +112,7 @@ async fn create_token(include_layout: bool) -> Value {
     let vcdm = VcdmCredential::new_v2(issuer_did, credential_subject)
         .with_valid_from(now)
         .with_valid_until(now + Duration::seconds(10))
+        .add_context(schema_context)
         .add_credential_schema(schema);
 
     let credential_data = CredentialData {

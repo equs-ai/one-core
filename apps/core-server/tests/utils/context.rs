@@ -22,7 +22,6 @@ use super::db_clients::keys::ecdsa_testing_params;
 use super::mock_server::MockServer;
 use super::server::run_server;
 use crate::fixtures::certificate::{create_ca_cert, create_cert, ecdsa, eddsa};
-use crate::fixtures::jsonld_contexts::credentials_v2_cache_entry;
 use crate::fixtures::{self, TestingConfigParams, TestingDidParams, TestingIdentifierParams};
 use crate::utils::db_clients::certificates::TestingCertificateParams;
 
@@ -63,10 +62,6 @@ impl TestContext {
         let handle = run_server(listener, config.to_owned(), &db).await;
 
         let db = DbClient::new(db);
-        // Pre-populate cache with W3C credentials v2 context to avoid HTTP requests during tests
-        db.remote_entities
-            .add_entry(credentials_v2_cache_entry())
-            .await;
 
         let filter = tracing_subscriber::EnvFilter::try_from_default_env()
             .or_else(|_| {
