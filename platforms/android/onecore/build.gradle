@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.dokka'
@@ -23,6 +25,13 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+kotlin {
+    compilerOptions {
+        languageVersion = KotlinVersion.fromVersion('2.0')
+        apiVersion = KotlinVersion.fromVersion('2.0')
     }
 }
 
