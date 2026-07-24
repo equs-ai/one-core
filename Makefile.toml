@@ -223,7 +223,7 @@ cp -r ${CARGO_TARGET_DIR}/uniffi/android/* ${CARGO_TARGET_DIR}/platforms/android
 dependencies = ["prepare_gradle_build_directory"]
 script = '''
 cd ${CARGO_TARGET_DIR}/platforms/android
-./gradlew assemble dokkaHtml
+./gradlew assemble dokkaGeneratePublicationHtml
 '''
 
 [tasks.build_android]
