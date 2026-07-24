@@ -56,5 +56,3 @@ signer:
       private:
         payload:
           issuer: "https://core.trial.procivis-one"
-      public:
-        maxValidityDuration: 604800 # 7 days

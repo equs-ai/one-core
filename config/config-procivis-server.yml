@@ -170,7 +170,7 @@ signer:
           audience: ["bli", "bla"]
         revocationMethod: TOKENSTATUSLIST
       public:
-        maxValidityDuration: 2592000 # 30 days
+        maxValidityDuration: 31536000 # 1 year
   ACCESS_CERTIFICATE:
     display:
       en: "Wallet Relying Party Access Certificate"
@@ -181,7 +181,7 @@ signer:
       private:
         revocationMethod: CRL
       public:
-        maxValidityDuration: 157680000 # 5 years
+        maxValidityDuration: 31536000 # 1 year
   X509_CERTIFICATE:
     display:
       en: "X.509 Certificate Issuer"
