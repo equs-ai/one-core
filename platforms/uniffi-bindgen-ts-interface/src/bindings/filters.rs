@@ -14,6 +14,7 @@ fn type_exception(type_name: &str) -> Option<String> {
     }
 }
 
+#[askama::filter_fn]
 pub fn hidden_type(typ: &impl AsType, _: &dyn askama::Values) -> Result<bool> {
     let r#type = typ.as_type();
     if let Some(name) = r#type.name() {
@@ -22,10 +23,7 @@ pub fn hidden_type(typ: &impl AsType, _: &dyn askama::Values) -> Result<bool> {
     Ok(false)
 }
 
-pub fn typescript_type_name(
-    typ: &impl AsType,
-    askama_values: &dyn askama::Values,
-) -> Result<String> {
+fn ts_type_name(typ: &impl AsType, askama_values: &dyn askama::Values) -> Result<String> {
     Ok(match typ.as_type() {
         Type::Int8 => "number /*i8*/".into(),
         Type::Int16 => "number /*i16*/".into(),
@@ -46,46 +44,60 @@ pub fn typescript_type_name(
         | Type::Record { name, .. }
         | Type::Object { name, .. }
         | Type::Custom { name, .. } => {
-            type_exception(&name).unwrap_or(typescript_class_name(&name, askama_values)?)
+            type_exception(&name).unwrap_or(ts_class_name(&name, askama_values)?)
         }
         Type::CallbackInterface { name, .. } => name.to_lower_camel_case(),
         Type::Optional { inner_type } => {
-            format!(
-                "{} | undefined",
-                typescript_type_name(&inner_type, askama_values)?
-            )
+            format!("{} | undefined", ts_type_name(&inner_type, askama_values)?)
         }
-        Type::Sequence { inner_type } => format!(
-            "Array<{}>",
-            typescript_type_name(&inner_type, askama_values)?
-        ),
+        Type::Sequence { inner_type } | Type::Set { inner_type } => {
+            format!("Array<{}>", ts_type_name(&inner_type, askama_values)?)
+        }
         Type::Map {
             key_type,
             value_type,
         } => format!(
             "Record<{}, {}>",
-            typescript_type_name(&key_type, askama_values)?,
-            typescript_type_name(&value_type, askama_values)?,
+            ts_type_name(&key_type, askama_values)?,
+            ts_type_name(&value_type, askama_values)?,
         ),
+        Type::Box { inner_type } => ts_type_name(&inner_type, askama_values)?,
     })
 }
 
+#[askama::filter_fn]
+pub fn typescript_type_name(
+    typ: &impl AsType,
+    askama_values: &dyn askama::Values,
+) -> Result<String> {
+    ts_type_name(typ, askama_values)
+}
+
+#[askama::filter_fn]
 pub fn typescript_fn_name(raw_name: &str, _: &dyn askama::Values) -> Result<String> {
     Ok(raw_name.to_lower_camel_case())
 }
 
+#[askama::filter_fn]
 pub fn typescript_var_name(raw_name: &str, _: &dyn askama::Values) -> Result<String> {
     Ok(raw_name.to_lower_camel_case())
 }
 
+#[askama::filter_fn]
 pub fn typescript_enum_variant_name(raw_name: &str, _: &dyn askama::Values) -> Result<String> {
     Ok(raw_name.to_shouty_snake_case())
 }
 
-pub fn typescript_class_name(raw_name: &str, _: &dyn askama::Values) -> Result<String> {
+fn ts_class_name(raw_name: &str, _: &dyn askama::Values) -> Result<String> {
     Ok(raw_name.to_pascal_case())
 }
 
+#[askama::filter_fn]
+pub fn typescript_class_name(raw_name: &str, askama_values: &dyn askama::Values) -> Result<String> {
+    ts_class_name(raw_name, askama_values)
+}
+
+#[askama::filter_fn]
 pub fn typescript_docstring(s: &str, _: &dyn askama::Values, level: &i32) -> Result<String> {
     let comment = if s.contains('\n') {
         let contents = textwrap::indent(&textwrap::dedent(s), " * ");
@@ -96,6 +108,7 @@ pub fn typescript_docstring(s: &str, _: &dyn askama::Values, level: &i32) -> Res
     Ok(textwrap::indent(&comment, &" ".repeat(*level as usize)))
 }
 
+#[askama::filter_fn]
 pub fn sort_entries<T: Keyed + Clone>(records: &[T], _: &dyn askama::Values) -> Result<Vec<T>> {
     let mut records = records.to_vec();
     records.sort_by_key(|r| r.key().to_string());

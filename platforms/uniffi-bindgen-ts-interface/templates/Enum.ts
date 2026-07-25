@@ -1,6 +1,6 @@
 {%- macro variant_inner_fields(variant) %}
   {%- for field in variant.fields() -%}
-  {% call ts::struct_field(field, 6) %}
+  {% call ts::struct_field(field, 6) %}{% endcall %}
   {%- endfor %}
 {%- endmacro %}
 
@@ -16,7 +16,7 @@
 {%- macro flat_enum(enum_def) %}
 export enum {{ enum_def.name() | typescript_class_name }} {
   {%- for variant in enum_def.variants() %}
-  {%- call ts::docstring(variant, 2) %}
+  {%- call ts::docstring(variant, 2) %}{% endcall %}
   {%- let variant_name = variant.name() | typescript_enum_variant_name %}
   {{ variant_name }} = "{{ variant_name }}",
   {%- endfor %}
@@ -27,24 +27,24 @@ export enum {{ enum_def.name() | typescript_class_name }} {
 export type {{ enum_def.name() | typescript_class_name }} =
   {%- for variant in enum_def.variants() %}
   {%- let variant_name = variant.name() | typescript_enum_variant_name %}
-  {%- call ts::docstring(variant, 4) %}
+  {%- call ts::docstring(variant, 4) %}{% endcall %}
   | {
       type_: "{{ variant_name }}";
       {%- if !variant.fields().is_empty() %}
       {%- if variant.has_nameless_fields() %}
-      value: {% call variant_nameless_fields(variant) %}
+      value: {% call variant_nameless_fields(variant) %}{% endcall %}
       {%- else %}
-      {%- call variant_inner_fields(variant) %}
+      {%- call variant_inner_fields(variant) %}{% endcall %}
       {%- endif %}
       {%- endif %}
     }
   {%- endfor %};
 {%- endmacro %}
 
-{%~ call ts::docstring(enum_def, 0) %}
+{%~ call ts::docstring(enum_def, 0) %}{% endcall %}
 {%- if enum_def.is_flat() -%}
-  {%- call flat_enum(enum_def) -%}
+  {%- call flat_enum(enum_def) -%}{% endcall %}
 {%- else -%}
-  {%- call complex_enum(enum_def) -%}
+  {%- call complex_enum(enum_def) -%}{% endcall %}
 {%- endif -%}
 

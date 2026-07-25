@@ -22,8 +22,8 @@
 {%- endmacro -%}
 
 {%- macro struct_field(field_def, indent_level) %}
-{%- call docstring(field_def, indent_level) %}
-{% call indent(indent_level) -%}
+{%- call docstring(field_def, indent_level) -%}{%- endcall %}
+{% call indent(indent_level) -%}{%- endcall -%}
 {%- if let Type::Optional{ inner_type } = field_def.as_type() -%}
     {{field_def.name() | typescript_var_name}}?: {{inner_type | typescript_type_name}};
 {%- else -%}
