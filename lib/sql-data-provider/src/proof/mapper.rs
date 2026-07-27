@@ -6,7 +6,10 @@ use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::proof::{GetProofList, Proof, SortableProofColumn};
 use one_core::model::proof_schema::ProofSchema;
 use one_core::model::relation::Related;
+use one_core::repository::certificate_repository::CertificateRepository;
+use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_core::service::proof::dto::ProofFilterValue;
 use sea_orm::sea_query::{IntoCondition, SimpleExpr};
@@ -17,6 +20,7 @@ use super::model::ProofListItemModel;
 use crate::common::calculate_pages_count;
 use crate::entity::proof::{ProofRequestState, ProofRole};
 use crate::entity::{identifier, interaction, proof, proof_claim, proof_schema};
+use crate::identifier::mapper::identifier_data_from_ids;
 use crate::list_query_generic::{
     IntoFilterCondition, IntoSortingColumn, get_comparison_condition, get_string_match_condition,
 };
@@ -105,6 +109,9 @@ impl IntoFilterCondition for ProofFilterValue {
 fn proof_from_list_item_model(
     value: ProofListItemModel,
     organisation_repository: &Arc<dyn OrganisationRepository>,
+    did_repository: &Arc<dyn DidRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
 ) -> Result<Proof, DataLayerError> {
     let verifier_identifier = match value.verifier_identifier_id {
         None => None,
@@ -119,19 +126,24 @@ fn proof_from_list_item_model(
             name: value
                 .verifier_identifier_name
                 .ok_or(DataLayerError::MappingError)?,
-            did: None,
-            key: None,
-            certificates: None,
+            data: identifier_data_from_ids(
+                value
+                    .verifier_identifier_type
+                    .ok_or(DataLayerError::MappingError)?
+                    .into(),
+                verifier_identifier_id,
+                value.verifier_identifier_did_id,
+                value.verifier_identifier_key_id,
+                did_repository,
+                key_repository,
+                certificate_repository,
+            )?,
             organisation: Related::new(
                 value
                     .verifier_identifier_organisation_id
                     .ok_or(DataLayerError::MappingError)?,
                 organisation_repository.to_owned(),
             ),
-            r#type: value
-                .verifier_identifier_type
-                .ok_or(DataLayerError::MappingError)?
-                .into(),
             is_remote: value
                 .verifier_identifier_is_remote
                 .ok_or(DataLayerError::MappingError)?,
@@ -248,15 +260,27 @@ impl TryFrom<Proof> for proof::ActiveModel {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn create_list_response(
     proofs: Vec<ProofListItemModel>,
     limit: u64,
     items_count: u64,
     organisation_repository: &Arc<dyn OrganisationRepository>,
+    did_repository: &Arc<dyn DidRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
 ) -> Result<GetProofList, DataLayerError> {
     let values = proofs
         .into_iter()
-        .map(|proof| proof_from_list_item_model(proof, organisation_repository))
+        .map(|proof| {
+            proof_from_list_item_model(
+                proof,
+                organisation_repository,
+                did_repository,
+                key_repository,
+                certificate_repository,
+            )
+        })
         .collect::<Result<Vec<Proof>, DataLayerError>>()?;
 
     Ok(GetProofList {

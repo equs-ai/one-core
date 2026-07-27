@@ -12,7 +12,7 @@ use crate::model::credential::{Credential, CredentialType};
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::provider::credential_formatter::mapper::credential_data_from_credential_detail_response;
 use crate::provider::credential_formatter::model::{PublishedClaim, PublishedClaimValue};
 use crate::provider::credential_formatter::nest_claims;
@@ -106,12 +106,7 @@ fn generate_credential_matching_detail(
             created_date: detail.created_date,
             last_modified: detail.last_modified,
             name: "issuer".to_string(),
-            r#type: crate::model::identifier::IdentifierType::Did,
-            is_remote: true,
-            state: crate::model::identifier::IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -128,8 +123,10 @@ fn generate_credential_matching_detail(
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: true,
+            state: crate::model::identifier::IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -138,12 +135,7 @@ fn generate_credential_matching_detail(
             created_date: detail.created_date,
             last_modified: detail.last_modified,
             name: "holder".to_string(),
-            r#type: crate::model::identifier::IdentifierType::Did,
-            is_remote: true,
-            state: crate::model::identifier::IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -160,8 +152,10 @@ fn generate_credential_matching_detail(
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: true,
+            state: crate::model::identifier::IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: None,
         }),
         schema: Some(CredentialSchema {

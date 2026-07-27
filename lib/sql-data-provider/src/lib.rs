@@ -240,6 +240,9 @@ impl DataLayer {
             db: transaction_manager.clone(),
             trust_list_publication_repository: trust_list_publication_repository.clone(),
             identifier_repository: identifier_repository.clone(),
+            did_repository: did_repository.clone(),
+            key_repository: key_repository.clone(),
+            certificate_repository: certificate_repository.clone(),
             organisation_repository: organisation_repository.clone(),
         });
 
@@ -253,6 +256,7 @@ impl DataLayer {
             credential_schema_repository: credential_schema_repository.clone(),
             claim_repository: claim_repository.clone(),
             identifier_repository: identifier_repository.clone(),
+            did_repository: did_repository.clone(),
             interaction_repository: interaction_repository.clone(),
             certificate_repository: certificate_repository.clone(),
             key_repository: key_repository.clone(),
@@ -265,6 +269,7 @@ impl DataLayer {
             credential_repository: credential_repository.clone(),
             proof_schema_repository: proof_schema_repository.clone(),
             identifier_repository: identifier_repository.clone(),
+            did_repository: did_repository.clone(),
             certificate_repository: certificate_repository.clone(),
             interaction_repository: interaction_repository.clone(),
             key_repository: key_repository.clone(),

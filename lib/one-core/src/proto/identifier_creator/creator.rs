@@ -13,9 +13,10 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMix
 use crate::model::certificate::{
     Certificate, CertificateFilterValue, CertificateListQuery, CertificateState,
 };
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState, IdentifierType};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::organisation::Organisation;
+use crate::model::relation::RelatedVec;
 use crate::proto::certificate_validator::x509_extension::{validate_ca, validate_not_ca};
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, LeafValidation, ParsedCertificate,
@@ -238,19 +239,23 @@ impl IdentifierCreator for IdentifierCreatorProto {
                         prepared.push(cert);
                     }
 
+                    let certificates = RelatedVec::from(prepared.clone());
+                    let data = match identifier_type {
+                        IdentifierType::CertificateAuthority => {
+                            IdentifierData::CertificateAuthority(certificates)
+                        }
+                        _ => IdentifierData::Certificate(certificates),
+                    };
                     let identifier = Identifier {
                         id: identifier_id,
                         created_date: now,
                         last_modified: now,
                         name,
-                        r#type: identifier_type,
+                        data,
                         is_remote: true,
                         state: IdentifierState::Active,
                         deleted_at: None,
                         organisation: organisation.into(),
-                        did: None,
-                        key: None,
-                        certificates: None,
                         trust_information: None,
                     };
                     self.identifier_repository

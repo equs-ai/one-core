@@ -3,7 +3,7 @@ use one_core::model::history::{HistoryAction, HistoryEntityType};
 use one_core::model::trust_list_role::TrustListRoleEnum;
 use uuid::Uuid;
 
-use crate::fixtures::{create_identifier, create_organisation};
+use crate::fixtures::{TestingIdentifierParams, create_identifier, create_organisation};
 use crate::utils::api_clients::trust_list_publication::CreateTrustListPublicationTestParams;
 use crate::utils::context::TestContext;
 use crate::utils::field_match::FieldHelpers;
@@ -145,7 +145,20 @@ async fn test_fail_to_create_trust_entry_missing_entry_identifier_capabilities()
     // given
     let (context, organisation, identifier, certificate, key) =
         TestContext::new_with_certificate_identifier(None).await;
-    let did_identifier = create_identifier(&context.db.db_conn, &organisation.clone(), None).await;
+    let did = context
+        .db
+        .dids
+        .create(organisation.clone(), Default::default())
+        .await;
+    let did_identifier = create_identifier(
+        &context.db.db_conn,
+        &organisation.clone(),
+        Some(TestingIdentifierParams {
+            did: Some(did),
+            ..Default::default()
+        }),
+    )
+    .await;
     let trust_list_publication = context
         .db
         .trust_list_publications

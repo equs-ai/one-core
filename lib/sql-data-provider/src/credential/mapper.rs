@@ -7,8 +7,11 @@ use one_core::model::credential_schema::{CredentialSchema, LayoutType, Transacti
 use one_core::model::identifier::Identifier;
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::relation::{Related, RelatedVec};
+use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::credential_repository::CredentialRepository;
+use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::convert_inner;
 use sea_orm::sea_query::query::IntoCondition;
@@ -20,6 +23,7 @@ use crate::TransactionManagerImpl;
 use crate::credential::entity_model::CredentialListEntityModel;
 use crate::credential_schema::mapper::{ClaimSchemasLoader, CredentialSchemaFormatsLoader};
 use crate::entity::{claim, credential, credential_schema, credential_schema_format, identifier};
+use crate::identifier::mapper::identifier_data_from_ids;
 use crate::list_query_generic::{
     IntoFilterCondition, IntoJoinRelations, IntoSortingColumn, JoinRelation,
     get_blob_match_condition, get_comparison_condition, get_equals_condition,
@@ -255,10 +259,14 @@ pub(super) fn request_to_active_model(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn credential_list_model_to_repository_model(
     credential: CredentialListEntityModel,
     credential_repository: &Arc<dyn CredentialRepository>,
     organisation_repository: &Arc<dyn OrganisationRepository>,
+    did_repository: &Arc<dyn DidRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Credential, DataLayerError> {
     let transaction_code = match (
@@ -326,19 +334,24 @@ pub(super) fn credential_list_model_to_repository_model(
             name: credential
                 .issuer_identifier_name
                 .ok_or(DataLayerError::MappingError)?,
-            did: None,
-            key: None,
-            certificates: None,
+            data: identifier_data_from_ids(
+                credential
+                    .issuer_identifier_type
+                    .ok_or(DataLayerError::MappingError)?
+                    .into(),
+                issuer_identifier_id,
+                credential.issuer_identifier_did_id,
+                credential.issuer_identifier_key_id,
+                did_repository,
+                key_repository,
+                certificate_repository,
+            )?,
             organisation: Related::new(
                 credential
                     .issuer_identifier_organisation_id
                     .ok_or(DataLayerError::MappingError)?,
                 organisation_repository.to_owned(),
             ),
-            r#type: credential
-                .issuer_identifier_type
-                .ok_or(DataLayerError::MappingError)?
-                .into(),
             is_remote: credential
                 .issuer_identifier_is_remote
                 .ok_or(DataLayerError::MappingError)?,
@@ -384,10 +397,14 @@ pub(super) fn credential_list_model_to_repository_model(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn credentials_to_repository(
     credentials: Vec<CredentialListEntityModel>,
     credential_repository: &Arc<dyn CredentialRepository>,
     organisation_repository: &Arc<dyn OrganisationRepository>,
+    did_repository: &Arc<dyn DidRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Vec<Credential>, DataLayerError> {
     let mut result: Vec<Credential> = Vec::new();
@@ -396,6 +413,9 @@ pub(super) fn credentials_to_repository(
             credential,
             credential_repository,
             organisation_repository,
+            did_repository,
+            key_repository,
+            certificate_repository,
             db,
         )?);
     }

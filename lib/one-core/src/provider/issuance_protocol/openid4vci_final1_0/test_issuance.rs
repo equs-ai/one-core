@@ -19,7 +19,7 @@ use crate::model::credential::{
 use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity, LayoutType};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
 use crate::proto::certificate_validator::MockCertificateValidator;
@@ -74,11 +74,11 @@ async fn test_issuer_submit_succeeds() {
         state: CredentialStateEnum::Offered,
         suspend_end_date: None,
         holder_identifier: Some(Identifier {
-            did: Some((dummy_did()).into()),
+            data: IdentifierData::Did((dummy_did()).into()),
             ..dummy_identifier()
         }),
         issuer_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     keys: vec![RelatedKey {
                         role: KeyRole::AssertionMethod,
@@ -264,11 +264,11 @@ async fn generic_mdoc_credential(state: CredentialStateEnum) -> Credential {
         state,
         suspend_end_date: None,
         holder_identifier: Some(Identifier {
-            did: Some((dummy_did()).into()),
+            data: IdentifierData::Did((dummy_did()).into()),
             ..dummy_identifier()
         }),
         issuer_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     keys: vec![RelatedKey {
                         role: KeyRole::AssertionMethod,

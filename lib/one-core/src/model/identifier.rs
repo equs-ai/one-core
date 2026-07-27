@@ -13,12 +13,11 @@ use super::list_query::ListQuery;
 use super::organisation::Organisation;
 use super::relation::{Related, RelatedVec};
 use crate::config;
-use crate::error::{ErrorCodeMixinExt, NestedError};
+use crate::error::NestedError;
 use crate::model::identifier_trust_information::{
     IdentifierTrustInformation, IdentifierTrustInformationRelations, SchemaFormat,
 };
 use crate::model::list_filter::ValueComparison;
-use crate::repository::error::DataLayerError;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
@@ -27,34 +26,52 @@ pub struct Identifier {
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
     pub name: String,
-    pub r#type: IdentifierType,
+    /// The identifier type together with the relation data it carries.
+    pub data: IdentifierData,
     pub is_remote: bool,
     pub state: IdentifierState,
     pub deleted_at: Option<OffsetDateTime>,
 
     pub organisation: Related<Organisation>,
 
-    // Relations:
-    pub did: Option<Related<Did>>,
-    pub key: Option<Related<Key>>,
-    pub certificates: Option<RelatedVec<Certificate>>,
     pub trust_information: Option<Vec<IdentifierTrustInformation>>,
+}
+
+/// The identifier type carrying the relation data relevant to each variant.
+#[derive(Clone, Debug)]
+#[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
+pub enum IdentifierData {
+    Key(Related<Key>),
+    Did(Related<Did>),
+    Certificate(RelatedVec<Certificate>),
+    CertificateAuthority(RelatedVec<Certificate>),
+}
+
+impl IdentifierData {
+    pub fn r#type(&self) -> IdentifierType {
+        match self {
+            IdentifierData::Key(_) => IdentifierType::Key,
+            IdentifierData::Did(_) => IdentifierType::Did,
+            IdentifierData::Certificate(_) => IdentifierType::Certificate,
+            IdentifierData::CertificateAuthority(_) => IdentifierType::CertificateAuthority,
+        }
+    }
+}
+
+impl From<&IdentifierData> for IdentifierType {
+    fn from(value: &IdentifierData) -> Self {
+        value.r#type()
+    }
 }
 
 impl Identifier {
     pub(crate) async fn active_certs(&self) -> Result<Option<Vec<Certificate>>, NestedError> {
-        if self.r#type != IdentifierType::Certificate
-            && self.r#type != IdentifierType::CertificateAuthority
-        {
+        let (IdentifierData::Certificate(certificates)
+        | IdentifierData::CertificateAuthority(certificates)) = &self.data
+        else {
             return Ok(None);
-        }
-        let Some(certificates) = &self.certificates else {
-            return Err(DataLayerError::MissingRequiredRelation {
-                relation: "identifier-certificate",
-                id: self.id.to_string(),
-            }
-            .error_while("getting active certificates"));
         };
+
         Ok(Some(
             certificates
                 .as_ref()

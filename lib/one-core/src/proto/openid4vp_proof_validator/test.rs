@@ -16,7 +16,7 @@ use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
 use crate::model::did::Did;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::proof::{Proof, ProofStateEnum};
 use crate::model::proof_schema::{ProofInputClaimSchema, ProofInputSchema, ProofSchema};
@@ -363,7 +363,7 @@ fn test_data(dcql_query: DcqlQuery) -> TestData {
     let proof = Proof {
         id: proof_id,
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     did: verifier_did,
                     ..dummy_did()

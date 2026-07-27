@@ -3,7 +3,7 @@ use std::sync::Arc;
 use one_core::model::claim::{Claim, ClaimRelations};
 use one_core::model::claim_schema::ClaimSchemaRelations;
 use one_core::model::credential_schema::CredentialSchemaRelations;
-use one_core::model::identifier::{Identifier, IdentifierRelations};
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use one_core::model::interaction::Interaction;
 use one_core::model::key::{Key, KeyRelations};
 use one_core::model::organisation::OrganisationRelations;
@@ -116,9 +116,12 @@ impl ProofsDB {
             schema: proof_schema.cloned(),
             verifier_identifier: Some(verifier_identifier.to_owned()),
             verifier_key: Some(verifier_key),
-            verifier_certificate: match &verifier_identifier.certificates {
-                Some(certs) => certs.as_ref().await.unwrap().first().cloned(),
-                None => None,
+            verifier_certificate: match &verifier_identifier.data {
+                IdentifierData::Certificate(certs)
+                | IdentifierData::CertificateAuthority(certs) => {
+                    certs.as_ref().await.unwrap().first().cloned()
+                }
+                _ => None,
             },
             interaction: interaction.cloned(),
             profile,

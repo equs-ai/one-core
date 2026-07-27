@@ -5,7 +5,8 @@ use uuid::Uuid;
 
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState};
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData};
+use crate::model::relation::RelatedVec;
 use crate::proto::session_provider::test::StaticSessionProvider;
 use crate::repository::certificate_repository::MockCertificateRepository;
 use crate::repository::identifier_repository::MockIdentifierRepository;
@@ -69,7 +70,7 @@ async fn test_get_certificate_authority_invalid_identifier() {
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().returning(|_, _| {
         Ok(Some(Identifier {
-            r#type: IdentifierType::Certificate,
+            data: IdentifierData::Certificate(RelatedVec::from(vec![])),
             ..dummy_identifier()
         }))
     });
@@ -120,7 +121,7 @@ async fn test_get_certificate_pem_success() {
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().returning(|_, _| {
         Ok(Some(Identifier {
-            r#type: IdentifierType::Certificate,
+            data: IdentifierData::Certificate(RelatedVec::from(vec![])),
             ..dummy_identifier()
         }))
     });
@@ -161,7 +162,7 @@ async fn test_get_certificate_pem_invalid_identifier() {
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().returning(|_, _| {
         Ok(Some(Identifier {
-            r#type: IdentifierType::CertificateAuthority,
+            data: IdentifierData::CertificateAuthority(RelatedVec::from(vec![])),
             ..dummy_identifier()
         }))
     });

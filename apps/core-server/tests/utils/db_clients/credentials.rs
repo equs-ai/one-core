@@ -7,7 +7,7 @@ use one_core::model::credential::{
     CredentialStateEnum, CredentialType, UpdateCredentialRequest,
 };
 use one_core::model::credential_schema::CredentialSchema;
-use one_core::model::identifier::{Identifier, IdentifierRelations};
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::relation::Related;
 use one_core::repository::credential_repository::CredentialRepository;
@@ -202,12 +202,13 @@ impl CredentialsDB {
             suspend_end_date: params.suspend_end_date,
             claims: Some(claims),
             issuer_identifier: Some(issuer_identifier.to_owned()),
-            issuer_certificate: params.issuer_certificate.or(
-                match &issuer_identifier.certificates {
-                    Some(certs) => certs.as_ref().await.unwrap().first().cloned(),
-                    None => None,
-                },
-            ),
+            issuer_certificate: params.issuer_certificate.or(match &issuer_identifier.data {
+                IdentifierData::Certificate(certs)
+                | IdentifierData::CertificateAuthority(certs) => {
+                    certs.as_ref().await.unwrap().first().cloned()
+                }
+                _ => None,
+            }),
             holder_identifier: params.holder_identifier,
             schema: Some(credential_schema.to_owned()),
             interaction: params.interaction,

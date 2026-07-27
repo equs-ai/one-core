@@ -20,7 +20,7 @@ use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
 use crate::model::history::TrustResolutionResult;
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::proof::{Proof, ProofStateEnum};
 use crate::proto::http_client::reqwest_client::ReqwestClient;
@@ -261,7 +261,7 @@ async fn test_accept_credential() {
     identifier_repository.expect_get().return_once(move |_, _| {
         Ok(Some(Identifier {
             id: identifier_id,
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     keys: vec![RelatedKey {
                         role: KeyRole::Authentication,
@@ -395,7 +395,7 @@ async fn test_accept_credential_with_did() {
         .expect_get_from_did_id()
         .return_once(move |_, _| {
             Ok(Some(Identifier {
-                did: Some(
+                data: IdentifierData::Did(
                     (Did {
                         id: did_id,
                         keys: vec![RelatedKey {
@@ -635,7 +635,7 @@ async fn test_accept_credential_wrong_tx_code() {
         .return_once(move |_, _| {
             Ok(Some(Identifier {
                 id: identifier_id,
-                did: Some(
+                data: IdentifierData::Did(
                     (Did {
                         keys: vec![RelatedKey {
                             role: KeyRole::Authentication,
@@ -1068,12 +1068,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: true,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(None).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -1090,8 +1085,10 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: true,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(None).into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -1189,7 +1186,7 @@ async fn test_accept_credential_identifier_org_mismatch() {
     identifier_repository.expect_get().return_once(move |_, _| {
         Ok(Some(Identifier {
             id: identifier_id,
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     keys: vec![RelatedKey {
                         role: KeyRole::Authentication,
@@ -1233,7 +1230,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
     identifier_repository.expect_get().return_once(move |_, _| {
         Ok(Some(Identifier {
             id: identifier_id,
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     keys: vec![RelatedKey {
                         role: KeyRole::Authentication,
@@ -1297,7 +1294,7 @@ async fn test_reject_credential_credential_org_mismatch() {
     identifier_repository.expect_get().return_once(move |_, _| {
         Ok(Some(Identifier {
             id: identifier_id,
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     keys: vec![RelatedKey {
                         role: KeyRole::Authentication,

@@ -29,6 +29,7 @@ use crate::config::core_config::{
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum, CredentialType};
 use crate::model::credential_schema::{CredentialSchema, LayoutType};
+use crate::model::identifier::IdentifierData;
 use crate::model::organisation::Organisation;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::{JWTPayload, jwt_metadata_claims};
@@ -124,10 +125,10 @@ impl CredentialFormatter for JWTFormatter {
         let holder_did = match credential_data
             .holder_identifier
             .as_ref()
-            .and_then(|identifier| identifier.did.as_ref())
+            .map(|identifier| &identifier.data)
         {
-            Some(did) => Some(did.as_ref().await?.did.to_string()),
-            None => None,
+            Some(IdentifierData::Did(did)) => Some(did.as_ref().await?.did.to_string()),
+            _ => None,
         };
 
         let payload = JWTPayload {

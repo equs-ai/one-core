@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use assert2::let_assert;
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder, Encoder};
 use maplit::hashset;
 use shared_types::{CredentialSchemaId, DidValue, OrganisationId};
@@ -18,7 +19,7 @@ use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::CredentialRole;
 use crate::model::credential_schema::{LayoutProperties, LayoutType};
 use crate::model::did::Did;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::proto::jwt::model::JWTPayload;
 use crate::provider::credential_formatter::common::MockAuth;
 use crate::provider::credential_formatter::model::{
@@ -96,7 +97,7 @@ fn get_credential_data(status: CredentialStatus, core_base_url: &str) -> Credent
     .add_credential_status(status);
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did,
                 ..dummy_did()
@@ -167,7 +168,7 @@ fn get_credential_data_with_array(status: CredentialStatus, core_base_url: &str)
     .add_credential_status(status);
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did,
                 ..dummy_did()
@@ -861,31 +862,25 @@ async fn test_parse_credential() {
         datetime!(2025-10-17 03:36:49 UTC)
     );
 
-    let issuer = credential.issuer_identifier.as_ref().unwrap();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     assert_eq!(
-        issuer
-            .did
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did
-            .to_string(),
+        issuer_did.as_ref().await.unwrap().did.to_string(),
         "did:web:core.dev.procivis-one.com:ssi:did-web:v1:f6283305-667a-474b-a7e3-02c4ba998796"
     );
 
-    let holder = credential.holder_identifier.as_ref().unwrap();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_did),
+            ..
+        }) = credential.holder_identifier.as_ref()
+    );
     assert_eq!(
-        holder
-            .did
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did
-            .to_string(),
+        holder_did.as_ref().await.unwrap().did.to_string(),
         "did:key:zDnaeokW7xJYWFLNk5yA8W9LVVq7Ee2tYTQwMK2dJyC4e3rCr"
     );
 

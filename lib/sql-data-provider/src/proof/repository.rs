@@ -116,6 +116,9 @@ impl ProofRepository for ProofProvider {
             limit.unwrap_or(items_count),
             items_count,
             &self.organisation_repository,
+            &self.did_repository,
+            &self.key_repository,
+            &self.certificate_repository,
         )
     }
 
@@ -276,6 +279,8 @@ fn get_proof_list_query(query_params: &ProofListQuery) -> Select<crate::entity::
             identifier::Column::OrganisationId,
             "verifier_identifier_organisation_id",
         )
+        .column_as(identifier::Column::DidId, "verifier_identifier_did_id")
+        .column_as(identifier::Column::KeyId, "verifier_identifier_key_id")
         // add related proof schema
         .join(
             sea_orm::JoinType::LeftJoin,

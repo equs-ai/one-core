@@ -346,6 +346,8 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             identifier::Column::OrganisationId,
             "issuer_identifier_organisation_id",
         )
+        .column_as(identifier::Column::DidId, "issuer_identifier_did_id")
+        .column_as(identifier::Column::KeyId, "issuer_identifier_key_id")
         .filter(credential::Column::DeletedAt.is_null())
         // list query
         .with_filter_join(&query_params)
@@ -527,6 +529,9 @@ impl CredentialRepository for CredentialProvider {
                 credentials,
                 &self.cloned(),
                 &self.organisation_repository,
+                &self.did_repository,
+                &self.key_repository,
+                &self.certificate_repository,
                 &self.db,
             )?,
             total_pages: calculate_pages_count(items_count, limit.unwrap_or(0)),

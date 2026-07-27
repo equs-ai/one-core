@@ -41,7 +41,7 @@ use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::history::{
     History, HistoryAction, HistoryEntityType, HistoryErrorMetadata, HistoryMetadata, HistorySource,
 };
-use crate::model::identifier::{IdentifierRelations, IdentifierType};
+use crate::model::identifier::{IdentifierData, IdentifierRelations};
 use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::{ListPagination, ListSorting};
@@ -1219,15 +1219,8 @@ impl ManagedInstanceService {
             .error_while("selecting key")?;
         let issuer_key = selection.key();
 
-        let key_id = if issuer_identifier.r#type == IdentifierType::Did {
-            let issuer_did = issuer_identifier
-                .did
-                .as_ref()
-                .ok_or(ManagedInstanceError::MappingError(
-                    "issuer did is None".to_string(),
-                ))?
-                .as_ref()
-                .await?;
+        let key_id = if let IdentifierData::Did(issuer_did) = &issuer_identifier.data {
+            let issuer_did = issuer_did.as_ref().await?;
 
             let key = issuer_did
                 .find_key(
@@ -1248,8 +1241,8 @@ impl ManagedInstanceService {
             self.key_algorithm_provider.clone(),
         )?;
 
-        let public_key_info = match issuer_identifier.r#type {
-            IdentifierType::Key | IdentifierType::Did => {
+        let public_key_info = match &issuer_identifier.data {
+            IdentifierData::Key(_) | IdentifierData::Did(_) => {
                 let key_handle = self
                     .key_provider
                     .get_key_storage(&issuer_key.storage_type)?
@@ -1259,16 +1252,8 @@ impl ManagedInstanceService {
                     })?;
                 JwtPublicKeyInfo::Jwk(key_handle.public_key_as_jwk().error_while("creating JWK")?)
             }
-            IdentifierType::Certificate => {
-                let certificates = issuer_identifier
-                    .certificates
-                    .as_ref()
-                    .ok_or(ManagedInstanceError::MappingError(format!(
-                        "Missing certificates on certificate identifier {}",
-                        issuer_identifier.id
-                    )))?
-                    .as_ref()
-                    .await?;
+            IdentifierData::Certificate(certificates) => {
+                let certificates = certificates.as_ref().await?;
                 let cert = certificates
                     .iter()
                     .find(|cert| cert.key.as_ref().is_some_and(|k| k.id() == issuer_key.id))
@@ -1278,10 +1263,10 @@ impl ManagedInstanceService {
                 let x5c = pem_chain_into_x5c(&cert.chain).error_while("parsing PEM chain")?;
                 JwtPublicKeyInfo::X5c(x5c)
             }
-            IdentifierType::CertificateAuthority => {
+            IdentifierData::CertificateAuthority(_) => {
                 return Err(ManagedInstanceError::MappingError(format!(
                     "Invalid issuer identifier type {}",
-                    issuer_identifier.r#type
+                    issuer_identifier.data.r#type()
                 )));
             }
         };

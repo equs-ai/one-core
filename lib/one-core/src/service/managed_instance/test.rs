@@ -17,7 +17,7 @@ use crate::config::core_config::{
     CoreConfig, DocumentSignerType, Fields, KeyAlgorithmType, Params,
 };
 use crate::error::{ErrorCode, ErrorCodeMixin};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::key::Key;
 use crate::model::managed_instance::{ManagedInstance, ManagedInstanceOs};
@@ -183,13 +183,7 @@ async fn test_register_wallet_unit() {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 name: "test".to_string(),
-                r#type: IdentifierType::Key,
-                is_remote: false,
-                state: IdentifierState::Active,
-                deleted_at: None,
-                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-                did: None,
-                key: Some(Related::from(Key {
+                data: IdentifierData::Key(Related::from(Key {
                     id: Uuid::new_v4().into(),
                     created_date: get_dummy_date(),
                     last_modified: get_dummy_date(),
@@ -200,7 +194,10 @@ async fn test_register_wallet_unit() {
                     key_type: "ECDSA".to_string(),
                     organisation: dummy_organisation(None).into(),
                 })),
-                certificates: None,
+                is_remote: false,
+                state: IdentifierState::Active,
+                deleted_at: None,
+                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
                 trust_information: None,
             }))
         });
@@ -295,13 +292,7 @@ async fn test_register_wallet_unit_integrity_check() {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 name: "test".to_string(),
-                r#type: IdentifierType::Key,
-                is_remote: false,
-                state: IdentifierState::Active,
-                deleted_at: None,
-                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-                did: None,
-                key: Some(Related::from(Key {
+                data: IdentifierData::Key(Related::from(Key {
                     id: Uuid::new_v4().into(),
                     created_date: get_dummy_date(),
                     last_modified: get_dummy_date(),
@@ -312,7 +303,10 @@ async fn test_register_wallet_unit_integrity_check() {
                     key_type: "ECDSA".to_string(),
                     organisation: dummy_organisation(None).into(),
                 })),
-                certificates: None,
+                is_remote: false,
+                state: IdentifierState::Active,
+                deleted_at: None,
+                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
                 trust_information: None,
             }))
         });

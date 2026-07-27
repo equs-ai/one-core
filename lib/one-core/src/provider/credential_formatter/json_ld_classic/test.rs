@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use assert2::let_assert;
 use maplit::hashset;
 use mockall::predicate::eq;
 use one_crypto::{MockCryptoProvider, MockHasher};
@@ -18,7 +19,7 @@ use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::CredentialRole;
 use crate::model::credential_schema::{BackgroundProperties, LayoutProperties, LayoutType};
 use crate::model::did::Did;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::proto::http_client::HttpClient;
 use crate::proto::http_client::reqwest_client::ReqwestClient;
 use crate::provider::credential_formatter::model::{
@@ -119,7 +120,7 @@ async fn create_token(include_layout: bool) -> Value {
         vcdm,
         claims,
         holder_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     did: holder_did.clone(),
                     ..dummy_did()
@@ -339,31 +340,25 @@ async fn test_parse_credential() {
     assert_eq!(credential.role, CredentialRole::Holder);
     assert!(credential.issuance_date.is_none());
 
-    let issuer = credential.issuer_identifier.as_ref().unwrap();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     assert_eq!(
-        issuer
-            .did
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did
-            .to_string(),
+        issuer_did.as_ref().await.unwrap().did.to_string(),
         "did:tdw:QmPxAB6sCcNqVyvg7io53dumteRfUSWDqJNs742UPm3FZ5:core.dev.procivis-one.com:ssi:did-webvh:v1:7301784b-4fb1-44c7-9f73-71d1a4d7c4f7"
     );
 
-    let holder = credential.holder_identifier.as_ref().unwrap();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_did),
+            ..
+        }) = credential.holder_identifier.as_ref()
+    );
     assert_eq!(
-        holder
-            .did
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did
-            .to_string(),
+        holder_did.as_ref().await.unwrap().did.to_string(),
         "did:key:zDnaeQtSJWkb9qaCu3imWNh6HZqVdcDESDNGnZjMqFZykv3m5"
     );
 

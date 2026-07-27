@@ -151,10 +151,10 @@ impl CredentialFormatter for CapabilityChecked {
         if let Some(holder_identifier) = &credential_data.holder_identifier
             && !capabilities
                 .holder_identifier_types
-                .contains(&holder_identifier.r#type.into())
+                .contains(&holder_identifier.data.r#type().into())
         {
             return Err(FormatterError::UnsupportedIdentifierType(
-                holder_identifier.r#type,
+                holder_identifier.data.r#type(),
             ));
         }
 

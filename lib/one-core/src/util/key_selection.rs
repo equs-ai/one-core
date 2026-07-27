@@ -7,7 +7,7 @@ use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::certificate::{Certificate, CertificateRole, CertificateState};
 use crate::model::did::{Did, KeyRole, RelatedKey};
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierType};
 use crate::model::key::Key;
 
 #[derive(Default, Clone, Debug)]
@@ -399,19 +399,12 @@ impl Identifier {
             return Err(KeySelectionError::RemoteIdentifier);
         }
         let filter = &selection.key;
-        match self.r#type {
-            IdentifierType::Key => {
+        match &self.data {
+            IdentifierData::Key(key) => {
                 self.throw_on_certificate_id(&selection)?;
                 self.throw_on_did_id(&selection)?;
 
-                let key = self
-                    .key
-                    .as_ref()
-                    .ok_or(KeySelectionError::MappingError(
-                        "Missing identifier key".to_owned(),
-                    ))?
-                    .as_ref()
-                    .await?;
+                let key = key.as_ref().await?;
 
                 if !filter.matches_key(&key) {
                     return Err(KeySelectionError::NoKeyMatchingFilter {
@@ -430,18 +423,10 @@ impl Identifier {
                 };
                 Ok(SelectedKey::Key(Box::new(key.as_ref().clone())))
             }
-            IdentifierType::Did => {
+            IdentifierData::Did(did) => {
                 self.throw_on_certificate_id(&selection)?;
 
-                let did = self
-                    .did
-                    .as_ref()
-                    .ok_or(KeySelectionError::MappingError(
-                        "Missing identifier did".to_owned(),
-                    ))?
-                    .as_ref()
-                    .await?
-                    .clone();
+                let did = did.as_ref().await?.clone();
 
                 if did.deactivated {
                     return Err(KeySelectionError::DidDeactivated { did_id: did.id });
@@ -466,16 +451,10 @@ impl Identifier {
                     key: Box::new(key),
                 })
             }
-            IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
+            IdentifierData::Certificate(certificates)
+            | IdentifierData::CertificateAuthority(certificates) => {
                 self.throw_on_did_id(&selection)?;
-                let certs = self
-                    .certificates
-                    .as_ref()
-                    .ok_or(KeySelectionError::MappingError(
-                        "Missing identifier certificates".to_owned(),
-                    ))?
-                    .as_ref()
-                    .await?;
+                let certs = certificates.as_ref().await?;
                 let mut selected_cert = None;
                 for c in certs.iter() {
                     if selection.certificate.matches_certificate(c)
@@ -508,16 +487,9 @@ impl Identifier {
             return Err(KeySelectionError::RemoteIdentifier);
         }
         let filter = key_filter.unwrap_or_default();
-        match self.r#type {
-            IdentifierType::Key => {
-                let key = self
-                    .key
-                    .as_ref()
-                    .ok_or(KeySelectionError::MappingError(
-                        "Missing identifier key".to_owned(),
-                    ))?
-                    .as_ref()
-                    .await?;
+        match &self.data {
+            IdentifierData::Key(key) => {
+                let key = key.as_ref().await?;
 
                 if !filter.matches_key(&key) {
                     return Err(KeySelectionError::NoKeyMatchingFilter {
@@ -527,16 +499,8 @@ impl Identifier {
                 }
                 Ok(vec![SelectedKey::Key(Box::new(key.as_ref().clone()))])
             }
-            IdentifierType::Did => {
-                let did = self
-                    .did
-                    .as_ref()
-                    .ok_or(KeySelectionError::MappingError(
-                        "Missing identifier did".to_owned(),
-                    ))?
-                    .as_ref()
-                    .await?
-                    .clone();
+            IdentifierData::Did(did) => {
+                let did = did.as_ref().await?.clone();
 
                 if did.deactivated {
                     return Err(KeySelectionError::DidDeactivated { did_id: did.id });
@@ -557,16 +521,9 @@ impl Identifier {
                     })
                     .collect())
             }
-            IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
+            IdentifierData::Certificate(certs) | IdentifierData::CertificateAuthority(certs) => {
                 let certificate_filter = certificate_filter.unwrap_or_default();
-                let certs = self
-                    .certificates
-                    .as_ref()
-                    .ok_or(KeySelectionError::MappingError(
-                        "Missing identifier certificates".to_owned(),
-                    ))?
-                    .as_ref()
-                    .await?;
+                let certs = certs.as_ref().await?;
 
                 let mut certificates = vec![];
                 for certificate in certs.iter() {
@@ -598,7 +555,7 @@ impl Identifier {
             return Err(KeySelectionError::SelectionNotApplicableForType {
                 identifier_id: self.id,
                 id_type: "Certificate".to_string(),
-                identifier_type: self.r#type,
+                identifier_type: self.data.r#type(),
             });
         }
         Ok(())
@@ -609,7 +566,7 @@ impl Identifier {
             return Err(KeySelectionError::SelectionNotApplicableForType {
                 identifier_id: self.id,
                 id_type: "Did".to_string(),
-                identifier_type: self.r#type,
+                identifier_type: self.data.r#type(),
             });
         }
         Ok(())

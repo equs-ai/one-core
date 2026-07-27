@@ -32,7 +32,7 @@ use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity, Layo
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
 use crate::model::history::GetHistoryList;
-use crate::model::identifier::{Identifier, IdentifierRelations};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
 use crate::model::organisation::OrganisationRelations;
@@ -218,7 +218,7 @@ fn construct_proof_with_state(proof_id: &ProofId, state: ProofStateEnum) -> Proo
         }),
         claims: None,
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -385,7 +385,7 @@ async fn test_get_proof_exists() {
         }),
         claims: Some(vec![]),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -624,7 +624,7 @@ async fn test_get_proof_with_array_holder() {
                 .collect(),
         ),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -910,7 +910,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 .collect(),
         ),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -1211,7 +1211,7 @@ async fn test_get_proof_with_object_array_holder() {
                 .collect(),
         ),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -1504,7 +1504,7 @@ async fn test_get_proof_with_array() {
                 .collect(),
         ),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -1797,7 +1797,7 @@ async fn test_get_proof_with_array_in_object() {
                 .collect(),
         ),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -2106,7 +2106,7 @@ async fn test_get_proof_with_object_array() {
                 .collect(),
         ),
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -2279,7 +2279,7 @@ async fn test_get_proof_list_success() {
         }),
         claims: None,
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -2547,7 +2547,7 @@ async fn test_create_proof_using_invalid_did_method() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -2671,7 +2671,7 @@ async fn test_create_proof_using_identifier() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository.expect_get().return_once(|_, _| {
         Ok(Some(Identifier {
-            did: Some((verifier_did).into()),
+            data: IdentifierData::Did((verifier_did).into()),
             ..dummy_identifier()
         }))
     });
@@ -2813,7 +2813,7 @@ async fn test_create_proof_without_related_key() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -2951,7 +2951,7 @@ async fn test_create_proof_with_related_key() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -3094,7 +3094,7 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -3242,7 +3242,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -3355,7 +3355,7 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -3527,7 +3527,7 @@ async fn test_create_proof_did_deactivated_error() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -3703,7 +3703,7 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((verifier_did).into()),
+                data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
             }))
         });

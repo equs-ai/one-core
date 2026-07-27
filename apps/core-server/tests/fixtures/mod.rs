@@ -29,7 +29,7 @@ use one_core::model::credential_schema_format_claim_schema::CredentialSchemaForm
 use one_core::model::did::{Did, DidType, RelatedKey};
 use one_core::model::history::HistoryAction;
 use one_core::model::identifier::{
-    Identifier, IdentifierRelations, IdentifierState, IdentifierType,
+    Identifier, IdentifierData, IdentifierRelations, IdentifierState, IdentifierType,
 };
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::key::{Key, KeyRelations};
@@ -479,6 +479,37 @@ pub struct TestingIdentifierParams {
     pub deleted_at: Option<OffsetDateTime>,
 }
 
+impl TestingIdentifierParams {
+    /// Builds the identifier data from the requested type and the provided relations, defaulting
+    /// the type to whichever relation was supplied.
+    pub fn identifier_data(&self) -> IdentifierData {
+        let r#type = self
+            .r#type
+            .unwrap_or(match (&self.key, &self.certificates) {
+                (Some(_), _) => IdentifierType::Key,
+                (_, Some(_)) => IdentifierType::Certificate,
+                _ => IdentifierType::Did,
+            });
+        match r#type {
+            IdentifierType::Did => IdentifierData::Did(
+                self.did
+                    .clone()
+                    .expect("DID identifier requires a did")
+                    .into(),
+            ),
+            IdentifierType::Key => IdentifierData::Key(Related::from(
+                self.key.clone().expect("key identifier requires a key"),
+            )),
+            IdentifierType::Certificate => IdentifierData::Certificate(RelatedVec::from(
+                self.certificates.clone().unwrap_or_default(),
+            )),
+            IdentifierType::CertificateAuthority => IdentifierData::CertificateAuthority(
+                RelatedVec::from(self.certificates.clone().unwrap_or_default()),
+            ),
+        }
+    }
+}
+
 pub async fn create_identifier(
     db_conn: &DbConn,
     organisation: &Organisation,
@@ -489,17 +520,15 @@ pub async fn create_identifier(
     let params = params.unwrap_or_default();
 
     let id = params.id.unwrap_or(IdentifierId::from(Uuid::new_v4()));
+    let data = params.identifier_data();
     let identifier = Identifier {
         id: id.to_owned(),
         created_date: params.created_date.unwrap_or(now),
         last_modified: params.last_modified.unwrap_or(now),
         name: unwrap_or_random(params.name),
         organisation: organisation.to_owned().into(),
-        did: (params.did).map(Into::into),
-        key: params.key.map(Related::from),
-        certificates: params.certificates.map(RelatedVec::from),
         state: params.state.unwrap_or(IdentifierState::Active),
-        r#type: params.r#type.unwrap_or(IdentifierType::Did),
+        data,
         is_remote: params.is_remote.unwrap_or_default(),
         deleted_at: params.deleted_at,
         trust_information: None,

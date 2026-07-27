@@ -10,7 +10,7 @@ use crate::config::core_config::SignerType;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::did::Did;
-use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations, IdentifierState};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::model::relation::{Related, RelatedVec};
@@ -48,13 +48,10 @@ impl IdentifierCreatorProto {
             last_modified: now,
             name,
             organisation: organisation.into(),
-            r#type: IdentifierType::Did,
+            data: IdentifierData::Did(did.into()),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            did: Some(did.into()),
-            key: None,
-            certificates: None,
             trust_information: None,
         };
         self.identifier_repository
@@ -86,13 +83,10 @@ impl IdentifierCreatorProto {
             last_modified: now,
             name,
             organisation: organisation.into(),
-            r#type: IdentifierType::Key,
+            data: IdentifierData::Key(Related::from(key)),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            did: None,
-            key: Some(Related::from(key)),
-            certificates: None,
             trust_information: None,
         };
         self.identifier_repository
@@ -127,13 +121,10 @@ impl IdentifierCreatorProto {
             last_modified: now,
             name,
             organisation: organisation.into(),
-            r#type: IdentifierType::Certificate,
+            data: IdentifierData::Certificate(RelatedVec::from(certificates.clone())),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            did: None,
-            key: None,
-            certificates: Some(RelatedVec::from(certificates.clone())),
             trust_information: None,
         };
         self.identifier_repository
@@ -178,13 +169,10 @@ impl IdentifierCreatorProto {
             last_modified: now,
             name,
             organisation: organisation.into(),
-            r#type: IdentifierType::CertificateAuthority,
+            data: IdentifierData::CertificateAuthority(RelatedVec::from(certificates.clone())),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            did: None,
-            key: None,
-            certificates: None,
             trust_information: None,
         };
         self.identifier_repository
@@ -375,8 +363,8 @@ impl IdentifierCreatorProto {
                         content.certificate_authority.identifier_id,
                     ))?;
 
-                if identifier.r#type != IdentifierType::CertificateAuthority {
-                    return Err(Error::InvalidIdentifierType(identifier.r#type));
+                if !matches!(identifier.data, IdentifierData::CertificateAuthority(_)) {
+                    return Err(Error::InvalidIdentifierType(identifier.data.r#type()));
                 }
 
                 if organisation.id != identifier.organisation.id() {

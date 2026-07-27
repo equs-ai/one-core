@@ -1,6 +1,7 @@
 use serde_json::Value;
 use similar_asserts::assert_eq;
 
+use crate::fixtures::TestingIdentifierParams;
 use crate::utils::server::run_server;
 use crate::{fixtures, utils};
 
@@ -13,7 +14,16 @@ async fn test_get_issuer_configuration_final1_0() {
     let db_conn = fixtures::create_db(&config).await;
     let organisation = fixtures::create_organisation(&db_conn).await;
     let credential_schema = fixtures::create_credential_schema(&db_conn, &organisation, None).await;
-    let identifier = fixtures::create_identifier(&db_conn, &organisation, None).await;
+    let did = fixtures::create_did(&db_conn, &organisation, None).await;
+    let identifier = fixtures::create_identifier(
+        &db_conn,
+        &organisation,
+        Some(TestingIdentifierParams {
+            did: Some(did),
+            ..Default::default()
+        }),
+    )
+    .await;
 
     // WHEN
     let _handle = run_server(listener, config, &db_conn).await;

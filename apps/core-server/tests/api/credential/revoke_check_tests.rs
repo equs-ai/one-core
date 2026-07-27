@@ -1,7 +1,7 @@
 use one_core::model::credential::{Credential, CredentialRole, CredentialStateEnum};
 use one_core::model::did::{Did, DidType, KeyRole, RelatedKey};
 use one_core::model::history::HistoryAction;
-use one_core::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierState, IdentifierType};
 use one_core::model::interaction::InteractionType;
 use one_core::proto::jwt::mapper::{bin_to_b64url_string, string_to_b64url_string};
 use one_core::provider::credential_formatter::model::{CredentialData, Issuer};
@@ -1722,12 +1722,7 @@ async fn minimal_mdoc_credential(params: serde_json::Value) -> SerializedCredent
             created_date: one_core::clock::now_utc(),
             last_modified: one_core::clock::now_utc(),
             name: "holder".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: true,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(None).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -1746,8 +1741,10 @@ async fn minimal_mdoc_credential(params: serde_json::Value) -> SerializedCredent
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: true,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(None).into(),
             trust_information: None,
         }),
         holder_key_id: None,

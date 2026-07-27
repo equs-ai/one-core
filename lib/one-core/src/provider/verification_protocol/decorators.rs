@@ -10,7 +10,7 @@ use super::dto::{
 };
 use super::error::VerificationProtocolError;
 use super::{FormatMapper, ShareResponse, VerificationProtocol};
-use crate::model::identifier::IdentifierType;
+use crate::model::identifier::IdentifierData;
 use crate::model::organisation::Organisation;
 use crate::model::proof::Proof;
 use crate::provider::Provider;
@@ -165,23 +165,16 @@ impl VerificationProtocol for CapabilityChecked {
                 ))?;
         if !capabilities
             .verifier_identifier_types
-            .contains(&verifier_identifier.r#type.into())
+            .contains(&verifier_identifier.data.r#type().into())
         {
             return Err(VerificationProtocolError::Failed(format!(
                 "Invalid verifier identifier type: {}",
-                verifier_identifier.r#type
+                verifier_identifier.data.r#type()
             )));
         }
 
-        if verifier_identifier.r#type == IdentifierType::Did {
-            let verifier_did = verifier_identifier
-                .did
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(
-                    "Missing verifier DID".to_string(),
-                ))?
-                .as_ref()
-                .await?;
+        if let IdentifierData::Did(verifier_did) = &verifier_identifier.data {
+            let verifier_did = verifier_did.as_ref().await?;
             let (_, did_type) = self
                 .did_method_provider
                 .get_did_method(&verifier_did.did_method)?;

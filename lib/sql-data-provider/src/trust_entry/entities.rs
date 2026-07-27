@@ -3,13 +3,20 @@ use std::sync::Arc;
 use one_core::model::identifier::Identifier;
 use one_core::model::relation::Related;
 use one_core::model::trust_entry::TrustEntry;
+use one_core::repository::certificate_repository::CertificateRepository;
+use one_core::repository::did_repository::DidRepository;
+use one_core::repository::error::DataLayerError;
+use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::FromQueryResult;
-use shared_types::{IdentifierId, OrganisationId, TrustEntryId, TrustListPublicationId};
+use shared_types::{
+    DidId, IdentifierId, KeyId, OrganisationId, TrustEntryId, TrustListPublicationId,
+};
 use time::OffsetDateTime;
 
 use crate::entity::identifier::{IdentifierState, IdentifierType};
 use crate::entity::trust_entry::TrustEntryState;
+use crate::identifier::mapper::identifier_data_from_ids;
 
 #[derive(Clone, Debug, FromQueryResult)]
 pub struct TrustEntryWithIdentifier {
@@ -29,13 +36,18 @@ pub struct TrustEntryWithIdentifier {
     pub identifier_state: IdentifierState,
     pub identifier_deleted_at: Option<OffsetDateTime>,
     pub identifier_organisation_id: OrganisationId,
+    pub identifier_did_id: Option<DidId>,
+    pub identifier_key_id: Option<KeyId>,
 }
 
 pub(crate) fn trust_entry_from_model(
     value: TrustEntryWithIdentifier,
     organisation_repository: &Arc<dyn OrganisationRepository>,
-) -> TrustEntry {
-    TrustEntry {
+    did_repository: &Arc<dyn DidRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
+) -> Result<TrustEntry, DataLayerError> {
+    Ok(TrustEntry {
         id: value.id,
         created_date: value.created_date,
         last_modified: value.last_modified,
@@ -49,7 +61,15 @@ pub(crate) fn trust_entry_from_model(
             created_date: value.identifier_created_date,
             last_modified: value.identifier_last_modified,
             name: value.identifier_name,
-            r#type: value.identifier_type.into(),
+            data: identifier_data_from_ids(
+                value.identifier_type.into(),
+                value.identifier_id,
+                value.identifier_did_id,
+                value.identifier_key_id,
+                did_repository,
+                key_repository,
+                certificate_repository,
+            )?,
             is_remote: value.identifier_is_remote,
             state: value.identifier_state.into(),
             deleted_at: value.identifier_deleted_at,
@@ -57,10 +77,7 @@ pub(crate) fn trust_entry_from_model(
                 value.identifier_organisation_id,
                 organisation_repository.to_owned(),
             ),
-            did: None,
-            key: None,
-            certificates: None,
             trust_information: None,
         }),
-    }
+    })
 }

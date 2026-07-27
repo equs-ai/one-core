@@ -9,7 +9,9 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{
     CertificateFilterValue, CertificateListQuery, CertificateState, UpdateCertificateRequest,
 };
-use crate::model::identifier::{IdentifierRelations, IdentifierState, UpdateIdentifierRequest};
+use crate::model::identifier::{
+    IdentifierData, IdentifierRelations, IdentifierState, UpdateIdentifierRequest,
+};
 use crate::model::list_filter::{ComparisonType, ListFilterValue, ValueComparison};
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::repository::certificate_repository::CertificateRepository;
@@ -69,12 +71,16 @@ impl Task for CertificateCheck {
                 .error_while("getting identifier")?
                 .ok_or(EntityNotFoundError::Identifier(identifier_id))?;
 
+            let (IdentifierData::Certificate(certificates)
+            | IdentifierData::CertificateAuthority(certificates)) = &identifier.data
+            else {
+                return Err(ServiceError::MappingError(format!(
+                    "identifier {identifier_id} does not hold certificates"
+                )));
+            };
+
             if identifier.state == IdentifierState::Active
-                && !identifier
-                    .certificates
-                    .ok_or(ServiceError::MappingError(
-                        "certificates missing".to_string(),
-                    ))?
+                && !certificates
                     .as_ref()
                     .await?
                     .iter()

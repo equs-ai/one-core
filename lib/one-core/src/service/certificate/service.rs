@@ -54,8 +54,8 @@ impl CertificateService {
                 certificate.identifier_id
             )))?;
 
-        if identifier.r#type != IdentifierType::CertificateAuthority {
-            tracing::info!("Invalid identifier type: {}", identifier.r#type);
+        if identifier.data.r#type() != IdentifierType::CertificateAuthority {
+            tracing::info!("Invalid identifier type: {}", identifier.data.r#type());
             return Err(CertificateServiceError::NotFound(id));
         }
 
@@ -91,8 +91,8 @@ impl CertificateService {
                 certificate.identifier_id
             )))?;
 
-        if identifier.r#type != IdentifierType::Certificate {
-            tracing::info!("Invalid identifier type: {}", identifier.r#type);
+        if identifier.data.r#type() != IdentifierType::Certificate {
+            tracing::info!("Invalid identifier type: {}", identifier.data.r#type());
             return Err(CertificateServiceError::NotFound(id));
         }
         Ok(certificate.chain)

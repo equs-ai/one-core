@@ -12,7 +12,7 @@ use one_core::model::credential::{
 use one_core::model::credential_schema::{CredentialSchema, LayoutType};
 use one_core::model::credential_schema_format::CredentialSchemaFormat;
 use one_core::model::did::Did;
-use one_core::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::list_filter::{ComparisonType, ListFilterValue, StringMatch, ValueComparison};
 use one_core::model::list_query::ListPagination;
@@ -24,6 +24,7 @@ use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::credential_schema_repository::{
     CredentialSchemaRepository, MockCredentialSchemaRepository,
 };
+use one_core::repository::did_repository::{DidRepository, MockDidRepository};
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::{IdentifierRepository, MockIdentifierRepository};
 use one_core::repository::interaction_repository::{
@@ -183,14 +184,11 @@ async fn setup_empty() -> TestSetup {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "name".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((did.clone()).into()),
         is_remote: false,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(organisation_id)).into(),
-        did: Some((did.clone()).into()),
-        key: None,
-        certificates: None,
         trust_information: None,
     };
 
@@ -243,6 +241,7 @@ struct Repositories {
     pub claim_repository: Arc<dyn ClaimRepository>,
     pub identifier_repository: Arc<dyn IdentifierRepository>,
     pub interaction_repository: Arc<dyn InteractionRepository>,
+    pub did_repository: Arc<dyn DidRepository>,
     pub certificate_repository: Arc<dyn CertificateRepository>,
     pub key_repository: Arc<dyn KeyRepository>,
     pub organisation_repository: Arc<dyn OrganisationRepository>,
@@ -255,6 +254,7 @@ impl Default for Repositories {
             claim_repository: Arc::from(MockClaimRepository::default()),
             identifier_repository: Arc::from(MockIdentifierRepository::default()),
             interaction_repository: Arc::from(MockInteractionRepository::default()),
+            did_repository: Arc::new(MockDidRepository::default()),
             certificate_repository: Arc::new(MockCertificateRepository::default()),
             key_repository: Arc::new(MockKeyRepository::default()),
             organisation_repository: Arc::new(MockOrganisationRepository::default()),
@@ -273,6 +273,7 @@ fn credential_repository(
         claim_repository: repositories.claim_repository,
         identifier_repository: repositories.identifier_repository,
         interaction_repository: repositories.interaction_repository,
+        did_repository: repositories.did_repository,
         certificate_repository: repositories.certificate_repository,
         key_repository: repositories.key_repository,
         organisation_repository: repositories.organisation_repository,

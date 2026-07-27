@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::Certificate;
-use crate::model::identifier::{GetIdentifierList, Identifier, IdentifierType};
+use crate::model::identifier::{GetIdentifierList, Identifier, IdentifierData, IdentifierType};
 use crate::model::relation::RelatedVec;
 use crate::model::trust_collection::{GetTrustCollectionList, TrustCollection};
 use crate::model::trust_list_role::TrustListRoleEnum;
@@ -232,7 +232,7 @@ async fn test_resolve_trust_entries_success() {
     let mut identifier = dummy_identifier();
     identifier.id = identifier_id;
     identifier.is_remote = true;
-    identifier.r#type = IdentifierType::Certificate;
+    identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![]));
 
     identifier_repository
         .expect_get()
@@ -328,7 +328,7 @@ async fn test_resolve_trust_entries_filters_local() {
     let mut identifier = dummy_identifier();
     identifier.id = identifier_id;
     identifier.is_remote = false; // Local
-    identifier.r#type = IdentifierType::Certificate;
+    identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![]));
 
     identifier_repository
         .expect_get()
@@ -467,7 +467,7 @@ async fn test_resolve_trust_entries_subscriber_error() {
     let mut identifier = dummy_identifier();
     identifier.id = identifier_id;
     identifier.is_remote = true;
-    identifier.r#type = IdentifierType::Certificate;
+    identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![]));
 
     identifier_repository
         .expect_get()
@@ -550,7 +550,7 @@ async fn test_resolve_trust_entries_filters_key_type() {
     let mut identifier = dummy_identifier();
     identifier.id = identifier_id;
     identifier.is_remote = true;
-    identifier.r#type = IdentifierType::Key;
+    identifier.data = IdentifierData::Key(dummy_key().into());
 
     identifier_repository
         .expect_get()
@@ -657,7 +657,8 @@ async fn test_create_identifier_with_trust_information() {
 
     let identifier_id = Uuid::new_v4().into();
     let mut identifier = dummy_identifier();
-    identifier.certificates = Some(RelatedVec::from(vec![dummy_certificate(identifier_id)]));
+    identifier.data =
+        IdentifierData::Certificate(RelatedVec::from(vec![dummy_certificate(identifier_id)]));
     identifier.id = identifier_id;
     identifier.organisation = dummy_organisation(Some(organisation_id)).into();
 
@@ -750,7 +751,8 @@ async fn test_create_identifier_with_inconsistent_reg_certs_fails() {
 
     let identifier_id = Uuid::new_v4().into();
     let mut identifier = dummy_identifier();
-    identifier.certificates = Some(RelatedVec::from(vec![dummy_certificate(identifier_id)]));
+    identifier.data =
+        IdentifierData::Certificate(RelatedVec::from(vec![dummy_certificate(identifier_id)]));
     identifier.id = identifier_id;
     identifier.organisation = dummy_organisation(Some(organisation_id)).into();
 
@@ -889,7 +891,8 @@ async fn test_delete_identifier_cascades_to_certificates() {
     let mut identifier = dummy_identifier();
     identifier.id = identifier_id;
     identifier.organisation = organisation.clone().into();
-    identifier.certificates = Some(RelatedVec::from(vec![cert_a.clone(), cert_b.clone()]));
+    identifier.data =
+        IdentifierData::Certificate(RelatedVec::from(vec![cert_a.clone(), cert_b.clone()]));
 
     let mut identifier_repository = MockIdentifierRepository::default();
     let returned_identifier = identifier.clone();

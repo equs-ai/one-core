@@ -4,7 +4,7 @@ use super::error::HolderServiceError;
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::Credential;
 use crate::model::did::{Did, KeyRole};
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::key::Key;
 use crate::util::key_selection::KeyFilter;
 
@@ -26,28 +26,21 @@ pub(super) async fn holder_did_key_jwk_from_credential(
                 "missing holder identifier".to_string(),
             ))?;
 
-    let (holder_did, holder_jwk_key_id) = if holder_identifier.r#type == IdentifierType::Did {
-        let holder_did = holder_identifier
-            .did
-            .as_ref()
-            .ok_or(HolderServiceError::MappingError(
-                "missing identifier did".to_string(),
-            ))?
-            .as_ref()
-            .await?
-            .to_owned();
+    let (holder_did, holder_jwk_key_id) =
+        if let IdentifierData::Did(holder_did) = &holder_identifier.data {
+            let holder_did = holder_did.as_ref().await?.to_owned();
 
-        // There should probably be a nicer error if a key is rotated out from a did
-        let related_key = holder_did
-            .find_key(&key.id, &KeyFilter::default())
-            .await
-            .error_while("finding key")?;
-        let holder_jwk_key_id = holder_did.verification_method_id(&related_key);
+            // There should probably be a nicer error if a key is rotated out from a did
+            let related_key = holder_did
+                .find_key(&key.id, &KeyFilter::default())
+                .await
+                .error_while("finding key")?;
+            let holder_jwk_key_id = holder_did.verification_method_id(&related_key);
 
-        (Some(holder_did), Some(holder_jwk_key_id))
-    } else {
-        (None, None)
-    };
+            (Some(holder_did), Some(holder_jwk_key_id))
+        } else {
+            (None, None)
+        };
 
     Ok((holder_did, key, holder_jwk_key_id))
 }
@@ -56,17 +49,9 @@ pub(super) async fn select_holder_key(
     identifier: &Identifier,
     key_id: Option<KeyId>,
 ) -> Result<Key, HolderServiceError> {
-    Ok(match identifier.r#type {
-        IdentifierType::Key => {
-            let key = identifier
-                .key
-                .as_ref()
-                .ok_or(HolderServiceError::MappingError(
-                    "Missing identifier key".to_string(),
-                ))?
-                .as_ref()
-                .await?
-                .to_owned();
+    Ok(match &identifier.data {
+        IdentifierData::Key(key) => {
+            let key = key.as_ref().await?.to_owned();
 
             if let Some(key_id) = key_id
                 && key_id != key.id
@@ -77,15 +62,8 @@ pub(super) async fn select_holder_key(
             }
             key
         }
-        IdentifierType::Did => {
-            let did = identifier
-                .did
-                .as_ref()
-                .ok_or(HolderServiceError::MappingError(
-                    "Missing identifier did".to_string(),
-                ))?
-                .as_ref()
-                .await?;
+        IdentifierData::Did(did) => {
+            let did = did.as_ref().await?;
 
             let key_filter = KeyFilter::did_role(KeyRole::Authentication);
             let selected_key = match key_id {

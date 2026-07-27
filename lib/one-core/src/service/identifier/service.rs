@@ -27,8 +27,8 @@ use crate::error::ErrorCode::BR_0224;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::blob::Blob;
 use crate::model::identifier::{
-    Identifier, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations, IdentifierType,
-    SortableIdentifierColumn,
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations,
+    IdentifierType, SortableIdentifierColumn,
 };
 use crate::model::identifier_trust_information::{
     IdentifierTrustInformation, IdentifierTrustInformationRelations,
@@ -426,7 +426,7 @@ impl IdentifierService {
             "Created identifier `{}` ({}) with type `{}`",
             identifier.name,
             identifier.id,
-            identifier.r#type
+            identifier.data.r#type()
         );
         Ok(identifier.id)
     }
@@ -514,9 +514,12 @@ impl IdentifierService {
         identifier: &Identifier,
     ) -> Result<Option<String>, IdentifierServiceError> {
         let mut rp_ids = HashSet::new();
-        let certificates = match &identifier.certificates {
-            Some(certificates) => certificates.as_ref().await?.to_owned(),
-            None => vec![],
+        let certificates = match &identifier.data {
+            IdentifierData::Certificate(certificates)
+            | IdentifierData::CertificateAuthority(certificates) => {
+                certificates.as_ref().await?.to_owned()
+            }
+            _ => vec![],
         };
         for cert in &certificates {
             let result = self
@@ -566,9 +569,12 @@ impl IdentifierService {
         )
         .error_while("checking session")?;
 
-        let certificates = match &identifier.certificates {
-            Some(certificates) => certificates.as_ref().await?.to_owned(),
-            None => vec![],
+        let certificates = match &identifier.data {
+            IdentifierData::Certificate(certificates)
+            | IdentifierData::CertificateAuthority(certificates) => {
+                certificates.as_ref().await?.to_owned()
+            }
+            _ => vec![],
         };
         let name = identifier.name.clone();
 
@@ -585,7 +591,7 @@ impl IdentifierService {
 
                     tracing::info!("Deleted certificate `{}` ({})`", cert.name, cert.id);
                 }
-                if let Some(did) = &identifier.did {
+                if let IdentifierData::Did(did) = &identifier.data {
                     let did = did.as_ref().await?;
                     self.did_repository
                         .delete_did(&did)
@@ -837,7 +843,7 @@ fn filter_resolvable_identifiers(
         .filter(|identifier| {
             capabilities
                 .resolvable_identifier_types
-                .contains(&identifier.r#type)
+                .contains(&identifier.data.r#type())
         })
         .cloned()
         .collect()

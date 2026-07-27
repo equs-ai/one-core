@@ -110,6 +110,8 @@ impl TrustEntryRepository for TrustEntryProvider {
                 identifier::Column::OrganisationId,
                 "identifier_organisation_id",
             )
+            .column_as(identifier::Column::DidId, "identifier_did_id")
+            .column_as(identifier::Column::KeyId, "identifier_key_id")
             // list query
             .filter(trust_entry::Column::TrustListPublicationId.eq(trust_list_publication_id))
             .with_list_query(&query)
@@ -128,9 +130,15 @@ impl TrustEntryRepository for TrustEntryProvider {
             values: trust_entries
                 .into_iter()
                 .map(|trust_entry| {
-                    trust_entry_from_model(trust_entry, &self.organisation_repository)
+                    trust_entry_from_model(
+                        trust_entry,
+                        &self.organisation_repository,
+                        &self.did_repository,
+                        &self.key_repository,
+                        &self.certificate_repository,
+                    )
                 })
-                .collect(),
+                .collect::<Result<Vec<_>, _>>()?,
             total_pages: calculate_pages_count(items_count, limit.unwrap_or(0)),
             total_items: items_count,
         })

@@ -20,7 +20,7 @@ use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::Credential;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::{
     CredentialClaim, CredentialClaimValue, CredentialSchemaMetadata, CredentialStatus, Issuer,
@@ -39,9 +39,12 @@ pub(super) fn default_2_years() -> Duration {
 pub(crate) async fn first_certificate(
     identifier: &Identifier,
 ) -> Result<Option<Certificate>, FormatterError> {
-    match &identifier.certificates {
-        Some(certificates) => Ok(certificates.as_ref().await?.first().cloned()),
-        None => Ok(None),
+    match &identifier.data {
+        IdentifierData::Certificate(certificates)
+        | IdentifierData::CertificateAuthority(certificates) => {
+            Ok(certificates.as_ref().await?.first().cloned())
+        }
+        _ => Ok(None),
     }
 }
 
@@ -170,10 +173,10 @@ async fn issuer_for_credential(
     credential: &Credential,
     core_base_url: &str,
 ) -> Result<Issuer, FormatterError> {
-    if let Some(issuer_did) = credential
+    if let Some(IdentifierData::Did(issuer_did)) = credential
         .issuer_identifier
         .as_ref()
-        .and_then(|identifier| identifier.did.as_ref())
+        .map(|identifier| &identifier.data)
     {
         let issuer_did = issuer_did.as_ref().await?;
         return Ok(Issuer::Url(issuer_did.did.clone().into_url()));

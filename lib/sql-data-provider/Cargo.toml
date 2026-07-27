@@ -39,6 +39,7 @@ url                          = { workspace = true }
 uuid                         = { workspace = true, features = ["serde"] }
 
 [dev-dependencies]
+assert2.workspace         = true
 futures.workspace         = true
 mockall.workspace         = true
 one-core                  = { workspace = true, features = ["mock"] }

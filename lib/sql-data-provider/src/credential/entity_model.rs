@@ -1,5 +1,7 @@
 use sea_orm::FromQueryResult;
-use shared_types::{BlobId, CredentialId, CredentialSchemaId, IdentifierId, OrganisationId};
+use shared_types::{
+    BlobId, CredentialId, CredentialSchemaId, DidId, IdentifierId, KeyId, OrganisationId,
+};
 use time::OffsetDateTime;
 
 use crate::entity::credential;
@@ -55,4 +57,6 @@ pub(super) struct CredentialListEntityModel {
     pub issuer_identifier_is_remote: Option<bool>,
     pub issuer_identifier_state: Option<IdentifierState>,
     pub issuer_identifier_organisation_id: Option<OrganisationId>,
+    pub issuer_identifier_did_id: Option<DidId>,
+    pub issuer_identifier_key_id: Option<KeyId>,
 }

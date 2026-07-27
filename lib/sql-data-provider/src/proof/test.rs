@@ -7,7 +7,7 @@ use one_core::model::credential::{
 };
 use one_core::model::did::{Did, DidType};
 use one_core::model::identifier::{
-    Identifier, IdentifierRelations, IdentifierState, IdentifierType,
+    Identifier, IdentifierData, IdentifierRelations, IdentifierState,
 };
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::key::Key;
@@ -22,6 +22,7 @@ use one_core::repository::certificate_repository::{
 };
 use one_core::repository::claim_repository::{ClaimRepository, MockClaimRepository};
 use one_core::repository::credential_repository::{CredentialRepository, MockCredentialRepository};
+use one_core::repository::did_repository::MockDidRepository;
 use one_core::repository::identifier_repository::{IdentifierRepository, MockIdentifierRepository};
 use one_core::repository::interaction_repository::{
     InteractionRepository, MockInteractionRepository,
@@ -178,6 +179,7 @@ async fn setup(
             credential_repository,
             identifier_repository,
             interaction_repository,
+            did_repository: Arc::new(MockDidRepository::default()),
             key_repository,
             certificate_repository,
             organisation_repository: Arc::new(MockOrganisationRepository::default()),
@@ -351,12 +353,7 @@ async fn test_create_proof_success() {
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
             name: "verifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(None).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: did_id,
@@ -373,8 +370,10 @@ async fn test_create_proof_success() {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(None).into(),
             trust_information: None,
         }),
         interaction: None,
@@ -531,12 +530,7 @@ async fn test_get_proof_with_relations() {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 name: "identifier".to_string(),
-                r#type: IdentifierType::Did,
-                is_remote: false,
-                state: IdentifierState::Active,
-                deleted_at: None,
-                organisation: dummy_organisation(None).into(),
-                did: Some(
+                data: IdentifierData::Did(
                     (Did {
                         deleted_at: None,
                         id: Uuid::new_v4().into(),
@@ -553,8 +547,10 @@ async fn test_get_proof_with_relations() {
                     })
                     .into(),
                 ),
-                key: None,
-                certificates: None,
+                is_remote: false,
+                state: IdentifierState::Active,
+                deleted_at: None,
+                organisation: dummy_organisation(None).into(),
                 trust_information: None,
             }))
         });

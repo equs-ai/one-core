@@ -1,10 +1,11 @@
+use assert2::let_assert;
 use one_core::clock::now_utc;
 use one_core::model::credential::{
     Clearable, Credential, CredentialFilterValue, CredentialRole, CredentialStateEnum,
     UpdateCredentialRequest,
 };
 use one_core::model::did::{Did, DidType, KeyRole, RelatedKey};
-use one_core::model::identifier::{Identifier, IdentifierType};
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierType};
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::key::Key;
 use one_core::model::list_filter::ListFilterValue;
@@ -62,16 +63,14 @@ async fn test_presentation_submit_endpoint_for_openid4vp_dcql() {
             .iter()
             .any(|c| c.claim.value == Some("test".to_string()))
     );
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(proof_verifier_did),
+            ..
+        }) = proof.verifier_identifier.as_ref()
+    );
     assert_eq!(
-        proof
-            .verifier_identifier
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did,
+        proof_verifier_did.as_ref().await.unwrap().did,
         verifier_did.did
     );
     // There is no longer a single holder identifier associated with the proof
@@ -176,16 +175,14 @@ async fn test_presentation_submit_endpoint_for_openid4vp_dcql_batch_credential()
             .iter()
             .any(|c| c.claim.value == Some("test".to_string()))
     );
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(proof_verifier_did),
+            ..
+        }) = proof.verifier_identifier.as_ref()
+    );
     assert_eq!(
-        proof
-            .verifier_identifier
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did,
+        proof_verifier_did.as_ref().await.unwrap().did,
         verifier_did.did
     );
     let proof_history = context
@@ -837,16 +834,14 @@ async fn test_presentation_submit_endpoint_for_openid4vp_dcql_array_claim() {
             .iter()
             .any(|c| c.claim.value == Some("value2".to_string()))
     );
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(proof_verifier_did),
+            ..
+        }) = proof.verifier_identifier.as_ref()
+    );
     assert_eq!(
-        proof
-            .verifier_identifier
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did,
+        proof_verifier_did.as_ref().await.unwrap().did,
         verifier_did.did
     );
     let proof_history = context

@@ -15,8 +15,8 @@ use crate::model::blob::BlobType;
 use crate::model::certificate::Certificate;
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaRelations};
 use crate::model::identifier::{
-    ExactIdentifierFilterColumn, GetIdentifierList, Identifier, IdentifierFilterValue,
-    IdentifierListQuery, IdentifierType, SortableIdentifierColumn,
+    ExactIdentifierFilterColumn, GetIdentifierList, Identifier, IdentifierData,
+    IdentifierFilterValue, IdentifierListQuery, SortableIdentifierColumn,
 };
 use crate::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use crate::model::list_filter::{
@@ -31,21 +31,24 @@ use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::signer::registration_certificate::model::Credential;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
 use crate::repository::proof_schema_repository::ProofSchemaRepository;
+use crate::service::certificate::dto::CertificateResponseDTO;
 use crate::service::certificate::mapper::certificate_to_response_dto;
 use crate::service::common_dto::ListQueryDTO;
 use crate::service::did::dto::CreateDidRequestDTO;
 use crate::service::did::mapper::response_from_did;
 
-fn load_certificates(
-    value: &Identifier,
-) -> Result<&RelatedVec<Certificate>, IdentifierServiceError> {
-    value
-        .certificates
-        .as_ref()
-        .ok_or(IdentifierServiceError::MappingError(format!(
-            "Certificates required for identifier type {}",
-            value.r#type
-        )))
+async fn map_certificates(
+    certificates: &RelatedVec<Certificate>,
+) -> Result<Vec<CertificateResponseDTO>, IdentifierServiceError> {
+    let mut certs = vec![];
+    for certificate in certificates.as_ref().await?.iter() {
+        certs.push(
+            certificate_to_response_dto(certificate.to_owned())
+                .await
+                .error_while("converting certificate")?,
+        );
+    }
+    Ok(certs)
 }
 
 pub(super) async fn identifier_to_response_dto(
@@ -53,45 +56,28 @@ pub(super) async fn identifier_to_response_dto(
     blob_storage_provider: &dyn BlobStorageProvider,
 ) -> Result<GetIdentifierResponseDTO, IdentifierServiceError> {
     let organisation_id = Some(value.organisation.id());
+    let r#type = value.data.r#type();
 
+    let mut did = None;
+    let mut key = None;
     let mut certificates = None;
     let mut certificate_authorities = None;
-    match value.r#type {
-        IdentifierType::Did => {
-            if value.did.is_none() {
-                return Err(IdentifierServiceError::MappingError(
-                    "DID is required for identifier type Did".to_string(),
-                ));
-            }
+    match &value.data {
+        IdentifierData::Did(identifier_did) => {
+            did = Some(
+                response_from_did(identifier_did.as_ref().await?.to_owned())
+                    .await
+                    .error_while("converting did")?,
+            );
         }
-        IdentifierType::Key => {
-            if value.key.is_none() {
-                return Err(IdentifierServiceError::MappingError(
-                    "Key is required for identifier type Key".to_string(),
-                ));
-            }
+        IdentifierData::Key(identifier_key) => {
+            key = Some(identifier_key.as_ref().await?.to_owned().into());
         }
-        IdentifierType::Certificate => {
-            let mut certs = vec![];
-            for certificate in load_certificates(&value)?.as_ref().await?.iter() {
-                certs.push(
-                    certificate_to_response_dto(certificate.to_owned())
-                        .await
-                        .error_while("converting certificate")?,
-                );
-            }
-            certificates = Some(certs);
+        IdentifierData::Certificate(certs) => {
+            certificates = Some(map_certificates(certs).await?);
         }
-        IdentifierType::CertificateAuthority => {
-            let mut certs = vec![];
-            for certificate in load_certificates(&value)?.as_ref().await?.iter() {
-                certs.push(
-                    certificate_to_response_dto(certificate.to_owned())
-                        .await
-                        .error_while("converting certificate")?,
-                );
-            }
-            certificate_authorities = Some(certs);
+        IdentifierData::CertificateAuthority(certs) => {
+            certificate_authorities = Some(map_certificates(certs).await?);
         }
     }
     let trust_information = value
@@ -101,28 +87,17 @@ pub(super) async fn identifier_to_response_dto(
         ))?;
     let trust_information = map_trust_information(blob_storage_provider, trust_information).await?;
 
-    let did = match value.did {
-        Some(did) => Some(
-            response_from_did(did.as_ref().await?.to_owned())
-                .await
-                .error_while("converting did")?,
-        ),
-        None => None,
-    };
     Ok(GetIdentifierResponseDTO {
         id: value.id,
         created_date: value.created_date,
         last_modified: value.last_modified,
         name: value.name,
         organisation_id,
-        r#type: value.r#type,
+        r#type,
         is_remote: value.is_remote,
         state: value.state,
         did,
-        key: match value.key {
-            Some(key) => Some(key.as_ref().await?.to_owned().into()),
-            None => None,
-        },
+        key,
         certificates,
         certificate_authorities,
         trust_information,
@@ -186,7 +161,7 @@ impl From<Identifier> for GetIdentifierListItemResponseDTO {
             created_date: value.created_date,
             last_modified: value.last_modified,
             name: value.name,
-            r#type: value.r#type,
+            r#type: value.data.r#type(),
             is_remote: value.is_remote,
             state: value.state,
             organisation_id: Some(value.organisation.id()),

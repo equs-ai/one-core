@@ -21,7 +21,7 @@ use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
 use crate::model::history::{
     HistoryAction, HistoryMetadata, TrustResolutionMetadata, TrustResolutionResult,
 };
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
 use crate::model::proof::{Proof, ProofRole, ProofStateEnum};
@@ -132,7 +132,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
             Ok(Some(Proof {
                 id: proof_id,
                 verifier_identifier: Some(Identifier {
-                    did: Some(
+                    data: IdentifierData::Did(
                         (Did {
                             did: verifier_did,
                             ..dummy_did()
@@ -268,7 +268,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
             Ok(Some(Proof {
                 id: proof_id,
                 verifier_identifier: Some(Identifier {
-                    did: Some(
+                    data: IdentifierData::Did(
                         (Did {
                             did: verifier_did,
                             ..dummy_did()
@@ -438,7 +438,7 @@ async fn test_get_client_metadata_success() {
         schema: None,
         claims: None,
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::from_str("c322aa7f-9803-410d-b891-939b279fb966")

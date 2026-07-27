@@ -20,7 +20,7 @@ use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::common::LockType;
 use crate::model::credential::Credential;
 use crate::model::did::KeyRole;
-use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::managed_instance::ManagedInstanceRelations;
 use crate::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
@@ -168,7 +168,7 @@ impl RevocationMethod for TokenStatusList {
                 ))?;
 
         let issuer_certificate =
-            if issuer_identifier.r#type == IdentifierType::Certificate {
+            if matches!(issuer_identifier.data, IdentifierData::Certificate(_)) {
                 Some(credential.issuer_certificate.as_ref().ok_or(
                     RevocationError::MappingError("issuer certificate is None".to_string()),
                 )?)
@@ -201,7 +201,7 @@ impl RevocationMethod for TokenStatusList {
                 ))?;
 
         let issuer_certificate =
-            if issuer_identifier.r#type == IdentifierType::Certificate {
+            if matches!(issuer_identifier.data, IdentifierData::Certificate(_)) {
                 Some(credential.issuer_certificate.as_ref().ok_or(
                     RevocationError::MappingError("issuer certificate is None".to_string()),
                 )?)
@@ -374,7 +374,10 @@ impl RevocationMethod for TokenStatusList {
                 "Missing issuer_identifier".to_string(),
             ))?;
 
-        let issuer_certificate = if let Some(certificates) = &issuer_identifier.certificates {
+        let issuer_certificate = if let IdentifierData::Certificate(certificates)
+        | IdentifierData::CertificateAuthority(certificates) =
+            &issuer_identifier.data
+        {
             certificates
                 .as_ref()
                 .await?
@@ -846,9 +849,12 @@ async fn format_status_list_credential(
 ) -> Result<String, RevocationError> {
     let revocation_list_url = get_revocation_list_url(revocation_list_id, core_base_url)?;
 
-    if issuer_identifier.r#type == IdentifierType::CertificateAuthority {
+    if matches!(
+        issuer_identifier.data,
+        IdentifierData::CertificateAuthority(_)
+    ) {
         return Err(RevocationError::InvalidIdentifierType(
-            issuer_identifier.r#type,
+            issuer_identifier.data.r#type(),
         ));
     }
 

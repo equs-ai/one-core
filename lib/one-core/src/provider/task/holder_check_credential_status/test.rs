@@ -17,7 +17,7 @@ use crate::model::credential::{
 use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity, LayoutType};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::key::Key;
 use crate::proto::credential_validity_manager::{
     CredentialValidityManager, CredentialValidityManagerImpl,
@@ -273,14 +273,11 @@ fn generic_credential() -> Credential {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
+            data: IdentifierData::Did((issuer_did).into()),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some((issuer_did).into()),
-            key: None,
-            certificates: None,
             trust_information: None,
         }),
         issuer_certificate: None,

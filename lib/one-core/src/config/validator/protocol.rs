@@ -13,7 +13,7 @@ pub fn validate_identifier(
     expected_types: &[IdentifierType],
     config: &IdentifierConfig,
 ) -> Result<(), ServiceError> {
-    let requested_identifier_type = &verifier_identifier.r#type.into();
+    let requested_identifier_type = &verifier_identifier.data.r#type().into();
     config
         .get(requested_identifier_type)
         .filter(|cfg| cfg.enabled)

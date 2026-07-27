@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::relation::RelatedVec;
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::{MockCertificateValidator, ParsedCertificate};
@@ -148,14 +148,7 @@ async fn resolve_untrusted_identifier() {
         created_date: now,
         last_modified: now,
         name: "".to_string(),
-        r#type: IdentifierType::Certificate,
-        is_remote: false,
-        state: IdentifierState::Active,
-        deleted_at: None,
-        organisation: dummy_organisation(None).into(),
-        did: None,
-        key: None,
-        certificates: Some(RelatedVec::from(vec![Certificate {
+        data: IdentifierData::Certificate(RelatedVec::from(vec![Certificate {
             id: Uuid::new_v4().into(),
             identifier_id,
             organisation: dummy_organisation(None).into(),
@@ -170,6 +163,10 @@ async fn resolve_untrusted_identifier() {
             roles: vec![],
             key: Some(dummy_key().into()),
         }])),
+        is_remote: false,
+        state: IdentifierState::Active,
+        deleted_at: None,
+        organisation: dummy_organisation(None).into(),
         trust_information: None,
     };
 
@@ -194,14 +191,7 @@ async fn resolve_trusted_identifier() {
         created_date: now,
         last_modified: now,
         name: "".to_string(),
-        r#type: IdentifierType::Certificate,
-        is_remote: false,
-        state: IdentifierState::Active,
-        deleted_at: None,
-        organisation: dummy_organisation(None).into(),
-        did: None,
-        key: None,
-        certificates: Some(RelatedVec::from(vec![Certificate {
+        data: IdentifierData::Certificate(RelatedVec::from(vec![Certificate {
             id: Uuid::new_v4().into(),
             identifier_id,
             organisation: dummy_organisation(None).into(),
@@ -216,6 +206,10 @@ async fn resolve_trusted_identifier() {
             roles: vec![],
             key: Some(dummy_key().into()),
         }])),
+        is_remote: false,
+        state: IdentifierState::Active,
+        deleted_at: None,
+        organisation: dummy_organisation(None).into(),
         trust_information: None,
     };
 
@@ -480,14 +474,7 @@ async fn resolve_trusted_identifier_xml() {
         created_date: now,
         last_modified: now,
         name: "".to_string(),
-        r#type: IdentifierType::Certificate,
-        is_remote: false,
-        state: IdentifierState::Active,
-        deleted_at: None,
-        organisation: dummy_organisation(None).into(),
-        did: None,
-        key: None,
-        certificates: Some(RelatedVec::from(vec![Certificate {
+        data: IdentifierData::Certificate(RelatedVec::from(vec![Certificate {
             id: Uuid::new_v4().into(),
             identifier_id,
             organisation: dummy_organisation(None).into(),
@@ -502,6 +489,10 @@ async fn resolve_trusted_identifier_xml() {
             roles: vec![],
             key: Some(dummy_key().into()),
         }])),
+        is_remote: false,
+        state: IdentifierState::Active,
+        deleted_at: None,
+        organisation: dummy_organisation(None).into(),
         trust_information: None,
     };
 
@@ -527,14 +518,7 @@ async fn resolve_untrusted_identifier_xml() {
         created_date: now,
         last_modified: now,
         name: "".to_string(),
-        r#type: IdentifierType::Certificate,
-        is_remote: false,
-        state: IdentifierState::Active,
-        deleted_at: None,
-        organisation: dummy_organisation(None).into(),
-        did: None,
-        key: None,
-        certificates: Some(RelatedVec::from(vec![Certificate {
+        data: IdentifierData::Certificate(RelatedVec::from(vec![Certificate {
             id: Uuid::new_v4().into(),
             identifier_id,
             organisation: dummy_organisation(None).into(),
@@ -549,6 +533,10 @@ async fn resolve_untrusted_identifier_xml() {
             roles: vec![],
             key: Some(dummy_key().into()),
         }])),
+        is_remote: false,
+        state: IdentifierState::Active,
+        deleted_at: None,
+        organisation: dummy_organisation(None).into(),
         trust_information: None,
     };
 

@@ -40,7 +40,7 @@ fn get_client_id_scheme(
     let fallback_scheme = supported_client_id_schemes
         .iter()
         .find(|scheme| {
-            get_supported_client_id_scheme_for_identifier(&verifier_identifier.r#type)
+            get_supported_client_id_scheme_for_identifier(&verifier_identifier.data.r#type())
                 .contains(scheme)
         })
         .cloned()

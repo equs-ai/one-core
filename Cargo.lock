@@ -6091,6 +6091,7 @@ name = "sql-data-provider"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "assert2",
  "async-trait",
  "autometrics",
  "dcql",

@@ -28,6 +28,7 @@ use crate::config::core_config::{
 };
 use crate::error::ContextWithErrorCode;
 use crate::model::did::Did;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::Interaction;
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofStateEnum, UpdateProofRequest};
@@ -659,22 +660,20 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
 
                 Base64UrlSafeNoPadding::encode_to_string(fingerprint)?
             }
-            ClientIdScheme::Did => proof
-                .verifier_identifier
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(
-                    "proof is missing verifier_identifier, required for did client_id_scheme"
-                        .to_string(),
-                ))?
-                .did
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(
-                    "proof is missing verifier_did, required for did client_id_scheme".to_string(),
-                ))?
-                .as_ref()
-                .await?
-                .did
-                .to_string(),
+            ClientIdScheme::Did => {
+                let Some(Identifier {
+                    data: IdentifierData::Did(verifier_did),
+                    ..
+                }) = proof.verifier_identifier.as_ref()
+                else {
+                    return Err(VerificationProtocolError::Failed(
+                        "proof is missing verifier DID, required for did client_id_scheme"
+                            .to_string(),
+                    ));
+                };
+
+                verifier_did.as_ref().await?.did.to_string()
+            }
         };
 
         let proof_schema = proof

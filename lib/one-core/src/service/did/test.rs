@@ -12,7 +12,7 @@ use super::error::DidServiceError;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::did::{Did, DidType, GetDidList, KeyRole, RelatedKey};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::key::Key;
 use crate::proto::identifier_creator::MockIdentifierCreator;
 use crate::proto::session_provider::NoSessionProvider;
@@ -235,7 +235,7 @@ async fn test_create_did_success() {
         .once()
         .return_once(|_, _, _| {
             Ok(Identifier {
-                did: Some((dummy_did()).into()),
+                data: IdentifierData::Did((dummy_did()).into()),
                 ..dummy_identifier()
             })
         });

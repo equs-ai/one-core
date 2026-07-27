@@ -15,7 +15,7 @@ use super::dto::AddEntryParams;
 use super::*;
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::common::GetListResponse;
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::Identifier;
 use crate::model::key::Key;
 use crate::model::relation::RelatedVec;
 use crate::proto::clock::DefaultClock;
@@ -188,8 +188,7 @@ fn mock_publication_repo(
         publication.identifier = Some(Identifier {
             id: publication.identifier_id,
             name: "Test Entity".into(),
-            r#type: IdentifierType::Certificate,
-            certificates: Some(RelatedVec::from(vec![certificate.clone()])),
+            data: IdentifierData::Certificate(RelatedVec::from(vec![certificate.clone()])),
             ..dummy_identifier()
         });
         Ok(Some(publication))
@@ -318,8 +317,7 @@ fn make_publisher(
 async fn test_build_lote_payload_basic() {
     let identifier = Identifier {
         name: "Test Entity".into(),
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![dummy_certificate(
+        data: IdentifierData::Certificate(RelatedVec::from(vec![dummy_certificate(
             generate_self_signed_pem(),
         )])),
         ..dummy_identifier()
@@ -480,8 +478,7 @@ async fn test_format_trust_list_with_entry() {
 
     let identifier = Identifier {
         name: "Acme PID Provider".into(),
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![dummy_certificate(
+        data: IdentifierData::Certificate(RelatedVec::from(vec![dummy_certificate(
             generate_self_signed_pem(),
         )])),
         ..dummy_identifier()
@@ -574,8 +571,7 @@ async fn test_lifecycle_create_add_update_remove() {
     cert_with_key.key = Some(key.clone().into());
 
     let identifier = Identifier {
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![cert_with_key])),
+        data: IdentifierData::Certificate(RelatedVec::from(vec![cert_with_key])),
         ..dummy_identifier()
     };
 
@@ -693,8 +689,7 @@ async fn test_add_entry_includes_certificate_in_digital_identity() {
 
     let identifier = Identifier {
         name: "Acme Provider".into(),
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![entity_cert])),
+        data: IdentifierData::Certificate(RelatedVec::from(vec![entity_cert])),
         ..dummy_identifier()
     };
     let identifier_id = identifier.id;
@@ -770,8 +765,7 @@ async fn test_add_entry_includes_certificate_in_digital_identity() {
 async fn test_build_trusted_entity_with_params() {
     let identifier = Identifier {
         name: "Default Name".into(),
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![dummy_certificate(
+        data: IdentifierData::Certificate(RelatedVec::from(vec![dummy_certificate(
             generate_self_signed_pem(),
         )])),
         ..dummy_identifier()
@@ -863,8 +857,7 @@ async fn test_create_trust_list_with_params_enriches_scheme_info() {
     cert_with_key.key = Some(key.clone().into());
 
     let identifier = Identifier {
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![cert_with_key])),
+        data: IdentifierData::Certificate(RelatedVec::from(vec![cert_with_key])),
         ..dummy_identifier()
     };
 
@@ -949,8 +942,7 @@ async fn test_generate_trust_list_content_returns_fresh_content() {
     cert_with_key.key = Some(key.clone().into());
 
     let identifier = Identifier {
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![cert_with_key])),
+        data: IdentifierData::Certificate(RelatedVec::from(vec![cert_with_key])),
         ..dummy_identifier()
     };
 
@@ -1023,8 +1015,7 @@ async fn test_generate_trust_list_content_resigns_stale_content() {
     cert_with_key.key = Some(key.clone().into());
 
     let identifier = Identifier {
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![cert_with_key])),
+        data: IdentifierData::Certificate(RelatedVec::from(vec![cert_with_key])),
         ..dummy_identifier()
     };
     let identifier_for_create = identifier.clone();
@@ -1157,8 +1148,7 @@ async fn test_format_trust_list_xml_with_entry() {
 
     let identifier = Identifier {
         name: "Test Entity".into(),
-        r#type: IdentifierType::Certificate,
-        certificates: Some(RelatedVec::from(vec![dummy_certificate(
+        data: IdentifierData::Certificate(RelatedVec::from(vec![dummy_certificate(
             generate_self_signed_pem(),
         )])),
         ..dummy_identifier()

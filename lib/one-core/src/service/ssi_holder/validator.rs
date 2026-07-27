@@ -4,7 +4,7 @@ use crate::config::core_config::CoreConfig;
 use crate::config::validator::protocol::validate_protocol_type;
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::Credential;
-use crate::model::identifier::IdentifierType;
+use crate::model::identifier::IdentifierData;
 use crate::proto::session_provider::SessionProvider;
 use crate::provider::credential_formatter::model::FormatterCapabilities;
 use crate::provider::issuance_protocol::HolderBindingInput;
@@ -44,21 +44,13 @@ pub(super) async fn validate_holder_capabilities(
 ) -> Result<(), HolderServiceError> {
     if !capabilities
         .holder_identifier_types
-        .contains(&holder_binding.identifier.r#type.to_owned().into())
+        .contains(&holder_binding.identifier.data.r#type().into())
     {
         return Err(HolderServiceError::IncompatibleHolderIdentifier);
     }
 
-    if holder_binding.identifier.r#type == IdentifierType::Did {
-        let did = holder_binding
-            .identifier
-            .did
-            .as_ref()
-            .ok_or(HolderServiceError::MappingError(
-                "Missing identifier did".to_string(),
-            ))?
-            .as_ref()
-            .await?;
+    if let IdentifierData::Did(did) = &holder_binding.identifier.data {
+        let did = did.as_ref().await?;
         let did_type = config
             .did
             .get_fields(&did.did_method)

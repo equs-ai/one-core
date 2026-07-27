@@ -4,7 +4,7 @@ use serde_json::json;
 use time::Duration;
 use uuid::Uuid;
 
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::revocation_list::{RevocationList, StatusListCredentialFormat};
 use crate::proto::certificate_validator::MockCertificateValidator;
 use crate::proto::http_client::MockHttpClient;
@@ -99,7 +99,7 @@ async fn revocation_status(suspension: bool) -> Vec<CredentialRevocationInfo> {
 
     let mut credential = dummy_credential();
     credential.issuer_identifier = Some(Identifier {
-        did: Some((dummy_did()).into()),
+        data: IdentifierData::Did((dummy_did()).into()),
         ..dummy_identifier()
     });
     if let Some(ref mut schema) = credential.schema {

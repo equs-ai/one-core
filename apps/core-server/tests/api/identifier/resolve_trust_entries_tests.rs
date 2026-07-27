@@ -232,6 +232,11 @@ async fn test_resolve_trust_entries_did_identifier() {
     // GIVEN
     let (context, organisation) = TestContext::new_with_organisation(None).await;
 
+    let did = context
+        .db
+        .dids
+        .create(organisation.clone(), Default::default())
+        .await;
     let identifier = context
         .db
         .identifiers
@@ -239,6 +244,7 @@ async fn test_resolve_trust_entries_did_identifier() {
             &organisation,
             TestingIdentifierParams {
                 r#type: Some(IdentifierType::Did),
+                did: Some(did),
                 is_remote: Some(true),
                 ..Default::default()
             },
@@ -266,6 +272,11 @@ async fn test_resolve_trust_entries_key_identifier() {
     // GIVEN
     let (context, organisation) = TestContext::new_with_organisation(None).await;
 
+    let key = context
+        .db
+        .keys
+        .create(&organisation, Default::default())
+        .await;
     let identifier = context
         .db
         .identifiers
@@ -273,6 +284,7 @@ async fn test_resolve_trust_entries_key_identifier() {
             &organisation,
             TestingIdentifierParams {
                 r#type: Some(IdentifierType::Key),
+                key: Some(key),
                 is_remote: Some(true),
                 ..Default::default()
             },

@@ -11,7 +11,7 @@ use crate::config::core_config::KeySecurityLevelType;
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialStateEnum};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
-use crate::model::identifier::IdentifierType;
+use crate::model::identifier::IdentifierData;
 use crate::model::instance::{InstanceFilterValue, InstanceListQuery, InstanceStatus};
 use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterValue;
@@ -347,24 +347,14 @@ async fn comparable_issuer(
         .ok_or(IssuanceProtocolError::Failed(
             "missing parsed credential issuer".to_string(),
         ))?;
-    match issuer.r#type {
-        IdentifierType::Key => {
-            let key = issuer.key.as_ref().ok_or(IssuanceProtocolError::Failed(
-                "missing parsed credential issuer key".to_string(),
-            ))?;
-            Ok(ComparableIssuer::Key {
-                public_key: key.as_ref().await?.public_key.clone(),
-            })
-        }
-        IdentifierType::Did => {
-            let did = issuer.did.as_ref().ok_or(IssuanceProtocolError::Failed(
-                "missing parsed credential issuer did".to_string(),
-            ))?;
-            Ok(ComparableIssuer::Did {
-                did: did.as_ref().await?.did.clone(),
-            })
-        }
-        IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
+    match &issuer.data {
+        IdentifierData::Key(key) => Ok(ComparableIssuer::Key {
+            public_key: key.as_ref().await?.public_key.clone(),
+        }),
+        IdentifierData::Did(did) => Ok(ComparableIssuer::Did {
+            did: did.as_ref().await?.did.clone(),
+        }),
+        IdentifierData::Certificate(_) | IdentifierData::CertificateAuthority(_) => {
             // Compare via `issuer_certificate`, which holds the exact leaf certificate that signed this credential.
             let certificate =
                 credential

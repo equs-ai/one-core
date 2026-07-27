@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 use std::str::FromStr;
 
+use assert2::let_assert;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::CredentialStateEnum;
 use one_core::model::credential_schema::KeyStorageSecurity;
 use one_core::model::did::{DidType, KeyRole, RelatedKey};
 use one_core::model::history::HistoryAction;
-use one_core::model::identifier::IdentifierType;
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierType};
 use one_core::model::interaction::InteractionType;
 use one_core::proto::jwt::Jwt;
 use one_core::provider::key_algorithm::KeyAlgorithm;
@@ -191,10 +192,13 @@ async fn test_issuance_accept_openid4vc() {
     let resp = resp.json_value().await;
 
     let credential = context.db.credentials.get(&resp["id"].parse()).await;
-    assert_eq!(
-        holder_did.id,
-        credential.holder_identifier.unwrap().did.unwrap().id()
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(credential_holder_did),
+            ..
+        }) = credential.holder_identifier.as_ref()
     );
+    assert_eq!(holder_did.id, credential_holder_did.id());
     assert_eq!(CredentialStateEnum::Accepted, credential.state);
 
     let claims = credential.claims.unwrap();
@@ -792,10 +796,13 @@ async fn test_issuance_accept_openid4vc_with_key_id() {
     assert_eq!(resp.status(), 200);
     let resp = resp.json_value().await;
     let credential = context.db.credentials.get(&resp["id"].parse()).await;
-    assert_eq!(
-        holder_did.id,
-        credential.holder_identifier.unwrap().did.unwrap().id()
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(credential_holder_did),
+            ..
+        }) = credential.holder_identifier.as_ref()
     );
+    assert_eq!(holder_did.id, credential_holder_did.id());
     assert_eq!(key.id, credential.key.unwrap().id);
 
     assert_eq!(CredentialStateEnum::Accepted, credential.state);
@@ -1499,10 +1506,13 @@ async fn test_issuance_accept_openid4vc_with_tx_code() {
     assert_eq!(resp.status(), 200);
     let resp = resp.json_value().await;
     let credential = context.db.credentials.get(&resp["id"].parse()).await;
-    assert_eq!(
-        holder_did.id,
-        credential.holder_identifier.unwrap().did.unwrap().id()
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(credential_holder_did),
+            ..
+        }) = credential.holder_identifier.as_ref()
     );
+    assert_eq!(holder_did.id, credential_holder_did.id());
 
     assert_eq!(CredentialStateEnum::Accepted, credential.state);
 }

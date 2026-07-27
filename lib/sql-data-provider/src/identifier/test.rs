@@ -1,12 +1,13 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
+use assert2::let_assert;
 use one_core::model::certificate::{Certificate, CertificateRole, CertificateState};
 use one_core::model::common::SortDirection;
 use one_core::model::did::Did;
 use one_core::model::identifier::{
-    Identifier, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations, IdentifierState,
-    IdentifierType, SortableIdentifierColumn,
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations,
+    IdentifierState, IdentifierType, SortableIdentifierColumn,
 };
 use one_core::model::identifier_trust_information::{
     IdentifierTrustInformation, IdentifierTrustInformationRelations, SchemaFormat,
@@ -15,7 +16,7 @@ use one_core::model::key::Key;
 use one_core::model::list_filter::{ListFilterCondition, ListFilterValue};
 use one_core::model::list_query::{ListPagination, ListSorting};
 use one_core::model::organisation::Organisation;
-use one_core::model::relation::Related;
+use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::IdentifierRepository;
@@ -104,13 +105,10 @@ async fn test_create_and_delete_identifier() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((setup.did).into()),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.into(),
-        did: Some((setup.did).into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -135,13 +133,10 @@ async fn test_get_identifier() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did(setup.did.clone().into()),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: Some(setup.did.clone().into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -166,14 +161,13 @@ async fn test_get_identifier() {
         .unwrap();
     assert_eq!(retrieved.id, identifier.id);
     assert_eq!(retrieved.name, identifier.name);
-    assert_eq!(retrieved.r#type, identifier.r#type);
+    assert_eq!(retrieved.data, identifier.data);
     assert_eq!(retrieved.state, identifier.state);
     assert_eq!(retrieved.is_remote, identifier.is_remote);
     assert_eq!(retrieved.organisation.id(), identifier.organisation.id());
-    let related = retrieved.did.unwrap();
+    let_assert!(IdentifierData::Did(related) = &retrieved.data);
     let loaded = related.as_ref().await.unwrap();
     assert_eq!(loaded.id, setup.did.id);
-    assert!(retrieved.key.is_none());
 }
 
 #[tokio::test]
@@ -209,13 +203,10 @@ async fn test_get_identifier_of_type_key_resolves_key_lazily() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_key_identifier".to_string(),
-        r#type: IdentifierType::Key,
+        data: IdentifierData::Key(Related::from(key)),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: None,
-        key: Some(Related::from(key)),
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -230,7 +221,7 @@ async fn test_get_identifier_of_type_key_resolves_key_lazily() {
         .unwrap()
         .unwrap();
 
-    let retrieved_key = retrieved.key.expect("key relation should be populated");
+    let_assert!(IdentifierData::Key(retrieved_key) = &retrieved.data);
     let loaded = retrieved_key.as_ref().await.unwrap();
     assert_eq!(loaded.id, key_id);
 }
@@ -246,13 +237,10 @@ async fn test_get_identifier_list() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier1".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((setup.did.clone()).into()),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: Some((setup.did.clone()).into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -288,13 +276,10 @@ async fn test_get_identifier_list() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier2".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((did2).into()),
         is_remote: true,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: Some((did2).into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -354,13 +339,10 @@ async fn test_get_identifier_with_trust_info() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((setup.did.clone()).into()),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: Some((setup.did.clone()).into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -451,13 +433,10 @@ async fn test_list_identifier_filter_trust_info() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((setup.did.clone()).into()),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: Some((setup.did.clone()).into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -584,13 +563,10 @@ async fn test_list_identifier_filter_certificate_role() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "test_identifier".to_string(),
-        r#type: IdentifierType::Certificate,
+        data: IdentifierData::Certificate(RelatedVec::from(vec![])),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: Some((setup.did.clone()).into()),
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -652,13 +628,10 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "cert_identifier".to_string(),
-        r#type: IdentifierType::Certificate,
+        data: IdentifierData::Certificate(RelatedVec::from(vec![])),
         is_remote: false,
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
-        did: None,
-        key: None,
-        certificates: None,
         deleted_at: None,
         trust_information: None,
     };
@@ -704,9 +677,7 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
         .unwrap()
         .expect("identifier should still be retrievable");
 
-    let certs = resolved
-        .certificates
-        .expect("certificates relation should be populated");
+    let_assert!(IdentifierData::Certificate(certs) = &resolved.data);
     let certs = certs.as_ref().await.unwrap();
     assert_eq!(certs.len(), 1);
     assert_eq!(certs[0].id, cert_id);

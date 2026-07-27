@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
+use assert2::let_assert;
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder, Encoder};
 use maplit::hashmap;
 use mockall::predicate::eq;
@@ -21,7 +22,7 @@ use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::LayoutType;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, KeyRole};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::key::Key;
 use crate::proto::certificate_validator::MockCertificateValidator;
 use crate::proto::http_client::{
@@ -97,18 +98,13 @@ async fn test_format_credential() {
 
     let mut did_method_provider = MockDidMethodProvider::new();
 
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .unwrap()
-        .did
-        .as_ref()
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
 
     let did_document = dummy_did_document(&holder_did);
     did_method_provider
@@ -292,18 +288,13 @@ async fn test_format_credential_swiyu() {
     });
     let mut did_method_provider = MockDidMethodProvider::new();
 
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .unwrap()
-        .did
-        .as_ref()
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
 
     let holder_did_document = dummy_did_document(&holder_did);
 
@@ -1241,7 +1232,7 @@ async fn test_format_extract_round_trip_non_sd_array_elements() {
         .with_valid_until(now + Duration::seconds(10));
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did.clone(),
                 ..dummy_did()
@@ -1456,7 +1447,7 @@ async fn test_format_extract_round_trip_sd_array_elements() {
         .with_valid_until(now + Duration::seconds(10));
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did.clone(),
                 ..dummy_did()

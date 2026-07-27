@@ -16,7 +16,7 @@ use super::*;
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::credential_schema::{BackgroundProperties, LayoutProperties, LayoutType};
 use crate::model::did::Did;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::proto::certificate_validator::{MockCertificateValidator, ParsedCertificate};
 use crate::proto::http_client::MockHttpClient;
 use crate::provider::credential_formatter::model::{
@@ -228,7 +228,7 @@ async fn test_credential_formatting_ok_for_ecdsa() {
     let holder_did: DidValue = "did:holder:123".parse().unwrap();
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did.clone(),
                 ..dummy_did()
@@ -496,7 +496,7 @@ async fn test_unverified_credential_extraction() {
     });
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did.clone(),
                 ..dummy_did()
@@ -794,7 +794,7 @@ async fn format_and_extract_ecdsa() -> DetailCredential {
     });
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did.clone(),
                 ..dummy_did()

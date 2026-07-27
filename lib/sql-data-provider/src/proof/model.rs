@@ -1,5 +1,5 @@
 use sea_orm::FromQueryResult;
-use shared_types::{BlobId, IdentifierId, OrganisationId, ProofId, ProofSchemaId};
+use shared_types::{BlobId, DidId, IdentifierId, KeyId, OrganisationId, ProofId, ProofSchemaId};
 use time::OffsetDateTime;
 
 use crate::entity::identifier::{IdentifierState, IdentifierType};
@@ -34,6 +34,8 @@ pub(super) struct ProofListItemModel {
     pub verifier_identifier_is_remote: Option<bool>,
     pub verifier_identifier_state: Option<IdentifierState>,
     pub verifier_identifier_organisation_id: Option<OrganisationId>,
+    pub verifier_identifier_did_id: Option<DidId>,
+    pub verifier_identifier_key_id: Option<KeyId>,
 
     // proof_schema
     pub schema_id: Option<ProofSchemaId>,

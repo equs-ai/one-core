@@ -1474,7 +1474,6 @@ async fn test_create_credential_success() {
             Ok((
                 Identifier {
                     id: Uuid::from(holder_did_id).into(),
-                    r#type: IdentifierType::Did,
                     ..dummy_identifier()
                 },
                 RemoteIdentifierRelation::Did(Did {
@@ -1660,7 +1659,6 @@ async fn test_create_credential_success_sd_jwt_vc() {
             Ok((
                 Identifier {
                     id: Uuid::from(holder_did_id).into(),
-                    r#type: IdentifierType::Did,
                     ..dummy_identifier()
                 },
                 RemoteIdentifierRelation::Did(Did {
@@ -1869,7 +1867,6 @@ async fn test_create_credential_success_mdoc() {
             Ok((
                 Identifier {
                     id: holder_identifier_id,
-                    r#type: IdentifierType::Did,
                     ..dummy_identifier()
                 },
                 RemoteIdentifierRelation::Did(Did {
@@ -2304,7 +2301,6 @@ async fn test_create_credential_issuer_failed() {
             Ok((
                 Identifier {
                     id: Uuid::from(holder_did_id).into(),
-                    r#type: IdentifierType::Did,
                     ..dummy_identifier()
                 },
                 RemoteIdentifierRelation::Did(Did {
@@ -2453,7 +2449,6 @@ async fn test_create_credential_nonce_reused() {
             Ok((
                 Identifier {
                     id: Uuid::from(holder_did_id).into(),
-                    r#type: IdentifierType::Did,
                     ..dummy_identifier()
                 },
                 RemoteIdentifierRelation::Did(Did {

@@ -2,6 +2,7 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::vec;
 
+use assert2::let_assert;
 use mockall::predicate::*;
 use serde_json::json;
 use serde_yaml;
@@ -30,7 +31,7 @@ use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity, Layo
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::key::Key;
 use crate::model::relation::RelatedVec;
 use crate::proto::credential_validity_manager::MockCredentialValidityManager;
@@ -169,14 +170,11 @@ async fn generic_credential() -> Credential {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
+            data: IdentifierData::Did((issuer_did).into()),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some((issuer_did).into()),
-            key: None,
-            certificates: None,
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -257,12 +255,7 @@ async fn generic_credential_list_entity() -> Credential {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: organisation.clone().into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -279,8 +272,10 @@ async fn generic_credential_list_entity() -> Credential {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: organisation.clone().into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -862,16 +857,22 @@ async fn test_create_credential_based_on_issuer_did_success() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     {
         let clone = credential.clone();
-        let issuer_did = credential.issuer_identifier.clone().unwrap().did.unwrap();
+        let issuer_did = issuer_identifier_did.clone();
         let credential_schema = credential.schema.clone().unwrap();
 
         identifier_repository
             .expect_get_from_did_id()
             .return_once(|_, _| {
                 Ok(Some(Identifier {
-                    did: Some(issuer_did),
+                    data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
                 }))
             });
@@ -931,16 +932,7 @@ async fn test_create_credential_based_on_issuer_did_success() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -1132,15 +1124,14 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     {
-        let issuer_did = credential
-            .issuer_identifier
-            .as_ref()
-            .unwrap()
-            .did
-            .as_ref()
-            .unwrap()
-            .clone();
+        let issuer_did = issuer_identifier_did.clone();
         let credential_schema = credential.schema.clone().unwrap();
 
         credential_schema_repository
@@ -1152,7 +1143,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
             .expect_get_from_did_id()
             .return_once(|_, _| {
                 Ok(Some(Identifier {
-                    did: Some(issuer_did),
+                    data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
                 }))
             });
@@ -1204,16 +1195,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -1249,15 +1231,14 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     {
-        let issuer_did = credential
-            .issuer_identifier
-            .as_ref()
-            .unwrap()
-            .did
-            .as_ref()
-            .unwrap()
-            .clone();
+        let issuer_did = issuer_identifier_did.clone();
         let credential_schema = credential.schema.clone().unwrap();
 
         credential_schema_repository
@@ -1269,7 +1250,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
             .expect_get_from_did_id()
             .return_once(|_, _| {
                 Ok(Some(Identifier {
-                    did: Some(issuer_did),
+                    data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
                 }))
             });
@@ -1321,16 +1302,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -1385,7 +1357,7 @@ async fn test_create_credential_fails_if_did_is_deactivated() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((issuer_did).into()),
+                data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -1461,6 +1433,12 @@ async fn test_create_credential_one_required_claim_missing_success() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let credential_schema = CredentialSchema {
         claim_schemas: vec![
             ClaimSchema {
@@ -1492,14 +1470,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
 
     {
         let clone = credential.clone();
-        let issuer_did = credential
-            .issuer_identifier
-            .as_ref()
-            .unwrap()
-            .did
-            .as_ref()
-            .unwrap()
-            .clone();
+        let issuer_did = issuer_identifier_did.clone();
         let credential_schema_clone = credential_schema.clone();
 
         credential_schema_repository
@@ -1515,7 +1486,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
             .expect_get_from_did_id()
             .return_once(|_, _| {
                 Ok(Some(Identifier {
-                    did: Some(issuer_did),
+                    data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
                 }))
             });
@@ -1557,16 +1528,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
     let create_request_template = CreateCredentialRequestDTO {
         credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
         issuer: None,
-        issuer_did: Some(
-            credential
-                .issuer_identifier
-                .as_ref()
-                .unwrap()
-                .did
-                .as_ref()
-                .unwrap()
-                .id(),
-        ),
+        issuer_did: Some(issuer_identifier_did.id()),
         issuer_key: None,
         issuer_certificate: None,
         protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -1599,6 +1561,12 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let credential_schema = CredentialSchema {
         claim_schemas: vec![
             ClaimSchema {
@@ -1629,21 +1597,14 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
     };
 
     {
-        let issuer_did = credential
-            .issuer_identifier
-            .as_ref()
-            .unwrap()
-            .did
-            .as_ref()
-            .unwrap()
-            .clone();
+        let issuer_did = issuer_identifier_did.clone();
         let credential_schema_clone = credential_schema.clone();
 
         identifier_repository
             .expect_get_from_did_id()
             .return_once(|_, _| {
                 Ok(Some(Identifier {
-                    did: Some(issuer_did),
+                    data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
                 }))
             });
@@ -1688,16 +1649,7 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
     let create_request_template = CreateCredentialRequestDTO {
         credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
         issuer: None,
-        issuer_did: Some(
-            credential
-                .issuer_identifier
-                .as_ref()
-                .unwrap()
-                .did
-                .as_ref()
-                .unwrap()
-                .id(),
-        ),
+        issuer_did: Some(issuer_identifier_did.id()),
         issuer_key: None,
         issuer_certificate: None,
         protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -1734,6 +1686,12 @@ async fn test_create_credential_namespace_optional() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
 
     let claim_schema_id = Uuid::new_v4().into();
     let credential_schema = {
@@ -1775,14 +1733,7 @@ async fn test_create_credential_namespace_optional() {
         }
     };
 
-    let issuer_did = credential
-        .issuer_identifier
-        .as_ref()
-        .unwrap()
-        .did
-        .as_ref()
-        .unwrap()
-        .clone();
+    let issuer_did = issuer_identifier_did.clone();
 
     credential_schema_repository
         .expect_get_credential_schema()
@@ -1796,7 +1747,7 @@ async fn test_create_credential_namespace_optional() {
 
         move |_, _| {
             Ok(Some(Identifier {
-                did: Some(issuer_did.clone()),
+                data: IdentifierData::Did(issuer_did.clone()),
                 ..dummy_identifier()
             }))
         }
@@ -1911,20 +1862,19 @@ async fn test_create_credential_schema_deleted() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let credential_schema = CredentialSchema {
         deleted_at: Some(crate::clock::now_utc()),
         ..credential.schema.clone().unwrap()
     };
 
     {
-        let issuer_did = credential
-            .issuer_identifier
-            .as_ref()
-            .unwrap()
-            .did
-            .as_ref()
-            .unwrap()
-            .clone();
+        let issuer_did = issuer_identifier_did.clone();
         let credential_schema_clone = credential_schema.clone();
 
         credential_schema_repository
@@ -1935,7 +1885,7 @@ async fn test_create_credential_schema_deleted() {
             .expect_get_from_did_id()
             .return_once(|_, _| {
                 Ok(Some(Identifier {
-                    did: Some(issuer_did),
+                    data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
                 }))
             });
@@ -1978,16 +1928,7 @@ async fn test_create_credential_schema_deleted() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2017,21 +1958,20 @@ async fn test_create_credential_key_with_issuer_key() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
-    let issuer_did = credential
-        .issuer_identifier
-        .as_ref()
-        .unwrap()
-        .did
-        .as_ref()
-        .unwrap()
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
+    let issuer_did = issuer_identifier_did.clone();
     let credential_schema = credential.schema.clone().unwrap();
 
     identifier_repository.expect_get_from_did_id().return_once({
         let issuer_did = issuer_did.clone();
         |_, _| {
             Ok(Some(Identifier {
-                did: Some(issuer_did),
+                data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
             }))
         }
@@ -2094,16 +2034,7 @@ async fn test_create_credential_key_with_issuer_key() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(
                 issuer_did
                     .as_ref()
@@ -2148,6 +2079,12 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let key_id = Uuid::new_v4();
     let issuer_did = Did {
         keys: vec![
@@ -2183,16 +2120,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
             },
         ]
         .into(),
-        ..credential
-            .issuer_identifier
-            .clone()
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .clone()
+        ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
     let credential_schema = credential.schema.clone().unwrap();
 
@@ -2200,7 +2128,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((issuer_did).into()),
+                data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -2262,16 +2190,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(key_id.into()),
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2304,6 +2223,12 @@ async fn test_fail_to_create_credential_no_assertion_key() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let issuer_did = Did {
         keys: vec![RelatedKey {
             role: KeyRole::KeyAgreement,
@@ -2321,16 +2246,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
             reference: "1".to_string(),
         }]
         .into(),
-        ..credential
-            .issuer_identifier
-            .clone()
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .clone()
+        ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
 
     let credential_schema = credential.schema.clone().unwrap();
@@ -2339,7 +2255,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((issuer_did).into()),
+                data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -2392,16 +2308,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2434,21 +2341,20 @@ async fn test_fail_to_create_credential_unknown_key_id() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
-    let issuer_did = credential
-        .issuer_identifier
-        .as_ref()
-        .unwrap()
-        .did
-        .as_ref()
-        .unwrap()
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
+    let issuer_did = issuer_identifier_did.clone();
     let credential_schema = credential.schema.clone().unwrap();
 
     identifier_repository
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some(issuer_did),
+                data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
             }))
         });
@@ -2501,16 +2407,7 @@ async fn test_fail_to_create_credential_unknown_key_id() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(Uuid::new_v4().into()),
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2543,6 +2440,12 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let key_id = Uuid::new_v4();
     let issuer_did = Did {
         keys: vec![RelatedKey {
@@ -2561,16 +2464,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
             reference: "1".to_string(),
         }]
         .into(),
-        ..credential
-            .issuer_identifier
-            .clone()
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .clone()
+        ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
     let credential_schema = credential.schema.clone().unwrap();
 
@@ -2578,7 +2472,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((issuer_did).into()),
+                data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -2631,16 +2525,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(key_id.into()),
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2673,6 +2558,12 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     let key_id = Uuid::new_v4();
     let issuer_did = Did {
         keys: vec![RelatedKey {
@@ -2691,16 +2582,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
             reference: "1".to_string(),
         }]
         .into(),
-        ..credential
-            .issuer_identifier
-            .clone()
-            .unwrap()
-            .did
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .clone()
+        ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
     let credential_schema = credential.schema.clone().unwrap();
 
@@ -2708,7 +2590,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((issuer_did).into()),
+                data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
             }))
         });
@@ -2761,16 +2643,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(key_id.into()),
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2803,6 +2676,12 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
     {
         let credential_schema = credential.schema.clone().unwrap();
         credential_schema_repository
@@ -2811,12 +2690,12 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
             .returning(move |_| Ok(Some(credential_schema.clone())));
     }
 
-    let issuer_did = credential.issuer_identifier.clone().unwrap().did.unwrap();
+    let issuer_did = issuer_identifier_did.clone();
     identifier_repository
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some(issuer_did),
+                data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
             }))
         });
@@ -2867,16 +2746,7 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
@@ -2912,14 +2782,20 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
     let mut identifier_repository = MockIdentifierRepository::default();
 
     let credential = generic_credential().await;
-    let issuer_did = credential.issuer_identifier.clone().unwrap().did.unwrap();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_identifier_did),
+            ..
+        }) = credential.issuer_identifier.as_ref()
+    );
+    let issuer_did = issuer_identifier_did.clone();
     let credential_schema = credential.schema.clone().unwrap();
 
     identifier_repository.expect_get_from_did_id().return_once({
         let issuer_did = issuer_did.clone();
         |_, _| {
             Ok(Some(Identifier {
-                did: Some(issuer_did),
+                data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
             }))
         }
@@ -2973,16 +2849,7 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
         .create_credential(CreateCredentialRequestDTO {
             credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
             issuer: None,
-            issuer_did: Some(
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .unwrap()
-                    .did
-                    .as_ref()
-                    .unwrap()
-                    .id(),
-            ),
+            issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(
                 issuer_did
                     .as_ref()
@@ -3679,12 +3546,7 @@ async fn test_get_credential_success_array_complex_nested_all() {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -3716,8 +3578,10 @@ async fn test_get_credential_success_array_complex_nested_all() {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -4463,12 +4327,7 @@ async fn test_get_credential_success_array_index_sorting() {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -4500,8 +4359,10 @@ async fn test_get_credential_success_array_index_sorting() {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -4884,12 +4745,7 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -4921,8 +4777,10 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -5160,12 +5018,7 @@ async fn test_get_credential_success_array_single_element() {
             created_date: now,
             last_modified: now,
             name: "identifier".to_string(),
-            r#type: IdentifierType::Did,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),
@@ -5197,8 +5050,10 @@ async fn test_get_credential_success_array_single_element() {
                 })
                 .into(),
             ),
-            key: None,
-            certificates: None,
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: None,
         }),
         issuer_certificate: None,
@@ -5444,7 +5299,7 @@ async fn test_create_credential_array(
         .expect_get_from_did_id()
         .return_once(|_, _| {
             Ok(Some(Identifier {
-                did: Some((did_clone).into()),
+                data: IdentifierData::Did((did_clone).into()),
                 ..dummy_identifier()
             }))
         });
@@ -5842,8 +5697,7 @@ async fn test_create_credential_invalid_certificate_role() {
     identifier_repository.expect_get().return_once(move |_, _| {
         Ok(Some(Identifier {
             id: identifier_id,
-            certificates: Some(RelatedVec::from(vec![certificate])),
-            r#type: IdentifierType::Certificate,
+            data: IdentifierData::Certificate(RelatedVec::from(vec![certificate])),
             ..dummy_identifier()
         }))
     });

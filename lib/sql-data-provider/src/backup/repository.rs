@@ -457,7 +457,7 @@ impl BackupRepository for BackupProvider {
                         &self.certificate_repository,
                     )
                 })
-                .collect(),
+                .collect::<Result<Vec<_>, DataLayerError>>()?,
             histories: try_convert_inner(histories)?,
             total_credentials,
             total_keys,

@@ -18,7 +18,7 @@ use super::SDJWTFormatter;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::model::certificate::{Certificate, CertificateRole, CertificateState};
 use crate::model::did::Did;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::proto::http_client::MockHttpClient;
 use crate::proto::jwt::model::{JWTHeader, JWTPayload, ProofOfPossessionJwk, ProofOfPossessionKey};
 #[cfg(test)]
@@ -102,16 +102,13 @@ async fn test_format_credential() {
 
     let mut did_method_provider = MockDidMethodProvider::new();
 
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .and_then(|identifier| identifier.did.as_ref())
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
 
     let did_document = dummy_did_document(&holder_did);
 
@@ -291,16 +288,13 @@ async fn test_format_credential_with_array() {
     );
 
     let mut did_method_provider = MockDidMethodProvider::new();
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .and_then(|identifier| identifier.did.as_ref())
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
 
     let did_document = dummy_did_document(&holder_did);
     did_method_provider
@@ -428,16 +422,13 @@ async fn test_format_credential_with_array_sd() {
     );
 
     let mut did_method_provider = MockDidMethodProvider::new();
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .and_then(|identifier| identifier.did.as_ref())
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
 
     let did_document = dummy_did_document(&holder_did);
     did_method_provider
@@ -1093,7 +1084,7 @@ fn get_credential_data_with_array(status: CredentialStatus, core_base_url: &str)
         .with_valid_until(issuance_date + valid_for);
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did,
                 ..dummy_did()
@@ -1209,36 +1200,26 @@ async fn test_parse_credential() {
     assert!(!claims.is_empty());
 
     // Verify issuer identifier
-    assert!(result.issuer_identifier.is_some());
-    let issuer = result.issuer_identifier.as_ref().unwrap();
-    assert!(issuer.did.is_some());
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(issuer_did),
+            ..
+        }) = result.issuer_identifier.as_ref()
+    );
     assert_eq!(
-        issuer
-            .did
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did
-            .to_string(),
+        issuer_did.as_ref().await.unwrap().did.to_string(),
         "did:key:zDnaebvyVpwG3R7Qj1znrVy9rtsi6N8TgjWPKZhyBda2qv58w"
     );
 
     // Verify holder identifier
-    assert!(result.holder_identifier.is_some());
-    let holder = result.holder_identifier.as_ref().unwrap();
-    assert!(holder.did.is_some());
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_did),
+            ..
+        }) = result.holder_identifier.as_ref()
+    );
     assert_eq!(
-        holder
-            .did
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .did
-            .to_string(),
+        holder_did.as_ref().await.unwrap().did.to_string(),
         "did:key:zDnaekoMC2sFkgcFLp3K4nnGUFUqYo8goWsjt3sAfhNAV9ES9"
     );
 
@@ -1433,18 +1414,14 @@ async fn test_parse_credential_cnf() {
         .unwrap();
 
     // Verify holder identifier
-    assert!(result.holder_identifier.is_some());
-    let holder = result.holder_identifier.as_ref().unwrap();
-    assert!(holder.key.is_some());
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Key(holder_key),
+            ..
+        }) = result.holder_identifier.as_ref()
+    );
     assert_eq!(
-        holder
-            .key
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()
-            .public_key,
+        holder_key.as_ref().await.unwrap().public_key,
         vec![0x0, 0x1]
     );
 }
@@ -1520,16 +1497,13 @@ async fn test_format_credential_sets_x5c_and_x5u_headers() {
     credential_data.issuer_certificate = Some(make_issuer_certificate(cert_id));
 
     let mut did_method_provider = MockDidMethodProvider::new();
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .and_then(|id| id.did.as_ref())
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
     did_method_provider
         .expect_resolve()
         .return_once(move |_| Ok(dummy_did_document(&holder_did)));
@@ -1602,16 +1576,13 @@ async fn test_format_credential_without_certificate_has_no_x5_headers() {
     // issuer_certificate is None (default from get_credential_data)
 
     let mut did_method_provider = MockDidMethodProvider::new();
-    let holder_did = credential_data
-        .holder_identifier
-        .as_ref()
-        .and_then(|id| id.did.as_ref())
-        .unwrap()
-        .as_ref()
-        .await
-        .unwrap()
-        .did
-        .clone();
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(holder_identifier_did),
+            ..
+        }) = credential_data.holder_identifier.as_ref()
+    );
+    let holder_did = holder_identifier_did.as_ref().await.unwrap().did.clone();
     did_method_provider
         .expect_resolve()
         .return_once(move |_| Ok(dummy_did_document(&holder_did)));

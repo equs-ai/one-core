@@ -43,10 +43,10 @@ impl SignatureService {
         if !signer
             .get_capabilities()
             .supported_identifiers
-            .contains(&issuer.r#type.into())
+            .contains(&issuer.data.r#type().into())
         {
             return Err(SignatureServiceError::UnsupportedIdentifierType(
-                issuer.r#type,
+                issuer.data.r#type(),
             ));
         }
 

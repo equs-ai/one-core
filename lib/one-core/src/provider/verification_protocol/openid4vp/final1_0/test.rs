@@ -20,7 +20,7 @@ use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
 use crate::model::proof::{Proof, ProofRole, ProofStateEnum};
@@ -204,7 +204,7 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
         }),
         claims: None,
         verifier_identifier: Some(Identifier {
-            did: Some(
+            data: IdentifierData::Did(
                 (Did {
                     deleted_at: None,
                     id: Uuid::new_v4().into(),

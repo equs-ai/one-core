@@ -16,7 +16,7 @@ use super::oidc_mqtt_verifier::MqttVerifier;
 use super::{ConfigParams, MqttHolderTransport, generate_session_keys};
 use crate::config::core_config::{Fields, KeyAlgorithmType, TransportType};
 use crate::model::did::{Did, DidType};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::proto::identifier_creator::{MockIdentifierCreator, RemoteIdentifierRelation};
 use crate::proto::mqtt_client::{MockMqttClient, MockMqttTopic, MqttClient};
 use crate::provider::credential_formatter::model::{MockSignatureProvider, MockTokenVerifier};
@@ -145,36 +145,34 @@ async fn test_handle_invitation_success() {
         .once()
         .returning(|_, did, _| {
             let organisation = dummy_organisation(None);
+            let verifier_did = Did {
+                deleted_at: None,
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                name: "did".to_string(),
+                did: did.did_value().unwrap().to_owned(),
+                did_type: DidType::Remote,
+                did_method: "KEY".into(),
+                deactivated: false,
+                keys: Default::default(),
+                organisation: organisation.clone().into(),
+                log: None,
+            };
             Ok((
                 Identifier {
                     id: Uuid::new_v4().into(),
                     created_date: crate::clock::now_utc(),
                     last_modified: crate::clock::now_utc(),
                     name: "verifier".to_string(),
-                    organisation: organisation.clone().into(),
-                    did: None,
-                    key: None,
-                    certificates: None,
-                    r#type: IdentifierType::Did,
+                    organisation: organisation.into(),
+                    data: IdentifierData::Did(verifier_did.clone().into()),
                     is_remote: true,
                     state: IdentifierState::Active,
                     deleted_at: None,
                     trust_information: None,
                 },
-                RemoteIdentifierRelation::Did(Did {
-                    deleted_at: None,
-                    id: Uuid::new_v4().into(),
-                    created_date: crate::clock::now_utc(),
-                    last_modified: crate::clock::now_utc(),
-                    name: "did".to_string(),
-                    did: did.did_value().unwrap().to_owned(),
-                    did_type: DidType::Remote,
-                    did_method: "KEY".into(),
-                    deactivated: false,
-                    keys: Default::default(),
-                    organisation: organisation.into(),
-                    log: None,
-                }),
+                RemoteIdentifierRelation::Did(verifier_did),
             ))
         });
 

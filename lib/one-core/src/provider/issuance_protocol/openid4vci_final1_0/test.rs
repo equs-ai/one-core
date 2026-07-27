@@ -44,7 +44,7 @@ use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
 use crate::model::history::{HistoryAction, TrustResolutionResult};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::instance::{Instance, InstanceRole, InstanceStatus, WalletProviderType};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
@@ -202,14 +202,11 @@ fn generic_credential_did() -> Credential {
         created_date: now,
         last_modified: now,
         name: "did1".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did((issuer_did).into()),
         is_remote: true,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        did: Some((issuer_did).into()),
-        key: None,
-        certificates: None,
         trust_information: None,
     };
     generic_credential(issuer_identifier)
@@ -225,17 +222,14 @@ fn generic_credential_did_with_holder_identifier() -> Credential {
         created_date: now,
         last_modified: now,
         name: "holder identifier".to_string(),
-        r#type: IdentifierType::Key,
+        data: IdentifierData::Key(Related::from(Key {
+            key_type: "ECDSA".to_string(),
+            ..dummy_key()
+        })),
         is_remote: true,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        did: None,
-        key: Some(Related::from(Key {
-            key_type: "ECDSA".to_string(),
-            ..dummy_key()
-        })),
-        certificates: None,
         trust_information: None,
     });
     credential
@@ -266,14 +260,11 @@ fn generic_credential_key() -> Credential {
         created_date: now,
         last_modified: now,
         name: "key1".to_string(),
-        r#type: IdentifierType::Key,
+        data: IdentifierData::Key(Related::from(issuer_key)),
         is_remote: true,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        did: None,
-        key: Some(Related::from(issuer_key)),
-        certificates: None,
         trust_information: None,
     };
     let mut credential = generic_credential(issuer_identifier);
@@ -284,14 +275,11 @@ fn generic_credential_key() -> Credential {
         created_date: now,
         last_modified: now,
         name: "holder identifier".to_string(),
-        r#type: IdentifierType::Key,
+        data: IdentifierData::Key(Related::from(dummy_key())),
         is_remote: true,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        did: None,
-        key: Some(Related::from(dummy_key())),
-        certificates: None,
         trust_information: None,
     };
     credential.holder_identifier = Some(holder_identifier);
@@ -507,7 +495,8 @@ async fn test_holder_accept_credential_success() {
 
     let key = dummy_key();
     let mut credential = generic_credential_did_with_holder_identifier();
-    credential.holder_identifier.as_mut().unwrap().key = Some(Related::from(key.clone()));
+    credential.holder_identifier.as_mut().unwrap().data =
+        IdentifierData::Key(Related::from(key.clone()));
 
     let interaction_data = HolderInteractionData {
         issuer_url: mock_server.uri(),
@@ -740,8 +729,7 @@ async fn test_holder_accept_credential_success() {
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -1010,8 +998,7 @@ async fn test_holder_accept_credential_none_existing_issuer_key_id_success() {
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Did,
-                    did: Some(
+                    data: IdentifierData::Did(
                         (Did {
                             keys: vec![RelatedKey {
                                 role: KeyRole::Authentication,
@@ -1280,8 +1267,7 @@ async fn test_holder_accept_credential_autogenerate_holder_binding() {
         .returning(|_, request, _| {
             let_assert!(CreateLocalIdentifierRequest::Key(key) = request);
             Ok(Identifier {
-                r#type: IdentifierType::Key,
-                key: Some(Related::from(key)),
+                data: IdentifierData::Key(Related::from(key)),
                 ..dummy_identifier()
             })
         });
@@ -1493,8 +1479,7 @@ async fn test_holder_accept_credential_batch_autogenerated_binding() {
                 guard.push(key.clone());
 
                 Ok(Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key)),
+                    data: IdentifierData::Key(Related::from(key)),
                     ..dummy_identifier()
                 })
             }
@@ -1535,8 +1520,7 @@ async fn test_holder_accept_credential_batch_autogenerated_binding() {
             Ok(Credential {
                 id: Uuid::new_v4().into(),
                 holder_identifier: Some(Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key)),
+                    data: IdentifierData::Key(Related::from(key)),
                     ..dummy_identifier()
                 }),
                 ..clone.clone()
@@ -1725,7 +1709,8 @@ async fn test_holder_accept_credential_batch_manual_binding() {
         ..dummy_key()
     };
     let mut credential = generic_credential_did_with_holder_identifier();
-    credential.holder_identifier.as_mut().unwrap().key = Some(Related::from(key.clone()));
+    credential.holder_identifier.as_mut().unwrap().data =
+        IdentifierData::Key(Related::from(key.clone()));
 
     let credential_configuration_id = credential
         .schema
@@ -2019,8 +2004,7 @@ async fn test_holder_accept_credential_batch_manual_binding() {
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -2982,8 +2966,7 @@ async fn test_holder_accept_credential_fails_without_wallet_unit_id_when_key_att
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -3014,7 +2997,8 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
         ..dummy_key()
     };
     let mut credential = generic_credential_did_with_holder_identifier();
-    credential.holder_identifier.as_mut().unwrap().key = Some(Related::from(key.clone()));
+    credential.holder_identifier.as_mut().unwrap().data =
+        IdentifierData::Key(Related::from(key.clone()));
 
     let mut proof_types = IndexMap::new();
     proof_types.insert(
@@ -3310,8 +3294,7 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -3573,8 +3556,7 @@ async fn test_holder_accept_credential_stores_all_translations_from_metadata() {
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -3796,8 +3778,7 @@ async fn test_holder_accept_credential_uses_default_language_for_display_without
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -4015,8 +3996,7 @@ async fn test_holder_accept_credential_stores_claim_schema_translations_from_met
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -4279,8 +4259,7 @@ async fn test_holder_accept_credential_stores_disclosure_policy() {
             interaction,
             Some(HolderBindingInput {
                 identifier: Identifier {
-                    r#type: IdentifierType::Key,
-                    key: Some(Related::from(key.clone())),
+                    data: IdentifierData::Key(Related::from(key.clone())),
                     ..dummy_identifier()
                 },
                 key,
@@ -4524,8 +4503,7 @@ fn provider_with_encryption(credential: &Credential) -> OpenID4VCIFinal1_0 {
 fn holder_binding_input(key: Key) -> HolderBindingInput {
     HolderBindingInput {
         identifier: Identifier {
-            r#type: IdentifierType::Key,
-            key: Some(Related::from(key.clone())),
+            data: IdentifierData::Key(Related::from(key.clone())),
             ..dummy_identifier()
         },
         key,
@@ -4571,7 +4549,8 @@ async fn test_holder_accept_credential_request_encryption() {
 
     let key = dummy_key();
     let mut credential = generic_credential_did_with_holder_identifier();
-    credential.holder_identifier.as_mut().unwrap().key = Some(Related::from(key.clone()));
+    credential.holder_identifier.as_mut().unwrap().data =
+        IdentifierData::Key(Related::from(key.clone()));
 
     // Issuer key the holder must encrypt the request to.
     let issuer_key = Ecdsa.generate_key().unwrap();
@@ -4667,7 +4646,8 @@ async fn test_holder_accept_credential_response_encryption() {
 
     let key = dummy_key();
     let mut credential = generic_credential_did_with_holder_identifier();
-    credential.holder_identifier.as_mut().unwrap().key = Some(Related::from(key.clone()));
+    credential.holder_identifier.as_mut().unwrap().data =
+        IdentifierData::Key(Related::from(key.clone()));
 
     let interaction_data = encryption_interaction_data(
         &mock_server,
@@ -4732,7 +4712,8 @@ async fn test_holder_accept_credential_request_and_response_encryption_with_comp
 
     let key = dummy_key();
     let mut credential = generic_credential_did_with_holder_identifier();
-    credential.holder_identifier.as_mut().unwrap().key = Some(Related::from(key.clone()));
+    credential.holder_identifier.as_mut().unwrap().data =
+        IdentifierData::Key(Related::from(key.clone()));
 
     let issuer_key = Ecdsa.generate_key().unwrap();
     let issuer_key_agreement = issuer_key.key.key_agreement().unwrap();

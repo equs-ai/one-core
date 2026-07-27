@@ -11,7 +11,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::model::did::Did;
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::provider::credential_formatter::model::{
     CredentialData, CredentialPresentation, CredentialSchema, CredentialStatus, Issuer,
     MockSignatureProvider, PublishedClaim,
@@ -692,7 +692,7 @@ pub fn get_credential_data(status: CredentialStatus, core_base_url: &str) -> Cre
         .with_valid_until(issuance_date + valid_for);
 
     let holder_identifier = Identifier {
-        did: Some(
+        data: IdentifierData::Did(
             (Did {
                 did: holder_did,
                 ..dummy_did()

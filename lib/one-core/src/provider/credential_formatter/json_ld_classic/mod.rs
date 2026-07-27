@@ -31,6 +31,7 @@ use crate::config::core_config::{
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum, CredentialType};
 use crate::model::credential_schema::{CredentialSchema, LayoutType};
+use crate::model::identifier::IdentifierData;
 use crate::model::organisation::Organisation;
 use crate::proto::http_client::HttpClient;
 use crate::provider::caching_loader::json_ld_context::{ContextCache, JsonLdCachingLoader};
@@ -94,10 +95,10 @@ impl CredentialFormatter for JsonLdClassic {
         let holder_did = match credential_data
             .holder_identifier
             .as_ref()
-            .and_then(|identifier| identifier.did.as_ref())
+            .map(|identifier| &identifier.data)
         {
-            Some(did) => Some(did.as_ref().await?.did.clone().into_url()),
-            None => None,
+            Some(IdentifierData::Did(did)) => Some(did.as_ref().await?.did.clone().into_url()),
+            _ => None,
         };
 
         if let Some(cs) = vcdm

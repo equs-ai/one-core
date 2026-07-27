@@ -17,7 +17,7 @@ use super::validator::validate_deactivation_request;
 use crate::config::core_config::{KeyAlgorithmType, KeyStorageType};
 use crate::error::ContextWithErrorCode;
 use crate::model::did::{RelatedKey, SortableDidColumn};
-use crate::model::identifier::{IdentifierState, UpdateIdentifierRequest};
+use crate::model::identifier::{IdentifierData, IdentifierState, UpdateIdentifierRequest};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::proto::identifier_creator::CreateLocalIdentifierRequest;
@@ -193,9 +193,9 @@ impl DidService {
             .await
             .error_while("creating local did identifier")?;
 
-        let did = identifier
-            .did
-            .ok_or(DidServiceError::MappingError("Did not found".to_string()))?;
+        let IdentifierData::Did(did) = &identifier.data else {
+            return Err(DidServiceError::MappingError("Did not found".to_string()));
+        };
         let did = did.as_ref().await?;
 
         tracing::info!(

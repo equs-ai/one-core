@@ -10,8 +10,11 @@ use one_core::model::trust_list_publication::{
     TrustListPublication, TrustListPublicationRelations,
 };
 use one_core::model::trust_list_role::TrustListRoleEnum;
+use one_core::repository::certificate_repository::MockCertificateRepository;
+use one_core::repository::did_repository::MockDidRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::MockIdentifierRepository;
+use one_core::repository::key_repository::MockKeyRepository;
 use one_core::repository::organisation_repository::MockOrganisationRepository;
 use one_core::repository::trust_entry_repository::TrustEntryRepository;
 use one_core::repository::trust_list_publication_repository::MockTrustListPublicationRepository;
@@ -39,15 +42,42 @@ async fn setup() -> TestSetup {
 
     let org_id = insert_organisation_to_database(&db, None).await.unwrap();
 
-    let identifier_id: shared_types::IdentifierId =
-        insert_identifier(&db, "test identifier", Uuid::new_v4(), None, org_id, false)
-            .await
-            .unwrap();
+    let did_id = insert_did_key(
+        &db,
+        "test did",
+        Uuid::new_v4(),
+        "did:test:1".parse().unwrap(),
+        "KEY",
+        org_id,
+    )
+    .await
+    .unwrap();
+    let did_id2 = insert_did_key(
+        &db,
+        "test did 2",
+        Uuid::new_v4(),
+        "did:test:2".parse().unwrap(),
+        "KEY",
+        org_id,
+    )
+    .await
+    .unwrap();
+
+    let identifier_id: shared_types::IdentifierId = insert_identifier(
+        &db,
+        "test identifier",
+        Uuid::new_v4(),
+        Some(did_id),
+        org_id,
+        false,
+    )
+    .await
+    .unwrap();
     let identifier_id2: shared_types::IdentifierId = insert_identifier(
         &db,
         "test identifier 2",
         Uuid::new_v4(),
-        None,
+        Some(did_id2),
         org_id,
         false,
     )
@@ -82,6 +112,9 @@ async fn setup() -> TestSetup {
                 MockTrustListPublicationRepository::default(),
             ),
             identifier_repository: Arc::new(MockIdentifierRepository::default()),
+            did_repository: Arc::new(MockDidRepository::default()),
+            key_repository: Arc::new(MockKeyRepository::default()),
+            certificate_repository: Arc::new(MockCertificateRepository::default()),
             organisation_repository: Arc::new(MockOrganisationRepository::default()),
         },
         db,
@@ -359,11 +392,21 @@ async fn test_list_trust_entries_pagination() {
     let setup = setup().await;
 
     for i in 0..5 {
+        let did_id = insert_did_key(
+            &setup.db,
+            &format!("testEntryDid{i}"),
+            Uuid::new_v4(),
+            format!("did:test:entry{i}").parse().unwrap(),
+            "KEY",
+            setup.org_id,
+        )
+        .await
+        .unwrap();
         let identifier_id = insert_identifier(
             &setup.db,
             &format!("testEntryIdentifier{i}"),
             Uuid::new_v4(),
-            None,
+            Some(did_id),
             setup.org_id,
             false,
         )
@@ -539,6 +582,9 @@ async fn test_get_trust_entry_with_publication_relation() {
         db: TransactionManagerImpl::new(db.clone()),
         trust_list_publication_repository: Arc::new(mock_pub_repo),
         identifier_repository: Arc::new(MockIdentifierRepository::default()),
+        did_repository: Arc::new(MockDidRepository::default()),
+        key_repository: Arc::new(MockKeyRepository::default()),
+        certificate_repository: Arc::new(MockCertificateRepository::default()),
         organisation_repository: Arc::new(MockOrganisationRepository::default()),
     };
 

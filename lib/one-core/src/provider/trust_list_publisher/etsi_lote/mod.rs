@@ -21,7 +21,7 @@ use crate::config::core_config::{IdentifierType, KeyAlgorithmType};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::certificate::CertificateRelations;
-use crate::model::identifier::{Identifier, IdentifierRelations};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::key::KeyRelations;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::trust_entry::{
@@ -406,7 +406,9 @@ async fn build_trusted_entity(
     identifier: &Identifier,
     params: &dto::AddEntryParams,
 ) -> Result<TrustedEntity, TrustListPublisherError> {
-    let Some(identifier_certificates) = &identifier.certificates else {
+    let (IdentifierData::Certificate(identifier_certificates)
+    | IdentifierData::CertificateAuthority(identifier_certificates)) = &identifier.data
+    else {
         return Err(TrustListPublisherError::InvalidIdentifier(
             "trust entry identifier missing certificates".to_string(),
         ))?;

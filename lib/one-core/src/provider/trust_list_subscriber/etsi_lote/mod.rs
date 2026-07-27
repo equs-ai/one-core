@@ -11,7 +11,7 @@ use strum::Display;
 use url::Url;
 
 use crate::error::ContextWithErrorCode;
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierType};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::provider::caching_loader::etsi_lote::EtsiLoteCache;
@@ -174,11 +174,11 @@ async fn find_matching_for_identifier(
     preprocessed_lote: &PreprocessedLote,
     certificate_validator: &dyn CertificateValidator,
 ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
-    match identifier.r#type {
-        r#type @ IdentifierType::Did | r#type @ IdentifierType::Key => {
-            Err(TrustListSubscriberError::UnsupportedIdentifierType(r#type))
-        }
-        IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
+    match &identifier.data {
+        r#type @ (IdentifierData::Did(_) | IdentifierData::Key(_)) => Err(
+            TrustListSubscriberError::UnsupportedIdentifierType(r#type.r#type()),
+        ),
+        IdentifierData::Certificate(_) | IdentifierData::CertificateAuthority(_) => {
             let Some(active_certs) = identifier.active_certs().await? else {
                 return Ok(Vec::new());
             };

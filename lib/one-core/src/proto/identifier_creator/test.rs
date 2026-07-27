@@ -16,8 +16,9 @@ use super::{
 use crate::config::core_config::{CoreConfig, DidType, KeyAlgorithmType};
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState, GetCertificateList};
-use crate::model::identifier::{GetIdentifierList, Identifier};
+use crate::model::identifier::{GetIdentifierList, Identifier, IdentifierData};
 use crate::model::key::{GetKeyList, Key};
+use crate::model::relation::RelatedVec;
 use crate::proto::certificate_validator::{MockCertificateValidator, ParsedCertificate};
 use crate::proto::csr_creator::MockCsrCreator;
 use crate::proto::transaction_manager::NoTransactionManager;
@@ -145,7 +146,7 @@ async fn test_get_or_create_remote_identifier_certificate_new() {
         .unwrap();
 
     // The returned identifier carries its certificates relation (consistent with did/key).
-    let certificates = identifier.certificates.expect("certificates back-filled");
+    let_assert!(IdentifierData::Certificate(certificates) = &identifier.data);
     let certificates = certificates.as_ref().await.unwrap();
     assert_eq!(certificates.len(), 1);
     assert_eq!(certificates[0].fingerprint, "fingerprint");
@@ -189,15 +190,16 @@ async fn test_get_or_create_remote_identifier_certificate_existing() {
     let now = crate::clock::now_utc();
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository
-        .expect_get()
-        .once()
-        .return_once(move |_, _| {
+    identifier_repository.expect_get().once().return_once({
+        let certificate = certificate.clone();
+        move |_, _| {
             Ok(Some(Identifier {
                 id: identifier_id,
+                data: IdentifierData::Certificate(RelatedVec::from(vec![certificate])),
                 ..dummy_identifier()
             }))
-        });
+        }
+    });
 
     let creator = setup_creator(Mocks {
         certificate_repository,
@@ -221,8 +223,8 @@ async fn test_get_or_create_remote_identifier_certificate_existing() {
         .unwrap();
 
     assert_eq!(identifier.id, identifier_id);
-    // The returned identifier carries its certificates relation (consistent with did/key).
-    let certificates = identifier.certificates.expect("certificates back-filled");
+    // The existing identifier is returned as loaded, carrying its certificates relation.
+    let_assert!(IdentifierData::Certificate(certificates) = &identifier.data);
     let certificates = certificates.as_ref().await.unwrap();
     assert_eq!(certificates.len(), 1);
     assert_eq!(certificates[0].id, certificate_id);
@@ -266,7 +268,7 @@ async fn test_get_or_create_remote_identifier_key_existing() {
     });
 
     let mut identifier = dummy_identifier();
-    identifier.key = Some(key.clone().into());
+    identifier.data = IdentifierData::Key(key.clone().into());
     let identifier_id = identifier.id;
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository
@@ -306,7 +308,8 @@ async fn test_get_or_create_remote_identifier_key_existing() {
         .unwrap();
 
     assert_eq!(identifier.id, identifier_id);
-    assert_eq!(identifier.key, Some(key.into()));
+    let_assert!(IdentifierData::Key(identifier_key) = &identifier.data);
+    assert_eq!(identifier_key.id(), key.id);
     let_assert!(RemoteIdentifierRelation::Key(key) = relation);
     assert_eq!(key.id, key_id);
 }

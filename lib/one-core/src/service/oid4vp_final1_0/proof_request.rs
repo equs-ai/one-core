@@ -11,7 +11,7 @@ use url::Url;
 use crate::config::core_config::{CoreConfig, KeyStorageType};
 use crate::error::ContextWithErrorCode;
 use crate::model::did::KeyRole;
-use crate::model::identifier::IdentifierType;
+use crate::model::identifier::IdentifierData;
 use crate::model::proof::Proof;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
@@ -115,14 +115,9 @@ pub(crate) async fn select_key_agreement_key_from_proof(
         ));
     };
 
-    let candidate_encryption_key = match verifier_identifier.r#type {
-        IdentifierType::Certificate | IdentifierType::Key => Some(verifier_key.to_owned()),
-        IdentifierType::Did => {
-            let Some(verifier_did) = verifier_identifier.did.as_ref() else {
-                return Err(VerificationProtocolError::Failed(
-                    "verifier_did is None".to_string(),
-                ));
-            };
+    let candidate_encryption_key = match &verifier_identifier.data {
+        IdentifierData::Certificate(_) | IdentifierData::Key(_) => Some(verifier_key.to_owned()),
+        IdentifierData::Did(verifier_did) => {
             let verifier_did = verifier_did.as_ref().await?;
 
             let key_agreement_key_filter = KeyFilter::did_role(KeyRole::KeyAgreement);
@@ -140,10 +135,10 @@ pub(crate) async fn select_key_agreement_key_from_proof(
                     .map(|key| key.key),
             }
         }
-        IdentifierType::CertificateAuthority => {
+        IdentifierData::CertificateAuthority(_) => {
             return Err(VerificationProtocolError::Failed(format!(
                 "Invalid verifier identifier type {}",
-                verifier_identifier.r#type
+                verifier_identifier.data.r#type()
             )));
         }
     };

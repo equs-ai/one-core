@@ -70,7 +70,7 @@ impl Signer for CapabilityChecked {
         match &issuer {
             Issuer::Identifier { identifier, .. } => {
                 let identifier_types = self.0.get_capabilities().supported_identifiers;
-                if !identifier_types.contains(&identifier.r#type.into()) {
+                if !identifier_types.contains(&identifier.data.r#type().into()) {
                     return Err(SignerError::InvalidIssuerIdentifier(identifier.id));
                 }
             }

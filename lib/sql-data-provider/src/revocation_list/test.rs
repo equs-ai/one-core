@@ -2,7 +2,8 @@ use std::sync::Arc;
 use std::vec;
 
 use one_core::model::credential::CredentialStateEnum;
-use one_core::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use one_core::model::did::{Did, DidType};
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use one_core::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntityInfo, RevocationListEntry,
     RevocationListEntryState, RevocationListPurpose, StatusListCredentialFormat,
@@ -49,14 +50,27 @@ async fn setup() -> TestSetup {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: "name".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did(
+            Did {
+                deleted_at: None,
+                id: Uuid::new_v4().into(),
+                created_date: get_dummy_date(),
+                last_modified: get_dummy_date(),
+                name: "did".to_string(),
+                did: "did:test:123".parse().unwrap(),
+                did_type: DidType::Local,
+                did_method: "KEY".into(),
+                deactivated: false,
+                log: None,
+                keys: Default::default(),
+                organisation: dummy_organisation(Some(organisation_id)).into(),
+            }
+            .into(),
+        ),
         is_remote: false,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(organisation_id)).into(),
-        did: None,
-        key: None,
-        certificates: None,
         trust_information: None,
     };
 

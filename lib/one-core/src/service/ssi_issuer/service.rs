@@ -21,7 +21,7 @@ use crate::config::core_config::{FormatType, KeyStorageType, Params};
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaListQuery};
-use crate::model::identifier::{Identifier, IdentifierRelations};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::key::Key;
 use crate::model::list_filter::{ListFilterValue, StringMatch};
 use crate::model::relation::RelatedVec;
@@ -315,7 +315,7 @@ impl SSIIssuerService {
         let identifier = self.fetch_identifier(identifier_id).await?;
         let credential_schema = self.fetch_credential_schema(credential_schema_id).await?;
 
-        let issuer = if let Some(issuer_did) = identifier.did.as_ref() {
+        let issuer = if let IdentifierData::Did(issuer_did) = &identifier.data {
             issuer_did.as_ref().await?.did.as_str().to_string()
         } else {
             format!(

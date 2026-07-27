@@ -1,10 +1,11 @@
 use std::str::FromStr;
 
+use assert2::let_assert;
 use core_server::endpoint::proof::dto::ClientIdSchemeRestEnum;
 use one_core::config::core_config::VerificationProtocolType;
 use one_core::model::did::{KeyRole, RelatedKey};
 use one_core::model::history::HistoryAction;
-use one_core::model::identifier::IdentifierType;
+use one_core::model::identifier::{Identifier, IdentifierData, IdentifierType};
 use one_core::model::proof::{Proof, ProofRole, ProofStateEnum};
 use serde_json::Value;
 use shared_types::DidValue;
@@ -698,19 +699,17 @@ async fn test_share_proof_client_id_scheme_did_openid4vp_draft20() {
 
     // THEN
     let client_id = extract_client_id(resp).await;
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(verifier_did),
+            ..
+        }) = proof.verifier_identifier.as_ref()
+    );
     assert_eq!(
         client_id,
         format!(
             "decentralized_identifier:{}",
-            proof
-                .verifier_identifier
-                .unwrap()
-                .did
-                .unwrap()
-                .as_ref()
-                .await
-                .unwrap()
-                .did
+            verifier_did.as_ref().await.unwrap().did
         )
     );
 
@@ -757,11 +756,13 @@ async fn test_share_proof_client_id_scheme_did_openid4vp_final1_0() {
     // THEN
     let client_id = extract_client_id(resp).await;
 
-    let verifier_did = proof
-        .verifier_identifier
-        .unwrap()
-        .did
-        .unwrap()
+    let_assert!(
+        Some(Identifier {
+            data: IdentifierData::Did(verifier_identifier_did),
+            ..
+        }) = proof.verifier_identifier.as_ref()
+    );
+    let verifier_did = verifier_identifier_did
         .as_ref()
         .await
         .unwrap()

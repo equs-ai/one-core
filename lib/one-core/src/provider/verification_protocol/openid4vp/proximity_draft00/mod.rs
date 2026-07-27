@@ -35,7 +35,7 @@ use crate::config::core_config::{
 };
 use crate::error::ContextWithErrorCode;
 use crate::model::did::{Did, KeyRole};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofStateEnum};
@@ -816,11 +816,10 @@ pub(super) async fn prepare_proof_share(
     )
     .await?;
 
-    let Some(verifier_did) = params
-        .proof
-        .verifier_identifier
-        .as_ref()
-        .and_then(|identifier| identifier.did.as_ref())
+    let Some(Identifier {
+        data: IdentifierData::Did(verifier_did),
+        ..
+    }) = params.proof.verifier_identifier.as_ref()
     else {
         return Err(VerificationProtocolError::InvalidRequest(format!(
             "Verifier DID missing for proof {}",

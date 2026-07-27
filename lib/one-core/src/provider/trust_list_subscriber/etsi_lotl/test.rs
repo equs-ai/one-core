@@ -260,8 +260,7 @@ async fn no_match_returns_none() {
 async fn resolve_entries_rejects_unsupported_identifier_type() {
     let subscriber = subscriber(MockCertificateValidator::new());
     let index = PreprocessedLotl::default();
-    let mut identifier = crate::service::test_utilities::dummy_identifier();
-    identifier.r#type = crate::model::identifier::IdentifierType::Did;
+    let identifier = crate::service::test_utilities::dummy_identifier();
 
     let err = find_matching_for_identifier(&subscriber, &index, &identifier)
         .await
@@ -327,10 +326,11 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
     let identifier_id = shared_types::IdentifierId::from(uuid::Uuid::new_v4());
     let mut identifier = crate::service::test_utilities::dummy_identifier();
     identifier.id = identifier_id;
-    identifier.r#type = crate::model::identifier::IdentifierType::Certificate;
     let mut cert = crate::service::test_utilities::dummy_certificate(identifier_id);
     cert.chain = TRUSTED_CERT.to_string();
-    identifier.certificates = Some(crate::model::relation::RelatedVec::from(vec![cert]));
+    identifier.data = crate::model::identifier::IdentifierData::Certificate(
+        crate::model::relation::RelatedVec::from(vec![cert]),
+    );
 
     let entities = super::find_matching_for_identifier(&sub, &index, &identifier)
         .await

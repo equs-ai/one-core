@@ -14,7 +14,7 @@ use crate::model::credential::{
     CredentialStateEnum, CredentialType, UpdateCredentialRequest,
 };
 use crate::model::credential_schema::CredentialSchema;
-use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::key::KeyRelations;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
@@ -807,24 +807,14 @@ fn verify_suspension_support(
 }
 
 async fn issuer_details(issuer_identifier: &Identifier) -> Result<IdentifierDetails, Error> {
-    Ok(match issuer_identifier.r#type {
-        IdentifierType::Did => {
-            let issuer_did = issuer_identifier
-                .did
-                .as_ref()
-                .ok_or(Error::MappingError("issuer_did is None".to_string()))?
-                .as_ref()
-                .await?;
+    Ok(match &issuer_identifier.data {
+        IdentifierData::Did(issuer_did) => {
+            let issuer_did = issuer_did.as_ref().await?;
 
             IdentifierDetails::Did(issuer_did.did.clone())
         }
-        IdentifierType::Certificate => {
-            let certificate = issuer_identifier
-                .certificates
-                .as_ref()
-                .ok_or(Error::MappingError(
-                    "issuer certificates is None".to_string(),
-                ))?
+        IdentifierData::Certificate(certificates) => {
+            let certificate = certificates
                 .as_ref()
                 .await?
                 .first()

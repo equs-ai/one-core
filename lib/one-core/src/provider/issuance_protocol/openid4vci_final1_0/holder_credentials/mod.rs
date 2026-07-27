@@ -32,7 +32,7 @@ use crate::model::history::{
     History, HistoryAction, HistoryEntityType, HistoryMetadata, HistorySource,
     TrustResolutionMetadata, WalletRelyingPartyMetadata,
 };
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::Interaction;
 use crate::model::localized_text::{LocalizedText, LocalizedTextEntityType, LocalizedTextField};
 use crate::model::organisation::Organisation;
@@ -602,19 +602,15 @@ impl OpenID4VCIFinal1_0 {
         validate_issuance_time(&credential.issuance_date, formatter.get_leeway())
             .error_while("validating issuance time")?;
 
-        let identifier_details = match credential.issuer_identifier.as_ref() {
-            Some(Identifier {
-                did: Some(did),
-                r#type,
-                ..
-            }) if r#type == &IdentifierType::Did => {
+        let identifier_details = match credential
+            .issuer_identifier
+            .as_ref()
+            .map(|identifier| &identifier.data)
+        {
+            Some(IdentifierData::Did(did)) => {
                 IdentifierDetails::Did(did.as_ref().await?.did.to_owned())
             }
-            Some(Identifier {
-                certificates: Some(certificates),
-                r#type,
-                ..
-            }) if r#type == &IdentifierType::Certificate => {
+            Some(IdentifierData::Certificate(certificates)) => {
                 let certificate = certificates
                     .as_ref()
                     .await?
@@ -631,11 +627,7 @@ impl OpenID4VCIFinal1_0 {
                     x5_references: Default::default(),
                 })
             }
-            Some(Identifier {
-                key: Some(key),
-                r#type,
-                ..
-            }) if r#type == &IdentifierType::Key => {
+            Some(IdentifierData::Key(key)) => {
                 let key = key.as_ref().await?;
                 let key_handle = self
                     .key_algorithm_provider
@@ -1204,21 +1196,15 @@ async fn holder_binding_matching_parsed_identifier(
     holder_binding: &HolderBindingInput,
     parsed_identifier: &Identifier,
 ) -> Result<bool, IssuanceProtocolError> {
-    match parsed_identifier.r#type {
-        IdentifierType::Key => {
-            let Some(parsed_key) = &parsed_identifier.key else {
-                return Ok(false);
-            };
+    match &parsed_identifier.data {
+        IdentifierData::Key(parsed_key) => {
             let parsed_key = parsed_key.as_ref().await?;
 
             Ok(holder_binding.key.key_type == parsed_key.key_type
                 && holder_binding.key.public_key == parsed_key.public_key)
         }
-        IdentifierType::Did => {
-            let Some(parsed_did) = &parsed_identifier.did else {
-                return Ok(false);
-            };
-            let Some(holder_binding_did) = &holder_binding.identifier.did else {
+        IdentifierData::Did(parsed_did) => {
+            let IdentifierData::Did(holder_binding_did) = &holder_binding.identifier.data else {
                 return Ok(false);
             };
             let parsed_did = parsed_did.as_ref().await?;
@@ -1226,11 +1212,11 @@ async fn holder_binding_matching_parsed_identifier(
 
             Ok(holder_binding_did.did == parsed_did.did)
         }
-        IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
+        IdentifierData::Certificate(_) | IdentifierData::CertificateAuthority(_) => {
             // No credential format uses certificates for holder binding at this point
             tracing::warn!(
                 "Invalid parsed holder binding type: {}",
-                parsed_identifier.r#type
+                parsed_identifier.data.r#type()
             );
 
             Ok(false)

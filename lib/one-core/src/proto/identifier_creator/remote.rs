@@ -10,8 +10,8 @@ use crate::model::certificate::{
 };
 use crate::model::did::{Did, DidType};
 use crate::model::identifier::{
-    Identifier, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations, IdentifierState,
-    IdentifierType,
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations,
+    IdentifierState, IdentifierType,
 };
 use crate::model::key::{Key, KeyFilterValue, KeyListQuery};
 use crate::model::list_filter::ListFilterValue;
@@ -83,14 +83,11 @@ impl IdentifierCreatorProto {
                     created_date: now,
                     last_modified: now,
                     name: did.name.to_owned(),
-                    r#type: IdentifierType::Did,
+                    data: IdentifierData::Did(did.to_owned().into()),
                     is_remote: did.did_type == DidType::Remote,
                     state: IdentifierState::Active,
                     deleted_at: None,
                     organisation: organisation.to_owned().into(),
-                    did: Some(did.to_owned().into()),
-                    key: None,
-                    certificates: None,
                     trust_information: None,
                 };
                 self.identifier_repository
@@ -125,7 +122,7 @@ impl IdentifierCreatorProto {
             .error_while("getting certificates")?;
 
         if let Some(certificate) = list.values.into_iter().next() {
-            let mut identifier = self
+            let identifier = self
                 .identifier_repository
                 .get(certificate.identifier_id, &Default::default())
                 .await
@@ -133,9 +130,6 @@ impl IdentifierCreatorProto {
                 .ok_or(Error::MappingError(
                     "Certificate identifier not found".to_string(),
                 ))?;
-            // Back-fill the certificates relation, consistent with the did/key paths.
-            identifier.certificates = Some(RelatedVec::from(vec![certificate.clone()]));
-
             return Ok((certificate, identifier));
         }
 
@@ -164,14 +158,11 @@ impl IdentifierCreatorProto {
             created_date: now,
             last_modified: now,
             name: display_name.clone(),
-            r#type: IdentifierType::Certificate,
+            data: IdentifierData::Certificate(RelatedVec::default()),
             is_remote: true,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: organisation.to_owned().into(),
-            did: None,
-            key: None,
-            certificates: None,
             trust_information: None,
         };
         self.identifier_repository
@@ -200,7 +191,7 @@ impl IdentifierCreatorProto {
             .error_while("creating certificate")?;
 
         // Back-fill the certificates relation, consistent with the did/key paths.
-        identifier.certificates = Some(RelatedVec::from(vec![certificate.clone()]));
+        identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![certificate.clone()]));
 
         Ok((certificate, identifier))
     }
@@ -280,14 +271,11 @@ impl IdentifierCreatorProto {
             created_date: now,
             last_modified: now,
             name: name.for_id(identifier_id),
-            r#type: IdentifierType::Key,
+            data: IdentifierData::Key(Related::from(key.clone())),
             is_remote: true,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: organisation.to_owned().into(),
-            did: None,
-            key: Some(Related::from(key.clone())),
-            certificates: None,
             trust_information: None,
         };
         self.identifier_repository
@@ -352,7 +340,7 @@ impl IdentifierCreatorProto {
                     return Ok(None);
                 };
 
-                let Some(mut identifier) = self
+                let Some(identifier) = self
                     .identifier_repository
                     .get(certificate.identifier_id, &Default::default())
                     .await
@@ -360,8 +348,6 @@ impl IdentifierCreatorProto {
                 else {
                     return Ok(None);
                 };
-                // Back-fill the certificates relation, consistent with the did path.
-                identifier.certificates = Some(RelatedVec::from(vec![certificate.clone()]));
 
                 Ok(Some((
                     identifier,

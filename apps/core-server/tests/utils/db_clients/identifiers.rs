@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
-use one_core::model::identifier::{
-    Identifier, IdentifierRelations, IdentifierState, IdentifierType,
-};
+use one_core::model::identifier::{Identifier, IdentifierRelations, IdentifierState};
 use one_core::model::organisation::Organisation;
-use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::identifier_repository::IdentifierRepository;
 use shared_types::IdentifierId;
 use uuid::Uuid;
@@ -28,17 +25,15 @@ impl IdentifiersDB {
         let now = one_core::clock::now_utc();
 
         let id = params.id.unwrap_or(IdentifierId::from(Uuid::new_v4()));
+        let data = params.identifier_data();
         let identifier = Identifier {
             id: id.to_owned(),
             created_date: params.created_date.unwrap_or(now),
             last_modified: params.last_modified.unwrap_or(now),
             name: unwrap_or_random(params.name),
             organisation: organisation.clone().into(),
-            did: (params.did).map(Into::into),
-            key: params.key.map(Related::from),
-            certificates: params.certificates.map(RelatedVec::from),
             state: params.state.unwrap_or(IdentifierState::Active),
-            r#type: params.r#type.unwrap_or(IdentifierType::Did),
+            data,
             is_remote: params.is_remote.unwrap_or_default(),
             deleted_at: params.deleted_at,
             trust_information: None,

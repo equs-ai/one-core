@@ -22,7 +22,7 @@ use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum, 
 use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity, LayoutType};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType};
-use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
@@ -317,7 +317,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
             }),
         }]),
         issuer_identifier: Some(Identifier {
-            did: Some((dummy_did()).into()),
+            data: IdentifierData::Did((dummy_did()).into()),
             ..dummy_identifier()
         }),
         issuer_certificate: None,
@@ -418,14 +418,11 @@ pub fn dummy_identifier() -> Identifier {
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
         name: "identifier".to_string(),
-        r#type: IdentifierType::Did,
+        data: IdentifierData::Did(dummy_did().into()),
         is_remote: false,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(None).into(),
-        did: None,
-        key: None,
-        certificates: None,
         trust_information: None,
     }
 }

@@ -75,7 +75,7 @@ use crate::model::credential::{
 use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity};
 use crate::model::did::KeyRole;
 use crate::model::history::TrustResolutionResult;
-use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use crate::model::interaction::{Interaction, UpdateInteractionRequest};
 use crate::model::key::{Key, KeyRelations};
@@ -363,7 +363,7 @@ impl OpenID4VCIFinal1_0 {
         issuer_identifier: &Identifier,
         key: &Key,
     ) -> Result<Option<String>, IssuanceProtocolError> {
-        let Some(ref did) = issuer_identifier.did else {
+        let IdentifierData::Did(did) = &issuer_identifier.data else {
             return Ok(None);
         };
         let did = did.as_ref().await?;
@@ -950,16 +950,9 @@ impl OpenID4VCIFinal1_0 {
         let Some(methods) = &interaction_data.cryptographic_binding_methods_supported else {
             return Err(IssuanceProtocolError::Failed("No cryptographic_binding_methods_supported available in metadata. Credentials without holder binding are not supported.".to_string()));
         };
-        let info = match &identifier.r#type {
-            IdentifierType::Did => {
-                let did = identifier
-                    .did
-                    .as_ref()
-                    .ok_or(IssuanceProtocolError::Failed(
-                        "Missing identifier did".to_string(),
-                    ))?
-                    .as_ref()
-                    .await?;
+        let info = match &identifier.data {
+            IdentifierData::Did(did) => {
+                let did = did.as_ref().await?;
                 if methods
                     .iter()
                     .any(|method| &format!("did:{}", did.did.method()) == method)
@@ -974,11 +967,11 @@ impl OpenID4VCIFinal1_0 {
                     self.jwk_proof_info_from_key(identifier, key, methods)?
                 }
             }
-            IdentifierType::Key => self.jwk_proof_info_from_key(identifier, key, methods)?,
+            IdentifierData::Key(_) => self.jwk_proof_info_from_key(identifier, key, methods)?,
             r#type => {
                 return Err(IssuanceProtocolError::Failed(format!(
                     "Unsupported identifier type: {}",
-                    r#type
+                    r#type.r#type()
                 )));
             }
         };
@@ -2109,10 +2102,13 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         credential_data.issuer_certificate =
             if let Some(cert) = credential.issuer_certificate.clone() {
                 Some(cert)
-            } else if let Some(certificates) = credential
+            } else if let Some(
+                IdentifierData::Certificate(certificates)
+                | IdentifierData::CertificateAuthority(certificates),
+            ) = credential
                 .issuer_identifier
                 .as_ref()
-                .and_then(|identifier| identifier.certificates.as_ref())
+                .map(|identifier| &identifier.data)
             {
                 certificates.as_ref().await?.first().cloned()
             } else {

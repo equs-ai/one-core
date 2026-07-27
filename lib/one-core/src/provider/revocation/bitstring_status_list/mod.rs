@@ -22,7 +22,7 @@ use crate::model::certificate::Certificate;
 use crate::model::common::LockType;
 use crate::model::credential::Credential;
 use crate::model::did::KeyRole;
-use crate::model::identifier::{Identifier, IdentifierType};
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
 };
@@ -415,14 +415,12 @@ impl BitstringStatusList {
         &self,
         issuer_identifier: &Identifier,
     ) -> Result<Arc<dyn CredentialFormatter>, RevocationError> {
-        let issuer_did = issuer_identifier
-            .did
-            .as_ref()
-            .ok_or(RevocationError::MappingError(
+        let IdentifierData::Did(issuer_did) = &issuer_identifier.data else {
+            return Err(RevocationError::MappingError(
                 "issuer did is None".to_string(),
-            ))?
-            .as_ref()
-            .await?;
+            ));
+        };
+        let issuer_did = issuer_did.as_ref().await?;
 
         let is_bbs = !issuer_did
             .keys
@@ -710,9 +708,9 @@ pub(crate) async fn format_status_list_credential(
 ) -> Result<String, RevocationError> {
     let revocation_list_url = get_revocation_list_url(revocation_list_id, core_base_url)?;
 
-    if issuer_identifier.r#type != IdentifierType::Did {
+    if !matches!(issuer_identifier.data, IdentifierData::Did(_)) {
         return Err(RevocationError::InvalidIdentifierType(
-            issuer_identifier.r#type,
+            issuer_identifier.data.r#type(),
         ));
     }
 

@@ -178,16 +178,9 @@ impl CredentialFormatter for MdocFormatter {
                     "Missing holder identifier".to_string(),
                 ))?;
 
-        let holder_key = match holder_identifier.r#type {
-            identifier::IdentifierType::Key => {
-                let key = holder_identifier
-                    .key
-                    .as_ref()
-                    .ok_or(FormatterError::CouldNotFormat(
-                        "Missing holder key".to_string(),
-                    ))?
-                    .as_ref()
-                    .await?;
+        let holder_key = match &holder_identifier.data {
+            identifier::IdentifierData::Key(key) => {
+                let key = key.as_ref().await?;
 
                 self.key_algorithm_provider
                     .key_algorithm_from_key(&key)
@@ -197,15 +190,8 @@ impl CredentialFormatter for MdocFormatter {
                     .public_key_as_cose()
                     .error_while("getting CoseKey")?
             }
-            identifier::IdentifierType::Did => {
-                let did = holder_identifier
-                    .did
-                    .ok_or(FormatterError::CouldNotFormat(
-                        "Missing holder did".to_string(),
-                    ))?
-                    .as_ref()
-                    .await?
-                    .to_owned();
+            identifier::IdentifierData::Did(did) => {
+                let did = did.as_ref().await?.to_owned();
                 let jwk = try_extract_did(
                     self.did_method_provider.as_ref(),
                     &did.did,

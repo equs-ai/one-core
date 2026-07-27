@@ -8,7 +8,7 @@ use crate::error::ContextWithErrorCode;
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
-use crate::model::identifier::{Identifier, IdentifierState};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::model::relation::{Related, RelatedVec};
@@ -233,7 +233,7 @@ pub fn prepare_identifier(
     let identifier_id = Uuid::new_v4().into();
     let name = format!("identifier {identifier_id}");
 
-    let (identifier_certificate, identifier_did, identifier_key, identifier_type) = match detail {
+    let identifier_data = match detail {
         IdentifierDetails::Certificate(certificate) => {
             let cert = Certificate {
                 id: Uuid::new_v4().into(),
@@ -253,12 +253,7 @@ pub fn prepare_identifier(
                 roles: vec![],
                 key: None,
             };
-            (
-                Some(cert),
-                None,
-                None,
-                crate::model::identifier::IdentifierType::Certificate,
-            )
+            IdentifierData::Certificate(RelatedVec::from(vec![cert]))
         }
         IdentifierDetails::Did(did) => {
             let (did_method, _) = did_method_provider
@@ -279,12 +274,7 @@ pub fn prepare_identifier(
                 keys: Default::default(),
                 organisation: organisation.to_owned().into(),
             };
-            (
-                None,
-                Some(did_model),
-                None,
-                crate::model::identifier::IdentifierType::Did,
-            )
+            IdentifierData::Did(Related::from(did_model))
         }
         IdentifierDetails::Key(key) => {
             let parsed_key = key_algorithm_provider
@@ -301,12 +291,7 @@ pub fn prepare_identifier(
                 key_type: parsed_key.algorithm_type.to_string(),
                 organisation: organisation.to_owned().into(),
             };
-            (
-                None,
-                None,
-                Some(key_model),
-                crate::model::identifier::IdentifierType::Key,
-            )
+            IdentifierData::Key(Related::from(key_model))
         }
     };
 
@@ -315,14 +300,11 @@ pub fn prepare_identifier(
         created_date: now,
         last_modified: now,
         name,
-        r#type: identifier_type,
+        data: identifier_data,
         is_remote: true,
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: organisation.into(),
-        did: identifier_did.map(Related::from),
-        key: identifier_key.map(Related::from),
-        certificates: identifier_certificate.map(|c| RelatedVec::from(vec![c])),
         trust_information: None,
     })
 }

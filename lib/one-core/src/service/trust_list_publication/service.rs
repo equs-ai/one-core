@@ -409,7 +409,7 @@ async fn validate_publication_identifier_capabilities(
     certificate_id: Option<CertificateId>,
     capabilities: TrustListPublisherCapabilities,
 ) -> Result<(), TrustListPublicationServiceError> {
-    let identifier_type = identifier.r#type.into();
+    let identifier_type = identifier.data.r#type().into();
     if !capabilities
         .publisher_identifier_types
         .contains(&identifier_type)
@@ -449,7 +449,7 @@ fn validate_entry_identifier_capabilities(
     identifier: &Identifier,
     capabilities: TrustListPublisherCapabilities,
 ) -> Result<(), TrustListPublicationServiceError> {
-    let identifier_type = identifier.r#type.into();
+    let identifier_type = identifier.data.r#type().into();
     if !capabilities
         .entry_identifier_types
         .contains(&identifier_type)
@@ -484,6 +484,7 @@ impl TrustEntryExt for TrustEntry {
 mod tests {
     use std::sync::Arc;
 
+    use assert2::let_assert;
     use mockall::predicate;
     use shared_types::TrustListPublisherId;
     use similar_asserts::assert_eq;
@@ -493,7 +494,7 @@ mod tests {
     use super::*;
     use crate::error::{ErrorCode, ErrorCodeMixin};
     use crate::model::certificate::{Certificate, CertificateState};
-    use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+    use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
     use crate::model::key::Key;
     use crate::model::organisation::Organisation;
     use crate::model::relation::{Related, RelatedVec};
@@ -507,7 +508,7 @@ mod tests {
     use crate::repository::identifier_repository::MockIdentifierRepository;
     use crate::repository::trust_entry_repository::MockTrustEntryRepository;
     use crate::repository::trust_list_publication_repository::MockTrustListPublicationRepository;
-    use crate::service::test_utilities::dummy_organisation;
+    use crate::service::test_utilities::{dummy_did, dummy_organisation};
 
     #[tokio::test]
     async fn test_create_trust_list_publication_identifier_matches_capabilities() {
@@ -539,17 +540,10 @@ mod tests {
             created_date: now,
             last_modified: now,
             name: "TestIdentifier".to_string(),
-            r#type: IdentifierType::Certificate,
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: organisation.clone().into(),
-            did: None,
-            key: None,
-            certificates: Some(RelatedVec::from(vec![Certificate {
+            data: IdentifierData::Certificate(RelatedVec::from(vec![Certificate {
                 id: Uuid::new_v4().into(),
                 identifier_id,
-                organisation: organisation.into(),
+                organisation: organisation.clone().into(),
                 created_date: now,
                 last_modified: now,
                 expiry_date: now + Duration::days(2),
@@ -574,6 +568,10 @@ mod tests {
                     .into(),
                 ),
             }])),
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: organisation.clone().into(),
             trust_information: None,
         };
 
@@ -745,14 +743,8 @@ mod tests {
     async fn test_validate_publication_identifier_capabilities_success() {
         // given
         let identifier = create_test_certificate_identifier("EDDSA");
-        let certificate_id = identifier
-            .certificates
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()[0]
-            .id;
+        let_assert!(IdentifierData::Certificate(certificates) = &identifier.data);
+        let certificate_id = certificates.as_ref().await.unwrap()[0].id;
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
             key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
@@ -814,66 +806,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_validate_publication_identifier_capabilities_missing_key() {
-        // given
-        let mut identifier = create_test_key_identifier("EDDSA");
-        identifier.key = None;
-        let key_id = Uuid::new_v4().into();
-        let capabilities = TrustListPublisherCapabilities {
-            supported_roles: vec![],
-            key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
-            publisher_identifier_types: vec![crate::config::core_config::IdentifierType::Key],
-            entry_identifier_types: vec![],
-            content_type: vec![LoteContentType::Jwt],
-        };
-
-        // when
-        let result = validate_publication_identifier_capabilities(
-            &identifier,
-            Some(key_id),
-            None,
-            capabilities,
-        )
-        .await;
-
-        // then
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_validate_publication_identifier_capabilities_missing_certificate() {
-        // given
-        let mut identifier = create_test_certificate_identifier("EDDSA");
-        identifier.certificates = None;
-        let certificate_id = Uuid::new_v4().into();
-        let capabilities = TrustListPublisherCapabilities {
-            supported_roles: vec![],
-            key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
-            publisher_identifier_types: vec![
-                crate::config::core_config::IdentifierType::Certificate,
-            ],
-            entry_identifier_types: vec![],
-            content_type: vec![LoteContentType::Jwt],
-        };
-
-        // when
-        let result = validate_publication_identifier_capabilities(
-            &identifier,
-            None,
-            Some(certificate_id),
-            capabilities,
-        )
-        .await;
-
-        // then
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
     async fn test_validate_publication_identifier_capabilities_invalid_selected_key_type() {
         // given
         let identifier = create_test_key_identifier("EDDSA");
-        let key_id = identifier.key.as_ref().unwrap().id();
+        let_assert!(IdentifierData::Key(key) = &identifier.data);
 
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
@@ -886,7 +822,7 @@ mod tests {
         // when
         let result = validate_publication_identifier_capabilities(
             &identifier,
-            Some(key_id),
+            Some(key.as_ref().await.unwrap().id),
             None,
             capabilities,
         )
@@ -905,14 +841,8 @@ mod tests {
     async fn test_validate_publication_identifier_capabilities_unknown_key_algorithm() {
         // given
         let identifier = create_test_certificate_identifier("UNKNOWN_ALGO");
-        let certificate_id = identifier
-            .certificates
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()[0]
-            .id;
+        let_assert!(IdentifierData::Certificate(certificates) = &identifier.data);
+        let certificate_id = certificates.as_ref().await.unwrap()[0].id;
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
             key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
@@ -941,14 +871,8 @@ mod tests {
     async fn test_validate_publication_identifier_capabilities_invalid_key_algorithm() {
         // given
         let identifier = create_test_certificate_identifier("ECDSA");
-        let certificate_id = identifier
-            .certificates
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .await
-            .unwrap()[0]
-            .id;
+        let_assert!(IdentifierData::Certificate(certificates) = &identifier.data);
+        let certificate_id = certificates.as_ref().await.unwrap()[0].id;
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
             key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
@@ -1044,14 +968,11 @@ mod tests {
             created_date: now,
             last_modified: now,
             name: "TestIdentifier".to_string(),
-            r#type: IdentifierType::Key,
+            data: IdentifierData::Key(Related::from(create_test_key(key_type))),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: None,
-            key: Some(Related::from(create_test_key(key_type))),
-            certificates: None,
             trust_information: None,
         }
     }
@@ -1063,14 +984,11 @@ mod tests {
             created_date: now,
             last_modified: now,
             name: "TestIdentifier".to_string(),
-            r#type: IdentifierType::Did,
+            data: IdentifierData::Did(dummy_did().into()),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: None,
-            key: None,
-            certificates: None,
             trust_information: None,
         }
     }
@@ -1115,14 +1033,11 @@ mod tests {
             created_date: now,
             last_modified: now,
             name: "TestIdentifier".to_string(),
-            r#type: IdentifierType::Certificate,
+            data: IdentifierData::Certificate(RelatedVec::from(vec![certificate])),
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            did: None,
-            key: None,
-            certificates: Some(RelatedVec::from(vec![certificate])),
             trust_information: None,
         }
     }

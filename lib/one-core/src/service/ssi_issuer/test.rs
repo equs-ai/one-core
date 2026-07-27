@@ -9,7 +9,7 @@ use super::SSIIssuerService;
 use crate::config::core_config::CoreConfig;
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::did::{Did, KeyRole, RelatedKey};
-use crate::model::identifier::Identifier;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::relation::Related;
 use crate::provider::issuance_protocol::MockIssuanceProtocol;
 use crate::provider::issuance_protocol::provider::MockIssuanceProtocolProvider;
@@ -86,7 +86,7 @@ async fn test_get_sd_jwt_vc_issuer_metadata_success_with_did() {
         reference: "key-1".to_string(),
     }]
     .into();
-    identifier.did = Some((did.clone()).into());
+    identifier.data = IdentifierData::Did(did.clone().into());
 
     let mut protocol_provider = MockIssuanceProtocolProvider::new();
     protocol_provider
@@ -161,11 +161,9 @@ async fn test_get_sd_jwt_vc_issuer_metadata_success() {
         issuer_metadata_fixtures();
 
     // Use a Key-type identifier (no DID) to trigger the fallback URL path
-    identifier.r#type = crate::model::identifier::IdentifierType::Key;
-    identifier.did = None;
     let mut key = dummy_key();
     key.storage_type = "INTERNAL".to_string();
-    identifier.key = Some(Related::from(key));
+    identifier.data = IdentifierData::Key(Related::from(key));
 
     let mut protocol_provider = MockIssuanceProtocolProvider::new();
     protocol_provider

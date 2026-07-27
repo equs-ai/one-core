@@ -1,16 +1,20 @@
 use std::sync::Arc;
 
-use one_core::model::identifier::{Identifier, IdentifierFilterValue, SortableIdentifierColumn};
+use one_core::model::identifier::{
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierType, SortableIdentifierColumn,
+};
 use one_core::model::identifier_trust_information::SchemaFormat;
 use one_core::model::list_filter::{ListFilterCondition, StringMatch, StringMatchType};
 use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::did_repository::DidRepository;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::IdentifierCertificatesLoader;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::sea_query::{Alias, ColumnRef, ExprTrait, IntoCondition, IntoIden, SimpleExpr};
 use sea_orm::{ColumnTrait, Condition, IntoSimpleExpr, JoinType, RelationTrait, Set};
+use shared_types::{DidId, IdentifierId, KeyId};
 use time::OffsetDateTime;
 
 use crate::entity::identifier::ActiveModel;
@@ -23,15 +27,20 @@ use crate::list_query_generic::{
 
 impl From<Identifier> for ActiveModel {
     fn from(identifier: Identifier) -> Self {
-        let did_id = identifier.did.map(|did| did.id());
-        let key_id = identifier.key.map(|key| key.id());
+        let (did_id, key_id) = match &identifier.data {
+            IdentifierData::Did(did) => (Some(did.id()), None),
+            IdentifierData::Key(key) => (None, Some(key.id())),
+            IdentifierData::Certificate(_) | IdentifierData::CertificateAuthority(_) => {
+                (None, None)
+            }
+        };
 
         Self {
             id: Set(identifier.id),
             created_date: Set(identifier.created_date),
             last_modified: Set(identifier.last_modified),
             name: Set(identifier.name),
-            r#type: Set(identifier.r#type.into()),
+            r#type: Set(identifier.data.r#type().into()),
             is_remote: Set(identifier.is_remote),
             state: Set(identifier.state.into()),
             organisation_id: Set(identifier.organisation.id()),
@@ -42,42 +51,71 @@ impl From<Identifier> for ActiveModel {
     }
 }
 
+/// Builds the [`IdentifierData`] variant for an identifier from its type discriminant and the
+/// relation ids/loaders. Shared between the identifier mapper and the credential/proof list
+/// projections that embed a lightweight issuer/verifier identifier.
+pub(crate) fn identifier_data_from_ids(
+    r#type: IdentifierType,
+    identifier_id: IdentifierId,
+    did_id: Option<DidId>,
+    key_id: Option<KeyId>,
+    did_repository: &Arc<dyn DidRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
+) -> Result<IdentifierData, DataLayerError> {
+    let data = match r#type {
+        IdentifierType::Did => IdentifierData::Did(Related::new(
+            did_id.ok_or(DataLayerError::MappingError)?,
+            did_repository.to_owned(),
+        )),
+        IdentifierType::Key => IdentifierData::Key(Related::new(
+            key_id.ok_or(DataLayerError::MappingError)?,
+            key_repository.to_owned(),
+        )),
+        IdentifierType::Certificate => {
+            IdentifierData::Certificate(RelatedVec::new(IdentifierCertificatesLoader {
+                id: identifier_id,
+                certificate_repository: certificate_repository.to_owned(),
+            }))
+        }
+        IdentifierType::CertificateAuthority => {
+            IdentifierData::CertificateAuthority(RelatedVec::new(IdentifierCertificatesLoader {
+                id: identifier_id,
+                certificate_repository: certificate_repository.to_owned(),
+            }))
+        }
+    };
+    Ok(data)
+}
+
 pub(crate) fn identifier_from_model(
     value: identifier::Model,
     organisation_repository: &Arc<dyn OrganisationRepository>,
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
-) -> Identifier {
+) -> Result<Identifier, DataLayerError> {
     let id = value.id;
-    let is_certificate_identifier = matches!(
-        value.r#type,
-        identifier::IdentifierType::Certificate | identifier::IdentifierType::CertificateAuthority
-    );
-    Identifier {
+    Ok(Identifier {
         id,
         created_date: value.created_date,
         last_modified: value.last_modified,
         name: value.name,
-        r#type: value.r#type.into(),
+        data: identifier_data_from_ids(
+            value.r#type.into(),
+            id,
+            value.did_id,
+            value.key_id,
+            did_repository,
+            key_repository,
+            certificate_repository,
+        )?,
         is_remote: value.is_remote,
         state: value.state.into(),
         deleted_at: value.deleted_at,
         organisation: Related::new(value.organisation_id, organisation_repository.to_owned()),
-        did: value
-            .did_id
-            .map(|did_id| Related::new(did_id, did_repository.to_owned())),
-        key: value
-            .key_id
-            .map(|key_id| Related::new(key_id, key_repository.to_owned())),
-        certificates: is_certificate_identifier.then(|| {
-            RelatedVec::new(IdentifierCertificatesLoader {
-                id,
-                certificate_repository: certificate_repository.to_owned(),
-            })
-        }),
         trust_information: None,
-    }
+    })
 }
 
 impl IntoSortingColumn for SortableIdentifierColumn {
