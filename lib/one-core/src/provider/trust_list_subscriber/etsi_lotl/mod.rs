@@ -213,7 +213,7 @@ async fn find_matching_for_identifier(
             Err(TrustListSubscriberError::UnsupportedIdentifierType(r#type))
         }
         IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
-            let Some(active_certs) = identifier.active_certs() else {
+            let Some(active_certs) = identifier.active_certs().await? else {
                 return Ok(Vec::new());
             };
             if active_certs.len() > 1 {

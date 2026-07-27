@@ -13,7 +13,7 @@ use crate::model::did::Did;
 use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierState, IdentifierType};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
-use crate::model::relation::Related;
+use crate::model::relation::{Related, RelatedVec};
 use crate::proto::certificate_validator::x509_extension::validate_ca;
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CrlMode, ParsedCertificate,
@@ -133,7 +133,7 @@ impl IdentifierCreatorProto {
             deleted_at: None,
             did: None,
             key: None,
-            certificates: Some(certificates.clone()),
+            certificates: Some(RelatedVec::from(certificates.clone())),
             trust_information: None,
         };
         self.identifier_repository
@@ -366,7 +366,6 @@ impl IdentifierCreatorProto {
                     .get(
                         content.certificate_authority.identifier_id,
                         &IdentifierRelations {
-                            certificates: Some(Default::default()),
                             ..Default::default()
                         },
                     )

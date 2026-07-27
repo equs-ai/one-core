@@ -4,7 +4,7 @@ use one_core::model::identifier::{
     Identifier, IdentifierRelations, IdentifierState, IdentifierType,
 };
 use one_core::model::organisation::Organisation;
-use one_core::model::relation::Related;
+use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::identifier_repository::IdentifierRepository;
 use shared_types::IdentifierId;
 use uuid::Uuid;
@@ -36,7 +36,7 @@ impl IdentifiersDB {
             organisation: organisation.clone().into(),
             did: (params.did).map(Into::into),
             key: params.key.map(Related::from),
-            certificates: params.certificates,
+            certificates: params.certificates.map(RelatedVec::from),
             state: params.state.unwrap_or(IdentifierState::Active),
             r#type: params.r#type.unwrap_or(IdentifierType::Did),
             is_remote: params.is_remote.unwrap_or_default(),
@@ -54,7 +54,6 @@ impl IdentifiersDB {
             .get(
                 identifier_id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     trust_information: Some(Default::default()),
                 },
             )

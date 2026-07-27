@@ -146,6 +146,7 @@ async fn test_get_or_create_remote_identifier_certificate_new() {
 
     // The returned identifier carries its certificates relation (consistent with did/key).
     let certificates = identifier.certificates.expect("certificates back-filled");
+    let certificates = certificates.as_ref().await.unwrap();
     assert_eq!(certificates.len(), 1);
     assert_eq!(certificates[0].fingerprint, "fingerprint");
     let_assert!(RemoteIdentifierRelation::Certificate(_) = relation);
@@ -222,6 +223,7 @@ async fn test_get_or_create_remote_identifier_certificate_existing() {
     assert_eq!(identifier.id, identifier_id);
     // The returned identifier carries its certificates relation (consistent with did/key).
     let certificates = identifier.certificates.expect("certificates back-filled");
+    let certificates = certificates.as_ref().await.unwrap();
     assert_eq!(certificates.len(), 1);
     assert_eq!(certificates[0].id, certificate_id);
     let_assert!(RemoteIdentifierRelation::Certificate(certificate) = relation);

@@ -44,7 +44,7 @@ impl<T: Provider + CredentialFormatter + Display + ?Sized> CredentialFormatter
     async fn format_status_list<'a>(
         &self,
         _revocation_list_url: String,
-        _issuer: SelectedKey<'a>,
+        _issuer: SelectedKey,
         _encoded_list: String,
         _algorithm: KeyAlgorithmType,
         _auth_fn: AuthenticationFn,
@@ -176,7 +176,7 @@ impl CredentialFormatter for CapabilityChecked {
     async fn format_status_list<'a>(
         &self,
         revocation_list_url: String,
-        issuer: SelectedKey<'a>,
+        issuer: SelectedKey,
         encoded_list: String,
         algorithm: KeyAlgorithmType,
         auth_fn: AuthenticationFn,

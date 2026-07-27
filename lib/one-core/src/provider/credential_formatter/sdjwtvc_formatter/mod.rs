@@ -26,7 +26,7 @@ use uuid::Uuid;
 
 use super::error::FormatterError;
 use super::json_claims::{parse_claims, prepare_identifier};
-use super::mapper::{default_2_years, to_format_with_mappings};
+use super::mapper::{default_2_years, first_certificate, to_format_with_mappings};
 use super::model::{
     AuthenticationFn, CredentialClaim, CredentialClaimValue, CredentialData,
     CredentialPresentation, CredentialStatus, CredentialSubject, DetailCredential, Features,
@@ -219,10 +219,7 @@ impl CredentialFormatter for SDJWTVCFormatter {
             wallet_unit_attestation_blob_id: None,
             wallet_instance_attestation_blob_id: None,
             claims: Some(claims),
-            issuer_certificate: issuer_identifier
-                .certificates
-                .as_ref()
-                .and_then(|certs| certs.first().cloned()),
+            issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
             holder_identifier,
             schema: Some(schema),
@@ -311,7 +308,7 @@ impl CredentialFormatter for SDJWTVCFormatter {
     async fn format_status_list<'a>(
         &self,
         _revocation_list_url: String,
-        _issuer: SelectedKey<'a>,
+        _issuer: SelectedKey,
         _encoded_list: String,
         _algorithm: KeyAlgorithmType,
         _auth_fn: AuthenticationFn,

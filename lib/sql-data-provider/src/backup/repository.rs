@@ -6,6 +6,7 @@ use autometrics::autometrics;
 use one_core::model::backup::{Metadata, UnexportableEntities};
 use one_core::model::history::History;
 use one_core::repository::backup_repository::BackupRepository;
+use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
@@ -45,6 +46,7 @@ impl BackupProvider {
         organisation_repository: Arc<dyn OrganisationRepository>,
         did_repository: Arc<dyn DidRepository>,
         key_repository: Arc<dyn KeyRepository>,
+        certificate_repository: Arc<dyn CertificateRepository>,
     ) -> Self {
         Self {
             db,
@@ -53,6 +55,7 @@ impl BackupProvider {
             organisation_repository,
             did_repository,
             key_repository,
+            certificate_repository,
         }
     }
 
@@ -463,6 +466,7 @@ impl BackupRepository for BackupProvider {
                         &self.organisation_repository,
                         &self.did_repository,
                         &self.key_repository,
+                        &self.certificate_repository,
                     )
                 })
                 .collect(),

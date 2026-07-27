@@ -171,10 +171,10 @@ impl From<KeyFilter> for KeySelection {
     }
 }
 
-pub enum SelectedKey<'a> {
+pub enum SelectedKey {
     Key(Box<Key>),
     Certificate {
-        certificate: &'a Certificate,
+        certificate: Box<Certificate>,
         key: Box<Key>,
     },
     Did {
@@ -183,7 +183,7 @@ pub enum SelectedKey<'a> {
     },
 }
 
-impl SelectedKey<'_> {
+impl SelectedKey {
     pub fn key(&self) -> &Key {
         match self {
             Self::Key(key) => key,
@@ -194,7 +194,7 @@ impl SelectedKey<'_> {
 
     pub fn certificate(&self) -> Option<&Certificate> {
         match self {
-            Self::Certificate { certificate, .. } => Some(certificate),
+            Self::Certificate { certificate, .. } => Some(certificate.as_ref()),
             _ => None,
         }
     }
@@ -394,7 +394,7 @@ impl Identifier {
     pub(crate) async fn select_key(
         &self,
         selection: KeySelection,
-    ) -> Result<SelectedKey<'_>, KeySelectionError> {
+    ) -> Result<SelectedKey, KeySelectionError> {
         if self.is_remote {
             return Err(KeySelectionError::RemoteIdentifier);
         }
@@ -473,9 +473,11 @@ impl Identifier {
                     .as_ref()
                     .ok_or(KeySelectionError::MappingError(
                         "Missing identifier certificates".to_owned(),
-                    ))?;
+                    ))?
+                    .as_ref()
+                    .await?;
                 let mut selected_cert = None;
-                for c in certs {
+                for c in certs.iter() {
                     if selection.certificate.matches_certificate(c)
                         && c.has_matching_key(filter).await?
                     {
@@ -490,8 +492,8 @@ impl Identifier {
                         certificate_filter: Box::new(selection.certificate.clone()),
                     })?;
                 Ok(SelectedKey::Certificate {
-                    certificate,
                     key: Box::new(certificate.key().await?),
+                    certificate: Box::new(certificate.clone()),
                 })
             }
         }
@@ -501,7 +503,7 @@ impl Identifier {
         &self,
         key_filter: Option<KeyFilter>,
         certificate_filter: Option<CertificateFilter>,
-    ) -> Result<Vec<SelectedKey<'_>>, KeySelectionError> {
+    ) -> Result<Vec<SelectedKey>, KeySelectionError> {
         if self.is_remote {
             return Err(KeySelectionError::RemoteIdentifier);
         }
@@ -562,18 +564,20 @@ impl Identifier {
                     .as_ref()
                     .ok_or(KeySelectionError::MappingError(
                         "Missing identifier certificates".to_owned(),
-                    ))?;
+                    ))?
+                    .as_ref()
+                    .await?;
 
                 let mut certificates = vec![];
-                for certificate in certs {
+                for certificate in certs.iter() {
                     if !certificate_filter.matches_certificate(certificate)
                         || !certificate.has_matching_key(&filter).await?
                     {
                         continue;
                     }
                     certificates.push(SelectedKey::Certificate {
-                        certificate,
                         key: Box::new(certificate.key().await?),
+                        certificate: Box::new(certificate.clone()),
                     });
                 }
 

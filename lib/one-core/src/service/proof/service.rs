@@ -394,7 +394,6 @@ impl ProofService {
                 .get(
                     verifier_identifier_id,
                     &IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     },
                 )
@@ -433,7 +432,7 @@ impl ProofService {
                     IdentifierType::Key,
                 ));
             }
-            SelectedKey::Certificate { certificate, key } => (*key, Some(certificate.to_owned())),
+            SelectedKey::Certificate { certificate, key } => (*key, Some(*certificate)),
             SelectedKey::Did { did, key } => {
                 validate_protocol_did_compatibility(
                     &exchange_protocol_capabilities.did_methods,
@@ -1150,7 +1149,6 @@ impl ProofService {
                     }),
                     verifier_key: Some(Default::default()),
                     verifier_identifier: Some(IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     }),
                     verifier_certificate: Some(Default::default()),

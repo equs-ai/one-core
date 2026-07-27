@@ -83,7 +83,7 @@ impl RegistrationCertificate {
     async fn handle_revocation(
         &self,
         identifier: &Identifier,
-        selected_key: &SelectedKey<'_>,
+        selected_key: &SelectedKey,
     ) -> Result<(Uuid, Status), SignerError> {
         let revocation_method =
             self.revocation_method()?

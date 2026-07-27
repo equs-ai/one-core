@@ -82,7 +82,6 @@ impl CertificateRepository for CertificateProvider {
         query_params: CertificateListQuery,
     ) -> Result<GetCertificateList, DataLayerError> {
         let query = certificate::Entity::find()
-            .filter(certificate::Column::DeletedAt.is_null())
             .with_list_query(&query_params)
             .order_by_desc(certificate::Column::CreatedDate)
             .order_by_desc(certificate::Column::Id);

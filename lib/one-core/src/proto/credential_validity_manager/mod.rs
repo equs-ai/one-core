@@ -157,7 +157,6 @@ impl CredentialValidityManagerImpl {
                 &credential_id,
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     }),
                     issuer_certificate: Some(Default::default()),
@@ -601,7 +600,6 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 &CredentialRelations {
                     schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     }),
                     holder_identifier: Some(IdentifierRelations {
@@ -700,7 +698,6 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                             &batch_item.id,
                             &CredentialRelations {
                                 issuer_identifier: Some(IdentifierRelations {
-                                    certificates: Some(Default::default()),
                                     ..Default::default()
                                 }),
                                 ..Default::default()
@@ -828,6 +825,8 @@ async fn issuer_details(issuer_identifier: &Identifier) -> Result<IdentifierDeta
                 .ok_or(Error::MappingError(
                     "issuer certificates is None".to_string(),
                 ))?
+                .as_ref()
+                .await?
                 .first()
                 .ok_or(Error::MappingError(
                     "issuer certificate is missing".to_string(),

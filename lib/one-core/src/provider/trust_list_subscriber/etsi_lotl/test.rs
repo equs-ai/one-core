@@ -330,7 +330,7 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
     identifier.r#type = crate::model::identifier::IdentifierType::Certificate;
     let mut cert = crate::service::test_utilities::dummy_certificate(identifier_id);
     cert.chain = TRUSTED_CERT.to_string();
-    identifier.certificates = Some(vec![cert]);
+    identifier.certificates = Some(crate::model::relation::RelatedVec::from(vec![cert]));
 
     let entities = super::find_matching_for_identifier(&sub, &index, &identifier)
         .await

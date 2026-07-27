@@ -616,6 +616,8 @@ impl OpenID4VCIFinal1_0 {
                 ..
             }) if r#type == &IdentifierType::Certificate => {
                 let certificate = certificates
+                    .as_ref()
+                    .await?
                     .first()
                     .ok_or(IssuanceProtocolError::Failed(
                         "Missing certificate".to_string(),

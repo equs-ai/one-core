@@ -63,7 +63,7 @@ pub trait CredentialFormatter: Provider + Send + Sync {
     async fn format_status_list<'a>(
         &self,
         revocation_list_url: String,
-        issuer: SelectedKey<'a>,
+        issuer: SelectedKey,
         encoded_list: String,
         algorithm: KeyAlgorithmType,
         auth_fn: AuthenticationFn,

@@ -15,10 +15,12 @@ use super::nest_claims;
 use super::vcdm::{ContextType, VcdmCredential, VcdmCredentialSubject};
 use crate::config::core_config::{CoreConfig, FormatType};
 use crate::error::ContextWithErrorCode;
+use crate::model::certificate::Certificate;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::Credential;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
+use crate::model::identifier::Identifier;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::{
     CredentialClaim, CredentialClaimValue, CredentialSchemaMetadata, CredentialStatus, Issuer,
@@ -32,6 +34,15 @@ pub const W3C_SCHEMA_TYPE: &str = "ProcivisOneSchema2024";
 
 pub(super) fn default_2_years() -> Duration {
     Duration::days(365 * 2)
+}
+
+pub(crate) async fn first_certificate(
+    identifier: &Identifier,
+) -> Result<Option<Certificate>, FormatterError> {
+    match &identifier.certificates {
+        Some(certificates) => Ok(certificates.as_ref().await?.first().cloned()),
+        None => Ok(None),
+    }
 }
 
 #[expect(clippy::too_many_arguments)]

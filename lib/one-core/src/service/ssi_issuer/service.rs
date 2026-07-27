@@ -402,7 +402,6 @@ impl SSIIssuerService {
             .get(
                 *identifier_id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     ..Default::default()
                 },
             )

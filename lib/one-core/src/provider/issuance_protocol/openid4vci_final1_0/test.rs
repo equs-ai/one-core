@@ -359,10 +359,8 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
             selectively_disclosable: false,
             schema: Some(claim_schema.clone()),
         }]),
-        issuer_certificate: issuer_identifier
-            .certificates
-            .as_ref()
-            .and_then(|certs| certs.first().cloned()),
+        // Callers only pass did/key identifiers (no certificates).
+        issuer_certificate: None,
         issuer_identifier: Some(issuer_identifier),
         holder_identifier: None,
         schema: Some(CredentialSchema {

@@ -25,7 +25,8 @@ use crate::provider::signer::error::SignerError;
 use crate::provider::signer::model::SignerCapabilities;
 use crate::provider::signer::validity::{SignatureValidity, calculate_signature_validity};
 use crate::provider::signer::x509_utils::{
-    CaSigningInfo, IdentifierInfo, RevocationInfo, prepare_params_and_ca_issuer,
+    CaSigningInfo, IdentifierInfo, RevocationInfo, issuer_from_cert,
+    prepare_issuer_alternative_name_extension, prepare_params_and_ca_issuer,
 };
 
 #[serde_as]
@@ -186,9 +187,9 @@ impl Signer for AccessCertificateSigner {
         cert_params.distinguished_name = mapper::request_to_distinguished_name(request_data)?;
 
         let CaSigningInfo {
-            cert_issuer,
             signature_id: id,
             ca_certificate,
+            signing_key,
         } = prepare_params_and_ca_issuer(
             &mut cert_params,
             IdentifierInfo {
@@ -203,6 +204,17 @@ impl Signer for AccessCertificateSigner {
             self.key_provider.clone(),
         )
         .await?;
+
+        let (cert_issuer, issuer_alternative_name) =
+            issuer_from_cert(&ca_certificate, signing_key)?;
+        if let Some(issuer_alternative_name) = &issuer_alternative_name {
+            cert_params
+                .custom_extensions
+                .push(prepare_issuer_alternative_name_extension(
+                    issuer_alternative_name,
+                ));
+        }
+
         cert_params
             .custom_extensions
             .push(authority_information_access_extension(

@@ -116,12 +116,10 @@ impl ProofsDB {
             schema: proof_schema.cloned(),
             verifier_identifier: Some(verifier_identifier.to_owned()),
             verifier_key: Some(verifier_key),
-            verifier_certificate: verifier_identifier
-                .certificates
-                .iter()
-                .flat_map(|v| v.first())
-                .next()
-                .cloned(),
+            verifier_certificate: match &verifier_identifier.certificates {
+                Some(certs) => certs.as_ref().await.unwrap().first().cloned(),
+                None => None,
+            },
             interaction: interaction.cloned(),
             profile,
             proof_blob_id,

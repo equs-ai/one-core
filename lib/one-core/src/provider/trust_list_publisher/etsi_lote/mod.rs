@@ -267,7 +267,8 @@ impl EtsiLotePublisher {
             entries,
             self.params.refresh_interval_seconds,
             now,
-        )?;
+        )
+        .await?;
 
         let key = publication.key.as_ref().ok_or_else(|| {
             TrustListPublisherError::MissingRelation("publication missing key".to_string())
@@ -352,7 +353,6 @@ impl EtsiLotePublisher {
             .error_while("listing trust entries")?;
 
         let identifier_relations = IdentifierRelations {
-            certificates: Some(CertificateRelations::default()),
             ..Default::default()
         };
 
@@ -401,7 +401,7 @@ impl EtsiLotePublisher {
     }
 }
 
-fn build_trusted_entity(
+async fn build_trusted_entity(
     lote_type: &LoTEType,
     identifier: &Identifier,
     params: &dto::AddEntryParams,
@@ -413,7 +413,7 @@ fn build_trusted_entity(
     };
 
     let mut pki_objects = Vec::new();
-    for cert in identifier_certificates {
+    for cert in identifier_certificates.as_ref().await?.iter() {
         let leaf = extract_leaf_pem_from_chain(cert.chain.as_bytes())
             .error_while("extracting leaf certificate")?;
         let val = Base64::encode_to_string(leaf.contents)?;
@@ -471,7 +471,7 @@ fn build_trusted_entity(
     })
 }
 
-fn build_lote_payload(
+async fn build_lote_payload(
     publication: &TrustListPublication,
     organisation_name: &str,
     entries: &[(TrustEntry, Identifier)],
@@ -533,13 +533,11 @@ fn build_lote_payload(
         next_update: now + refresh_interval,
     };
 
-    let trusted_entities: Vec<TrustedEntity> = entries
-        .iter()
-        .map(|(entry, identifier)| {
-            let entry_params: dto::AddEntryParams = serde_json::from_slice(&entry.metadata)?;
-            build_trusted_entity(&lote_type, identifier, &entry_params)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let mut trusted_entities: Vec<TrustedEntity> = Vec::with_capacity(entries.len());
+    for (entry, identifier) in entries.iter() {
+        let entry_params: dto::AddEntryParams = serde_json::from_slice(&entry.metadata)?;
+        trusted_entities.push(build_trusted_entity(&lote_type, identifier, &entry_params).await?);
+    }
 
     Ok(LoTEPayload {
         list_and_scheme_information: scheme_info,

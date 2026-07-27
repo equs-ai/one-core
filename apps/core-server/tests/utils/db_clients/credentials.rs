@@ -202,10 +202,12 @@ impl CredentialsDB {
             suspend_end_date: params.suspend_end_date,
             claims: Some(claims),
             issuer_identifier: Some(issuer_identifier.to_owned()),
-            issuer_certificate: params.issuer_certificate.or(issuer_identifier
-                .certificates
-                .as_ref()
-                .and_then(|certs| certs.first().cloned())),
+            issuer_certificate: params.issuer_certificate.or(
+                match &issuer_identifier.certificates {
+                    Some(certs) => certs.as_ref().await.unwrap().first().cloned(),
+                    None => None,
+                },
+            ),
             holder_identifier: params.holder_identifier,
             schema: Some(credential_schema.to_owned()),
             interaction: params.interaction,

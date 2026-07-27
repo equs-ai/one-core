@@ -1070,7 +1070,6 @@ impl WalletProviderService {
             .get(
                 issuer_identifier_id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -1128,13 +1127,16 @@ impl WalletProviderService {
                 JwtPublicKeyInfo::Jwk(key_handle.public_key_as_jwk().error_while("creating JWK")?)
             }
             IdentifierType::Certificate => {
-                let cert = issuer_identifier
+                let certificates = issuer_identifier
                     .certificates
                     .as_ref()
                     .ok_or(WalletProviderError::MappingError(format!(
                         "Missing certificates on certificate identifier {}",
                         issuer_identifier.id
                     )))?
+                    .as_ref()
+                    .await?;
+                let cert = certificates
                     .iter()
                     .find(|cert| cert.key.as_ref().is_some_and(|k| k.id() == issuer_key.id))
                     .ok_or(WalletProviderError::MappingError(
@@ -1248,7 +1250,6 @@ impl WalletProviderService {
                     attested_keys: Some(WalletInstanceAttestedKeyRelations {
                         revocation: Some(RevocationListRelations {
                             issuer_identifier: Some(IdentifierRelations {
-                                certificates: Some(Default::default()),
                                 ..Default::default()
                             }),
                             issuer_certificate: Some(Default::default()),

@@ -1,9 +1,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use one_core::model::certificate::{
-    Certificate, CertificateRelations, CertificateRole, CertificateState,
-};
+use one_core::model::certificate::{Certificate, CertificateRole, CertificateState};
 use one_core::model::common::SortDirection;
 use one_core::model::did::Did;
 use one_core::model::identifier::{
@@ -433,7 +431,6 @@ async fn test_get_identifier_with_trust_info() {
             id,
             &IdentifierRelations {
                 trust_information: Some(IdentifierTrustInformationRelations::default()),
-                ..Default::default()
             },
         )
         .await
@@ -700,7 +697,6 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
         .get(
             identifier_id,
             &IdentifierRelations {
-                certificates: Some(CertificateRelations::default()),
                 ..Default::default()
             },
         )
@@ -711,6 +707,7 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
     let certs = resolved
         .certificates
         .expect("certificates relation should be populated");
+    let certs = certs.as_ref().await.unwrap();
     assert_eq!(certs.len(), 1);
     assert_eq!(certs[0].id, cert_id);
     assert!(certs[0].deleted_at.is_some());

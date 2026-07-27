@@ -3,8 +3,10 @@ use std::sync::Arc;
 use one_core::model::identifier::{Identifier, IdentifierFilterValue, SortableIdentifierColumn};
 use one_core::model::identifier_trust_information::SchemaFormat;
 use one_core::model::list_filter::{ListFilterCondition, StringMatch, StringMatchType};
-use one_core::model::relation::Related;
+use one_core::model::relation::{Related, RelatedVec};
+use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::did_repository::DidRepository;
+use one_core::repository::identifier_repository::IdentifierCertificatesLoader;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::sea_query::{Alias, ColumnRef, ExprTrait, IntoCondition, IntoIden, SimpleExpr};
@@ -45,9 +47,15 @@ pub(crate) fn identifier_from_model(
     organisation_repository: &Arc<dyn OrganisationRepository>,
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
 ) -> Identifier {
+    let id = value.id;
+    let is_certificate_identifier = matches!(
+        value.r#type,
+        identifier::IdentifierType::Certificate | identifier::IdentifierType::CertificateAuthority
+    );
     Identifier {
-        id: value.id,
+        id,
         created_date: value.created_date,
         last_modified: value.last_modified,
         name: value.name,
@@ -62,7 +70,12 @@ pub(crate) fn identifier_from_model(
         key: value
             .key_id
             .map(|key_id| Related::new(key_id, key_repository.to_owned())),
-        certificates: None,
+        certificates: is_certificate_identifier.then(|| {
+            RelatedVec::new(IdentifierCertificatesLoader {
+                id,
+                certificate_repository: certificate_repository.to_owned(),
+            })
+        }),
         trust_information: None,
     }
 }

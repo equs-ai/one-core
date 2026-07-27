@@ -32,18 +32,18 @@ pub(super) struct RevocationInfo {
     pub revocation_method: Option<Arc<dyn RevocationMethod>>,
 }
 
-pub(super) struct CaSigningInfo<'a> {
+pub(super) struct CaSigningInfo {
     pub signature_id: Uuid,
-    pub cert_issuer: RcgenIssuer<'a, SigningKeyAdapter>,
-    pub ca_certificate: &'a Certificate,
+    pub ca_certificate: Certificate,
+    pub signing_key: SigningKeyAdapter,
 }
 
-pub(super) async fn prepare_params_and_ca_issuer<'a>(
+pub(super) async fn prepare_params_and_ca_issuer(
     cert_params: &mut CertificateParams,
-    identifier_info: IdentifierInfo<'a>,
+    identifier_info: IdentifierInfo<'_>,
     revocation_info: RevocationInfo,
     key_provider: Arc<dyn KeyProvider>,
-) -> Result<CaSigningInfo<'a>, SignerError> {
+) -> Result<CaSigningInfo, SignerError> {
     let mut required_ca_cert_key_usages = vec![KeyUsagePurpose::KeyCertSign];
 
     let revocation_method = revocation_info.revocation_method;
@@ -73,7 +73,7 @@ pub(super) async fn prepare_params_and_ca_issuer<'a>(
             handle_x509_revocation(
                 cert_params,
                 identifier_info.identifier,
-                certificate,
+                &certificate,
                 revocation_info.config_name,
                 &*revocation_method,
             )
@@ -81,20 +81,13 @@ pub(super) async fn prepare_params_and_ca_issuer<'a>(
         }
     };
     let signing_key = signing_key_adapter(*key, &*key_provider)?;
-    let (cert_issuer, issuer_alternative_name) = issuer_from_cert(certificate, signing_key)?;
 
-    if let Some(issuer_alternative_name) = &issuer_alternative_name {
-        cert_params
-            .custom_extensions
-            .push(prepare_issuer_alternative_name_extension(
-                issuer_alternative_name,
-            ));
-    }
-
+    // The CA issuer (and its issuer-alternative-name extension) borrows the certificate's DER, so it
+    // is constructed by the caller which owns the returned `ca_certificate`.
     Ok(CaSigningInfo {
         signature_id,
-        cert_issuer,
-        ca_certificate: certificate,
+        ca_certificate: *certificate,
+        signing_key,
     })
 }
 
@@ -108,7 +101,7 @@ pub(super) fn signing_key_adapter(
         .map_err(Into::into)
 }
 
-fn issuer_from_cert(
+pub(super) fn issuer_from_cert(
     ca_certificate: &Certificate,
     signing_key: SigningKeyAdapter,
 ) -> Result<

@@ -340,7 +340,6 @@ impl TrustListPublicationService {
             .get(
                 identifier_id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -497,7 +496,7 @@ mod tests {
     use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
     use crate::model::key::Key;
     use crate::model::organisation::Organisation;
-    use crate::model::relation::Related;
+    use crate::model::relation::{Related, RelatedVec};
     use crate::model::trust_entry::TrustEntryStateEnum;
     use crate::model::trust_list_role::TrustListRoleEnum;
     use crate::proto::session_provider::MockSessionProvider;
@@ -544,7 +543,7 @@ mod tests {
             organisation: organisation.clone().into(),
             did: None,
             key: None,
-            certificates: Some(vec![Certificate {
+            certificates: Some(RelatedVec::from(vec![Certificate {
                 id: Uuid::new_v4().into(),
                 identifier_id,
                 organisation: organisation.into(),
@@ -571,7 +570,7 @@ mod tests {
                     }
                     .into(),
                 ),
-            }]),
+            }])),
             trust_information: None,
         };
 
@@ -743,7 +742,14 @@ mod tests {
     async fn test_validate_publication_identifier_capabilities_success() {
         // given
         let identifier = create_test_certificate_identifier("EDDSA");
-        let certificate_id = identifier.certificates.as_ref().unwrap()[0].id;
+        let certificate_id = identifier
+            .certificates
+            .as_ref()
+            .unwrap()
+            .as_ref()
+            .await
+            .unwrap()[0]
+            .id;
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
             key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
@@ -896,7 +902,14 @@ mod tests {
     async fn test_validate_publication_identifier_capabilities_unknown_key_algorithm() {
         // given
         let identifier = create_test_certificate_identifier("UNKNOWN_ALGO");
-        let certificate_id = identifier.certificates.as_ref().unwrap()[0].id;
+        let certificate_id = identifier
+            .certificates
+            .as_ref()
+            .unwrap()
+            .as_ref()
+            .await
+            .unwrap()[0]
+            .id;
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
             key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
@@ -925,7 +938,14 @@ mod tests {
     async fn test_validate_publication_identifier_capabilities_invalid_key_algorithm() {
         // given
         let identifier = create_test_certificate_identifier("ECDSA");
-        let certificate_id = identifier.certificates.as_ref().unwrap()[0].id;
+        let certificate_id = identifier
+            .certificates
+            .as_ref()
+            .unwrap()
+            .as_ref()
+            .await
+            .unwrap()[0]
+            .id;
         let capabilities = TrustListPublisherCapabilities {
             supported_roles: vec![],
             key_algorithms: vec![crate::config::core_config::KeyAlgorithmType::Eddsa],
@@ -1099,7 +1119,7 @@ mod tests {
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             did: None,
             key: None,
-            certificates: Some(vec![certificate]),
+            certificates: Some(RelatedVec::from(vec![certificate])),
             trust_information: None,
         }
     }

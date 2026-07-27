@@ -62,7 +62,6 @@ impl Task for CertificateCheck {
                 .get(
                     identifier_id,
                     &IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     },
                 )
@@ -76,6 +75,8 @@ impl Task for CertificateCheck {
                     .ok_or(ServiceError::MappingError(
                         "certificates missing".to_string(),
                     ))?
+                    .as_ref()
+                    .await?
                     .iter()
                     .any(|certificate| certificate.state == CertificateState::Active)
             {
@@ -136,6 +137,7 @@ impl CertificateCheck {
             .list(CertificateListQuery {
                 filtering: Some(
                     CertificateFilterValue::State(CertificateState::Active).condition()
+                        & CertificateFilterValue::Deleted(false)
                         & CertificateFilterValue::ExpiryDate(ValueComparison {
                             comparison: ComparisonType::LessThan,
                             value: crate::clock::now_utc(),
@@ -173,7 +175,8 @@ impl CertificateCheck {
             .certificate_repository
             .list(CertificateListQuery {
                 filtering: Some(
-                    CertificateFilterValue::State(CertificateState::Active).condition(),
+                    CertificateFilterValue::State(CertificateState::Active).condition()
+                        & CertificateFilterValue::Deleted(false),
                 ),
                 ..Default::default()
             })

@@ -39,7 +39,9 @@ use crate::provider::caching_loader::json_ld_context::{ContextCache, JsonLdCachi
 use crate::provider::credential_formatter::json_ld_bbsplus::mapper::{
     mark_claims_selectively_disclosable, metadata_claims_with_sd_flags,
 };
-use crate::provider::credential_formatter::mapper::{default_2_years, to_format_with_mappings};
+use crate::provider::credential_formatter::mapper::{
+    default_2_years, first_certificate, to_format_with_mappings,
+};
 use crate::provider::data_type::provider::DataTypeProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
@@ -178,7 +180,7 @@ impl CredentialFormatter for JsonLdBbsplus {
     async fn format_status_list<'a>(
         &self,
         revocation_list_url: String,
-        issuer: SelectedKey<'a>,
+        issuer: SelectedKey,
         encoded_list: String,
         _algorithm: KeyAlgorithmType,
         auth_fn: AuthenticationFn,
@@ -553,10 +555,7 @@ impl CredentialFormatter for JsonLdBbsplus {
             wallet_unit_attestation_blob_id: None,
             wallet_instance_attestation_blob_id: None,
             claims: Some(claims),
-            issuer_certificate: issuer_identifier
-                .certificates
-                .as_ref()
-                .and_then(|certs| certs.first().cloned()),
+            issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
             holder_identifier,
             schema: Some(schema),

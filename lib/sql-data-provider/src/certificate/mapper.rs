@@ -53,6 +53,9 @@ impl IntoFilterCondition for CertificateFilterValue {
     fn get_condition(self, _entire_filter: &ListFilterCondition<Self>) -> sea_orm::Condition {
         match self {
             Self::Ids(ids) => certificate::Column::Id.is_in(ids).into_condition(),
+            Self::IdentifierId(identifier_id) => certificate::Column::IdentifierId
+                .eq(identifier_id)
+                .into_condition(),
             Self::Name(string_match) => {
                 get_string_match_condition(certificate::Column::Name, string_match)
             }
@@ -69,6 +72,10 @@ impl IntoFilterCondition for CertificateFilterValue {
             Self::OrganisationId(organisation_id) => {
                 get_equals_condition(certificate::Column::OrganisationId, organisation_id)
             }
+            Self::Deleted(false) => certificate::Column::DeletedAt.is_null().into_condition(),
+            Self::Deleted(true) => certificate::Column::DeletedAt
+                .is_not_null()
+                .into_condition(),
         }
     }
 }

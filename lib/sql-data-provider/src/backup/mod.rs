@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::key_repository::KeyRepository;
@@ -19,6 +20,7 @@ pub(crate) struct BackupProvider {
     organisation_repository: Arc<dyn OrganisationRepository>,
     did_repository: Arc<dyn DidRepository>,
     key_repository: Arc<dyn KeyRepository>,
+    certificate_repository: Arc<dyn CertificateRepository>,
 }
 
 #[cfg(test)]

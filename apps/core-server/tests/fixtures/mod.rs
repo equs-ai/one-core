@@ -41,7 +41,7 @@ use one_core::model::proof_schema::{
     ProofInputClaimSchema, ProofInputSchema, ProofInputSchemaRelations, ProofSchema,
     ProofSchemaClaimRelations, ProofSchemaRelations,
 };
-use one_core::model::relation::Related;
+use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::DataRepository;
 use one_crypto::encryption::encrypt_string;
 use one_crypto::utilities::generate_alphanumeric;
@@ -501,7 +501,7 @@ pub async fn create_identifier(
         organisation: organisation.to_owned().into(),
         did: (params.did).map(Into::into),
         key: params.key.map(Related::from),
-        certificates: params.certificates,
+        certificates: params.certificates.map(RelatedVec::from),
         state: params.state.unwrap_or(IdentifierState::Active),
         r#type: params.r#type.unwrap_or(IdentifierType::Did),
         is_remote: params.is_remote.unwrap_or_default(),

@@ -19,7 +19,7 @@ impl JWTFormatter {
     pub(super) async fn format_bitstring_status_list(
         &self,
         revocation_list_url: String,
-        issuer: SelectedKey<'_>,
+        issuer: SelectedKey,
         encoded_list: String,
         jose_alg: String,
         auth_fn: AuthenticationFn,
@@ -75,7 +75,7 @@ impl JWTFormatter {
     pub(super) async fn format_token_status_list(
         &self,
         revocation_list_url: String,
-        issuer: SelectedKey<'_>,
+        issuer: SelectedKey,
         encoded_list: String,
         jose_alg: String,
         auth_fn: AuthenticationFn,

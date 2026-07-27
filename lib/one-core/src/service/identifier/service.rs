@@ -70,7 +70,6 @@ impl IdentifierService {
             .get(
                 *id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     trust_information: Some(IdentifierTrustInformationRelations::default()),
                 },
             )
@@ -515,7 +514,11 @@ impl IdentifierService {
         identifier: &Identifier,
     ) -> Result<Option<String>, IdentifierServiceError> {
         let mut rp_ids = HashSet::new();
-        for cert in identifier.certificates.iter().flatten() {
+        let certificates = match &identifier.certificates {
+            Some(certificates) => certificates.as_ref().await?.to_owned(),
+            None => vec![],
+        };
+        for cert in &certificates {
             let result = self
                 .wrp_validator
                 .validate_access_certificate(&cert.chain, None)
@@ -549,7 +552,6 @@ impl IdentifierService {
             .get(
                 *id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -564,7 +566,10 @@ impl IdentifierService {
         )
         .error_while("checking session")?;
 
-        let certificates = identifier.certificates.clone().unwrap_or_default();
+        let certificates = match &identifier.certificates {
+            Some(certificates) => certificates.as_ref().await?.to_owned(),
+            None => vec![],
+        };
         let name = identifier.name.clone();
 
         self.transaction_manager
@@ -729,7 +734,6 @@ impl IdentifierService {
                     // TODO: This is really a bad solution, fix once a lazy loading is implemented
                     identifier_id,
                     &IdentifierRelations {
-                        certificates: Some(Default::default()),
                         trust_information: None,
                     },
                 )

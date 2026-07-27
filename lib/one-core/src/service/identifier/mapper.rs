@@ -12,6 +12,7 @@ use crate::config::core_config::{BlobStorageType, CoreConfig};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::openid4vp::format_type_to_dcql_format;
 use crate::model::blob::BlobType;
+use crate::model::certificate::Certificate;
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaRelations};
 use crate::model::identifier::{
     ExactIdentifierFilterColumn, GetIdentifierList, Identifier, IdentifierFilterValue,
@@ -24,6 +25,7 @@ use crate::model::list_filter::{
 };
 use crate::model::list_query::{ListPagination, ListQuery, ListSorting};
 use crate::model::proof_schema::{ProofInputSchemaRelations, ProofSchemaRelations};
+use crate::model::relation::RelatedVec;
 use crate::model::trust_list_subscription::TrustListSubscription;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::signer::registration_certificate::model::Credential;
@@ -33,6 +35,18 @@ use crate::service::certificate::mapper::certificate_to_response_dto;
 use crate::service::common_dto::ListQueryDTO;
 use crate::service::did::dto::CreateDidRequestDTO;
 use crate::service::did::mapper::response_from_did;
+
+fn load_certificates(
+    value: &Identifier,
+) -> Result<&RelatedVec<Certificate>, IdentifierServiceError> {
+    value
+        .certificates
+        .as_ref()
+        .ok_or(IdentifierServiceError::MappingError(format!(
+            "Certificates required for identifier type {}",
+            value.r#type
+        )))
+}
 
 pub(super) async fn identifier_to_response_dto(
     value: Identifier,
@@ -59,15 +73,9 @@ pub(super) async fn identifier_to_response_dto(
         }
         IdentifierType::Certificate => {
             let mut certs = vec![];
-            for certificate in value
-                .certificates
-                .ok_or(IdentifierServiceError::MappingError(format!(
-                    "Certificates required for identifier type {}",
-                    value.r#type
-                )))?
-            {
+            for certificate in load_certificates(&value)?.as_ref().await?.iter() {
                 certs.push(
-                    certificate_to_response_dto(certificate)
+                    certificate_to_response_dto(certificate.to_owned())
                         .await
                         .error_while("converting certificate")?,
                 );
@@ -76,15 +84,9 @@ pub(super) async fn identifier_to_response_dto(
         }
         IdentifierType::CertificateAuthority => {
             let mut certs = vec![];
-            for certificate in value
-                .certificates
-                .ok_or(IdentifierServiceError::MappingError(format!(
-                    "Certificates required for identifier type {}",
-                    value.r#type
-                )))?
-            {
+            for certificate in load_certificates(&value)?.as_ref().await?.iter() {
                 certs.push(
-                    certificate_to_response_dto(certificate)
+                    certificate_to_response_dto(certificate.to_owned())
                         .await
                         .error_while("converting certificate")?,
                 );

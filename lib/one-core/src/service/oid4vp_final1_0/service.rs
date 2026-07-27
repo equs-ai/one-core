@@ -70,7 +70,6 @@ impl OID4VPFinal1_0Service {
                 &ProofRelations {
                     interaction: Some(Default::default()),
                     verifier_identifier: Some(IdentifierRelations {
-                        certificates: Some(Default::default()),
                         trust_information: Some(IdentifierTrustInformationRelations {}),
                     }),
                     verifier_key: Some(Default::default()),

@@ -62,7 +62,6 @@ impl CredentialService {
                 .get(
                     issuer_identifier_id,
                     &IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     },
                 )
@@ -132,7 +131,7 @@ impl CredentialService {
                     IdentifierType::Key,
                 ));
             }
-            SelectedKey::Certificate { certificate, key } => (*key, Some(certificate.to_owned())),
+            SelectedKey::Certificate { certificate, key } => (*key, Some(*certificate)),
             SelectedKey::Did { did, key } => {
                 validate_protocol_did_compatibility(
                     &exchange_capabilities.did_methods,

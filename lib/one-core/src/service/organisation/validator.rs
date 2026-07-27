@@ -25,7 +25,6 @@ pub(super) async fn validate_wallet_provider_issuer(
         .get(
             issuer_id,
             &IdentifierRelations {
-                certificates: Some(Default::default()),
                 ..Default::default()
             },
         )

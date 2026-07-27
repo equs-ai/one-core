@@ -282,6 +282,7 @@ impl DataLayer {
             organisation_repository.clone(),
             did_repository.clone(),
             key_repository.clone(),
+            certificate_repository.clone(),
         ));
 
         let blob_repository = Arc::new(BlobProvider {

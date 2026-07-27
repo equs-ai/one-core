@@ -197,6 +197,7 @@ impl IdentifierCreator for IdentifierCreatorProto {
                                         attributes.fingerprint.clone(),
                                     )
                                     .condition()
+                                        & CertificateFilterValue::Deleted(false)
                                         & CertificateFilterValue::OrganisationId(organisation.id)
                                             .condition(),
                                 ),

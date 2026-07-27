@@ -71,6 +71,8 @@ pub enum CertificateFilterValue {
     State(CertificateState),
     ExpiryDate(ValueComparison<OffsetDateTime>),
     OrganisationId(OrganisationId),
+    IdentifierId(IdentifierId),
+    Deleted(bool),
 }
 
 impl ListFilterValue for CertificateFilterValue {}

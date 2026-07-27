@@ -4,19 +4,21 @@ use shared_types::{DidMethodId, IdentifierId, KeyId, OrganisationId};
 use strum::{AsRefStr, Display};
 use time::OffsetDateTime;
 
-use super::certificate::{Certificate, CertificateRelations, CertificateRole, CertificateState};
+use super::certificate::{Certificate, CertificateRole, CertificateState};
 use super::common::GetListResponse;
 use super::did::{Did, KeyRole};
 use super::key::Key;
 use super::list_filter::{ListFilterValue, StringMatch};
 use super::list_query::ListQuery;
 use super::organisation::Organisation;
-use super::relation::Related;
+use super::relation::{Related, RelatedVec};
 use crate::config;
+use crate::error::{ErrorCodeMixinExt, NestedError};
 use crate::model::identifier_trust_information::{
     IdentifierTrustInformation, IdentifierTrustInformationRelations, SchemaFormat,
 };
 use crate::model::list_filter::ValueComparison;
+use crate::repository::error::DataLayerError;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
@@ -35,21 +37,33 @@ pub struct Identifier {
     // Relations:
     pub did: Option<Related<Did>>,
     pub key: Option<Related<Key>>,
-    pub certificates: Option<Vec<Certificate>>,
+    pub certificates: Option<RelatedVec<Certificate>>,
     pub trust_information: Option<Vec<IdentifierTrustInformation>>,
 }
 
 impl Identifier {
-    pub(crate) fn active_certs(&self) -> Option<Vec<&Certificate>> {
-        if self.r#type != IdentifierType::Certificate {
-            return Some(vec![]);
+    pub(crate) async fn active_certs(&self) -> Result<Option<Vec<Certificate>>, NestedError> {
+        if self.r#type != IdentifierType::Certificate
+            && self.r#type != IdentifierType::CertificateAuthority
+        {
+            return Ok(None);
         }
-        self.certificates.as_ref().map(|certs| {
-            certs
+        let Some(certificates) = &self.certificates else {
+            return Err(DataLayerError::MissingRequiredRelation {
+                relation: "identifier-certificate",
+                id: self.id.to_string(),
+            }
+            .error_while("getting active certificates"));
+        };
+        Ok(Some(
+            certificates
+                .as_ref()
+                .await?
                 .iter()
                 .filter(|cert| cert.state == CertificateState::Active)
-                .collect()
-        })
+                .cloned()
+                .collect(),
+        ))
     }
 }
 
@@ -86,7 +100,6 @@ pub enum IdentifierState {
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct IdentifierRelations {
-    pub certificates: Option<CertificateRelations>,
     pub trust_information: Option<IdentifierTrustInformationRelations>,
 }
 

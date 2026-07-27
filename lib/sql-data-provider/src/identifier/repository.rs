@@ -9,12 +9,12 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Select, Set,
     Unchanged,
 };
-use shared_types::{CertificateId, DidId, IdentifierId};
+use shared_types::{DidId, IdentifierId};
 
 use super::IdentifierProvider;
 use super::mapper::identifier_from_model;
 use crate::common::list_query_with_custom_model;
-use crate::entity::{certificate, identifier};
+use crate::entity::identifier;
 use crate::list_query_generic::{SelectWithFilterJoin, SelectWithListQuery};
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
 
@@ -29,6 +29,7 @@ impl IdentifierProvider {
             &self.organisation_repository,
             &self.did_repository,
             &self.key_repository,
+            &self.certificate_repository,
         );
 
         if let Some(_trust_relations) = &relations.trust_information {
@@ -37,36 +38,6 @@ impl IdentifierProvider {
                     .get_by_identifier_id(&model.id)
                     .await?,
             );
-        }
-
-        if (model.r#type == identifier::IdentifierType::Certificate
-            || model.r#type == identifier::IdentifierType::CertificateAuthority)
-            && let Some(_certificate_relations) = &relations.certificates
-        {
-            let certificate_ids: Vec<CertificateId> = certificate::Entity::find()
-                .select_only()
-                .column(certificate::Column::Id)
-                .filter(certificate::Column::IdentifierId.eq(model.id))
-                .order_by_desc(certificate::Column::ExpiryDate)
-                .order_by_asc(certificate::Column::Name)
-                .into_tuple()
-                .all(&self.db)
-                .await
-                .map_err(to_data_layer_error)?;
-
-            let mut certs = vec![];
-            for certificate_id in certificate_ids {
-                certs.push(
-                    self.certificate_repository
-                        .get(certificate_id)
-                        .await?
-                        .ok_or(DataLayerError::MissingRequiredRelation {
-                            relation: "identifier-certificate",
-                            id: certificate_id.to_string(),
-                        })?,
-                );
-            }
-            result.certificates = Some(certs);
         }
 
         Ok(result)
@@ -172,6 +143,7 @@ impl IdentifierRepository for IdentifierProvider {
                 &self.organisation_repository,
                 &self.did_repository,
                 &self.key_repository,
+                &self.certificate_repository,
             ))
         })
         .await

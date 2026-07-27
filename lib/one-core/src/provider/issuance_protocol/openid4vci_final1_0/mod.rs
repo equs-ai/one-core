@@ -1977,7 +1977,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                     }),
                     schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {
-                        certificates: Some(Default::default()),
                         ..Default::default()
                     }),
                     issuer_certificate: Some(CertificateRelations::default()),
@@ -2110,16 +2109,14 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         credential_data.issuer_certificate =
             if let Some(cert) = credential.issuer_certificate.clone() {
                 Some(cert)
+            } else if let Some(certificates) = credential
+                .issuer_identifier
+                .as_ref()
+                .and_then(|identifier| identifier.certificates.as_ref())
+            {
+                certificates.as_ref().await?.first().cloned()
             } else {
-                credential
-                    .issuer_identifier
-                    .as_ref()
-                    .and_then(|identifier| {
-                        identifier
-                            .certificates
-                            .as_ref()
-                            .and_then(|certs| certs.first().cloned())
-                    })
+                None
             };
 
         let token = formatter

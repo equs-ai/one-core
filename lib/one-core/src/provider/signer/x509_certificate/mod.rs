@@ -19,8 +19,8 @@ use crate::provider::signer::x509_certificate::mapper::{
     get_key_id_method, parse_csr, prepare_self_signed_params,
 };
 use crate::provider::signer::x509_utils::{
-    CaSigningInfo, IdentifierInfo, RevocationInfo, prepare_params_and_ca_issuer,
-    signing_key_adapter,
+    CaSigningInfo, IdentifierInfo, RevocationInfo, issuer_from_cert,
+    prepare_issuer_alternative_name_extension, prepare_params_and_ca_issuer, signing_key_adapter,
 };
 
 pub(crate) mod dto;
@@ -82,66 +82,75 @@ impl Signer for X509CertificateSigner {
 
         let request_data: RequestData = serde_json::from_value(request.data)?;
 
-        let (id, chain) = match (request_data, issuer) {
-            (
-                RequestData::Csr(csr),
-                Issuer::Identifier {
-                    identifier,
-                    certificate,
-                    key,
-                },
-            ) => {
-                let (mut cert_params, public_key) =
-                    parse_csr(&csr).map_err(|e| SignerError::InvalidPayload(Box::new(e)))?;
-
-                self.prefill_cert_params(&mut cert_params, &public_key, validity)?;
-
-                let CaSigningInfo {
-                    cert_issuer,
-                    signature_id,
-                    ca_certificate,
-                } = prepare_params_and_ca_issuer(
-                    &mut cert_params,
-                    IdentifierInfo {
-                        identifier: &identifier,
+        let (id, chain) =
+            match (request_data, issuer) {
+                (
+                    RequestData::Csr(csr),
+                    Issuer::Identifier {
+                        identifier,
                         certificate,
                         key,
                     },
-                    RevocationInfo {
-                        config_name: self.config_name.to_owned(),
-                        revocation_method: self.revocation_method()?,
-                    },
-                    self.key_provider.clone(),
-                )
-                .await?;
+                ) => {
+                    let (mut cert_params, public_key) =
+                        parse_csr(&csr).map_err(|e| SignerError::InvalidPayload(Box::new(e)))?;
 
-                let content = cert_params
-                    .signed_by(&public_key, &cert_issuer)
-                    .map_err(SignerError::signing_error)?;
-                let chain = format!("{}{}", content.pem(), ca_certificate.chain); // include CA chain
-                (signature_id, chain)
-            }
+                    self.prefill_cert_params(&mut cert_params, &public_key, validity)?;
 
-            (RequestData::SelfSigned(request), Issuer::Key(key)) => {
-                let mut cert_params = prepare_self_signed_params(request);
-                let signing_key = signing_key_adapter(*key, &*self.key_provider)?;
+                    let CaSigningInfo {
+                        signature_id,
+                        ca_certificate,
+                        signing_key,
+                    } = prepare_params_and_ca_issuer(
+                        &mut cert_params,
+                        IdentifierInfo {
+                            identifier: &identifier,
+                            certificate,
+                            key,
+                        },
+                        RevocationInfo {
+                            config_name: self.config_name.to_owned(),
+                            revocation_method: self.revocation_method()?,
+                        },
+                        self.key_provider.clone(),
+                    )
+                    .await?;
 
-                self.prefill_cert_params(&mut cert_params, &signing_key, validity)?;
+                    let (cert_issuer, issuer_alternative_name) =
+                        issuer_from_cert(&ca_certificate, signing_key)?;
+                    if let Some(issuer_alternative_name) = &issuer_alternative_name {
+                        cert_params.custom_extensions.push(
+                            prepare_issuer_alternative_name_extension(issuer_alternative_name),
+                        );
+                    }
 
-                let pem = cert_params
-                    .self_signed(&signing_key)
-                    .map_err(SignerError::signing_error)?
-                    .pem();
+                    let content = cert_params
+                        .signed_by(&public_key, &cert_issuer)
+                        .map_err(SignerError::signing_error)?;
+                    let chain = format!("{}{}", content.pem(), ca_certificate.chain); // include CA chain
+                    (signature_id, chain)
+                }
 
-                (Uuid::new_v4(), pem)
-            }
+                (RequestData::SelfSigned(request), Issuer::Key(key)) => {
+                    let mut cert_params = prepare_self_signed_params(request);
+                    let signing_key = signing_key_adapter(*key, &*self.key_provider)?;
 
-            _ => {
-                return Err(SignerError::MappingError(
-                    "Invalid request/identifier combination".to_string(),
-                ));
-            }
-        };
+                    self.prefill_cert_params(&mut cert_params, &signing_key, validity)?;
+
+                    let pem = cert_params
+                        .self_signed(&signing_key)
+                        .map_err(SignerError::signing_error)?
+                        .pem();
+
+                    (Uuid::new_v4(), pem)
+                }
+
+                _ => {
+                    return Err(SignerError::MappingError(
+                        "Invalid request/identifier combination".to_string(),
+                    ));
+                }
+            };
 
         Ok(CreateSignatureResponseDTO { id, result: chain })
     }

@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use one_core::model::certificate::{
-    Certificate, CertificateRole, CertificateState, UpdateCertificateRequest,
+    Certificate, CertificateFilterValue, CertificateRole, CertificateState,
+    UpdateCertificateRequest,
 };
+use one_core::model::list_filter::ListFilterValue;
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::key_repository::MockKeyRepository;
 use one_core::repository::organisation_repository::MockOrganisationRepository;
@@ -226,7 +228,60 @@ async fn test_delete_certificate_sets_deleted_at() {
 }
 
 #[tokio::test]
-async fn test_list_excludes_soft_deleted_certificates() {
+async fn test_list_filters_soft_deleted_certificates() {
+    use one_core::model::certificate::{CertificateListQuery, SortableCertificateColumn};
+    use one_core::model::common::SortDirection;
+    use one_core::model::list_query::{ListPagination, ListSorting};
+
+    let setup = setup().await;
+    let live_id: shared_types::CertificateId = Uuid::new_v4().into();
+    let dead_id: shared_types::CertificateId = Uuid::new_v4().into();
+
+    let mk = |id, fp: &str| Certificate {
+        id,
+        identifier_id: setup.identifier_id,
+        organisation: dummy_organisation(Some(setup.organisation_id)).into(),
+        created_date: get_dummy_date(),
+        last_modified: get_dummy_date(),
+        expiry_date: get_dummy_date(),
+        name: fp.to_string(),
+        chain: "chain".to_string(),
+        fingerprint: fp.to_string(),
+        state: CertificateState::Active,
+        roles: vec![],
+        key: None,
+        deleted_at: None,
+    };
+    let live = mk(live_id, "fp-live");
+    let dead = mk(dead_id, "fp-dead");
+    setup.provider.create(live.clone()).await.unwrap();
+    setup.provider.create(dead.clone()).await.unwrap();
+
+    setup.provider.delete(&dead).await.unwrap();
+
+    let list = setup
+        .provider
+        .list(CertificateListQuery {
+            pagination: Some(ListPagination {
+                page: 0,
+                page_size: 10,
+            }),
+            sorting: Some(ListSorting {
+                column: SortableCertificateColumn::CreatedDate,
+                direction: Some(SortDirection::Descending),
+            }),
+            filtering: Some(CertificateFilterValue::Deleted(false).condition()),
+            include: None,
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(list.total_items, 1);
+    assert_eq!(list.values[0].id, live_id);
+}
+
+#[tokio::test]
+async fn test_list_includes_soft_deleted_certificates() {
     use one_core::model::certificate::{CertificateListQuery, SortableCertificateColumn};
     use one_core::model::common::SortDirection;
     use one_core::model::list_query::{ListPagination, ListSorting};
@@ -274,8 +329,7 @@ async fn test_list_excludes_soft_deleted_certificates() {
         .await
         .unwrap();
 
-    assert_eq!(list.total_items, 1);
-    assert_eq!(list.values[0].id, live_id);
+    assert_eq!(list.total_items, 2);
 }
 
 #[tokio::test]

@@ -32,6 +32,7 @@ use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatC
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
 use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
 use crate::model::key::Key;
+use crate::model::relation::RelatedVec;
 use crate::proto::credential_validity_manager::MockCredentialValidityManager;
 use crate::proto::notification_scheduler::MockNotificationScheduler;
 use crate::proto::session_provider::test::StaticSessionProvider;
@@ -5841,7 +5842,7 @@ async fn test_create_credential_invalid_certificate_role() {
     identifier_repository.expect_get().return_once(move |_, _| {
         Ok(Some(Identifier {
             id: identifier_id,
-            certificates: Some(vec![certificate]),
+            certificates: Some(RelatedVec::from(vec![certificate])),
             r#type: IdentifierType::Certificate,
             ..dummy_identifier()
         }))

@@ -32,7 +32,9 @@ use crate::model::credential_schema::{CredentialSchema, LayoutType};
 use crate::model::organisation::Organisation;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::{JWTPayload, jwt_metadata_claims};
-use crate::provider::credential_formatter::mapper::{default_2_years, to_format_with_mappings};
+use crate::provider::credential_formatter::mapper::{
+    default_2_years, first_certificate, to_format_with_mappings,
+};
 use crate::provider::data_type::provider::DataTypeProvider;
 use crate::provider::did_method::error::DidMethodError;
 use crate::provider::did_method::provider::DidMethodProvider;
@@ -158,7 +160,7 @@ impl CredentialFormatter for JWTFormatter {
     async fn format_status_list<'a>(
         &self,
         revocation_list_url: String,
-        issuer: SelectedKey<'a>,
+        issuer: SelectedKey,
         encoded_list: String,
         algorithm: KeyAlgorithmType,
         auth_fn: AuthenticationFn,
@@ -466,10 +468,7 @@ impl CredentialFormatter for JWTFormatter {
             wallet_unit_attestation_blob_id: None,
             wallet_instance_attestation_blob_id: None,
             claims: Some(claims),
-            issuer_certificate: issuer_identifier
-                .certificates
-                .as_ref()
-                .and_then(|certs| certs.first().cloned()),
+            issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
             holder_identifier,
             schema: Some(schema),

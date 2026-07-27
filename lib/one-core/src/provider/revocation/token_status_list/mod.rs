@@ -365,7 +365,6 @@ impl RevocationMethod for TokenStatusList {
             .get(
                 issuer_id,
                 &IdentifierRelations {
-                    certificates: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -377,8 +376,11 @@ impl RevocationMethod for TokenStatusList {
 
         let issuer_certificate = if let Some(certificates) = &issuer_identifier.certificates {
             certificates
+                .as_ref()
+                .await?
                 .iter()
                 .find(|c| c.state == CertificateState::Active)
+                .cloned()
         } else {
             None
         };
@@ -387,7 +389,7 @@ impl RevocationMethod for TokenStatusList {
             .create_entry(
                 RevocationListEntityId::WalletUnitAttestedKey(attestation.id),
                 &issuer_identifier,
-                issuer_certificate,
+                issuer_certificate.as_ref(),
             )
             .await?;
         Ok(result.1)
@@ -511,7 +513,6 @@ impl RevocationMethod for TokenStatusList {
                         signature_id,
                         &RevocationListRelations {
                             issuer_identifier: Some(IdentifierRelations {
-                                certificates: Some(Default::default()),
                                 ..Default::default()
                             }),
                             issuer_certificate: Some(Default::default()),
