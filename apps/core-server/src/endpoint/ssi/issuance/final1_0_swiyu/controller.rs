@@ -18,7 +18,9 @@ use crate::endpoint::ssi::issuance::final1_0::dto::{
     OpenID4VCINonceResponseRestDTO, OpenID4VCINotificationRequestRestDTO,
     OpenID4VCITokenRequestRestDTO, OpenID4VCITokenResponseRestDTO,
 };
-use crate::endpoint::ssi::issuance::final1_0_swiyu::dto::OpenID4VCISwiyuIssuerMetadataResponseRestDTO;
+use crate::endpoint::ssi::issuance::final1_0_swiyu::dto::{
+    OpenID4VCISwiyuIssuerMetadataResponseRestDTO, SwiyuOpenID4VCITokenResponseRestDTO,
+};
 use crate::extractor::QsOrForm;
 use crate::router::AppState;
 
@@ -301,7 +303,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_create_token(
     match result {
         Ok(value) => (
             StatusCode::OK,
-            Json(OpenID4VCITokenResponseRestDTO::from(value)),
+            Json(SwiyuOpenID4VCITokenResponseRestDTO::from(value)),
         )
             .into_response(),
         Err(OID4VCIFinal1_0ServiceError::OpenID4VCIError(error)) => {

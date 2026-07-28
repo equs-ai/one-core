@@ -1,12 +1,13 @@
 use indexmap::IndexMap;
 use one_core::provider::issuance_protocol::openid4vci_final1_0::model::{
     OpenID4VCICredentialConfigurationData, OpenID4VCIIssuerMetadataResponseDTO,
+    OpenID4VCITokenResponseDTO,
 };
 use one_dto_mapper::{convert_inner, convert_inner_of_inner};
 
 use crate::endpoint::ssi::issuance::final1_0_swiyu::dto::{
     OpenID4VCISwiyuIssuerMetadataCredentialSupportedResponseRestDTO,
-    OpenID4VCISwiyuIssuerMetadataResponseRestDTO,
+    OpenID4VCISwiyuIssuerMetadataResponseRestDTO, SwiyuOpenID4VCITokenResponseRestDTO,
 };
 
 impl From<OpenID4VCIIssuerMetadataResponseDTO> for OpenID4VCISwiyuIssuerMetadataResponseRestDTO {
@@ -57,6 +58,25 @@ impl From<OpenID4VCICredentialConfigurationData>
             ),
             proof_types_supported: value.proof_types_supported,
             credential_definition: convert_inner(value.credential_definition),
+        }
+    }
+}
+
+impl From<OpenID4VCITokenResponseDTO> for SwiyuOpenID4VCITokenResponseRestDTO {
+    fn from(value: OpenID4VCITokenResponseDTO) -> Self {
+        let OpenID4VCITokenResponseDTO {
+            access_token,
+            expires_in,
+            refresh_token,
+            refresh_token_expires_in,
+            ..
+        } = value;
+        Self {
+            access_token,
+            token_type: "BEARER".to_string(),
+            expires_in: expires_in.into(),
+            refresh_token,
+            refresh_token_expires_in: convert_inner(refresh_token_expires_in),
         }
     }
 }

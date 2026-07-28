@@ -1,14 +1,17 @@
 use indexmap::IndexMap;
+use one_core::mapper::opt_secret_string;
 use one_core::provider::issuance_protocol::model::OpenID4VCIProofTypeSupported;
 use proc_macros::options_not_nullable;
+use secrecy::SecretString;
 use serde::Serialize;
+use standardized_types::mapper::secret_string;
 use utoipa::ToSchema;
 
 use crate::endpoint::ssi::issuance::final1_0::dto::{
     CredentialSigningAlgValueRestEnum, OpenID4VCICredentialDefinitionRestDTO,
     OpenID4VCICredentialMetadataClaimResponseRestDTO, OpenID4VCICredentialMetadataResponseRestDTO,
     OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO,
-    OpenID4VCIIssuerMetadataDisplayResponseRestDTO,
+    OpenID4VCIIssuerMetadataDisplayResponseRestDTO, TimestampRest,
 };
 
 #[options_not_nullable]
@@ -39,4 +42,18 @@ pub(crate) struct OpenID4VCISwiyuIssuerMetadataCredentialSupportedResponseRestDT
     #[schema(value_type = Object)]
     pub proof_types_supported: Option<IndexMap<String, OpenID4VCIProofTypeSupported>>,
     pub credential_definition: Option<OpenID4VCICredentialDefinitionRestDTO>,
+}
+
+#[options_not_nullable]
+#[derive(Clone, Debug, Serialize, ToSchema)]
+pub(crate) struct SwiyuOpenID4VCITokenResponseRestDTO {
+    #[serde(with = "secret_string")]
+    #[schema(value_type = String, example = "secret")]
+    pub access_token: SecretString,
+    pub token_type: String,
+    pub expires_in: TimestampRest,
+    #[serde(with = "opt_secret_string")]
+    #[schema(value_type = String, example = "secret", nullable = false)]
+    pub refresh_token: Option<SecretString>,
+    pub refresh_token_expires_in: Option<TimestampRest>,
 }

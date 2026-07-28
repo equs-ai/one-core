@@ -13,8 +13,7 @@ pub mod dynamic_client_registration;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Display)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum TokenType {
-    /// Uses uppercase B here, because some implementations (i.e. swiyu) are picky about it.
-    /// This matches usage in the Authorization header, so it seems sensible to use this casing.
+    /// Uses uppercase B matches usage in the Authorization header, so it seems sensible to use this casing.
     /// However, as per spec, implementations _should_ be lenient towards any casing when used as
     /// `token_type` in the token endpoint response.
     #[default]
