@@ -1,9 +1,9 @@
+use one_core::model::instance::{InstanceRole, InstanceStatus};
 use one_core::model::list_filter::ListFilterValue;
 use one_core::model::list_query::{ListPagination, ListSorting};
 use one_core::model::managed_instance::{
-    InstanceStatus, ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceListQuery,
-    ManagedInstanceOs, ManagedInstanceRelations, ManagedInstanceRole,
-    SortableManagedInstanceColumn, UpdateManagedInstanceRequest,
+    ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceListQuery, ManagedInstanceOs,
+    ManagedInstanceRelations, SortableManagedInstanceColumn, UpdateManagedInstanceRequest,
 };
 use one_core::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
@@ -62,7 +62,7 @@ fn dummy_wallet_instance(id: ManagedInstanceId, org: OrganisationId) -> ManagedI
         last_issuance: Some(now),
         name: "test_wallet".to_string(),
         os: ManagedInstanceOs::Android,
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         status: InstanceStatus::Active,
         provider: "Test Provider Name".to_string(),
         authentication_key_jwk: Some(random_jwk()),

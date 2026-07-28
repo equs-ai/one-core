@@ -10,8 +10,9 @@ use super::InstanceService;
 use super::dto::{HolderRegisterInstanceRequestDTO, InstanceProviderDTO};
 use super::error::HolderInstanceError;
 use crate::config::core_config::CoreConfig;
-use crate::model::instance::{CreateInstanceRequest, Instance, WalletProviderType};
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use crate::model::instance::{
+    CreateInstanceRequest, Instance, InstanceRole, InstanceStatus, WalletProviderType,
+};
 use crate::model::organisation::Organisation;
 use crate::proto::clock::DefaultClock;
 use crate::proto::credential_schema::importer::MockCredentialSchemaImporter;
@@ -228,7 +229,7 @@ async fn holder_register_success() {
     let request = HolderRegisterInstanceRequestDTO {
         organisation_id,
         key_type: "EDDSA".to_string(),
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         provider: InstanceProviderDTO {
             r#type: WalletProviderType::ProcivisOne,
             url: "https://wallet.provider/register".to_string(),
@@ -355,7 +356,7 @@ async fn holder_register_key_attestation_not_supported() {
     let request = HolderRegisterInstanceRequestDTO {
         organisation_id,
         key_type: "EDDSA".to_string(),
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         provider: InstanceProviderDTO {
             r#type: WalletProviderType::ProcivisOne,
             url: "https://wallet.provider/register".to_string(),
@@ -384,7 +385,7 @@ async fn holder_instance_status_check_still_valid() {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 status: InstanceStatus::Active,
-                role: ManagedInstanceRole::Wallet,
+                role: InstanceRole::Wallet,
                 provider_type: WalletProviderType::ProcivisOne,
                 provider_name: "PROCIVIS_ONE".to_string(),
                 provider_url: "https://wallet.provider".to_string(),
@@ -434,7 +435,7 @@ async fn holder_instance_status_check_revocation() {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 status: InstanceStatus::Active,
-                role: ManagedInstanceRole::Wallet,
+                role: InstanceRole::Wallet,
                 provider_type: WalletProviderType::ProcivisOne,
                 provider_name: "PROCIVIS_ONE".to_string(),
                 provider_url: "https://wallet.provider".to_string(),
@@ -528,7 +529,7 @@ async fn holder_instance_status_check_already_revoked() {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 status: InstanceStatus::Revoked,
-                role: ManagedInstanceRole::Wallet,
+                role: InstanceRole::Wallet,
                 provider_type: WalletProviderType::ProcivisOne,
                 provider_name: "PROCIVIS_ONE".to_string(),
                 provider_url: "https://wallet.provider".to_string(),
@@ -584,18 +585,14 @@ async fn holder_register_already_exists() {
     holder_wallet_unit_repository
         .expect_get_by_role()
         .once()
-        .with(
-            eq(ManagedInstanceRole::Wallet),
-            eq(organisation_id),
-            always(),
-        )
+        .with(eq(InstanceRole::Wallet), eq(organisation_id), always())
         .return_once(move |_, _, _| {
             Ok(Some(Instance {
                 id: existing_instance_id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 status: InstanceStatus::Revoked,
-                role: ManagedInstanceRole::Wallet,
+                role: InstanceRole::Wallet,
                 provider_type: WalletProviderType::ProcivisOne,
                 provider_name: "PROCIVIS_ONE".to_string(),
                 provider_url: "https://wallet.provider".to_string(),
@@ -618,7 +615,7 @@ async fn holder_register_already_exists() {
     let request = HolderRegisterInstanceRequestDTO {
         organisation_id,
         key_type: "EDDSA".to_string(),
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         provider: InstanceProviderDTO {
             r#type: WalletProviderType::ProcivisOne,
             url: "https://wallet.provider/register".to_string(),

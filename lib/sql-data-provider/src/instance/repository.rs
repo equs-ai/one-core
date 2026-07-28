@@ -2,9 +2,8 @@ use async_trait::async_trait;
 use futures::FutureExt;
 use one_core::model::instance::{
     CreateInstanceRequest, Instance, InstanceList, InstanceListQuery, InstanceRelations,
-    UpdateInstanceRequest,
+    InstanceRole, UpdateInstanceRequest,
 };
-use one_core::model::managed_instance::ManagedInstanceRole;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::instance_repository::InstanceRepository;
 use sea_orm::{
@@ -14,7 +13,6 @@ use shared_types::{InstanceId, OrganisationId};
 
 use crate::common::list_query_with_custom_model;
 use crate::entity::instance;
-use crate::entity::managed_instance::InstanceRole;
 use crate::instance::InstanceProvider;
 use crate::instance::mapper::instance_from_model;
 use crate::list_query_generic::SelectWithListQuery;
@@ -47,12 +45,12 @@ impl InstanceRepository for InstanceProvider {
 
     async fn get_by_role(
         &self,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
         organisation_id: OrganisationId,
         relations: &InstanceRelations,
     ) -> Result<Option<Instance>, DataLayerError> {
         let model = instance::Entity::find()
-            .filter(instance::Column::Role.eq(InstanceRole::from(role)))
+            .filter(instance::Column::Role.eq(instance::InstanceRole::from(role)))
             .filter(instance::Column::OrganisationId.eq(organisation_id))
             .one(&self.db)
             .await

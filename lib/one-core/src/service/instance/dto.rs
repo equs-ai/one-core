@@ -2,15 +2,14 @@ use serde::Serialize;
 use shared_types::{IdentifierId, InstanceId, ManagedInstanceId, OrganisationId};
 use time::OffsetDateTime;
 
-use crate::model::instance::WalletProviderType;
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use crate::model::instance::{InstanceRole, InstanceStatus, WalletProviderType};
 use crate::service::key::dto::KeyListItemResponseDTO;
 
 #[derive(Debug, Clone)]
 pub struct HolderRegisterInstanceRequestDTO {
     pub organisation_id: OrganisationId,
     pub key_type: String,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub provider: InstanceProviderDTO,
 }
 
@@ -31,7 +30,7 @@ pub struct HolderInstanceResponseDTO {
     pub id: InstanceId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub provider_instance_id: ManagedInstanceId,
     pub provider_url: String,
     pub provider_type: WalletProviderType,

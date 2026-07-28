@@ -1,6 +1,5 @@
-use one_core::model::managed_instance::{
-    InstanceStatus, ManagedInstanceListQuery, ManagedInstanceRole,
-};
+use one_core::model::instance::{InstanceRole, InstanceStatus};
+use one_core::model::managed_instance::ManagedInstanceListQuery;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use similar_asserts::assert_eq;
@@ -101,7 +100,7 @@ async fn test_register_instance_verifier_role_successfully() {
     assert_eq!(wallet_units.values.len(), 1);
     let wallet_unit = &wallet_units.values[0];
     assert_eq!(wallet_unit.status, InstanceStatus::Active);
-    assert_eq!(wallet_unit.role, ManagedInstanceRole::Verifier);
+    assert_eq!(wallet_unit.role, InstanceRole::Verifier);
 }
 
 #[tokio::test]

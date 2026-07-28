@@ -11,8 +11,9 @@ use super::dto::{CreateOrganisationRequestDTO, OrganisationFilterParamsDTO};
 use super::error::OrganisationServiceError;
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::common::GetListResponse;
-use crate::model::instance::{Instance, InstanceList, WalletProviderType};
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use crate::model::instance::{
+    Instance, InstanceList, InstanceRole, InstanceStatus, WalletProviderType,
+};
 use crate::model::organisation::{GetOrganisationList, OrganisationListQuery};
 use crate::model::trust_collection::TrustCollection;
 use crate::proto::trust_list_subscription_sync::MockTrustListSubscriptionSync;
@@ -222,7 +223,7 @@ async fn test_get_organisation_list_failure() {
 fn dummy_instance(
     id: Uuid,
     organisation: crate::model::organisation::Organisation,
-    role: ManagedInstanceRole,
+    role: InstanceRole,
 ) -> Instance {
     Instance {
         id: id.into(),
@@ -331,21 +332,17 @@ async fn test_get_trust_collections_from_verifier_provider_only() {
     let mut instance_repository = MockInstanceRepository::new();
     instance_repository
         .expect_get_by_role()
-        .with(eq(ManagedInstanceRole::Wallet), always(), always())
+        .with(eq(InstanceRole::Wallet), always(), always())
         .returning(|_, _, _| Ok(None));
     let instance_org = organisation.clone();
     instance_repository
         .expect_get_by_role()
-        .with(
-            eq(ManagedInstanceRole::Verifier),
-            eq(organisation_id),
-            always(),
-        )
+        .with(eq(InstanceRole::Verifier), eq(organisation_id), always())
         .returning(move |_, _, _| {
             Ok(Some(dummy_instance(
                 verifier_instance_id,
                 instance_org.clone(),
-                ManagedInstanceRole::Verifier,
+                InstanceRole::Verifier,
             )))
         });
 
@@ -423,12 +420,12 @@ async fn test_upsert_organisation_rejects_trust_collections_spanning_multiple_pr
     let wallet_instance = dummy_instance(
         wallet_instance_id,
         organisation.clone(),
-        ManagedInstanceRole::Wallet,
+        InstanceRole::Wallet,
     );
     let verifier_instance = dummy_instance(
         verifier_instance_id,
         organisation.clone(),
-        ManagedInstanceRole::Verifier,
+        InstanceRole::Verifier,
     );
 
     let mut organisation_repository = MockOrganisationRepository::default();
@@ -443,22 +440,14 @@ async fn test_upsert_organisation_rejects_trust_collections_spanning_multiple_pr
     let mut instance_repository = MockInstanceRepository::new();
     instance_repository
         .expect_get_by_role()
-        .with(
-            eq(ManagedInstanceRole::Wallet),
-            eq(organisation_id),
-            always(),
-        )
+        .with(eq(InstanceRole::Wallet), eq(organisation_id), always())
         .returning({
             let wallet_instance = wallet_instance.clone();
             move |_, _, _| Ok(Some(wallet_instance.clone()))
         });
     instance_repository
         .expect_get_by_role()
-        .with(
-            eq(ManagedInstanceRole::Verifier),
-            eq(organisation_id),
-            always(),
-        )
+        .with(eq(InstanceRole::Verifier), eq(organisation_id), always())
         .returning({
             let verifier_instance = verifier_instance.clone();
             move |_, _, _| Ok(Some(verifier_instance.clone()))

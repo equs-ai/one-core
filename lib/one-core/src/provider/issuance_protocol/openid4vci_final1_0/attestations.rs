@@ -10,11 +10,10 @@ use super::{
     HolderInteractionData, IssuanceProtocolError, OpenID4VCIFinal1_0, WalletAttestationResult,
 };
 use crate::error::ContextWithErrorCode;
-use crate::model::instance::{Instance, InstanceFilterValue};
+use crate::model::instance::{Instance, InstanceFilterValue, InstanceStatus};
 use crate::model::key::Key;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
-use crate::model::managed_instance::InstanceStatus;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::JWTPayload;
 use crate::proto::wallet_instance::{

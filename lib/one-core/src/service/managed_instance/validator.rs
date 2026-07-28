@@ -6,7 +6,7 @@ use super::error::ManagedInstanceError;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, RevocationType};
 use crate::error::ContextWithErrorCode;
-use crate::model::managed_instance::ManagedInstanceRole;
+use crate::model::instance::InstanceRole;
 use crate::model::organisation::Organisation;
 use crate::proto::jwt::model::DecomposedJwt;
 use crate::validator::{
@@ -17,12 +17,12 @@ use crate::validator::{
 /// to the wallet- or verifier-specific check since those are tracked as separate org fields.
 pub(super) fn validate_org_for_role(
     organisation: &Organisation,
-    role: ManagedInstanceRole,
+    role: InstanceRole,
     provider: &str,
 ) -> Result<(), ManagedInstanceError> {
     match role {
-        ManagedInstanceRole::Wallet => validate_org_wallet_provider(organisation, provider),
-        ManagedInstanceRole::Verifier => validate_org_verifier_provider(organisation, provider),
+        InstanceRole::Wallet => validate_org_wallet_provider(organisation, provider),
+        InstanceRole::Verifier => validate_org_verifier_provider(organisation, provider),
     }
     .map(|_identifier_id| ())
 }

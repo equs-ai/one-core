@@ -8,14 +8,15 @@ use time::{Duration, OffsetDateTime};
 
 use crate::config::core_config::DocumentSignerType;
 use crate::model::common::GetListResponse;
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceOs, ManagedInstanceRole};
+use crate::model::instance::{InstanceRole, InstanceStatus};
+use crate::model::managed_instance::ManagedInstanceOs;
 use crate::provider::credential_formatter::sdjwtvc_formatter::model::SdJwtVcStatus;
 use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 
 #[derive(Clone, Debug)]
 pub struct RegisterWalletUnitRequestDTO {
     pub provider: String,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub os: ManagedInstanceOs,
     pub public_key: Option<PublicJwk>,
     pub proof: Option<String>,
@@ -271,7 +272,7 @@ pub struct GetManagedInstanceResponseDTO {
     pub name: String,
     pub os: ManagedInstanceOs,
     pub status: InstanceStatus,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub provider_name: String,
     pub provider_type: String,
     pub authentication_key_jwk: Option<PublicJwk>,
@@ -288,7 +289,7 @@ pub struct ManagedInstanceFilterParamsDTO {
     pub status: Option<Vec<InstanceStatus>>,
     pub os: Option<Vec<ManagedInstanceOs>>,
     pub provider_names: Option<Vec<String>>,
-    pub roles: Option<Vec<ManagedInstanceRole>>,
+    pub roles: Option<Vec<InstanceRole>>,
     pub attestation: Option<String>,
     pub organisation_id: shared_types::OrganisationId,
     pub created_date_after: Option<OffsetDateTime>,

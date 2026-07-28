@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use shared_types::{ManagedInstanceId, OrganisationId, RevocationListEntryId};
 use time::OffsetDateTime;
 
+use crate::entity::instance::{InstanceRole, InstanceStatus};
+
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "managed_instance")]
 pub struct Model {
@@ -15,7 +17,7 @@ pub struct Model {
     pub last_issuance: Option<OffsetDateTime>,
     pub name: String,
     pub os: ManagedInstanceOs,
-    pub status: WalletInstanceStatus,
+    pub status: InstanceStatus,
     pub provider: String,
     pub authentication_key_jwk: Option<String>,
     pub nonce: Option<String>,
@@ -71,32 +73,4 @@ pub enum ManagedInstanceOs {
     Android,
     #[sea_orm(string_value = "WEB")]
     Web,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum, Into, From, Deserialize)]
-#[from(one_core::model::managed_instance::InstanceStatus)]
-#[into(one_core::model::managed_instance::InstanceStatus)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
-pub enum WalletInstanceStatus {
-    #[sea_orm(string_value = "ACTIVE")]
-    Active,
-    #[sea_orm(string_value = "REVOKED")]
-    Revoked,
-    #[sea_orm(string_value = "PENDING")]
-    Pending,
-    #[sea_orm(string_value = "UNATTESTED")]
-    Unattested,
-    #[sea_orm(string_value = "ERROR")]
-    Error,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum, Into, From, Deserialize)]
-#[from(one_core::model::managed_instance::ManagedInstanceRole)]
-#[into(one_core::model::managed_instance::ManagedInstanceRole)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
-pub enum InstanceRole {
-    #[sea_orm(string_value = "WALLET")]
-    Wallet,
-    #[sea_orm(string_value = "VERIFIER")]
-    Verifier,
 }

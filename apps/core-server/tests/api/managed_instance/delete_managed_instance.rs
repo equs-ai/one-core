@@ -1,4 +1,4 @@
-use one_core::model::managed_instance::InstanceStatus;
+use one_core::model::instance::InstanceStatus;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 

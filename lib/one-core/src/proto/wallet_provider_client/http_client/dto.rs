@@ -4,7 +4,8 @@ use serde_with::skip_serializing_none;
 use shared_types::ManagedInstanceId;
 use standardized_types::jwk::PublicJwk;
 
-use crate::model::managed_instance::{ManagedInstanceOs, ManagedInstanceRole};
+use crate::model::instance::InstanceRole;
+use crate::model::managed_instance::ManagedInstanceOs;
 use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use crate::service::managed_instance::dto::{
     self, DocumentSignerMetadataDTO, FeatureFlags, ProviderTrustCollectionDTO,
@@ -16,7 +17,7 @@ use crate::service::managed_instance::dto::{
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RegisterWalletUnitRequestRestDTO {
     pub provider: String,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub os: ManagedInstanceOs,
     pub public_key: Option<PublicJwk>,
     pub proof: Option<String>,

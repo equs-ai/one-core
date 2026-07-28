@@ -1,5 +1,5 @@
 use one_core::model::history::{HistoryAction, HistoryEntityType};
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use one_core::model::instance::{InstanceRole, InstanceStatus};
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use reqwest::header::AUTHORIZATION;
@@ -270,7 +270,7 @@ async fn activate_instance_verifier_role_successfully() {
         .create(
             org.clone(),
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 status: Some(InstanceStatus::Pending),
                 ..Default::default()
             },
@@ -339,7 +339,7 @@ async fn activate_instance_verifier_role_provisions_access_certificate() {
         .create(
             org.clone(),
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 status: Some(InstanceStatus::Pending),
                 ..Default::default()
             },

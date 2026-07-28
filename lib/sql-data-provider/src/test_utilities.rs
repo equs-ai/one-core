@@ -30,15 +30,15 @@ use crate::entity::did::DidType;
 use crate::entity::history::{self, HistoryAction, HistoryEntityType};
 use crate::entity::interaction::InteractionType;
 use crate::entity::key_did::KeyRole;
-use crate::entity::managed_instance::InstanceRole;
 use crate::entity::proof::{ProofRequestState, ProofRole};
 use crate::entity::revocation_list::{RevocationListFormat, RevocationListPurpose};
 use crate::entity::revocation_list_entry::{RevocationListEntryState, RevocationListEntryType};
 use crate::entity::{
     blob, claim, claim_schema, credential, credential_schema, credential_schema_format, did,
-    identifier, interaction, key, key_did, managed_instance, managed_instance_attested_key,
-    organisation, proof, proof_claim, proof_input_claim_schema, proof_input_schema, proof_schema,
-    revocation_list, revocation_list_entry, trust_collection, trust_list_subscription,
+    identifier, instance, interaction, key, key_did, managed_instance,
+    managed_instance_attested_key, organisation, proof, proof_claim, proof_input_claim_schema,
+    proof_input_schema, proof_schema, revocation_list, revocation_list_entry, trust_collection,
+    trust_list_subscription,
 };
 use crate::{DataLayer, db_conn};
 
@@ -761,7 +761,7 @@ pub async fn insert_wallet_instance_to_database(
         last_issuance: Set(Some(now)),
         name: Set(name),
         os: Set(managed_instance::ManagedInstanceOs::Android),
-        status: Set(managed_instance::WalletInstanceStatus::Active),
+        status: Set(instance::InstanceStatus::Active),
         provider: Set("Test Provider Name".to_string()),
         // Generate unique public key to avoid constraint violations
         authentication_key_jwk: Set(Some(random_jwk_string())),
@@ -769,7 +769,7 @@ pub async fn insert_wallet_instance_to_database(
         user_nonce: Set(None),
         user_sub: Set(None),
         organisation_id: Set(organisation_id),
-        role: Set(InstanceRole::Wallet),
+        role: Set(instance::InstanceRole::Wallet),
         verifier_csr: Set(None),
         verifier_signature_ids: Set(None),
     }

@@ -1,4 +1,5 @@
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceListQuery};
+use one_core::model::instance::InstanceStatus;
+use one_core::model::managed_instance::ManagedInstanceListQuery;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use similar_asserts::assert_eq;

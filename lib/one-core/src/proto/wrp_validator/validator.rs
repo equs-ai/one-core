@@ -16,8 +16,8 @@ use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::did::KeyRole;
+use crate::model::instance::InstanceRole;
 use crate::model::list_filter::ListFilterValue;
-use crate::model::managed_instance::ManagedInstanceRole;
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::model::trust_list_subscription::{
@@ -320,11 +320,7 @@ impl WRPValidator for WRPValidatorImpl {
 
         let holder_wallet_instance = self
             .holder_wallet_instance_repository
-            .get_by_role(
-                ManagedInstanceRole::Wallet,
-                organisation_id,
-                &Default::default(),
-            )
+            .get_by_role(InstanceRole::Wallet, organisation_id, &Default::default())
             .await
             .error_while("getting wallet instance")?;
         if let Some(holder_wallet_instance) = holder_wallet_instance {
@@ -362,11 +358,7 @@ impl WRPValidator for WRPValidatorImpl {
 
         let verifier_instance = self
             .holder_wallet_instance_repository
-            .get_by_role(
-                ManagedInstanceRole::Verifier,
-                organisation_id,
-                &Default::default(),
-            )
+            .get_by_role(InstanceRole::Verifier, organisation_id, &Default::default())
             .await
             .error_while("getting wallet instance")?;
         if let Some(verifier_instance) = verifier_instance {

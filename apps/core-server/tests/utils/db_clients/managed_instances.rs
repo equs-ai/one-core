@@ -1,9 +1,10 @@
 use std::ops::Sub;
 use std::sync::Arc;
 
+use one_core::model::instance::{InstanceRole, InstanceStatus};
 use one_core::model::managed_instance::{
-    InstanceStatus, ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery,
-    ManagedInstanceOs, ManagedInstanceRelations, ManagedInstanceRole, UpdateManagedInstanceRequest,
+    ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, ManagedInstanceOs,
+    ManagedInstanceRelations, UpdateManagedInstanceRequest,
 };
 use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::model::organisation::Organisation;
@@ -28,7 +29,7 @@ pub struct TestWalletInstance {
     pub last_issuance: Option<Option<OffsetDateTime>>,
     pub attested_keys: Option<Vec<ManagedInstanceAttestedKey>>,
     pub user_sub: Option<String>,
-    pub role: Option<ManagedInstanceRole>,
+    pub role: Option<InstanceRole>,
     pub provider: Option<String>,
     pub verifier_csr: Option<String>,
     pub verifier_signature_ids: Option<Vec<RevocationListEntryId>>,
@@ -62,9 +63,7 @@ impl ManagedInstancesDB {
             provider: test_wallet_instance
                 .provider
                 .unwrap_or("PROCIVIS_ONE".to_string()),
-            role: test_wallet_instance
-                .role
-                .unwrap_or(ManagedInstanceRole::Wallet),
+            role: test_wallet_instance.role.unwrap_or(InstanceRole::Wallet),
             authentication_key_jwk: test_wallet_instance.public_key,
             last_issuance: test_wallet_instance
                 .last_issuance

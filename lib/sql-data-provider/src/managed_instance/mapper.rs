@@ -2,8 +2,7 @@ use anyhow::anyhow;
 use one_core::model::history::HistoryMetadata;
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::managed_instance::{
-    InstanceStatus, ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceOs,
-    SortableManagedInstanceColumn,
+    ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceOs, SortableManagedInstanceColumn,
 };
 use one_core::repository::error::DataLayerError;
 use one_dto_mapper::convert_inner;
@@ -14,7 +13,7 @@ use sea_orm::{ColumnTrait, Condition, IntoSimpleExpr};
 use shared_types::RevocationListEntryId;
 
 use crate::entity::managed_instance::VerifierSignatures;
-use crate::entity::{history, managed_instance};
+use crate::entity::{history, instance, managed_instance};
 use crate::list_query_generic::{
     IntoFilterCondition, IntoJoinRelations, IntoSortingColumn, JoinRelation,
     get_comparison_condition, get_equals_condition, get_string_match_condition,
@@ -29,7 +28,7 @@ impl TryFrom<managed_instance::Model> for ManagedInstance {
             created_date: value.created_date,
             last_modified: value.last_modified,
             os: ManagedInstanceOs::from(value.os),
-            status: InstanceStatus::from(value.status),
+            status: value.status.into(),
             provider: value.provider,
             role: value.role.into(),
             authentication_key_jwk: value
@@ -128,7 +127,7 @@ impl IntoFilterCondition for ManagedInstanceFilterValue {
                 .is_in(
                     statuses
                         .into_iter()
-                        .map(managed_instance::WalletInstanceStatus::from)
+                        .map(instance::InstanceStatus::from)
                         .collect::<Vec<_>>(),
                 )
                 .into_condition(),
@@ -139,7 +138,7 @@ impl IntoFilterCondition for ManagedInstanceFilterValue {
                 .is_in(
                     roles
                         .into_iter()
-                        .map(managed_instance::InstanceRole::from)
+                        .map(instance::InstanceRole::from)
                         .collect::<Vec<_>>(),
                 )
                 .into_condition(),

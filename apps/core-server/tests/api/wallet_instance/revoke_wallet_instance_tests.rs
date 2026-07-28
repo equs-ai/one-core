@@ -1,5 +1,6 @@
 use one_core::model::identifier::IdentifierType;
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRelations};
+use one_core::model::instance::InstanceStatus;
+use one_core::model::managed_instance::ManagedInstanceRelations;
 use one_core::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
     ManagedInstanceAttestedKeyRevocationInfo,

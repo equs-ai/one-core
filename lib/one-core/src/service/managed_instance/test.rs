@@ -18,10 +18,9 @@ use crate::config::core_config::{
 };
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
+use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::key::Key;
-use crate::model::managed_instance::{
-    InstanceStatus, ManagedInstance, ManagedInstanceOs, ManagedInstanceRole,
-};
+use crate::model::managed_instance::{ManagedInstance, ManagedInstanceOs};
 use crate::model::organisation::Organisation;
 use crate::model::relation::Related;
 use crate::proto::certificate_validator::MockCertificateValidator;
@@ -240,7 +239,7 @@ async fn test_register_wallet_unit() {
     let (proof, holder_jwk) = create_proof().await;
     let request = RegisterWalletUnitRequestDTO {
         provider: procivis_one_provider.to_string(),
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         os: ManagedInstanceOs::Android,
         public_key: Some(holder_jwk.public_key_as_jwk().unwrap()),
         proof: Some(proof),
@@ -351,7 +350,7 @@ async fn test_register_wallet_unit_integrity_check() {
 
     let request = RegisterWalletUnitRequestDTO {
         provider: "PROCIVIS_ONE".to_string(),
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         os: ManagedInstanceOs::Android,
         public_key: None,
         proof: None,
@@ -436,7 +435,7 @@ async fn test_register_verifier_unit() {
     let (proof, holder_jwk) = create_proof().await;
     let request = RegisterWalletUnitRequestDTO {
         provider: verifier_provider_name.to_string(),
-        role: ManagedInstanceRole::Verifier,
+        role: InstanceRole::Verifier,
         os: ManagedInstanceOs::Android,
         public_key: Some(holder_jwk.public_key_as_jwk().unwrap()),
         proof: Some(proof),
@@ -464,7 +463,7 @@ async fn test_register_verifier_unit_provider_not_associated_with_organisation()
 
     let request = RegisterWalletUnitRequestDTO {
         provider: "VERIFIER_PROVIDER".to_string(),
-        role: ManagedInstanceRole::Verifier,
+        role: InstanceRole::Verifier,
         os: ManagedInstanceOs::Android,
         public_key: None,
         proof: None,
@@ -590,7 +589,7 @@ async fn provider_get_wallet_unit_session_org_mismatch() {
         last_modified: get_dummy_date(),
         os: ManagedInstanceOs::Ios,
         status: InstanceStatus::Active,
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         provider: "test provider".to_string(),
         authentication_key_jwk: None,
         last_issuance: None,

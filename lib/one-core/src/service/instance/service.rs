@@ -19,10 +19,11 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMix
 use crate::model::certificate::CertificateRole;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::instance::{
-    CreateInstanceRequest, InstanceRelations, UpdateInstanceRequest, WalletProviderType,
+    CreateInstanceRequest, InstanceRelations, InstanceRole, InstanceStatus, UpdateInstanceRequest,
+    WalletProviderType,
 };
 use crate::model::key::{Key, KeyRelations};
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceOs, ManagedInstanceRole};
+use crate::model::managed_instance::ManagedInstanceOs;
 use crate::model::organisation::Organisation;
 use crate::model::wallet_instance_attestation::WalletInstanceAttestationRelations;
 use crate::proto::csr_creator::{CsrRequestProfile, CsrRequestSubject, GenerateCsrRequest};
@@ -65,13 +66,13 @@ pub(super) struct ProviderMetadata {
 pub(crate) fn provider_metadata_url(
     provider_url: &str,
     provider_name: &str,
-    role: ManagedInstanceRole,
+    role: InstanceRole,
 ) -> String {
     match role {
-        ManagedInstanceRole::Wallet => {
+        InstanceRole::Wallet => {
             format!("{provider_url}/ssi/wallet-provider/v1/{provider_name}")
         }
-        ManagedInstanceRole::Verifier => {
+        InstanceRole::Verifier => {
             format!("{provider_url}/ssi/verifier-provider/v1/{provider_name}")
         }
     }
@@ -490,12 +491,12 @@ impl InstanceService {
 
     async fn fetch_provider_metadata_for_url(
         &self,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
         metadata_url: &str,
         provider_type: WalletProviderType,
     ) -> Result<ProviderMetadata, HolderInstanceError> {
         Ok(match role {
-            ManagedInstanceRole::Wallet => self
+            InstanceRole::Wallet => self
                 .wallet_provider_client
                 .get_wallet_provider_metadata(MetadataTarget {
                     r#type: provider_type,
@@ -504,7 +505,7 @@ impl InstanceService {
                 .await
                 .error_while("getting wallet provider metadata")?
                 .into(),
-            ManagedInstanceRole::Verifier => self
+            InstanceRole::Verifier => self
                 .verifier_provider_client
                 .get_verifier_provider_metadata(metadata_url)
                 .await
@@ -576,7 +577,7 @@ impl InstanceService {
         &self,
         provider_info: &WalletProviderInfo,
         os: ManagedInstanceOs,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
     ) -> Result<RegistrationStatus, HolderInstanceError> {
         let register_response = self
             .register(
@@ -615,7 +616,7 @@ impl InstanceService {
         key_type: KeyAlgorithmType,
         os: ManagedInstanceOs,
         organisation: Organisation,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
     ) -> Result<RegistrationStatus, HolderInstanceError> {
         let (key, register_response) = self
             .register_without_integrity_check(
@@ -651,7 +652,7 @@ impl InstanceService {
         key_type: KeyAlgorithmType,
         os: ManagedInstanceOs,
         organisation: Organisation,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
     ) -> Result<RegistrationStatus, HolderInstanceError> {
         let register_response = self
             .register(
@@ -697,7 +698,7 @@ impl InstanceService {
         key_type: KeyAlgorithmType,
         os: ManagedInstanceOs,
         organisation: Organisation,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
     ) -> Result<RegistrationStatus, HolderInstanceError> {
         let (key, register_response) = self
             .register_without_integrity_check(
@@ -731,7 +732,7 @@ impl InstanceService {
         key_type: KeyAlgorithmType,
         os: ManagedInstanceOs,
         organisation: Organisation,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
     ) -> Result<(Key, RegisterWalletUnitResponseDTO), HolderInstanceError> {
         let (key, signed_proof) = self
             .generate_key_and_proof(key_storage_id, key_type, organisation, provider_info, None)

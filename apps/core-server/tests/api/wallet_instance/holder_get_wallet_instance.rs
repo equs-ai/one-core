@@ -1,5 +1,4 @@
-use one_core::model::instance::WalletProviderType;
-use one_core::model::managed_instance::InstanceStatus;
+use one_core::model::instance::{InstanceStatus, WalletProviderType};
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 

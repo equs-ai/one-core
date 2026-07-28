@@ -6,6 +6,7 @@ use time::OffsetDateTime;
 
 use super::common::GetListResponse;
 use super::list_query::ListQuery;
+use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::list_filter::{ListFilterValue, StringMatch, ValueComparison};
 use crate::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
@@ -21,7 +22,7 @@ pub struct ManagedInstance {
     pub last_modified: OffsetDateTime,
     pub os: ManagedInstanceOs,
     pub status: InstanceStatus,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub provider: String,
     pub authentication_key_jwk: Option<PublicJwk>,
     pub last_issuance: Option<OffsetDateTime>,
@@ -43,24 +44,6 @@ pub enum ManagedInstanceOs {
     Ios,
     Android,
     Web,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Display)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[strum(ascii_case_insensitive, serialize_all = "UPPERCASE")]
-pub enum ManagedInstanceRole {
-    Wallet,
-    Verifier,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Display)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum InstanceStatus {
-    Pending,
-    Active,
-    Revoked,
-    Unattested,
-    Error,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -86,7 +69,7 @@ pub enum ManagedInstanceFilterValue {
     Ids(Vec<ManagedInstanceId>),
     Status(Vec<InstanceStatus>),
     ProviderName(Vec<String>),
-    Role(Vec<ManagedInstanceRole>),
+    Role(Vec<InstanceRole>),
     Os(Vec<ManagedInstanceOs>),
     AttestationHash(String),
     CreatedDate(ValueComparison<OffsetDateTime>),

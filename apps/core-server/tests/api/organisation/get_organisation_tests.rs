@@ -1,5 +1,4 @@
-use one_core::model::instance::WalletProviderType;
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use one_core::model::instance::{InstanceRole, InstanceStatus, WalletProviderType};
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
@@ -76,7 +75,7 @@ async fn test_get_organisation_returns_wallet_instance() {
                 provider_name: Some("PROCIVIS_ONE".to_string()),
                 provider_url: Some("https://wallet.provider".to_string()),
                 provider_wallet_unit_id: Some(Uuid::new_v4().into()),
-                role: Some(ManagedInstanceRole::Wallet),
+                role: Some(InstanceRole::Wallet),
             },
         )
         .await;
@@ -163,7 +162,7 @@ async fn test_get_organisation_with_verifier_instance_success() {
             organisation.clone(),
             Some(key),
             TestHolderWalletInstanceParams {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 ..Default::default()
             },
         )

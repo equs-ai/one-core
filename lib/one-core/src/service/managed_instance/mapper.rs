@@ -13,11 +13,12 @@ use super::dto::{
 };
 use super::error::ManagedInstanceError;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use crate::model::instance::InstanceStatus;
 use crate::model::list_filter::{
     ComparisonType, ListFilterCondition, ListFilterValue, StringMatch, StringMatchType,
     ValueComparison,
 };
-use crate::model::managed_instance::{InstanceStatus, ManagedInstance, ManagedInstanceFilterValue};
+use crate::model::managed_instance::{ManagedInstance, ManagedInstanceFilterValue};
 use crate::model::organisation::Organisation;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::{KeyAlgorithmProvider, ParsedKey};

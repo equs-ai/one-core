@@ -1,6 +1,5 @@
-use one_core::model::managed_instance::{
-    InstanceStatus, ManagedInstanceOs, ManagedInstanceRole, SortableManagedInstanceColumn,
-};
+use one_core::model::instance::{InstanceRole, InstanceStatus};
+use one_core::model::managed_instance::{ManagedInstanceOs, SortableManagedInstanceColumn};
 use one_core::service::error::ServiceError;
 use one_core::service::managed_instance::dto;
 use one_core::service::managed_instance::dto::ManagedInstanceFilterParamsDTO;
@@ -81,8 +80,8 @@ pub(crate) enum InstanceStatusRestEnum {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, ToSchema, From, Into)]
-#[from(ManagedInstanceRole)]
-#[into(ManagedInstanceRole)]
+#[from(InstanceRole)]
+#[into(InstanceRole)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum InstanceRoleRestEnum {
     Wallet,

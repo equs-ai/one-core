@@ -1,5 +1,4 @@
-use one_core::model::instance::WalletProviderType;
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use one_core::model::instance::{InstanceRole, InstanceStatus, WalletProviderType};
 use one_core::service::instance::dto::{
     HolderActivateInstanceRequestDTO, HolderActivateInstanceResponseDTO, HolderInstanceResponseDTO,
     HolderRegisterInstanceRequestDTO, HolderRegisterInstanceResponseDTO, InstanceProviderDTO,
@@ -99,8 +98,8 @@ pub struct HolderRegisterInstanceRequestBindingDTO {
 }
 
 #[derive(Clone, Debug, uniffi::Enum, Into, From)]
-#[into(ManagedInstanceRole)]
-#[from(ManagedInstanceRole)]
+#[into(InstanceRole)]
+#[from(InstanceRole)]
 #[uniffi(name = "InstanceRole")]
 pub enum InstanceRoleBindingEnum {
     Wallet,

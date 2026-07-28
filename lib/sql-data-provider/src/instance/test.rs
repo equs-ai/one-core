@@ -1,8 +1,8 @@
 use one_core::model::instance::{
-    CreateInstanceRequest, Instance, InstanceRelations, UpdateInstanceRequest, WalletProviderType,
+    CreateInstanceRequest, Instance, InstanceRelations, InstanceRole, InstanceStatus,
+    UpdateInstanceRequest, WalletProviderType,
 };
 use one_core::model::key::{Key, KeyRelations};
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use one_core::model::organisation::Organisation;
 use one_core::model::wallet_instance_attestation::{
     WalletInstanceAttestation, WalletInstanceAttestationRelations,
@@ -134,7 +134,7 @@ fn test_wallet_instance(id: InstanceId, organisation: Organisation, key: Key) ->
         created_date: now,
         last_modified: now,
         status: InstanceStatus::Pending,
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         provider_type: WalletProviderType::ProcivisOne,
         provider_name: "test_name".to_string(),
         provider_url: "test_url".to_string(),

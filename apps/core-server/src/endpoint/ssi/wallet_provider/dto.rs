@@ -78,7 +78,7 @@ impl From<RegisterWalletUnitRequestRestDTO> for dto::RegisterWalletUnitRequestDT
     fn from(value: RegisterWalletUnitRequestRestDTO) -> Self {
         Self {
             provider: value.wallet_provider,
-            role: one_core::model::managed_instance::ManagedInstanceRole::Wallet,
+            role: one_core::model::instance::InstanceRole::Wallet,
             os: value.os.into(),
             public_key: value.public_key,
             proof: value.proof,

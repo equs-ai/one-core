@@ -45,11 +45,10 @@ use crate::model::credential_schema_format_claim_schema::CredentialSchemaFormatC
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
 use crate::model::history::{HistoryAction, TrustResolutionResult};
 use crate::model::identifier::{Identifier, IdentifierState, IdentifierType};
-use crate::model::instance::{Instance, WalletProviderType};
+use crate::model::instance::{Instance, InstanceRole, InstanceStatus, WalletProviderType};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
 use crate::model::localized_text::{LocalizedTextEntityType, LocalizedTextField};
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use crate::model::relation::Related;
 use crate::proto::certificate_validator::{MockCertificateValidator, ParsedCertificate};
 use crate::proto::credential_schema::importer::MockCredentialSchemaImporter;
@@ -3237,7 +3236,7 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 provider_type: WalletProviderType::ProcivisOne,
-                role: ManagedInstanceRole::Wallet,
+                role: InstanceRole::Wallet,
                 provider_name: "provider".to_string(),
                 provider_url: "provider.url".to_string(),
                 provider_instance_id: Uuid::new_v4().into(),

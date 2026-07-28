@@ -2,9 +2,8 @@ use shared_types::{InstanceId, OrganisationId};
 
 use crate::model::instance::{
     CreateInstanceRequest, Instance, InstanceList, InstanceListQuery, InstanceRelations,
-    UpdateInstanceRequest,
+    InstanceRole, UpdateInstanceRequest,
 };
-use crate::model::managed_instance::ManagedInstanceRole;
 use crate::repository::error::DataLayerError;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -20,7 +19,7 @@ pub trait InstanceRepository: Send + Sync {
 
     async fn get_by_role(
         &self,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
         organisation_id: OrganisationId,
         relations: &InstanceRelations,
     ) -> Result<Option<Instance>, DataLayerError>;

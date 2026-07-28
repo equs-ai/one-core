@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use entity::{instance, managed_instance};
+use entity::instance;
 use one_core::model::instance::{
     CreateInstanceRequest, Instance, InstanceFilterValue, SortableInstanceColumn,
     WalletProviderType,
@@ -70,13 +70,12 @@ impl IntoFilterCondition for InstanceFilterValue {
             Self::OrganisationIds(organisation_ids) => instance::Column::OrganisationId
                 .is_in(organisation_ids)
                 .into_condition(),
-            Self::Role(role) => get_equals_condition(
-                instance::Column::Role,
-                managed_instance::InstanceRole::from(role),
-            ),
+            Self::Role(role) => {
+                get_equals_condition(instance::Column::Role, instance::InstanceRole::from(role))
+            }
             Self::Status(status) => get_equals_condition(
                 instance::Column::Status,
-                managed_instance::WalletInstanceStatus::from(status),
+                instance::InstanceStatus::from(status),
             ),
         }
     }

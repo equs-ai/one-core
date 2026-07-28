@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use ct_codecs::{Base64, Base64UrlSafeNoPadding, Encoder};
-use one_core::model::managed_instance::ManagedInstanceRole;
+use one_core::model::instance::InstanceRole;
 use one_core::model::organisation::{OrganisationConfiguration, UpdateOrganisationRequest};
 use rcgen::{CertificateParams, SanType};
 use serde_json::{Value, json};
@@ -2261,7 +2261,7 @@ async fn test_handle_invitation_trust_disabled_succeeds() {
             TestHolderWalletInstanceParams {
                 provider_name: Some("PROCIVIS_ONE".to_string()),
                 provider_url: Some(mock_server.uri()),
-                role: Some(ManagedInstanceRole::Wallet),
+                role: Some(InstanceRole::Wallet),
                 ..Default::default()
             },
         )
@@ -2332,7 +2332,7 @@ async fn test_handle_invitation_trust_mandatory_without_identifier_returns_error
             TestHolderWalletInstanceParams {
                 provider_name: Some("PROCIVIS_ONE".to_string()),
                 provider_url: Some(mock_server.uri()),
-                role: Some(ManagedInstanceRole::Wallet),
+                role: Some(InstanceRole::Wallet),
                 ..Default::default()
             },
         )
@@ -2475,7 +2475,7 @@ async fn test_handle_invitation_trust_mandatory_with_x509_certificate_not_in_tru
             TestHolderWalletInstanceParams {
                 provider_name: Some("PROCIVIS_ONE".to_string()),
                 provider_url: Some(mock_server.uri()),
-                role: Some(ManagedInstanceRole::Wallet),
+                role: Some(InstanceRole::Wallet),
                 ..Default::default()
             },
         )

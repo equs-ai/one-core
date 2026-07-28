@@ -19,11 +19,10 @@ use super::validator::{
 };
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::identifier::{Identifier, IdentifierFilterValue, IdentifierListQuery};
-use crate::model::instance::{InstanceFilterValue, InstanceRelations};
+use crate::model::instance::{InstanceFilterValue, InstanceRelations, InstanceRole};
 use crate::model::key::KeyRelations;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
-use crate::model::managed_instance::ManagedInstanceRole;
 use crate::model::organisation::{
     Organisation, OrganisationConfiguration, SortableOrganisationColumn, UpdateOrganisationRequest,
 };
@@ -148,10 +147,10 @@ impl OrganisationService {
             };
 
         let wallet_instance = self
-            .load_instance_details(ManagedInstanceRole::Wallet, organisation.id)
+            .load_instance_details(InstanceRole::Wallet, organisation.id)
             .await?;
         let verifier_instance = self
-            .load_instance_details(ManagedInstanceRole::Verifier, organisation.id)
+            .load_instance_details(InstanceRole::Verifier, organisation.id)
             .await?;
 
         Ok(detail_from_model(
@@ -165,7 +164,7 @@ impl OrganisationService {
 
     async fn load_instance_details(
         &self,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
         organisation_id: OrganisationId,
     ) -> Result<Option<InstanceDetailResponseDTO>, OrganisationServiceError> {
         let relations = InstanceRelations {
@@ -375,17 +374,12 @@ impl OrganisationService {
     async fn fetch_remote_trust_collections(
         &self,
         organisation: &Organisation,
-    ) -> Result<Vec<(ManagedInstanceRole, ProviderTrustCollectionDTO)>, OrganisationServiceError>
-    {
+    ) -> Result<Vec<(InstanceRole, ProviderTrustCollectionDTO)>, OrganisationServiceError> {
         let mut result = vec![];
 
         let wallet_instance = self
             .instance_repository
-            .get_by_role(
-                ManagedInstanceRole::Wallet,
-                organisation.id,
-                &Default::default(),
-            )
+            .get_by_role(InstanceRole::Wallet, organisation.id, &Default::default())
             .await
             .error_while("getting wallet instance")?;
         if let Some(wallet_instance) = wallet_instance {
@@ -398,24 +392,20 @@ impl OrganisationService {
                 metadata
                     .trust_collections
                     .into_iter()
-                    .map(|collection| (ManagedInstanceRole::Wallet, collection)),
+                    .map(|collection| (InstanceRole::Wallet, collection)),
             );
         }
 
         let verifier_instance = self
             .instance_repository
-            .get_by_role(
-                ManagedInstanceRole::Verifier,
-                organisation.id,
-                &Default::default(),
-            )
+            .get_by_role(InstanceRole::Verifier, organisation.id, &Default::default())
             .await
             .error_while("getting wallet instance")?;
         if let Some(verifier_instance) = verifier_instance {
             let metadata_url = provider_metadata_url(
                 &verifier_instance.provider_url,
                 &verifier_instance.provider_name,
-                ManagedInstanceRole::Verifier,
+                InstanceRole::Verifier,
             );
             let metadata = self
                 .verifier_provider_client
@@ -426,7 +416,7 @@ impl OrganisationService {
                 metadata
                     .trust_collections
                     .into_iter()
-                    .map(|collection| (ManagedInstanceRole::Verifier, collection.into())),
+                    .map(|collection| (InstanceRole::Verifier, collection.into())),
             );
         }
 
@@ -484,7 +474,7 @@ impl OrganisationService {
             remote_trust_collections,
         )?;
 
-        let satisfied_by = |role: ManagedInstanceRole| {
+        let satisfied_by = |role: InstanceRole| {
             trust_collections.iter().all(|id| {
                 roles_by_local_id
                     .get(id)
@@ -492,9 +482,7 @@ impl OrganisationService {
             })
         };
 
-        if !satisfied_by(ManagedInstanceRole::Wallet)
-            && !satisfied_by(ManagedInstanceRole::Verifier)
-        {
+        if !satisfied_by(InstanceRole::Wallet) && !satisfied_by(InstanceRole::Verifier) {
             return Err(OrganisationServiceError::TrustCollectionsSpanMultipleProviders);
         }
 

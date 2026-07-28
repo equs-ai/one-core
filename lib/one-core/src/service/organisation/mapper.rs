@@ -6,11 +6,11 @@ use uuid::Uuid;
 
 use crate::error::ContextWithErrorCode;
 use crate::model::identifier::Identifier;
+use crate::model::instance::InstanceRole;
 use crate::model::list_filter::{
     ComparisonType, ListFilterCondition, ListFilterValue, ValueComparison,
 };
 use crate::model::list_query::ListPagination;
-use crate::model::managed_instance::ManagedInstanceRole;
 use crate::model::organisation::{
     Organisation, OrganisationFilterValue, UpdateOrganisationRequest,
 };
@@ -241,10 +241,10 @@ pub(super) fn match_local_trust_collection<'a>(
 /// remote provider, or unmatched by `match_local_trust_collection`, simply has no entry).
 pub(super) fn group_remote_trust_collections_by_local_id(
     local_trust_collections: &[TrustCollection],
-    remote_trust_collections: Vec<(ManagedInstanceRole, ProviderTrustCollectionDTO)>,
-) -> Result<HashMap<TrustCollectionId, Vec<ManagedInstanceRole>>, OrganisationServiceError> {
+    remote_trust_collections: Vec<(InstanceRole, ProviderTrustCollectionDTO)>,
+) -> Result<HashMap<TrustCollectionId, Vec<InstanceRole>>, OrganisationServiceError> {
     let mut matched_local_ids = HashSet::new();
-    let mut roles_by_local_id = HashMap::<TrustCollectionId, Vec<ManagedInstanceRole>>::new();
+    let mut roles_by_local_id = HashMap::<TrustCollectionId, Vec<InstanceRole>>::new();
     for (role, metadata) in remote_trust_collections {
         let Some(local) = match_local_trust_collection(
             local_trust_collections,

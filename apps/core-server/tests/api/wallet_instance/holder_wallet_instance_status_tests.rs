@@ -1,5 +1,4 @@
-use one_core::model::instance::WalletProviderType;
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use one_core::model::instance::{InstanceRole, InstanceStatus, WalletProviderType};
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
@@ -63,7 +62,7 @@ async fn test_holder_instance_status_already_revoked() {
                 provider_name: Some("PROCIVIS_ONE".to_string()),
                 provider_url: Some("https://wallet.provider".to_string()),
                 provider_wallet_unit_id: Some(Uuid::new_v4().into()),
-                role: Some(ManagedInstanceRole::Wallet),
+                role: Some(InstanceRole::Wallet),
             },
         )
         .await;

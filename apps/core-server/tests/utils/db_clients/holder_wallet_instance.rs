@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use one_core::model::instance::{
-    CreateInstanceRequest, Instance, InstanceRelations, WalletProviderType,
+    CreateInstanceRequest, Instance, InstanceRelations, InstanceRole, InstanceStatus,
+    WalletProviderType,
 };
 use one_core::model::key::Key;
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use one_core::model::organisation::Organisation;
 use one_core::repository::instance_repository::InstanceRepository;
 use shared_types::{InstanceId, ManagedInstanceId};
@@ -21,7 +21,7 @@ pub struct TestHolderWalletInstanceParams {
     pub provider_name: Option<String>,
     pub provider_url: Option<String>,
     pub provider_wallet_unit_id: Option<ManagedInstanceId>,
-    pub role: Option<ManagedInstanceRole>,
+    pub role: Option<InstanceRole>,
 }
 
 impl HolderWalletInstancesDB {
@@ -42,7 +42,7 @@ impl HolderWalletInstancesDB {
                 .unwrap_or(InstanceStatus::Active),
             role: test_holder_wallet_instance
                 .role
-                .unwrap_or(ManagedInstanceRole::Wallet),
+                .unwrap_or(InstanceRole::Wallet),
             provider_type: test_holder_wallet_instance
                 .provider_type
                 .unwrap_or(WalletProviderType::ProcivisOne),

@@ -6,10 +6,11 @@ use serde_json::{Value, json};
 use shared_types::{InstanceId, OrganisationId};
 
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
-use crate::model::instance::{Instance, InstanceFilterValue, InstanceListQuery};
+use crate::model::instance::{
+    Instance, InstanceFilterValue, InstanceListQuery, InstanceRole, InstanceStatus,
+};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListPagination;
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::proto::trust_collection::TrustCollectionManager;
 use crate::proto::trust_collection::dto::RemoteTrustCollectionInfoDTO;
@@ -193,7 +194,7 @@ impl TrustCollectionSyncTask {
             holder_wallet_unit.role,
         );
         let remote_collections = match holder_wallet_unit.role {
-            ManagedInstanceRole::Wallet => {
+            InstanceRole::Wallet => {
                 let metadata = self
                     .wallet_unit_client
                     .get_wallet_provider_metadata(MetadataTarget {
@@ -204,7 +205,7 @@ impl TrustCollectionSyncTask {
                     .error_while("getting wallet provider metadata")?;
                 convert_inner(metadata.trust_collections)
             }
-            ManagedInstanceRole::Verifier => {
+            InstanceRole::Verifier => {
                 let metadata = self
                     .verifier_client
                     .get_verifier_provider_metadata(&metadata_url)

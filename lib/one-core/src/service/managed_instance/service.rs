@@ -42,12 +42,12 @@ use crate::model::history::{
     History, HistoryAction, HistoryEntityType, HistoryErrorMetadata, HistoryMetadata, HistorySource,
 };
 use crate::model::identifier::{IdentifierRelations, IdentifierType};
+use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::{ListPagination, ListSorting};
 use crate::model::managed_instance::{
-    InstanceStatus, ManagedInstance, ManagedInstanceListQuery, ManagedInstanceOs,
-    ManagedInstanceRelations, ManagedInstanceRole, SortableManagedInstanceColumn,
-    UpdateManagedInstanceRequest,
+    ManagedInstance, ManagedInstanceListQuery, ManagedInstanceOs, ManagedInstanceRelations,
+    SortableManagedInstanceColumn, UpdateManagedInstanceRequest,
 };
 use crate::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
@@ -158,13 +158,13 @@ impl ManagedInstanceService {
 
     fn resolve_provider_type(&self, instance: &ManagedInstance) -> String {
         match instance.role {
-            ManagedInstanceRole::Wallet => self
+            InstanceRole::Wallet => self
                 .config
                 .wallet_provider
                 .get_type(&instance.provider)
                 .map(|r#type| r#type.to_string())
                 .unwrap_or_else(|_| instance.provider.clone()),
-            ManagedInstanceRole::Verifier => instance.provider.clone(),
+            InstanceRole::Verifier => instance.provider.clone(),
         }
     }
 
@@ -268,17 +268,17 @@ impl ManagedInstanceService {
 
     async fn get_organisation_for_provider(
         &self,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
         provider: &str,
     ) -> Result<Organisation, ManagedInstanceError> {
         let (organisation, not_associated_error) = match role {
-            ManagedInstanceRole::Wallet => (
+            InstanceRole::Wallet => (
                 self.organisation_repository
                     .get_organisation_for_wallet_provider(provider)
                     .await,
                 ManagedInstanceError::WalletProviderNotAssociatedWithOrganisation,
             ),
-            ManagedInstanceRole::Verifier => (
+            InstanceRole::Verifier => (
                 self.organisation_repository
                     .get_organisation_for_verifier_provider(provider)
                     .await,
@@ -296,11 +296,11 @@ impl ManagedInstanceService {
 
     fn get_provider_registration_params(
         &self,
-        role: ManagedInstanceRole,
+        role: InstanceRole,
         provider: &str,
     ) -> Result<ProviderRegistrationParams, ManagedInstanceError> {
         Ok(match role {
-            ManagedInstanceRole::Wallet => {
+            InstanceRole::Wallet => {
                 let (config, config_params) = self.get_wallet_provider_config_params(provider)?;
                 ProviderRegistrationParams {
                     name_label: config.r#type.to_string(),
@@ -310,7 +310,7 @@ impl ManagedInstanceService {
                     access_certificate_configuration: None,
                 }
             }
-            ManagedInstanceRole::Verifier => {
+            InstanceRole::Verifier => {
                 let verifier_params = self
                     .verifier_provider
                     .get_by_id(provider)
@@ -651,7 +651,7 @@ impl ManagedInstanceService {
                 return Err(ManagedInstanceError::MissingUserAccessToken);
             };
 
-            if wallet_unit.role != ManagedInstanceRole::Verifier {
+            if wallet_unit.role != InstanceRole::Verifier {
                 return Err(ManagedInstanceError::InvalidRole(wallet_unit.role));
             }
 
@@ -1412,11 +1412,11 @@ impl ManagedInstanceService {
         // so a config lookup or certificate revocation failure doesn't leave the instance
         // marked Revoked in the DB with nothing actually revoked.
         let wallet_provider_config_params = match wallet_unit.role {
-            ManagedInstanceRole::Wallet => Some(
+            InstanceRole::Wallet => Some(
                 self.get_wallet_provider_config_params(&wallet_unit.provider)?
                     .1,
             ),
-            ManagedInstanceRole::Verifier => {
+            InstanceRole::Verifier => {
                 self.revoke_verifier_access_certificates(&wallet_unit)
                     .await?;
                 None
@@ -1523,7 +1523,7 @@ impl ManagedInstanceService {
 
         // Revoke linked access certificates before deleting the instance: once deleted, its
         // verifier_signature_ids are gone and a failure here could no longer be retried.
-        if wallet_unit.role == ManagedInstanceRole::Verifier {
+        if wallet_unit.role == InstanceRole::Verifier {
             self.revoke_verifier_access_certificates(&wallet_unit)
                 .await?;
         }
@@ -1782,6 +1782,6 @@ struct ProviderRegistrationParams {
     integrity_check: IntegrityCheck,
     device_auth_leeway: Duration,
     user_authentication: Option<UserAuthenticationParams>,
-    /// Only ever set for `ManagedInstanceRole::Verifier`.
+    /// Only ever set for `InstanceRole::Verifier`.
     access_certificate_configuration: Option<AccessCertificateConfiguration>,
 }

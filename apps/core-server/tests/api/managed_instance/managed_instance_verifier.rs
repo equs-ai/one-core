@@ -1,6 +1,6 @@
 use one_core::model::certificate::{Certificate, CertificateRole, CertificateState};
 use one_core::model::identifier::{Identifier, IdentifierType};
-use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use one_core::model::instance::{InstanceRole, InstanceStatus};
 use one_core::model::organisation::Organisation;
 use one_core::model::revocation_list::{
     RevocationListEntityId, RevocationListEntryState, StatusListCredentialFormat,
@@ -90,7 +90,7 @@ async fn test_list_managed_instances_returns_all_roles() {
         .create(
             org.clone(),
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 ..Default::default()
             },
         )
@@ -101,7 +101,7 @@ async fn test_list_managed_instances_returns_all_roles() {
         .create(
             org.clone(),
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Wallet),
+                role: Some(InstanceRole::Wallet),
                 ..Default::default()
             },
         )
@@ -131,7 +131,7 @@ async fn test_list_managed_instances_honors_explicit_roles_filter() {
         .create(
             org.clone(),
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 ..Default::default()
             },
         )
@@ -171,7 +171,7 @@ async fn test_get_managed_instance_verifier_role_success() {
         .create(
             org,
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 provider: Some("VERIFIER_PROVIDER".to_string()),
                 verifier_csr: Some("test-csr".to_string()),
                 ..Default::default()
@@ -226,7 +226,7 @@ async fn test_revoke_managed_instance_verifier_revokes_access_certificates() {
         .create(
             org,
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 status: Some(InstanceStatus::Active),
                 verifier_signature_ids: Some(vec![entry_id]),
                 ..Default::default()
@@ -296,7 +296,7 @@ async fn test_delete_managed_instance_verifier_revokes_access_certificates() {
         .create(
             org,
             TestWalletInstance {
-                role: Some(ManagedInstanceRole::Verifier),
+                role: Some(InstanceRole::Verifier),
                 status: Some(InstanceStatus::Pending),
                 verifier_signature_ids: Some(vec![entry_id]),
                 ..Default::default()

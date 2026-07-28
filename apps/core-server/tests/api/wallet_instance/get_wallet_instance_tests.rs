@@ -1,4 +1,4 @@
-use one_core::model::managed_instance::InstanceStatus;
+use one_core::model::instance::InstanceStatus;
 use similar_asserts::assert_eq;
 
 use crate::utils::context::TestContext;

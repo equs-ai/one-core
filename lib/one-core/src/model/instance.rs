@@ -9,7 +9,6 @@ use crate::model::common::GetListResponse;
 use crate::model::key::{Key, KeyRelations};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use crate::model::organisation::Organisation;
 use crate::model::relation::Related;
 use crate::model::wallet_instance_attestation::{
@@ -31,7 +30,7 @@ pub struct Instance {
     pub nonce: Option<String>,
     /// User-auth nonce issued by the server during registration; passed to the IdP during activation.
     pub user_nonce: Option<String>,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
 
     // Relations:
     pub organisation: Related<Organisation>,
@@ -50,6 +49,24 @@ pub enum WalletProviderType {
     ProcivisOne,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Display)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[strum(ascii_case_insensitive, serialize_all = "UPPERCASE")]
+pub enum InstanceRole {
+    Wallet,
+    Verifier,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Display)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum InstanceStatus {
+    Pending,
+    Active,
+    Revoked,
+    Unattested,
+    Error,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct InstanceRelations {
     pub wallet_unit_attestations: Option<WalletInstanceAttestationRelations>,
@@ -65,7 +82,7 @@ pub struct CreateInstanceRequest {
     pub provider_url: String,
     pub provider_instance_id: ManagedInstanceId,
     pub status: InstanceStatus,
-    pub role: ManagedInstanceRole,
+    pub role: InstanceRole,
     pub organisation: Organisation,
     pub authentication_key: Option<Key>,
     pub nonce: Option<String>,
@@ -86,7 +103,7 @@ pub enum SortableInstanceColumn {}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InstanceFilterValue {
     OrganisationIds(Vec<OrganisationId>),
-    Role(ManagedInstanceRole),
+    Role(InstanceRole),
     Status(InstanceStatus),
 }
 

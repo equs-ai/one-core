@@ -12,10 +12,9 @@ use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialStateEnum};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::identifier::IdentifierType;
-use crate::model::instance::{InstanceFilterValue, InstanceListQuery};
+use crate::model::instance::{InstanceFilterValue, InstanceListQuery, InstanceStatus};
 use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterValue;
-use crate::model::managed_instance::InstanceStatus;
 use crate::provider::issuance_protocol::error::{
     IssuanceProtocolError, OpenID4VCIError, OpenIDIssuanceError,
 };

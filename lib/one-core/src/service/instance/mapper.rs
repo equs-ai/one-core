@@ -3,9 +3,8 @@ use shared_types::KeyId;
 
 use super::dto::HolderInstanceResponseDTO;
 use super::service::ProviderMetadata;
-use crate::model::instance::Instance;
+use crate::model::instance::{Instance, InstanceStatus};
 use crate::model::key::Key;
-use crate::model::managed_instance::InstanceStatus;
 use crate::model::organisation::Organisation;
 use crate::proto::trust_collection::dto::RemoteTrustCollectionInfoDTO;
 use crate::provider::key_storage::model::StorageGeneratedKey;

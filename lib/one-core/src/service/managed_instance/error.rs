@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
-use crate::model::managed_instance::ManagedInstanceRole;
+use crate::model::instance::InstanceRole;
 
 #[derive(Debug, Error)]
 pub enum ManagedInstanceError {
@@ -69,7 +69,7 @@ pub enum ManagedInstanceError {
     #[error("Missing wallet unit attestation")]
     MissingWalletUnitAttestation,
     #[error("Invalid role: {0}")]
-    InvalidRole(ManagedInstanceRole),
+    InvalidRole(InstanceRole),
     #[error("Access certificate provisioning disabled")]
     AccessCertificateProvisioningDisabled,
     #[error("User access token required but not provided")]

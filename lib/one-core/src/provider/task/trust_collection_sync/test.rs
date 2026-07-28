@@ -6,8 +6,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::model::common::GetListResponse;
-use crate::model::instance::{Instance, WalletProviderType};
-use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use crate::model::instance::{Instance, InstanceRole, InstanceStatus, WalletProviderType};
 use crate::model::trust_collection::{GetTrustCollectionList, TrustCollection};
 use crate::proto::transaction_manager::NoTransactionManager;
 use crate::proto::trust_collection::manager::TrustCollectionManagerImpl;
@@ -236,7 +235,7 @@ fn dummy_wallet_unit() -> Instance {
         provider_url: "https://wallet-provider.org".to_string(),
         provider_instance_id: Uuid::new_v4().into(),
         status: InstanceStatus::Active,
-        role: ManagedInstanceRole::Wallet,
+        role: InstanceRole::Wallet,
         organisation: dummy_organisation(None).into(),
         authentication_key: None,
         wallet_unit_attestations: None,
@@ -256,7 +255,7 @@ fn dummy_verifier_instance() -> Instance {
         provider_url: "https://verifier-provider.org".to_string(),
         provider_instance_id: Uuid::new_v4().into(),
         status: InstanceStatus::Active,
-        role: ManagedInstanceRole::Verifier,
+        role: InstanceRole::Verifier,
         organisation: dummy_organisation(None).into(),
         authentication_key: None,
         wallet_unit_attestations: None,

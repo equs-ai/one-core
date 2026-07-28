@@ -1,7 +1,6 @@
 use one_core::model::history::HistoryAction;
-use one_core::model::managed_instance::{
-    InstanceStatus, ManagedInstanceRelations, UpdateManagedInstanceRequest,
-};
+use one_core::model::instance::InstanceStatus;
+use one_core::model::managed_instance::{ManagedInstanceRelations, UpdateManagedInstanceRequest};
 use one_core::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
 };

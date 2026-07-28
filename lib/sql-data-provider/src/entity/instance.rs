@@ -10,8 +10,6 @@ use shared_types::{
 };
 use time::OffsetDateTime;
 
-use crate::entity::managed_instance::{InstanceRole, WalletInstanceStatus};
-
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "instance")]
 pub struct Model {
@@ -19,7 +17,7 @@ pub struct Model {
     pub id: InstanceId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
-    pub status: WalletInstanceStatus,
+    pub status: InstanceStatus,
     pub provider_name: String,
     pub provider_type: WalletProviderType,
     pub provider_url: String,
@@ -38,6 +36,34 @@ pub struct Model {
 pub enum WalletProviderType {
     #[sea_orm(string_value = "PROCIVIS_ONE")]
     ProcivisOne,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum, Into, From, Deserialize)]
+#[from(one_core::model::instance::InstanceStatus)]
+#[into(one_core::model::instance::InstanceStatus)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+pub enum InstanceStatus {
+    #[sea_orm(string_value = "ACTIVE")]
+    Active,
+    #[sea_orm(string_value = "REVOKED")]
+    Revoked,
+    #[sea_orm(string_value = "PENDING")]
+    Pending,
+    #[sea_orm(string_value = "UNATTESTED")]
+    Unattested,
+    #[sea_orm(string_value = "ERROR")]
+    Error,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum, Into, From, Deserialize)]
+#[from(one_core::model::instance::InstanceRole)]
+#[into(one_core::model::instance::InstanceRole)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+pub enum InstanceRole {
+    #[sea_orm(string_value = "WALLET")]
+    Wallet,
+    #[sea_orm(string_value = "VERIFIER")]
+    Verifier,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
