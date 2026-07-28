@@ -11,6 +11,7 @@ use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::iana::{EncryptionAlgorithm, EncryptionKeyManagementAlgorithm};
 use standardized_types::jwe::CompressionAlgorithm;
 use standardized_types::jwk::{Jwks, PublicJwk};
+use standardized_types::oauth2::TokenType;
 use standardized_types::oauth2::dynamic_client_registration::TokenEndpointAuthMethod;
 use strum::Display;
 use time::{Duration, OffsetDateTime};
@@ -383,7 +384,7 @@ pub struct Timestamp(pub i64);
 #[derive(Debug, Deserialize)]
 pub struct OpenID4VCITokenResponseDTO {
     pub access_token: SecretString,
-    pub token_type: String,
+    pub token_type: TokenType,
     pub expires_in: Timestamp,
     #[serde(default, with = "opt_secret_string")]
     pub refresh_token: Option<SecretString>,

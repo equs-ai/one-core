@@ -6,6 +6,7 @@ use one_crypto::utilities;
 use secrecy::SecretString;
 use shared_types::{IdentifierId, InteractionId};
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
+use standardized_types::oauth2::TokenType;
 use time::Duration;
 use uuid::Uuid;
 
@@ -524,7 +525,7 @@ pub(crate) fn oidc_issuer_create_token(
 
             OpenID4VCITokenResponseDTO {
                 access_token: generate_new_token(),
-                token_type: "bearer".to_string(),
+                token_type: TokenType::Bearer,
                 expires_in: Timestamp((now + access_token_expires_in).unix_timestamp()),
                 refresh_token: None,
                 refresh_token_expires_in: None,
@@ -536,7 +537,7 @@ pub(crate) fn oidc_issuer_create_token(
             // we update both the access token and the refresh token
             OpenID4VCITokenResponseDTO {
                 access_token: generate_new_token(),
-                token_type: "bearer".to_string(),
+                token_type: TokenType::Bearer,
                 expires_in: Timestamp((now + access_token_expires_in).unix_timestamp()),
                 refresh_token: Some(generate_new_token()),
                 refresh_token_expires_in: Some(Timestamp(

@@ -73,7 +73,7 @@ async fn test_oidc_issuer_create_token() {
 
     let resp = resp.json_value().await;
 
-    assert_eq!(json!("bearer"), resp["token_type"]);
+    assert_eq!(json!("Bearer"), resp["token_type"]);
     assert!(resp.get("access_token").is_some());
     assert!(resp.get("expires_in").is_some());
     assert!(resp.get("refresh_token").is_none());
@@ -209,7 +209,7 @@ async fn test_oidc_issuer_create_token_for_mdoc_creates_refresh_token() {
 
     let resp = resp.json_value().await;
 
-    assert_eq!(json!("bearer"), resp["token_type"]);
+    assert_eq!(json!("Bearer"), resp["token_type"]);
     assert!(resp.get("access_token").is_some());
     assert!(resp.get("expires_in").is_some());
     assert!(resp.get("refresh_token").is_some());
@@ -289,7 +289,7 @@ async fn test_oidc_issuer_create_token_for_refresh_token_grant_updates_both_acce
 
     let resp = resp.json_value().await;
 
-    assert_eq!(json!("bearer"), resp["token_type"]);
+    assert_eq!(json!("Bearer"), resp["token_type"]);
 
     assert!(resp.get("access_token").is_some());
     assert!(resp["expires_in"].as_i64().unwrap() > access_token_expires_at.unix_timestamp());
@@ -373,7 +373,7 @@ async fn test_oidc_issuer_create_token_with_tx_code_success() {
     assert_eq!(200, resp.status());
 
     let resp = resp.json_value().await;
-    resp["token_type"].assert_eq(&"bearer".to_string());
+    resp["token_type"].assert_eq(&"Bearer".to_string());
     assert!(resp.get("access_token").is_some());
     assert!(resp.get("expires_in").is_some());
 }

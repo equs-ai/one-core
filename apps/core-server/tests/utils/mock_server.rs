@@ -41,7 +41,7 @@ impl MockServer {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!(
                 {
                    "access_token": "321",
-                   "token_type": "bearer",
+                   "token_type": "Bearer",
                    "expires_in": one_core::clock::now_utc().unix_timestamp() + 3600,
                    "refresh_token": "321",
                    "refresh_token_expires_in": one_core::clock::now_utc().unix_timestamp() + 3600,
@@ -61,7 +61,7 @@ impl MockServer {
                     "expires_in": one_core::clock::now_utc().unix_timestamp() + 3600,
                     "refresh_token": test_token,
                     "refresh_token_expires_in": one_core::clock::now_utc().unix_timestamp() + 3600,
-                    "token_type": "bearer"
+                    "token_type": "Bearer"
                 }
             )))
             .mount(&self.mock)
@@ -83,7 +83,7 @@ impl MockServer {
                     "expires_in": one_core::clock::now_utc().unix_timestamp() + 3600,
                     "refresh_token": test_token,
                     "refresh_token_expires_in": one_core::clock::now_utc().unix_timestamp() + 3600,
-                    "token_type": "bearer"
+                    "token_type": "Bearer"
                 }
             )))
             .mount(&self.mock)

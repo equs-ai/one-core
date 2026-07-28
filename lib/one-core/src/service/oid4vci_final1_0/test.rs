@@ -9,6 +9,7 @@ use serde_json::json;
 use shared_types::{CredentialFormat, DidId, InteractionId};
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{PublicJwk, PublicJwkEc};
+use standardized_types::oauth2::TokenType;
 use uuid::Uuid;
 
 use super::OID4VCIFinal1_0Service;
@@ -1171,7 +1172,7 @@ async fn test_create_token() {
     assert!(result.is_ok());
 
     let result_content = result.unwrap();
-    assert_eq!("bearer", result_content.token_type);
+    assert_eq!(TokenType::Bearer, result_content.token_type);
     assert!(
         result_content
             .access_token
@@ -2576,7 +2577,7 @@ async fn test_for_mdoc_schema_pre_authorized_grant_type_creates_refresh_token() 
         .await;
 
     let result = result.unwrap();
-    assert_eq!("bearer", result.token_type);
+    assert_eq!(TokenType::Bearer, result.token_type);
     assert!(
         result
             .access_token
@@ -2669,7 +2670,7 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
         .await
         .unwrap();
 
-    assert_eq!("bearer", result.token_type);
+    assert_eq!(TokenType::Bearer, result.token_type);
     assert!(
         result
             .access_token

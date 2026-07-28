@@ -31,6 +31,7 @@ use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwe::CompressionAlgorithm;
 use standardized_types::jwk::PublicJwk;
 use standardized_types::mapper::secret_string;
+use standardized_types::oauth2::TokenType;
 use standardized_types::oauth2::dynamic_client_registration::TokenEndpointAuthMethod;
 use utoipa::ToSchema;
 
@@ -311,7 +312,7 @@ pub(crate) struct OpenID4VCITokenResponseRestDTO {
     #[serde(with = "secret_string")]
     #[schema(value_type = String, example = "secret")]
     pub access_token: SecretString,
-    pub token_type: String,
+    pub token_type: TokenType,
     pub expires_in: TimestampRest,
     #[from(with_fn = convert_inner)]
     #[serde(with = "opt_secret_string")]
