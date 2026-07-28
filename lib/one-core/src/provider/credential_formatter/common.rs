@@ -33,7 +33,8 @@ pub fn nest_claims(
     let mut data = serde_json::Value::Object(Default::default());
 
     let mut claims = claims.into_iter().collect::<Vec<PublishedClaim>>();
-    claims.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+    // numeric-aware ordering so array indices assign in order (1, 2, ..., 10 instead of 1, 10, 2)
+    claims.sort_unstable_by(|a, b| human_sort::compare(&a.key, &b.key));
 
     for claim in claims {
         let path = format!("/{}", json_pointer_escape(&claim.key));

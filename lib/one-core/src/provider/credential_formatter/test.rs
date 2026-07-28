@@ -15,6 +15,7 @@ use crate::model::did::{Did, DidType};
 use crate::model::identifier::Identifier;
 use crate::provider::credential_formatter::mapper::credential_data_from_credential_detail_response;
 use crate::provider::credential_formatter::model::{PublishedClaim, PublishedClaimValue};
+use crate::provider::credential_formatter::nest_claims;
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, CredentialRole, CredentialStateEnum, CredentialTypeEnum,
     DetailCredentialClaimResponseDTO, DetailCredentialClaimValueResponseDTO,
@@ -456,4 +457,25 @@ async fn test_from_credential_detail_response_nested_claim_mapping_array() {
     ];
 
     assert_eq!(expected, actual);
+}
+
+#[test]
+fn test_nest_claims_array_with_more_than_ten_items() {
+    let claims = (0..11).map(|i| PublishedClaim {
+        key: format!("representative/{i}/name"),
+        value: PublishedClaimValue::String(format!("name {i}")),
+        datatype: Some("STRING".to_string()),
+        array_item: true,
+    });
+
+    let nested = nest_claims(claims).unwrap();
+
+    let representatives = nested["representative"].as_array().unwrap();
+    assert_eq!(11, representatives.len());
+    for (i, representative) in representatives.iter().enumerate() {
+        assert_eq!(
+            format!("name {i}"),
+            representative["name"].as_str().unwrap()
+        );
+    }
 }
