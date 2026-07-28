@@ -30,8 +30,8 @@ use super::mappers::credential_from_unexportable_model;
 use super::models::UnexportableCredentialModel;
 use crate::did::mapper::did_from_model;
 use crate::entity::{
-    certificate, claim, claim_schema, credential, credential_schema, did, history,
-    holder_wallet_instance, identifier, key, key_did, organisation, wallet_instance_attestation,
+    certificate, claim, claim_schema, credential, credential_schema, did, history, identifier,
+    instance, key, key_did, organisation, wallet_instance_attestation,
 };
 use crate::identifier::mapper::identifier_from_model;
 use crate::key::mapper::key_from_model;
@@ -280,18 +280,6 @@ impl BackupRepository for BackupProvider {
                 "credential_schema_layout_type",
             )
             .column_as(organisation::Column::Id, "organisation_id")
-            .column_as(
-                organisation::Column::CreatedDate,
-                "organisation_created_date",
-            )
-            .column_as(
-                organisation::Column::LastModified,
-                "organisation_last_modified",
-            )
-            .column_as(
-                organisation::Column::DeactivatedAt,
-                "organisation_deactivated_at",
-            )
             .expr_as_(
                 coalesce_to_empty_array(
                     claim::Entity::find()
@@ -625,9 +613,7 @@ async fn delete_wallet_unit_attestations(
 }
 
 async fn delete_holder_wallet_units(db: &TransactionManagerImpl) -> Result<(), sea_orm::DbErr> {
-    holder_wallet_instance::Entity::delete_many()
-        .exec(db)
-        .await?;
+    instance::Entity::delete_many().exec(db).await?;
     Ok(())
 }
 

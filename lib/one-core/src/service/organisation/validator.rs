@@ -9,7 +9,7 @@ use crate::model::list_query::ListPagination;
 use crate::model::organisation::{OrganisationFilterValue, OrganisationListQuery};
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::organisation_repository::OrganisationRepository;
-use crate::service::wallet_provider::error::WalletProviderError;
+use crate::service::managed_instance::error::ManagedInstanceError;
 use crate::util::key_selection::KeyFilter;
 
 pub(super) async fn validate_wallet_provider_issuer(
@@ -94,7 +94,7 @@ pub(super) async fn validate_wallet_provider(
     config
         .wallet_provider
         .get_if_enabled(wallet_provider)
-        .map_err(|_| WalletProviderError::WalletProviderNotConfigured)
+        .map_err(|_| ManagedInstanceError::WalletProviderNotConfigured)
         .error_while("checking config")?;
     if let Some(org) = organisation_repository
         .get_organisation_for_wallet_provider(wallet_provider)
@@ -102,6 +102,27 @@ pub(super) async fn validate_wallet_provider(
         .error_while("getting organisation")?
     {
         return Err(OrganisationServiceError::WalletProviderAlreadyAssociated(
+            org.id,
+        ));
+    }
+    Ok(())
+}
+
+pub(super) async fn validate_verifier_provider(
+    verifier_provider: &str,
+    config: &CoreConfig,
+    organisation_repository: &dyn OrganisationRepository,
+) -> Result<(), OrganisationServiceError> {
+    match config.verifier_provider.get(verifier_provider) {
+        Some(fields) if fields.enabled => {}
+        _ => return Err(OrganisationServiceError::VerifierProviderNotConfigured),
+    }
+    if let Some(org) = organisation_repository
+        .get_organisation_for_verifier_provider(verifier_provider)
+        .await
+        .error_while("getting organisation")?
+    {
+        return Err(OrganisationServiceError::VerifierProviderAlreadyAssociated(
             org.id,
         ));
     }

@@ -1,0 +1,198 @@
+use anyhow::anyhow;
+use one_core::model::history::HistoryMetadata;
+use one_core::model::list_filter::ListFilterCondition;
+use one_core::model::managed_instance::{
+    InstanceStatus, ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceOs,
+    SortableManagedInstanceColumn,
+};
+use one_core::repository::error::DataLayerError;
+use one_dto_mapper::convert_inner;
+use sea_orm::ActiveValue::Set;
+use sea_orm::sea_query::query::IntoCondition;
+use sea_orm::sea_query::{Query, SimpleExpr};
+use sea_orm::{ColumnTrait, Condition, IntoSimpleExpr};
+use shared_types::RevocationListEntryId;
+
+use crate::entity::managed_instance::VerifierSignatures;
+use crate::entity::{history, managed_instance};
+use crate::list_query_generic::{
+    IntoFilterCondition, IntoJoinRelations, IntoSortingColumn, JoinRelation,
+    get_comparison_condition, get_equals_condition, get_string_match_condition,
+};
+
+impl TryFrom<managed_instance::Model> for ManagedInstance {
+    type Error = DataLayerError;
+
+    fn try_from(value: managed_instance::Model) -> Result<Self, DataLayerError> {
+        Ok(Self {
+            id: value.id,
+            created_date: value.created_date,
+            last_modified: value.last_modified,
+            os: ManagedInstanceOs::from(value.os),
+            status: InstanceStatus::from(value.status),
+            provider: value.provider,
+            role: value.role.into(),
+            authentication_key_jwk: value
+                .authentication_key_jwk
+                .map(|jwk| serde_json::from_str(&jwk))
+                .transpose()
+                .map_err(|_| DataLayerError::MappingError)?,
+            last_issuance: value.last_issuance,
+            name: value.name,
+            organisation: None,
+            nonce: value.nonce,
+            user_nonce: value.user_nonce,
+            user_sub: value.user_sub,
+            verifier_csr: value.verifier_csr,
+            verifier_signature_ids: convert_inner(value.verifier_signature_ids),
+            attested_keys: None,
+        })
+    }
+}
+
+impl From<VerifierSignatures> for Vec<RevocationListEntryId> {
+    fn from(value: VerifierSignatures) -> Self {
+        value.signatures
+    }
+}
+
+impl From<Vec<RevocationListEntryId>> for VerifierSignatures {
+    fn from(value: Vec<RevocationListEntryId>) -> Self {
+        Self { signatures: value }
+    }
+}
+
+impl TryFrom<ManagedInstance> for managed_instance::ActiveModel {
+    type Error = DataLayerError;
+    fn try_from(wallet_unit: ManagedInstance) -> Result<Self, Self::Error> {
+        let authentication_key_jwk = wallet_unit
+            .authentication_key_jwk
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|_| DataLayerError::MappingError)?;
+        Ok(Self {
+            id: Set(wallet_unit.id),
+            created_date: Set(wallet_unit.created_date),
+            last_modified: Set(wallet_unit.last_modified),
+            last_issuance: Set(wallet_unit.last_issuance),
+            name: Set(wallet_unit.name),
+            os: Set(wallet_unit.os.into()),
+            status: Set(wallet_unit.status.into()),
+            provider: Set(wallet_unit.provider),
+            authentication_key_jwk: Set(authentication_key_jwk),
+            nonce: Set(wallet_unit.nonce),
+            user_nonce: Set(wallet_unit.user_nonce),
+            user_sub: Set(wallet_unit.user_sub),
+            organisation_id: Set(wallet_unit
+                .organisation
+                .as_ref()
+                .ok_or(DataLayerError::Db(anyhow!(
+                    "Missing organisation for wallet unit {}",
+                    wallet_unit.id
+                )))?
+                .id),
+            role: Set(wallet_unit.role.into()),
+            verifier_csr: Set(wallet_unit.verifier_csr),
+            verifier_signature_ids: Set(convert_inner(wallet_unit.verifier_signature_ids)),
+        })
+    }
+}
+
+impl IntoSortingColumn for SortableManagedInstanceColumn {
+    fn get_column(&self) -> SimpleExpr {
+        match self {
+            Self::CreatedDate => managed_instance::Column::CreatedDate.into_simple_expr(),
+            Self::LastModified => managed_instance::Column::LastModified.into_simple_expr(),
+            Self::Name => managed_instance::Column::Name.into_simple_expr(),
+            Self::Status => managed_instance::Column::Status.into_simple_expr(),
+            Self::Os => managed_instance::Column::Os.into_simple_expr(),
+            Self::UserSub => managed_instance::Column::UserSub.into_simple_expr(),
+        }
+    }
+}
+
+impl IntoFilterCondition for ManagedInstanceFilterValue {
+    fn get_condition(self, _entire_filter: &ListFilterCondition<Self>) -> Condition {
+        match self {
+            Self::OrganisationId(organisation_id) => {
+                get_equals_condition(managed_instance::Column::OrganisationId, organisation_id)
+            }
+            Self::Name(string_match) => {
+                get_string_match_condition(managed_instance::Column::Name, string_match)
+            }
+            Self::Ids(ids) => managed_instance::Column::Id
+                .is_in(ids.iter())
+                .into_condition(),
+            Self::Status(statuses) => managed_instance::Column::Status
+                .is_in(
+                    statuses
+                        .into_iter()
+                        .map(managed_instance::WalletInstanceStatus::from)
+                        .collect::<Vec<_>>(),
+                )
+                .into_condition(),
+            Self::ProviderName(names) => managed_instance::Column::Provider
+                .is_in(names.iter())
+                .into_condition(),
+            Self::Role(roles) => managed_instance::Column::Role
+                .is_in(
+                    roles
+                        .into_iter()
+                        .map(managed_instance::InstanceRole::from)
+                        .collect::<Vec<_>>(),
+                )
+                .into_condition(),
+            Self::Os(os_values) => managed_instance::Column::Os
+                .is_in(
+                    os_values
+                        .into_iter()
+                        .map(managed_instance::ManagedInstanceOs::from)
+                        .collect::<Vec<_>>(),
+                )
+                .into_condition(),
+            Self::AttestationHash(attestation_hash) => {
+                let history_metadata = HistoryMetadata::WalletUnitJWT(attestation_hash);
+                #[allow(clippy::expect_used)]
+                let history_metadata_json = serde_json::to_string(&history_metadata)
+                    .expect("Failed to serialize history metadata");
+                managed_instance::Column::Id
+                    .in_subquery(
+                        Query::select()
+                            .column(history::Column::EntityId)
+                            .from(history::Entity)
+                            .cond_where(
+                                Condition::all()
+                                    .add(
+                                        history::Column::EntityType
+                                            .eq(history::HistoryEntityType::WalletUnit),
+                                    )
+                                    .add(
+                                        history::Column::Action
+                                            .is_in([history::HistoryAction::Issued]),
+                                    )
+                                    .add(history::Column::Metadata.eq(history_metadata_json)),
+                            )
+                            .to_owned(),
+                    )
+                    .into_condition()
+            }
+            Self::CreatedDate(comparison) => {
+                get_comparison_condition(managed_instance::Column::CreatedDate, comparison)
+            }
+            Self::LastModified(comparison) => {
+                get_comparison_condition(managed_instance::Column::LastModified, comparison)
+            }
+            Self::UserSub(string_match) => {
+                get_string_match_condition(managed_instance::Column::UserSub, string_match)
+            }
+        }
+    }
+}
+
+impl IntoJoinRelations for ManagedInstanceFilterValue {
+    fn get_join(&self) -> Vec<JoinRelation> {
+        // No joins needed for wallet unit filters
+        vec![]
+    }
+}

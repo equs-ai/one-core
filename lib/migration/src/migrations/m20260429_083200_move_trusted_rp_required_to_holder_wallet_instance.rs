@@ -193,7 +193,7 @@ impl Migration {
 }
 
 #[derive(DeriveIden)]
-enum HolderWalletInstance {
+pub enum HolderWalletInstance {
     TrustedRpRequired,
     TableNew,
 }

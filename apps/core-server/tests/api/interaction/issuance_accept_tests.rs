@@ -25,7 +25,7 @@ use crate::utils::context::TestContext;
 use crate::utils::db_clients::credential_schemas::TestingCreateSchemaParams;
 use crate::utils::db_clients::holder_wallet_instance::TestHolderWalletInstanceParams;
 use crate::utils::db_clients::keys::ecdsa_testing_params;
-use crate::utils::db_clients::wallet_instances::TestWalletInstance;
+use crate::utils::db_clients::managed_instances::TestWalletInstance;
 use crate::utils::field_match::FieldHelpers;
 
 async fn random_document() -> String {
@@ -1529,7 +1529,7 @@ async fn test_wia_pop_iss_equals_wia_sub() {
 
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             organisation.clone(),
             TestWalletInstance {
@@ -1546,7 +1546,7 @@ async fn test_wia_pop_iss_equals_wia_sub() {
             organisation.clone(),
             Some(holder_auth_key),
             TestHolderWalletInstanceParams {
-                wallet_provider_url: Some(context.config.app.core_base_url.clone()),
+                provider_url: Some(context.config.app.core_base_url.clone()),
                 provider_wallet_unit_id: Some(wallet_unit.id),
                 ..Default::default()
             },

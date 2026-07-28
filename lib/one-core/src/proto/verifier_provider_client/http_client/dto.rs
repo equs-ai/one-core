@@ -2,7 +2,10 @@ use one_dto_mapper::{Into, convert_inner};
 use serde::Deserialize;
 use shared_types::TrustCollectionId;
 
-use crate::provider::verifier::model::{FeatureFlags, VerifierAppVersion};
+use crate::provider::verifier::model::VerifierAppVersion;
+use crate::service::managed_instance::dto::{
+    UserAuthenticationDTO, WalletUnitAttestationMetadataDTO,
+};
 use crate::service::verifier_provider::dto;
 
 #[derive(Clone, Debug, Deserialize, Into)]
@@ -14,7 +17,13 @@ pub(super) struct VerifierProviderMetadataResponseRestDTO {
     pub app_version: Option<VerifierAppVersion>,
     #[into(with_fn = convert_inner)]
     pub trust_collections: Vec<ProviderTrustCollectionRestDTO>,
-    pub feature_flags: FeatureFlags,
+    pub feature_flags: dto::FeatureFlags,
+    pub verifier_app_attestation: WalletUnitAttestationMetadataDTO,
+    pub user_authentication: Option<UserAuthenticationDTO>,
+    #[serde(default)]
+    pub proof_schemas: Vec<String>,
+    #[serde(default)]
+    pub credential_schemas: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Into)]

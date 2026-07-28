@@ -16,17 +16,14 @@ use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::did::KeyRole;
-use crate::model::holder_wallet_instance::{
-    HolderWalletInstanceFilterValue, HolderWalletInstanceListQuery,
-};
 use crate::model::list_filter::ListFilterValue;
+use crate::model::managed_instance::ManagedInstanceRole;
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::model::trust_list_subscription::{
     TrustListSubscription, TrustListSubscriptionFilterValue, TrustListSubscriptionListQuery,
     TrustListSubscriptionState,
 };
-use crate::model::verifier_instance::{VerifierInstanceFilterValue, VerifierInstanceListQuery};
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CertificateValidator, ParsedCertificate,
 };
@@ -48,10 +45,10 @@ use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::provider::signer::registration_certificate::model::{Payload, Status};
 use crate::provider::trust_list_subscriber::TrustEntityResponse;
 use crate::provider::trust_list_subscriber::provider::TrustListSubscriberProvider;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::repository::instance_repository::InstanceRepository;
+use crate::repository::organisation_repository::OrganisationRepository;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
-use crate::repository::verifier_instance_repository::VerifierInstanceRepository;
 use crate::service::error::MissingProviderError;
 use crate::util::access_cert_parser::{EtsiParsedAccessCert, etsi_access_cert_from_pem_chain};
 use crate::validator::{validate_expiration_time, validate_not_before_time};
@@ -60,9 +57,9 @@ pub(crate) struct WRPValidatorImpl {
     trust_collection_repository: Arc<dyn TrustCollectionRepository>,
     trust_list_subscription_repository: Arc<dyn TrustListSubscriptionRepository>,
     trust_list_subscriber_provider: Arc<dyn TrustListSubscriberProvider>,
-    holder_wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
+    holder_wallet_instance_repository: Arc<dyn InstanceRepository>,
+    organisation_repository: Arc<dyn OrganisationRepository>,
     wallet_provider_client: Arc<dyn WalletProviderClient>,
-    verifier_instance_repository: Arc<dyn VerifierInstanceRepository>,
     verifier_provider_client: Arc<dyn VerifierProviderClient>,
     did_method_provider: Arc<dyn DidMethodProvider>,
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
@@ -312,35 +309,35 @@ impl WRPValidator for WRPValidatorImpl {
         &self,
         organisation_id: OrganisationId,
     ) -> Result<TrustMode, WRPValidatorError> {
-        let list = self
+        let organisation = self
+            .organisation_repository
+            .get_organisation(&organisation_id)
+            .await
+            .error_while("getting holder wallet instance")?
+            .ok_or(WRPValidatorError::MissingOrganisation(organisation_id))?;
+
+        let trusted_rp_required = organisation.configuration.trusted_rp_required;
+
+        let holder_wallet_instance = self
             .holder_wallet_instance_repository
-            .list(HolderWalletInstanceListQuery {
-                filtering: Some(
-                    HolderWalletInstanceFilterValue::OrganisationIds(vec![organisation_id])
-                        .condition(),
-                ),
-                ..Default::default()
-            })
+            .get_by_role(
+                ManagedInstanceRole::Wallet,
+                organisation_id,
+                &Default::default(),
+            )
             .await
-            .error_while("getting holder wallet instance")?;
+            .error_while("getting wallet instance")?;
+        if let Some(holder_wallet_instance) = holder_wallet_instance {
+            let metadata = self
+                .wallet_provider_client
+                .get_wallet_provider_metadata(holder_wallet_instance.into())
+                .await
+                .error_while("getting wallet provider metadata")?;
 
-        let Some(holder_wallet_instance) = list.values.into_iter().next() else {
-            // if no holder wallet instance registered, it means the trust management was not setup
-            // defaulting to optional trust
-            return Ok(TrustMode::TrustOptional);
-        };
-
-        let trusted_rp_required = holder_wallet_instance.trusted_rp_required;
-
-        let metadata = self
-            .wallet_provider_client
-            .get_wallet_provider_metadata(holder_wallet_instance.into())
-            .await
-            .error_while("getting wallet provider metadata")?;
-
-        if !metadata.feature_flags.trust_ecosystems_enabled {
-            // trust management disabled via provider metadata
-            return Ok(TrustMode::Disabled);
+            if !metadata.feature_flags.trust_ecosystems_enabled {
+                // trust management disabled via provider metadata
+                return Ok(TrustMode::Disabled);
+            }
         }
 
         Ok(if trusted_rp_required {
@@ -354,39 +351,42 @@ impl WRPValidator for WRPValidatorImpl {
         &self,
         organisation_id: OrganisationId,
     ) -> Result<TrustMode, WRPValidatorError> {
-        let list = self
-            .verifier_instance_repository
-            .list(VerifierInstanceListQuery {
-                filtering: Some(
-                    VerifierInstanceFilterValue::OrganisationIds(vec![organisation_id]).condition(),
-                ),
-                ..Default::default()
-            })
+        let organisation = self
+            .organisation_repository
+            .get_organisation(&organisation_id)
             .await
-            .error_while("getting verifier instance")?;
+            .error_while("getting holder wallet instance")?
+            .ok_or(WRPValidatorError::MissingOrganisation(organisation_id))?;
 
-        let Some(verifier_instance) = list.values.into_iter().next() else {
-            // if no verifier instance registered, it means the trust management was not setup
-            // defaulting to optional trust
-            return Ok(TrustMode::TrustOptional);
-        };
+        let trusted_issuer_required = organisation.configuration.trusted_issuer_required;
 
-        let metadata_url = format!(
-            "{}/ssi/verifier-provider/v1/{}",
-            verifier_instance.provider_url, verifier_instance.provider_name
-        );
-        let metadata = self
-            .verifier_provider_client
-            .get_verifier_provider_metadata(&metadata_url)
+        let verifier_instance = self
+            .holder_wallet_instance_repository
+            .get_by_role(
+                ManagedInstanceRole::Verifier,
+                organisation_id,
+                &Default::default(),
+            )
             .await
-            .error_while("getting verifier provider metadata")?;
+            .error_while("getting wallet instance")?;
+        if let Some(verifier_instance) = verifier_instance {
+            let metadata_url = format!(
+                "{}/ssi/verifier-provider/v1/{}",
+                verifier_instance.provider_url, verifier_instance.provider_name
+            );
+            let metadata = self
+                .verifier_provider_client
+                .get_verifier_provider_metadata(&metadata_url)
+                .await
+                .error_while("getting verifier provider metadata")?;
 
-        if !metadata.feature_flags.trust_ecosystems_enabled {
-            // trust management disabled via provider metadata
-            return Ok(TrustMode::Disabled);
+            if !metadata.feature_flags.trust_ecosystems_enabled {
+                // trust management disabled via provider metadata
+                return Ok(TrustMode::Disabled);
+            }
         }
 
-        Ok(if verifier_instance.trusted_issuer_required {
+        Ok(if trusted_issuer_required {
             TrustMode::TrustMandatory
         } else {
             TrustMode::TrustOptional
@@ -431,9 +431,9 @@ impl WRPValidatorImpl {
         trust_collection_repository: Arc<dyn TrustCollectionRepository>,
         trust_list_subscription_repository: Arc<dyn TrustListSubscriptionRepository>,
         trust_list_subscriber_provider: Arc<dyn TrustListSubscriberProvider>,
-        holder_wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
+        holder_wallet_instance_repository: Arc<dyn InstanceRepository>,
+        organisation_repository: Arc<dyn OrganisationRepository>,
         wallet_provider_client: Arc<dyn WalletProviderClient>,
-        verifier_instance_repository: Arc<dyn VerifierInstanceRepository>,
         verifier_provider_client: Arc<dyn VerifierProviderClient>,
         did_method_provider: Arc<dyn DidMethodProvider>,
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
@@ -447,8 +447,8 @@ impl WRPValidatorImpl {
             trust_list_subscription_repository,
             trust_list_subscriber_provider,
             holder_wallet_instance_repository,
+            organisation_repository,
             wallet_provider_client,
-            verifier_instance_repository,
             verifier_provider_client,
             did_method_provider,
             key_algorithm_provider,
@@ -726,10 +726,10 @@ mod tests {
     use crate::provider::trust_list_subscriber::{
         MockTrustListSubscriber, TrustEntityMetadata, TrustEntityResponse,
     };
-    use crate::repository::holder_wallet_instance_repository::MockHolderWalletInstanceRepository;
+    use crate::repository::instance_repository::MockInstanceRepository;
+    use crate::repository::organisation_repository::MockOrganisationRepository;
     use crate::repository::trust_collection_repository::MockTrustCollectionRepository;
     use crate::repository::trust_list_subscription_repository::MockTrustListSubscriptionRepository;
-    use crate::repository::verifier_instance_repository::MockVerifierInstanceRepository;
     use crate::service::test_utilities::dummy_credential_schema;
 
     fn make_validator() -> WRPValidatorImpl {
@@ -737,9 +737,9 @@ mod tests {
             Arc::new(MockTrustCollectionRepository::default()),
             Arc::new(MockTrustListSubscriptionRepository::default()),
             Arc::new(MockTrustListSubscriberProvider::default()),
-            Arc::new(MockHolderWalletInstanceRepository::default()),
+            Arc::new(MockInstanceRepository::default()),
+            Arc::new(MockOrganisationRepository::default()),
             Arc::new(MockWalletProviderClient::default()),
-            Arc::new(MockVerifierInstanceRepository::default()),
             Arc::new(MockVerifierProviderClient::default()),
             Arc::new(MockDidMethodProvider::default()),
             Arc::new(MockKeyAlgorithmProvider::default()),
@@ -755,9 +755,9 @@ mod tests {
             Arc::new(MockTrustCollectionRepository::default()),
             Arc::new(MockTrustListSubscriptionRepository::default()),
             Arc::new(MockTrustListSubscriberProvider::default()),
-            Arc::new(MockHolderWalletInstanceRepository::default()),
+            Arc::new(MockInstanceRepository::default()),
+            Arc::new(MockOrganisationRepository::default()),
             Arc::new(MockWalletProviderClient::default()),
-            Arc::new(MockVerifierInstanceRepository::default()),
             Arc::new(MockVerifierProviderClient::default()),
             Arc::new(MockDidMethodProvider::default()),
             Arc::new(MockKeyAlgorithmProvider::default()),
@@ -814,9 +814,9 @@ mod tests {
             Arc::new(collection_repo),
             Arc::new(subscription_repo),
             Arc::new(subscriber_provider),
-            Arc::new(MockHolderWalletInstanceRepository::default()),
+            Arc::new(MockInstanceRepository::default()),
+            Arc::new(MockOrganisationRepository::default()),
             Arc::new(MockWalletProviderClient::default()),
-            Arc::new(MockVerifierInstanceRepository::default()),
             Arc::new(MockVerifierProviderClient::default()),
             Arc::new(MockDidMethodProvider::default()),
             Arc::new(MockKeyAlgorithmProvider::default()),

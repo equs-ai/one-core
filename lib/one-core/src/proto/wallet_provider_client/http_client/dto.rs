@@ -1,12 +1,12 @@
 use one_dto_mapper::{From, Into, convert_inner};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use shared_types::WalletInstanceId;
+use shared_types::ManagedInstanceId;
 use standardized_types::jwk::PublicJwk;
 
-use crate::model::wallet_instance::WalletInstanceOs;
+use crate::model::managed_instance::{ManagedInstanceOs, ManagedInstanceRole};
 use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
-use crate::service::wallet_provider::dto::{
+use crate::service::managed_instance::dto::{
     self, DocumentSignerMetadataDTO, FeatureFlags, ProviderTrustCollectionDTO,
 };
 
@@ -15,8 +15,9 @@ use crate::service::wallet_provider::dto::{
 #[from(dto::RegisterWalletUnitRequestDTO)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RegisterWalletUnitRequestRestDTO {
-    pub wallet_provider: String,
-    pub os: WalletInstanceOs,
+    pub provider: String,
+    pub role: ManagedInstanceRole,
+    pub os: ManagedInstanceOs,
     pub public_key: Option<PublicJwk>,
     pub proof: Option<String>,
 }
@@ -26,7 +27,7 @@ pub(crate) struct RegisterWalletUnitRequestRestDTO {
 #[into(dto::RegisterWalletUnitResponseDTO)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RegisterWalletUnitResponseRestDTO {
-    pub id: WalletInstanceId,
+    pub id: ManagedInstanceId,
     pub nonce: Option<String>,
     pub user_nonce: Option<String>,
 }
@@ -35,11 +36,20 @@ pub(crate) struct RegisterWalletUnitResponseRestDTO {
 #[derive(Clone, Debug, Serialize, From)]
 #[from(dto::ActivateWalletUnitRequestDTO)]
 #[serde(rename_all = "camelCase")]
-pub struct ActivateWalletUnitRequestRestDTO {
+pub(super) struct ActivateWalletUnitRequestRestDTO {
     pub attestation: Option<Vec<String>>,
     pub attestation_key_proof: Option<String>,
     pub device_signing_key_proof: Option<String>,
     pub user_id_token: Option<String>,
+    pub verifier_access_certificate_csr: Option<String>,
+    pub user_access_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Into)]
+#[into(dto::ActivateWalletUnitResponseDTO)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct ActivateWalletUnitResponseRestDTO {
+    pub access_certificate: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, From)]

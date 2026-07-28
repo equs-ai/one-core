@@ -497,13 +497,9 @@ async fn test_get_trust_list_publication_with_organisation_relation() {
         .expect_get_organisation()
         .returning(move |id| {
             Ok(Some(Organisation {
-                id: *id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
-                deactivated_at: None,
-                wallet_provider: None,
-                wallet_provider_issuer: None,
-                parent_organisation: None,
+                ..dummy_organisation(Some(*id))
             }))
         });
 

@@ -8,7 +8,7 @@ use one_core::repository::error::DataLayerError;
 use one_core::repository::wallet_instance_attestation_repository::WalletInstanceAttestationRepository;
 use sea_orm::sea_query::IntoCondition;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, Unchanged};
-use shared_types::{HolderWalletInstanceId, KeyId, WalletInstanceAttestationId};
+use shared_types::{InstanceId, KeyId, WalletInstanceAttestationId};
 
 use crate::entity::wallet_instance_attestation;
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
@@ -46,13 +46,13 @@ impl WalletInstanceAttestationRepository for WalletInstanceAttestationProvider {
 
     async fn get_wallet_instance_attestations_by_holder_wallet_unit(
         &self,
-        holder_wallet_unit_id: &HolderWalletInstanceId,
+        holder_wallet_unit_id: &InstanceId,
         relations: &WalletInstanceAttestationRelations,
     ) -> Result<Vec<WalletInstanceAttestation>, DataLayerError> {
         let entity_models: Vec<wallet_instance_attestation::Model> =
             wallet_instance_attestation::Entity::find()
                 .filter(
-                    wallet_instance_attestation::Column::HolderWalletUnitId
+                    wallet_instance_attestation::Column::InstanceId
                         .eq(holder_wallet_unit_id)
                         .into_condition(),
                 )

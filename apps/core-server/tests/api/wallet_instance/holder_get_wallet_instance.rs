@@ -1,4 +1,5 @@
-use one_core::model::wallet_instance::{WalletInstanceStatus, WalletProviderType};
+use one_core::model::instance::WalletProviderType;
+use one_core::model::managed_instance::InstanceStatus;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
@@ -36,10 +37,10 @@ async fn test_get_wallet_unit_holder_details_successfully() {
             org,
             Some(key.clone()),
             TestHolderWalletInstanceParams {
-                status: Some(WalletInstanceStatus::Active),
-                wallet_provider_type: Some(WalletProviderType::ProcivisOne),
-                wallet_provider_name: Some("PROCIVIS_ONE".to_string()),
-                wallet_provider_url: Some("https://wallet.provider".to_string()),
+                status: Some(InstanceStatus::Active),
+                provider_type: Some(WalletProviderType::ProcivisOne),
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some("https://wallet.provider".to_string()),
                 provider_wallet_unit_id: Some(Uuid::new_v4().into()),
                 ..Default::default()
             },
@@ -57,10 +58,11 @@ async fn test_get_wallet_unit_holder_details_successfully() {
     assert_eq!(resp.status(), 200);
     let resp = resp.json_value().await;
     resp["id"].assert_eq(&wallet_unit.id);
-    resp["providerWalletUnitId"].assert_eq(&wallet_unit.provider_wallet_unit_id);
-    resp["walletProviderUrl"].assert_eq(&wallet_unit.wallet_provider_url);
-    resp["walletProviderType"].assert_eq(&String::from("PROCIVIS_ONE"));
-    resp["walletProviderName"].assert_eq(&wallet_unit.wallet_provider_name);
+    resp["role"].assert_eq(&String::from("WALLET"));
+    resp["providerInstanceId"].assert_eq(&wallet_unit.provider_instance_id);
+    resp["providerUrl"].assert_eq(&wallet_unit.provider_url);
+    resp["providerType"].assert_eq(&String::from("PROCIVIS_ONE"));
+    resp["providerName"].assert_eq(&wallet_unit.provider_name);
     resp["status"].assert_eq(&String::from("ACTIVE"));
     assert!(resp["lastModified"].is_string());
     assert!(resp["createdDate"].is_string());

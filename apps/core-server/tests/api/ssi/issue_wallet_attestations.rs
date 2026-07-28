@@ -1,9 +1,9 @@
 use one_core::model::history::HistoryAction;
-use one_core::model::wallet_instance::{
-    UpdateWalletInstanceRequest, WalletInstanceRelations, WalletInstanceStatus,
+use one_core::model::managed_instance::{
+    InstanceStatus, ManagedInstanceRelations, UpdateManagedInstanceRequest,
 };
-use one_core::model::wallet_instance_attested_key::{
-    WalletInstanceAttestedKey, WalletInstanceAttestedKeyRelations,
+use one_core::model::managed_instance_attested_key::{
+    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
 };
 use one_core::proto::jwt::Jwt;
 use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
@@ -19,7 +19,7 @@ use crate::fixtures::wallet_provider::{
     create_key_possession_proof, create_wallet_unit_attestation_issuer_identifier,
 };
 use crate::utils::context::TestContext;
-use crate::utils::db_clients::wallet_instances::TestWalletInstance;
+use crate::utils::db_clients::managed_instances::TestWalletInstance;
 
 #[tokio::test]
 async fn test_issue_wallet_attestations_success() {
@@ -32,7 +32,7 @@ async fn test_issue_wallet_attestations_success() {
 
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -117,7 +117,7 @@ async fn test_issue_wallet_attestations_empty_success() {
 
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -182,12 +182,12 @@ async fn test_issue_wallet_attestations_failed_with_revoked_wallet_unit() {
 
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
                 public_key: Some(holder_public_jwk),
-                status: Some(WalletInstanceStatus::Revoked),
+                status: Some(InstanceStatus::Revoked),
                 ..Default::default()
             },
         )
@@ -221,7 +221,7 @@ async fn test_issue_wua_only_success() {
 
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -272,11 +272,11 @@ async fn test_issue_wua_only_success() {
     assert_history_count(&context, &wallet_unit.id.into(), HistoryAction::Issued, 1).await;
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .get(
             wallet_unit.id,
-            &WalletInstanceRelations {
-                attested_keys: Some(WalletInstanceAttestedKeyRelations::default()),
+            &ManagedInstanceRelations {
+                attested_keys: Some(ManagedInstanceAttestedKeyRelations::default()),
                 ..Default::default()
             },
         )
@@ -296,7 +296,7 @@ async fn test_issue_wia_only_with_existing_attested_keys_success() {
 
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -308,13 +308,13 @@ async fn test_issue_wia_only_with_existing_attested_keys_success() {
     let now = one_core::clock::now_utc();
     context
         .db
-        .wallet_instances
+        .managed_instances
         .update(
             wallet_unit.id,
-            UpdateWalletInstanceRequest {
-                attested_keys: Some(vec![WalletInstanceAttestedKey {
+            UpdateManagedInstanceRequest {
+                attested_keys: Some(vec![ManagedInstanceAttestedKey {
                     id: Uuid::new_v4().into(),
-                    wallet_instance_id: wallet_unit.id,
+                    instance_id: wallet_unit.id,
                     created_date: now,
                     last_modified: now,
                     expiration_date: now + Duration::days(30),
@@ -363,11 +363,11 @@ async fn test_issue_wia_only_with_existing_attested_keys_success() {
     assert_history_count(&context, &wallet_unit.id.into(), HistoryAction::Updated, 1).await;
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .get(
             wallet_unit.id,
-            &WalletInstanceRelations {
-                attested_keys: Some(WalletInstanceAttestedKeyRelations::default()),
+            &ManagedInstanceRelations {
+                attested_keys: Some(ManagedInstanceAttestedKeyRelations::default()),
                 ..Default::default()
             },
         )

@@ -52,6 +52,9 @@ impl OrganisationsDB {
                 wallet_provider: None,
                 wallet_provider_issuer: None,
                 parent_organisation: None,
+                verifier_provider: None,
+                verifier_provider_issuer: None,
+                configuration: None,
             })
             .await
             .unwrap();

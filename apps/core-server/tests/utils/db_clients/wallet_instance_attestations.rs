@@ -6,7 +6,7 @@ use one_core::model::wallet_instance_attestation::{
     WalletInstanceAttestation, WalletInstanceAttestationRelations,
 };
 use one_core::repository::wallet_instance_attestation_repository::WalletInstanceAttestationRepository;
-use shared_types::{HolderWalletInstanceId, WalletInstanceAttestationId};
+use shared_types::{InstanceId, WalletInstanceAttestationId};
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
@@ -31,7 +31,7 @@ impl WalletInstanceAttestationsDB {
     #[expect(unused)]
     pub async fn get_by_wallet_instance(
         &self,
-        holder_wallet_instance_id: &HolderWalletInstanceId,
+        holder_wallet_instance_id: &InstanceId,
     ) -> Vec<WalletInstanceAttestation> {
         self.repository
             .get_wallet_instance_attestations_by_holder_wallet_unit(
@@ -46,7 +46,7 @@ impl WalletInstanceAttestationsDB {
     pub async fn create(
         &self,
         test_wallet_instance_attestation: TestWalletInstanceAttestation,
-        holder_wallet_instance_id: HolderWalletInstanceId,
+        holder_wallet_instance_id: InstanceId,
         attested_key: Key,
     ) -> WalletInstanceAttestation {
         let now = one_core::clock::now_utc();

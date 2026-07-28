@@ -4,11 +4,12 @@ pub mod http_client;
 
 use dto::{IssueWalletAttestationResponse, MetadataTarget};
 use error::WalletProviderClientError;
-use shared_types::WalletInstanceId;
+use shared_types::ManagedInstanceId;
 
-use crate::service::wallet_provider::dto::{
-    ActivateWalletUnitRequestDTO, IssueWalletUnitAttestationRequestDTO,
-    RegisterWalletUnitRequestDTO, RegisterWalletUnitResponseDTO, WalletProviderMetadataResponseDTO,
+use crate::service::managed_instance::dto::{
+    ActivateWalletUnitRequestDTO, ActivateWalletUnitResponseDTO,
+    IssueWalletUnitAttestationRequestDTO, RegisterWalletUnitRequestDTO,
+    RegisterWalletUnitResponseDTO, WalletProviderMetadataResponseDTO,
 };
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -28,14 +29,14 @@ pub trait WalletProviderClient: Send + Sync {
     async fn activate(
         &self,
         wallet_provider_url: &str,
-        wallet_unit_id: WalletInstanceId,
+        wallet_unit_id: ManagedInstanceId,
         request: ActivateWalletUnitRequestDTO,
-    ) -> Result<(), WalletProviderClientError>;
+    ) -> Result<ActivateWalletUnitResponseDTO, WalletProviderClientError>;
 
     async fn issue_attestation(
         &self,
         wallet_provider_url: &str,
-        wallet_unit_id: WalletInstanceId,
+        wallet_unit_id: ManagedInstanceId,
         bearer_token: &str,
         request: IssueWalletUnitAttestationRequestDTO,
     ) -> Result<IssueWalletAttestationResponse, WalletProviderClientError>;

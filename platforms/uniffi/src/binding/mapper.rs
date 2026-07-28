@@ -34,7 +34,8 @@ use one_core::service::identifier::dto::{
 };
 use one_core::service::key::dto::KeyRequestDTO;
 use one_core::service::organisation::dto::{
-    CreateOrganisationRequestDTO, UpsertOrganisationRequestDTO,
+    CreateOrganisationRequestDTO, TrustCollectionInfoDTO, UpsertOrganisationConfigurationDTO,
+    UpsertOrganisationRequestDTO,
 };
 use one_core::service::proof::dto::{
     CreateProofRequestDTO, CreateProofRequestTransactionDataDTO, ProofClaimValueDTO,
@@ -45,10 +46,6 @@ use one_core::service::proof_schema::dto::{
 };
 use one_core::service::ssi_holder::dto::{
     HandleInvitationResultDTO, InitiateIssuanceRequestDTO, PresentationSubmitV2CredentialRequestDTO,
-};
-use one_core::service::verifier_instance::dto::EditVerifierInstanceRequestDTO;
-use one_core::service::wallet_instance::dto::{
-    EditHolderWalletInstanceRequestDTO, TrustCollectionInfoDTO,
 };
 use one_dto_mapper::{convert_inner, convert_inner_of_inner, try_convert_inner};
 use serde_json::json;
@@ -77,7 +74,8 @@ use super::identifier::{CreateIdentifierDidRequestBindingDTO, IdentifierListQuer
 use super::interaction::{HandleInvitationResponseBindingEnum, InitiateIssuanceRequestBindingDTO};
 use super::key::KeyRequestBindingDTO;
 use super::organisation::{
-    CreateOrganisationRequestBindingDTO, UpsertOrganisationRequestBindingDTO,
+    CreateOrganisationRequestBindingDTO, TrustCollectionInfoBindingDTO,
+    UpsertOrganisationConfigurationBindingDTO, UpsertOrganisationRequestBindingDTO,
 };
 use super::proof::{
     ApplicableCredentialOrFailureHintBindingEnum, CreateProofRequestBindingDTO,
@@ -90,8 +88,6 @@ use super::proof::{
 use super::proof_schema::{
     ImportProofSchemaClaimSchemaBindingDTO, ListProofSchemasFiltersBindingDTO,
 };
-use super::verifier_instance::EditVerifierInstanceRequestBindingDTO;
-use super::wallet_unit::{EditHolderWalletUnitRequestBindingDTO, TrustCollectionInfoBindingDTO};
 use crate::error::ErrorResponseBindingDTO;
 use crate::utils::{
     TimestampFormat, into_id, into_id_opt, into_id_opt_vec, into_id_vec, into_timestamp,
@@ -648,19 +644,54 @@ impl TryFrom<UpsertOrganisationRequestBindingDTO> for UpsertOrganisationRequestD
             .map(into_id_opt)
             .transpose()?;
 
+        let verifier_provider_issuer = value
+            .verifier_provider_issuer
+            .map(Option::<String>::from)
+            .map(into_id_opt)
+            .transpose()?;
+
         let parent_organisation = value
             .parent_organisation
             .map(Option::<String>::from)
             .map(into_id_opt)
             .transpose()?;
 
+        let trust_collections = into_id_opt_vec(&value.trust_collections)?;
+
         Ok(Self {
             id: into_id(&value.id)?,
             deactivate: value.deactivate,
             wallet_provider: convert_inner(value.wallet_provider),
             wallet_provider_issuer,
+            verifier_provider: convert_inner(value.verifier_provider),
+            verifier_provider_issuer,
+            configuration: convert_inner(value.configuration),
+            trust_collections,
             parent_organisation,
         })
+    }
+}
+
+impl From<UpsertOrganisationConfigurationBindingDTO> for UpsertOrganisationConfigurationDTO {
+    fn from(value: UpsertOrganisationConfigurationBindingDTO) -> Self {
+        Self {
+            trusted_issuer_required: value.trusted_issuer_required,
+            trusted_rp_required: value.trusted_rp_required,
+        }
+    }
+}
+
+impl From<TrustCollectionInfoDTO> for TrustCollectionInfoBindingDTO {
+    fn from(value: TrustCollectionInfoDTO) -> Self {
+        Self {
+            selected: value.selected,
+            id: value.collection.id.to_string(),
+            name: value.collection.name,
+            logo: value.collection.logo,
+            display_name: convert_inner(value.collection.display_name),
+            description: convert_inner(value.collection.description),
+            default_selected: value.collection.default_selected,
+        }
     }
 }
 
@@ -753,48 +784,6 @@ impl From<ApplicableCredentialOrFailureHintEnum> for ApplicableCredentialOrFailu
                     failure_hint: (*failure_hint).into(),
                 }
             }
-        }
-    }
-}
-
-impl TryFrom<EditHolderWalletUnitRequestBindingDTO> for EditHolderWalletInstanceRequestDTO {
-    type Error = ErrorResponseBindingDTO;
-
-    fn try_from(value: EditHolderWalletUnitRequestBindingDTO) -> Result<Self, Self::Error> {
-        Ok(Self {
-            trust_collections: value
-                .trust_collections
-                .map(|c| c.into_iter().map(into_id).collect::<Result<_, _>>())
-                .transpose()?,
-            trusted_rp_required: value.trusted_rp_required,
-        })
-    }
-}
-
-impl TryFrom<EditVerifierInstanceRequestBindingDTO> for EditVerifierInstanceRequestDTO {
-    type Error = ErrorResponseBindingDTO;
-
-    fn try_from(value: EditVerifierInstanceRequestBindingDTO) -> Result<Self, Self::Error> {
-        Ok(Self {
-            trust_collections: value
-                .trust_collections
-                .map(|c| c.into_iter().map(into_id).collect::<Result<_, _>>())
-                .transpose()?,
-            trusted_issuer_required: value.trusted_issuer_required,
-        })
-    }
-}
-
-impl From<TrustCollectionInfoDTO> for TrustCollectionInfoBindingDTO {
-    fn from(value: TrustCollectionInfoDTO) -> Self {
-        Self {
-            selected: value.selected,
-            id: value.collection.id.to_string(),
-            name: value.collection.name,
-            logo: value.collection.logo,
-            display_name: convert_inner(value.collection.display_name),
-            description: convert_inner(value.collection.description),
-            default_selected: value.collection.default_selected,
         }
     }
 }

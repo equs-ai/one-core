@@ -1,10 +1,16 @@
-use one_dto_mapper::Into;
-use shared_types::{HolderWalletInstanceId, IdentifierId, OrganisationId, VerifierInstanceId};
+use shared_types::{IdentifierId, InstanceId, OrganisationId, TrustCollectionId};
 use time::OffsetDateTime;
 
 use crate::model::common::GetListResponse;
-use crate::model::organisation::UpdateOrganisationRequest;
+use crate::model::organisation::OrganisationConfiguration;
 use crate::service::identifier::dto::GetIdentifierListItemResponseDTO;
+use crate::service::managed_instance::dto::ProviderTrustCollectionDTO;
+
+#[derive(Clone, Debug)]
+pub struct TrustCollectionInfoDTO {
+    pub selected: bool,
+    pub collection: ProviderTrustCollectionDTO,
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CreateOrganisationRequestDTO {
@@ -12,13 +18,16 @@ pub struct CreateOrganisationRequestDTO {
     pub parent_organisation: Option<OrganisationId>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Into)]
-#[into(UpdateOrganisationRequest)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UpsertOrganisationRequestDTO {
     pub id: OrganisationId,
     pub deactivate: Option<bool>,
     pub wallet_provider: Option<Option<String>>,
     pub wallet_provider_issuer: Option<Option<IdentifierId>>,
+    pub verifier_provider: Option<Option<String>>,
+    pub verifier_provider_issuer: Option<Option<IdentifierId>>,
+    pub configuration: Option<UpsertOrganisationConfigurationDTO>,
+    pub trust_collections: Option<Vec<TrustCollectionId>>,
     pub parent_organisation: Option<Option<OrganisationId>>,
 }
 
@@ -29,9 +38,11 @@ pub struct GetOrganisationDetailsResponseDTO {
     pub last_modified: OffsetDateTime,
     pub deactivated_at: Option<OffsetDateTime>,
     pub parent_organisation: Option<OrganisationId>,
-    pub wallet_instance: Option<HolderWalletInstanceDetailResponseDTO>,
-    pub verifier_instance: Option<VerifierInstanceDetailResponseDTO>,
+    pub configuration: Option<OrganisationConfigurationDTO>,
+    pub wallet_instance: Option<InstanceDetailResponseDTO>,
+    pub verifier_instance: Option<InstanceDetailResponseDTO>,
     pub wallet_provider: Option<WalletProviderDetailResponseDTO>,
+    pub verifier_provider: Option<VerifierProviderDetailResponseDTO>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,27 +53,61 @@ pub struct GetOrganisationListItemResponseDTO {
     pub deactivated_at: Option<OffsetDateTime>,
     pub parent_organisation: Option<OrganisationId>,
     pub wallet_provider: Option<WalletProviderDetailResponseDTO>,
+    pub verifier_provider: Option<VerifierProviderDetailResponseDTO>,
 }
 
+/// Instance registration details, shared by an organization's wallet and
+/// verifier instance (both are the same underlying `Instance`, distinguished
+/// only by which slot on the organization they're linked from).
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct HolderWalletInstanceDetailResponseDTO {
-    pub id: HolderWalletInstanceId,
-    pub trusted_rp_required: bool,
-    pub wallet_provider_url: String,
-    pub wallet_provider_name: String,
+pub struct InstanceDetailResponseDTO {
+    pub id: InstanceId,
+    pub provider_name: String,
+    pub provider_url: String,
     pub authentication_key_type: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VerifierInstanceDetailResponseDTO {
-    pub id: VerifierInstanceId,
-    pub trusted_issuer_required: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WalletProviderDetailResponseDTO {
     pub provider_name: Option<String>,
     pub issuer: Option<GetIdentifierListItemResponseDTO>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VerifierProviderDetailResponseDTO {
+    pub provider_name: Option<String>,
+    pub issuer: Option<GetIdentifierListItemResponseDTO>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct OrganisationConfigurationDTO {
+    pub trusted_issuer_required: bool,
+    pub trusted_rp_required: bool,
+}
+
+impl From<OrganisationConfiguration> for OrganisationConfigurationDTO {
+    fn from(value: OrganisationConfiguration) -> Self {
+        Self {
+            trusted_issuer_required: value.trusted_issuer_required,
+            trusted_rp_required: value.trusted_rp_required,
+        }
+    }
+}
+
+impl From<OrganisationConfigurationDTO> for OrganisationConfiguration {
+    fn from(value: OrganisationConfigurationDTO) -> Self {
+        Self {
+            trusted_issuer_required: value.trusted_issuer_required,
+            trusted_rp_required: value.trusted_rp_required,
+        }
+    }
+}
+
+/// Partial update for `OrganisationConfiguration`: fields left `None` keep their current value.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct UpsertOrganisationConfigurationDTO {
+    pub trusted_issuer_required: Option<bool>,
+    pub trusted_rp_required: Option<bool>,
 }
 
 pub type GetOrganisationListResponseDTO = GetListResponse<GetOrganisationListItemResponseDTO>;

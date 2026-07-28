@@ -2,14 +2,15 @@ use std::sync::Arc;
 
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::organisation::{
-    Organisation, OrganisationFilterValue, SortableOrganisationColumn, UpdateOrganisationRequest,
+    Organisation, OrganisationConfiguration, OrganisationFilterValue, SortableOrganisationColumn,
+    UpdateOrganisationRequest,
 };
 use one_core::model::relation::Related;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::sea_query::{IntoCondition, SimpleExpr};
 use sea_orm::{ColumnTrait, IntoSimpleExpr, Set, Unchanged};
 
-use crate::entity::organisation;
+use crate::entity::organisation::{self, Configuration};
 use crate::list_query_generic::{
     IntoFilterCondition, IntoSortingColumn, get_comparison_condition, get_nullability_condition,
 };
@@ -28,6 +29,9 @@ pub(crate) fn organisation_from_model(
         parent_organisation: value.parent_organisation.map(|organisation_id| {
             Related::new(organisation_id, organisation_repository.to_owned())
         }),
+        verifier_provider: value.verifier_provider,
+        verifier_provider_issuer: value.verifier_provider_issuer,
+        configuration: value.configuration.map(Into::into).unwrap_or_default(),
     }
 }
 
@@ -43,6 +47,9 @@ impl From<Organisation> for organisation::ActiveModel {
             parent_organisation: Set(value
                 .parent_organisation
                 .map(|parent_organisation| parent_organisation.id())),
+            configuration: Set(Some(value.configuration.into())),
+            verifier_provider: Set(value.verifier_provider),
+            verifier_provider_issuer: Set(value.verifier_provider_issuer),
         }
     }
 }
@@ -72,7 +79,39 @@ impl From<UpdateOrganisationRequest> for organisation::ActiveModel {
                 Some(None) => Set(None),
                 Some(Some(value)) => Set(Some(value)),
             },
+            configuration: match value.configuration {
+                None => Unchanged(Default::default()),
+                Some(value) => Set(Some(value.into())),
+            },
+            verifier_provider: match value.verifier_provider {
+                None => Unchanged(Default::default()),
+                Some(None) => Set(None),
+                Some(Some(value)) => Set(Some(value)),
+            },
+            verifier_provider_issuer: match value.verifier_provider_issuer {
+                None => Unchanged(Default::default()),
+                Some(None) => Set(None),
+                Some(Some(value)) => Set(Some(value)),
+            },
             ..Default::default()
+        }
+    }
+}
+
+impl From<Configuration> for OrganisationConfiguration {
+    fn from(value: Configuration) -> Self {
+        Self {
+            trusted_rp_required: value.trusted_rp_required.unwrap_or_default(),
+            trusted_issuer_required: value.trusted_issuer_required.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<OrganisationConfiguration> for Configuration {
+    fn from(value: OrganisationConfiguration) -> Self {
+        Self {
+            trusted_rp_required: Some(value.trusted_rp_required),
+            trusted_issuer_required: Some(value.trusted_issuer_required),
         }
     }
 }

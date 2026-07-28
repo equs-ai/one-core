@@ -30,9 +30,9 @@ use crate::endpoint::trust_collection::controller::{
 };
 use crate::endpoint::{
     cache, certificate, config, credential, credential_schema, did, did_resolver, history,
-    holder_wallet_instance, identifier, interaction, jsonld, key, misc, organisation, proof,
+    identifier, instance, interaction, jsonld, key, managed_instance, misc, organisation, proof,
     proof_schema, qes, signature, ssi, statistics, task, trust_collection, trust_list_publication,
-    vc_api, verifier_instance, wallet_provider,
+    vc_api,
 };
 use crate::middleware::get_http_request_context;
 use crate::openapi::gen_openapi_documentation;
@@ -390,6 +390,10 @@ fn get_management_endpoints(
                 get(organisation::controller::get_organisation)
                     .patch(organisation::controller::patch_organisation),
             )
+            .route(
+                "/api/organisation/v1/{id}/trust-collections",
+                get(organisation::controller::get_organisation_trust_collections),
+            )
             .route("/api/did/v1/{id}", get(did::controller::get_did))
             .route("/api/did/v1/{id}", patch(did::controller::update_did))
             .route("/api/did/v1", get(did::controller::get_did_list))
@@ -458,42 +462,37 @@ fn get_management_endpoints(
             )
             .route("/api/task/v1/run", post(task::controller::post_task))
             .route(
-                "/api/wallet-instance/v1",
-                get(wallet_provider::controller::get_wallet_unit_list),
+                "/api/managed-instance/v1",
+                get(managed_instance::controller::get_managed_instance_list),
             )
             .route(
-                "/api/wallet-instance/v1/{id}",
-                get(wallet_provider::controller::get_wallet_unit_details)
-                    .delete(wallet_provider::controller::remove_wallet_unit),
+                "/api/managed-instance/v1/{id}",
+                get(managed_instance::controller::get_managed_instance_details)
+                    .delete(managed_instance::controller::delete_managed_instance),
             )
             .route(
-                "/api/wallet-instance/v1/{id}/revoke",
-                post(wallet_provider::controller::revoke_wallet_unit),
+                "/api/managed-instance/v1/{id}/revoke",
+                post(managed_instance::controller::revoke_managed_instance),
             )
             .route(
                 "/api/jsonld-context/v1",
                 get(jsonld::controller::resolve_jsonld_context),
             )
             .route(
-                "/api/holder-wallet-instance/v1/{id}",
-                get(holder_wallet_instance::controller::wallet_instance_holder_details)
-                    .patch(holder_wallet_instance::controller::edit_holder_wallet_instance),
+                "/api/instance/v1/{id}",
+                get(instance::controller::get_instance_details),
             )
             .route(
-                "/api/holder-wallet-instance/v1/{id}/trust-collections",
-                get(holder_wallet_instance::controller::get_holder_wallet_instance_trust_collections),
+                "/api/instance/v1/{id}/status",
+                post(instance::controller::instance_status),
             )
             .route(
-                "/api/holder-wallet-instance/v1/{id}/status",
-                post(holder_wallet_instance::controller::wallet_instance_holder_status),
+                "/api/instance/v1/{id}/activate",
+                post(instance::controller::activate_instance),
             )
             .route(
-                "/api/holder-wallet-instance/v1/{id}/activate",
-                post(holder_wallet_instance::controller::holder_activate_wallet_instance),
-            )
-            .route(
-                "/api/holder-wallet-instance/v1",
-                post(holder_wallet_instance::controller::wallet_instance_holder_register),
+                "/api/instance/v1",
+                post(instance::controller::register_instance),
             )
             .route(
                 "/api/statistics/v1/dashboard",
@@ -556,18 +555,6 @@ fn get_management_endpoints(
             .route(
                 "/api/trust-collection/v1/{trust_collection_id}/trust-list/{trust_list_id}",
                 delete(delete_trust_list_subscription),
-            )
-            .route(
-                "/api/verifier-instance/v1",
-                post(verifier_instance::controller::register_verifier_instance),
-            )
-            .route(
-                "/api/verifier-instance/v1/{id}",
-                patch(verifier_instance::controller::edit_verifier_instance),
-            )
-            .route(
-                "/api/verifier-instance/v1/{id}/trust-collections",
-                get(verifier_instance::controller::get_verifier_instance_trust_collections),
             );
 
         if config.enable_signature_endpoints {
@@ -614,6 +601,7 @@ fn get_management_endpoints(
     }
 }
 
+#[expect(deprecated)]
 fn get_external_endpoints(
     config: &ServerConfig,
     openapi_paths: &mut Option<&mut IndexMap<String, PathItem>>,
@@ -786,6 +774,18 @@ fn get_external_endpoints(
             .route(
                 "/ssi/wallet-provider/v1/{walletProvider}",
                 get(ssi::wallet_provider::controller::get_wallet_provider_metadata),
+            )
+            .route(
+                "/ssi/instance/v1",
+                post(ssi::instance::controller::register_instance)
+            )
+            .route(
+                "/ssi/instance/v1/{id}/activate",
+                post(ssi::instance::controller::activate_instance),
+            )
+            .route(
+                "/ssi/instance/v1/{id}/issue-attestation",
+                post(ssi::instance::controller::issue_instance_attestation)
             )
             .route(
                 "/ssi/trust-list/v1/{id}",

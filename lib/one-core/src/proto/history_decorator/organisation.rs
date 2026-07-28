@@ -73,6 +73,8 @@ impl OrganisationRepository for OrganisationHistoryDecorator {
 
         if request.wallet_provider_issuer.is_some()
             || request.wallet_provider.is_some()
+            || request.verifier_provider_issuer.is_some()
+            || request.verifier_provider.is_some()
             || request.parent_organisation.is_some()
         {
             self.write_history(HistoryAction::Updated, updated_entry.id)
@@ -107,6 +109,15 @@ impl OrganisationRepository for OrganisationHistoryDecorator {
     ) -> Result<Option<Organisation>, DataLayerError> {
         self.inner
             .get_organisation_for_wallet_provider(wallet_provider)
+            .await
+    }
+
+    async fn get_organisation_for_verifier_provider(
+        &self,
+        verifier_provider: &str,
+    ) -> Result<Option<Organisation>, DataLayerError> {
+        self.inner
+            .get_organisation_for_verifier_provider(verifier_provider)
             .await
     }
 

@@ -7,8 +7,8 @@ use uuid::Uuid;
 use super::ProofSchemaService;
 use super::dto::{
     CreateProofSchemaRequestDTO, GetProofSchemaListResponseDTO, GetProofSchemaResponseDTO,
-    ImportProofSchemaInputSchemaDTO, ImportProofSchemaRequestDTO, ImportProofSchemaResponseDTO,
-    ProofSchemaFilterParamsDTO, ProofSchemaShareResponseDTO,
+    ImportProofSchemaRequestDTO, ImportProofSchemaResponseDTO, ProofSchemaFilterParamsDTO,
+    ProofSchemaShareResponseDTO,
 };
 use super::error::ProofSchemaServiceError;
 use super::mapper::{
@@ -20,6 +20,7 @@ use super::validator::{
     throw_if_invalid_credential_combination, validate_create_request,
     validate_imported_proof_schema,
 };
+use crate::CoreConfig;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_into;
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaListQuery};
@@ -33,13 +34,19 @@ use crate::model::proof_schema::{
 use crate::proto::credential_schema::dto::{
     ImportCredentialSchemaRequestDTO, ImportCredentialSchemaV2RequestDTO,
 };
+use crate::proto::credential_schema::importer::CredentialSchemaImporter;
+use crate::proto::credential_schema::parser::CredentialSchemaImportParser;
+use crate::proto::http_client::HttpClient;
+use crate::repository::credential_schema_repository::CredentialSchemaRepository;
 use crate::repository::error::DataLayerError;
+use crate::repository::proof_schema_repository::ProofSchemaRepository;
 use crate::service::common_dto::ListQueryDTO;
 use crate::service::credential_schema::dto::{
     CredentialSchemaFilterValue, ImportCredentialSchemaRequestSchemaDTO,
     ImportCredentialSchemaV2RequestSchemaDTO,
 };
 use crate::service::credential_schema::validator::validate_key_storage_security_supported;
+use crate::service::proof_schema::dto::ImportProofSchemaDTO;
 use crate::validator::{throw_if_org_id_not_matching_session, throw_if_org_not_matching_session};
 
 impl ProofSchemaService {
@@ -300,53 +307,6 @@ impl ProofSchemaService {
             ));
         }
 
-        let schema = request.schema;
-        validate_imported_proof_schema(&schema, &self.config)?;
-
-        proof_schema_name_already_exists(
-            &*self.proof_schema_repository,
-            &schema.name,
-            request.organisation_id,
-        )
-        .await?;
-
-        let now = crate::clock::now_utc();
-        let input_schemas =
-            schema
-                .proof_input_schemas
-                .into_iter()
-                .map(|request_input_schema| {
-                    let organisation = organisation.clone();
-
-                    async move {
-                        // check if the credential schema already exists
-                        let maybe_credential_schema = self
-                            .credential_schema_repository
-                            .get_by_schema_id_and_organisation(
-                                &request_input_schema.credential_schema.schema_id,
-                                organisation.id,
-                            )
-                            .await .error_while("getting credential schema")?;
-
-                        let credential_schema =
-                            // if not exists (or deleted) create new credential schema
-                            if let Some(credential_schema) = maybe_credential_schema {
-                                if credential_schema.deleted_at.is_some() {
-                                    self.create_credential_schema_from_input_schema(&request_input_schema, &organisation).await
-                                } else {
-                                    Ok(credential_schema)
-                                }
-                            }
-                               else {
-                                self.create_credential_schema_from_input_schema(&request_input_schema, &organisation).await
-                            }?;
-
-                        proof_input_from_import_request(request_input_schema, credential_schema).await
-                    }
-                });
-
-        let input_schemas: Vec<ProofInputSchema> = future::try_join_all(input_schemas).await?;
-
         let proof_schema_id = Uuid::new_v4().into();
         let imported_source_url = if self.config.global_settings.rehost_imported_schemas {
             let base_url = self.base_url.as_deref().ok_or_else(|| {
@@ -356,80 +316,147 @@ impl ProofSchemaService {
             })?;
             format!("{base_url}/ssi/proof-schema/v1/{proof_schema_id}")
         } else {
-            schema.imported_source_url
-        };
-
-        let proof_schema = ProofSchema {
-            id: proof_schema_id,
-            created_date: now,
-            last_modified: now,
-            deleted_at: None,
-            name: schema.name,
-            expire_duration: schema.expire_duration,
-            organisation: Some(organisation.clone()),
-            input_schemas: Some(input_schemas),
-            imported_source_url: Some(imported_source_url),
+            request.schema.imported_source_url.to_owned()
         };
 
         let success_log = format!(
-            "Imported proof schema `{}` ({})",
-            proof_schema.name, proof_schema.id
+            "Imported proof schema `{}` ({proof_schema_id})",
+            request.schema.name
         );
-        let proof_schema_id = self
-            .proof_schema_repository
-            .create_proof_schema(proof_schema)
-            .await
-            .error_while("creating proof schema")?;
+        create_imported_proof_schema(
+            request.schema,
+            proof_schema_id,
+            &organisation,
+            imported_source_url,
+            self.proof_schema_repository.as_ref(),
+            self.credential_schema_repository.as_ref(),
+            self.client.as_ref(),
+            self.credential_schema_import_parser.as_ref(),
+            self.credential_schema_importer.as_ref(),
+            &self.config,
+        )
+        .await?;
         tracing::info!(message = success_log);
         Ok(ImportProofSchemaResponseDTO {
             id: proof_schema_id,
         })
     }
+}
 
-    async fn create_credential_schema_from_input_schema(
-        &self,
-        request_input_schema: &ImportProofSchemaInputSchemaDTO,
-        organisation: &Organisation,
-    ) -> Result<CredentialSchema, ProofSchemaServiceError> {
-        let url = &request_input_schema.credential_schema.imported_source_url;
-        let response = async { self.client.get(url).send().await?.error_for_status() }
-            .await
-            .error_while("fetching credential schema")?;
+pub(crate) async fn create_credential_schema_from_import_url(
+    url: &str,
+    organisation: Organisation,
+    client: &dyn HttpClient,
+    credential_schema_import_parser: &dyn CredentialSchemaImportParser,
+    credential_schema_importer: &dyn CredentialSchemaImporter,
+) -> Result<CredentialSchema, ProofSchemaServiceError> {
+    let response = async { client.get(url).send().await?.error_for_status() }
+        .await
+        .error_while("fetching credential schema")?;
 
-        let credential_schema = if is_v2_credential_schema_url(url) {
-            let import_request: ImportCredentialSchemaV2RequestSchemaDTO =
-                response.json().error_while("fetching credential schema")?;
-            self.credential_schema_import_parser
-                .parse_import_credential_schema_v2(ImportCredentialSchemaV2RequestDTO {
-                    organisation: organisation.to_owned(),
-                    schema: import_request.into(),
-                })
-                .error_while("parsing credential schema")?
-        } else {
-            let import_request: ImportCredentialSchemaRequestSchemaDTO =
-                response.json().error_while("fetching credential schema")?;
-            self.credential_schema_import_parser
-                .parse_import_credential_schema(ImportCredentialSchemaRequestDTO {
-                    organisation: organisation.to_owned(),
-                    schema: import_request.into(),
-                })
-                .error_while("parsing credential schema")?
-        };
+    let credential_schema = if is_v2_credential_schema_url(url) {
+        let import_request: ImportCredentialSchemaV2RequestSchemaDTO =
+            response.json().error_while("fetching credential schema")?;
+        credential_schema_import_parser
+            .parse_import_credential_schema_v2(ImportCredentialSchemaV2RequestDTO {
+                organisation,
+                schema: import_request.into(),
+            })
+            .error_while("parsing credential schema")?
+    } else {
+        let import_request: ImportCredentialSchemaRequestSchemaDTO =
+            response.json().error_while("fetching credential schema")?;
+        credential_schema_import_parser
+            .parse_import_credential_schema(ImportCredentialSchemaRequestDTO {
+                organisation,
+                schema: import_request.into(),
+            })
+            .error_while("parsing credential schema")?
+    };
 
-        let credential_schema = self
-            .credential_schema_importer
-            .import_credential_schema(credential_schema)
-            .await
-            .error_while("importing credential schema")?;
-
-        Ok(credential_schema)
-    }
+    Ok(credential_schema_importer
+        .import_credential_schema(credential_schema)
+        .await
+        .error_while("importing credential schema")?)
 }
 
 fn is_v2_credential_schema_url(url: &str) -> bool {
     url::Url::parse(url)
         .ok()
         .is_some_and(|u| u.path().contains("/ssi/schema/v2/"))
+}
+
+#[expect(clippy::too_many_arguments)]
+pub(crate) async fn create_imported_proof_schema(
+    schema: ImportProofSchemaDTO,
+    id: ProofSchemaId,
+    organisation: &Organisation,
+    imported_source_url: String,
+    proof_schema_repository: &dyn ProofSchemaRepository,
+    credential_schema_repository: &dyn CredentialSchemaRepository,
+    client: &dyn HttpClient,
+    credential_schema_import_parser: &dyn CredentialSchemaImportParser,
+    credential_schema_importer: &dyn CredentialSchemaImporter,
+    config: &CoreConfig,
+) -> Result<(), ProofSchemaServiceError> {
+    validate_imported_proof_schema(&schema, config)?;
+
+    proof_schema_name_already_exists(proof_schema_repository, &schema.name, organisation.id)
+        .await?;
+
+    let now = crate::clock::now_utc();
+    let input_schemas = schema
+        .proof_input_schemas
+        .into_iter()
+        .map(|request_input_schema| {
+            async move {
+                // check if the credential schema already exists
+                let maybe_credential_schema = credential_schema_repository
+                    .get_by_schema_id_and_organisation(
+                        &request_input_schema.credential_schema.schema_id,
+                        organisation.id,
+                    )
+                    .await
+                    .error_while("getting credential schema")?;
+
+                let credential_schema =
+                    // if not exists (or deleted) create new credential schema
+                    if let Some(credential_schema) = maybe_credential_schema
+                        && credential_schema.deleted_at.is_none() {
+                        credential_schema
+                    } else {
+                        create_credential_schema_from_import_url(
+                            &request_input_schema.credential_schema.imported_source_url,
+                            organisation.to_owned(),
+                            client,
+                            credential_schema_import_parser,
+                            credential_schema_importer,
+                        ).await?
+                    };
+
+                proof_input_from_import_request(request_input_schema, credential_schema).await
+            }
+        });
+
+    let input_schemas: Vec<ProofInputSchema> = future::try_join_all(input_schemas).await?;
+
+    let proof_schema = ProofSchema {
+        id,
+        created_date: now,
+        last_modified: now,
+        deleted_at: None,
+        name: schema.name,
+        expire_duration: schema.expire_duration,
+        organisation: Some(organisation.clone()),
+        input_schemas: Some(input_schemas),
+        imported_source_url: Some(imported_source_url),
+    };
+    proof_schema_repository
+        .create_proof_schema(proof_schema)
+        .await
+        .error_while("creating proof schema")?;
+
+    Ok(())
 }
 
 #[cfg(test)]

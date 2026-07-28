@@ -1,6 +1,6 @@
 use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use serde_json::json;
-use shared_types::WalletInstanceId;
+use shared_types::ManagedInstanceId;
 use standardized_types::jwk::PublicJwk;
 
 use crate::utils::api_clients::{HttpClient, Response};
@@ -35,9 +35,32 @@ impl WalletProviderApi {
         self.client.post("/ssi/wallet-unit/v1", body).await
     }
 
+    pub async fn register_instance(
+        &self,
+        provider: &str,
+        role: &str,
+        os: &str,
+        jwk: Option<&PublicJwk>,
+        proof: Option<&str>,
+    ) -> Response {
+        let mut body = json!( {
+            "provider": provider,
+            "role": role,
+            "os": os,
+        });
+        if let Some(jwk) = jwk {
+            body["publicKey"] = json!(jwk);
+        }
+        if let Some(proof) = proof {
+            body["proof"] = json!(proof);
+        }
+
+        self.client.post("/ssi/instance/v1", body).await
+    }
+
     pub async fn activate_wallet(
         &self,
-        wallet_unit_id: WalletInstanceId,
+        wallet_unit_id: ManagedInstanceId,
         attestation: &str,
         proof: &str,
         user_id_token: Option<&str>,
@@ -57,9 +80,19 @@ impl WalletProviderApi {
             .await
     }
 
+    pub async fn activate_instance(
+        &self,
+        instance_id: ManagedInstanceId,
+        body: serde_json::Value,
+    ) -> Response {
+        self.client
+            .post(&format!("/ssi/instance/v1/{instance_id}/activate"), body)
+            .await
+    }
+
     pub async fn issue_attestation(
         &self,
-        wallet_unit_id: WalletInstanceId,
+        wallet_unit_id: ManagedInstanceId,
         bearer: &str,
         wia_proofs: Vec<String>,
         wua_proofs: Vec<(String, KeyStorageSecurityLevel)>,
@@ -92,18 +125,24 @@ impl WalletProviderApi {
             .await
     }
 
-    pub async fn revoke_wallet_unit(&self, wallet_unit_id: WalletInstanceId) -> Response {
+    pub async fn revoke_managed_instance(
+        &self,
+        managed_instance_id: ManagedInstanceId,
+    ) -> Response {
         self.client
             .post(
-                &format!("/api/wallet-instance/v1/{wallet_unit_id}/revoke"),
+                &format!("/api/managed-instance/v1/{managed_instance_id}/revoke"),
                 None,
             )
             .await
     }
 
-    pub async fn delete_wallet_unit(&self, wallet_unit_id: WalletInstanceId) -> Response {
+    pub async fn delete_managed_instance(
+        &self,
+        managed_instance_id: ManagedInstanceId,
+    ) -> Response {
         self.client
-            .delete(&format!("/api/wallet-instance/v1/{wallet_unit_id}"))
+            .delete(&format!("/api/managed-instance/v1/{managed_instance_id}"))
             .await
     }
 }

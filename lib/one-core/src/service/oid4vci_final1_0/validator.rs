@@ -19,7 +19,7 @@ use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
     OpenID4VCIIssuerInteractionDataDTO,
 };
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use crate::service::wallet_provider::dto::{
+use crate::service::managed_instance::dto::{
     WalletInstanceAttestationClaims, WalletUnitAttestationClaims,
 };
 use crate::validator::{

@@ -53,7 +53,7 @@ use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
 use crate::repository::history_repository::HistoryRepository;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::repository::instance_repository::InstanceRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::key_repository::KeyRepository;
 
@@ -135,7 +135,7 @@ impl OpenID4VCISwiyu {
         params: serde_json::Value,
         config_id: String,
         holder_wallet_unit_proto: Arc<dyn HolderWalletUnitProto>,
-        holder_wallet_unit_repository: Arc<dyn HolderWalletInstanceRepository>,
+        holder_wallet_unit_repository: Arc<dyn InstanceRepository>,
         certificate_validator: Arc<dyn CertificateValidator>,
         wrp_validator: Arc<dyn WRPValidator>,
         history_repository: Arc<dyn HistoryRepository>,

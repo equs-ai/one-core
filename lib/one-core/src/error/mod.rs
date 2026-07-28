@@ -970,6 +970,33 @@ pub enum ErrorCode {
 
     #[strum(message = "Transaction data not found")]
     BR_0462,
+
+    #[strum(message = "Verifier instance registration not yet supported")]
+    BR_0464,
+
+    #[strum(message = "Verifier provider is already associated to another organisation")]
+    BR_0465,
+
+    #[strum(message = "Verifier provider not enabled in config")]
+    BR_0466,
+
+    #[strum(message = "Invalid instance role")]
+    BR_0467,
+
+    #[strum(message = "Access certificate provisioning disabled")]
+    BR_0468,
+
+    #[strum(message = "Missing user access token")]
+    BR_0469,
+
+    #[strum(message = "Verifier provider not configured")]
+    BR_0470,
+
+    #[strum(message = "Verifier provider not associated with any organisation")]
+    BR_0471,
+
+    #[strum(message = "Trust collections must all belong to the same provider")]
+    BR_0472,
 }
 
 pub trait ErrorCodeMixin: Error + Send + Sync + 'static {

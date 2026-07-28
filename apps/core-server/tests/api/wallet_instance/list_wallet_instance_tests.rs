@@ -1,5 +1,5 @@
 use one_core::model::history::HistoryMetadata;
-use one_core::model::wallet_instance::WalletInstanceStatus;
+use one_core::model::managed_instance::InstanceStatus;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use one_crypto::Hasher;
@@ -11,7 +11,7 @@ use crate::api_wallet_unit_tests::create_wallet_instance_attestation;
 use crate::utils::api_clients::wallet_units::ListFilters;
 use crate::utils::context::TestContext;
 use crate::utils::db_clients::histories::TestingHistoryParams;
-use crate::utils::db_clients::wallet_instances::TestWalletInstance;
+use crate::utils::db_clients::managed_instances::TestWalletInstance;
 
 #[tokio::test]
 async fn test_list_wallet_instance_success() {
@@ -23,7 +23,7 @@ async fn test_list_wallet_instance_success() {
         let holder_public_jwk = holder_key_pair.key.public_key_as_jwk().unwrap();
         context
             .db
-            .wallet_instances
+            .managed_instances
             .create(
                 org.clone(),
                 TestWalletInstance {
@@ -57,8 +57,11 @@ async fn test_list_wallet_instance_success() {
     assert!(values[0]["lastIssuance"].is_string());
     assert!(values[0]["os"].is_string());
     assert!(values[0]["status"].is_string());
-    assert!(values[0]["walletProviderType"].is_string());
-    assert!(values[0]["walletProviderName"].is_string());
+    assert!(values[0]["providerType"].is_string());
+    assert!(values[0]["providerName"].is_string());
+    assert_eq!(values[0]["role"], "WALLET");
+    assert!(values[0]["walletProviderType"].is_null());
+    assert!(values[0]["walletProviderName"].is_null());
     assert!(values[0]["authenticationKeyJwk"].is_object()); // JWK
 }
 
@@ -70,7 +73,7 @@ async fn test_list_wallet_instance_revoked_success() {
     for i in 1..10 {
         context
             .db
-            .wallet_instances
+            .managed_instances
             .create(
                 org.clone(),
                 TestWalletInstance {
@@ -84,11 +87,11 @@ async fn test_list_wallet_instance_revoked_success() {
     for _i in 10..15 {
         context
             .db
-            .wallet_instances
+            .managed_instances
             .create(
                 org.clone(),
                 TestWalletInstance {
-                    status: Some(WalletInstanceStatus::Revoked),
+                    status: Some(InstanceStatus::Revoked),
                     ..Default::default()
                 },
             )
@@ -137,7 +140,7 @@ async fn test_list_wallet_instance_by_attestation_success() {
         .await;
         let wallet_unit = context
             .db
-            .wallet_instances
+            .managed_instances
             .create(
                 organisation.clone(),
                 TestWalletInstance {
@@ -174,7 +177,7 @@ async fn test_list_wallet_instance_by_attestation_success() {
         .list(ListFilters {
             organisation_id: organisation.id,
             attestation: Some(attestation),
-            user_sub: None,
+            ..ListFilters::new(organisation.id)
         })
         .await;
 
@@ -193,8 +196,11 @@ async fn test_list_wallet_instance_by_attestation_success() {
     assert!(values[0]["lastIssuance"].is_string());
     assert!(values[0]["os"].is_string());
     assert!(values[0]["status"].is_string());
-    assert!(values[0]["walletProviderType"].is_string());
-    assert!(values[0]["walletProviderName"].is_string());
+    assert!(values[0]["providerType"].is_string());
+    assert!(values[0]["providerName"].is_string());
+    assert_eq!(values[0]["role"], "WALLET");
+    assert!(values[0]["walletProviderType"].is_null());
+    assert!(values[0]["walletProviderName"].is_null());
     assert!(values[0]["authenticationKeyJwk"].is_object()); // JWK
 }
 
@@ -227,7 +233,7 @@ async fn test_list_wallet_instance_user_sub_in_response() {
 
     context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -261,7 +267,7 @@ async fn test_list_wallet_instance_filter_by_user_sub() {
 
     context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -273,7 +279,7 @@ async fn test_list_wallet_instance_filter_by_user_sub() {
         .await;
     context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
@@ -312,7 +318,7 @@ async fn test_list_wallet_instance_filter_by_user_sub_prefix() {
     for name in ["alice", "adam", "bob"] {
         context
             .db
-            .wallet_instances
+            .managed_instances
             .create(
                 org.clone(),
                 TestWalletInstance {
@@ -351,7 +357,7 @@ async fn test_list_wallet_instance_org_success() {
     let holder_public_jwk = holder_key_pair.key.public_key_as_jwk().unwrap();
     context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {

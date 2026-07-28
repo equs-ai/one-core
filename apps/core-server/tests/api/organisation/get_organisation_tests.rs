@@ -1,11 +1,11 @@
-use one_core::model::wallet_instance::{WalletInstanceStatus, WalletProviderType};
+use one_core::model::instance::WalletProviderType;
+use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
 use crate::fixtures::TestingKeyParams;
 use crate::utils::context::TestContext;
 use crate::utils::db_clients::holder_wallet_instance::TestHolderWalletInstanceParams;
-use crate::utils::db_clients::verifier_instances::TestVerifierInstanceParams;
 use crate::utils::field_match::FieldHelpers;
 
 #[tokio::test]
@@ -71,12 +71,12 @@ async fn test_get_organisation_returns_wallet_instance() {
             organisation.clone(),
             Some(key.clone()),
             TestHolderWalletInstanceParams {
-                status: Some(WalletInstanceStatus::Active),
-                wallet_provider_type: Some(WalletProviderType::ProcivisOne),
-                wallet_provider_name: Some("PROCIVIS_ONE".to_string()),
-                wallet_provider_url: Some("https://wallet.provider".to_string()),
+                status: Some(InstanceStatus::Active),
+                provider_type: Some(WalletProviderType::ProcivisOne),
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some("https://wallet.provider".to_string()),
                 provider_wallet_unit_id: Some(Uuid::new_v4().into()),
-                ..Default::default()
+                role: Some(ManagedInstanceRole::Wallet),
             },
         )
         .await;
@@ -90,14 +90,14 @@ async fn test_get_organisation_returns_wallet_instance() {
     resp["id"].assert_eq(&organisation.id);
 
     let wallet_instance = resp["walletInstance"].as_object().unwrap();
-    assert_eq!(
-        wallet_instance["walletProviderUrl"],
-        "https://wallet.provider"
-    );
+    assert_eq!(wallet_instance["providerUrl"], "https://wallet.provider");
     assert_eq!(wallet_instance["id"], holder_wallet_instance.id.to_string());
-    assert_eq!(wallet_instance["trustedRpRequired"], false);
-    assert_eq!(wallet_instance["walletProviderName"], "PROCIVIS_ONE");
+    assert_eq!(wallet_instance["providerName"], "PROCIVIS_ONE");
     assert_eq!(wallet_instance["authenticationKeyType"], "ECDSA");
+
+    let configuration = resp["configuration"].as_object().unwrap();
+    assert_eq!(configuration["trustedRpRequired"], false);
+    assert_eq!(configuration["trustedIssuerRequired"], false);
 }
 
 #[tokio::test]
@@ -138,11 +138,37 @@ async fn get_deactivated_organisation_success() {
 async fn test_get_organisation_with_verifier_instance_success() {
     // GIVEN
     let (context, organisation) = TestContext::new_with_organisation(None).await;
+    let now = one_core::clock::now_utc();
+    let key = context
+        .db
+        .keys
+        .create(
+            &organisation,
+            TestingKeyParams {
+                id: Some(Uuid::new_v4().into()),
+                created_date: Some(now),
+                last_modified: Some(now),
+                name: Some("auth-key".to_string()),
+                key_type: Some("ECDSA".to_string()),
+                storage_type: Some("INTERNAL".to_string()),
+                public_key: Some(vec![0; 32]),
+                key_reference: Some(vec![0; 32]),
+            },
+        )
+        .await;
     let verifier_instance = context
         .db
-        .verifier_instances
-        .create(organisation.clone(), TestVerifierInstanceParams::default())
+        .holder_wallet_units
+        .create(
+            organisation.clone(),
+            Some(key),
+            TestHolderWalletInstanceParams {
+                role: Some(ManagedInstanceRole::Verifier),
+                ..Default::default()
+            },
+        )
         .await;
+
     // WHEN
     let resp = context.api.organisations.get(&organisation.id).await;
 
@@ -158,5 +184,13 @@ async fn test_get_organisation_with_verifier_instance_success() {
         verifier_instance_resp["id"],
         verifier_instance.id.to_string()
     );
-    assert_eq!(verifier_instance_resp["trustedIssuerRequired"], false);
+    assert_eq!(verifier_instance_resp["providerName"], "PROCIVIS_ONE");
+    assert_eq!(
+        verifier_instance_resp["providerUrl"],
+        "https://wallet.provider"
+    );
+    assert_eq!(verifier_instance_resp["authenticationKeyType"], "ECDSA");
+
+    let configuration = resp["configuration"].as_object().unwrap();
+    assert_eq!(configuration["trustedIssuerRequired"], false);
 }

@@ -1,8 +1,8 @@
-use one_core::model::wallet_instance::WalletInstanceStatus;
+use one_core::model::managed_instance::InstanceStatus;
 use similar_asserts::assert_eq;
 
 use crate::utils::context::TestContext;
-use crate::utils::db_clients::wallet_instances::TestWalletInstance;
+use crate::utils::db_clients::managed_instances::TestWalletInstance;
 use crate::utils::field_match::FieldHelpers;
 
 #[tokio::test]
@@ -11,7 +11,7 @@ async fn test_get_wallet_instance_success() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(org, TestWalletInstance::default())
         .await;
 
@@ -26,8 +26,11 @@ async fn test_get_wallet_instance_success() {
     resp["name"].assert_eq(&wallet_unit.name);
     resp["os"].assert_eq(&wallet_unit.os);
     resp["status"].assert_eq(&String::from("ACTIVE"));
-    resp["walletProviderType"].assert_eq(&String::from("PROCIVIS_ONE"));
-    resp["walletProviderName"].assert_eq(&wallet_unit.wallet_provider_name);
+    resp["providerName"].assert_eq(&wallet_unit.provider);
+    assert_eq!(resp["providerType"], "PROCIVIS_ONE");
+    assert_eq!(resp["role"], "WALLET");
+    assert!(resp["walletProviderType"].is_null());
+    assert!(resp["walletProviderName"].is_null());
     resp["publicKey"].assert_eq(&wallet_unit.authentication_key_jwk);
     assert!(resp["createdDate"].is_string());
     assert!(resp["lastModified"].is_string());
@@ -40,11 +43,11 @@ async fn test_get_revoked_wallet_instance_success() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org.clone(),
             TestWalletInstance {
-                status: Some(WalletInstanceStatus::Revoked),
+                status: Some(InstanceStatus::Revoked),
                 ..Default::default()
             },
         )
@@ -61,8 +64,7 @@ async fn test_get_revoked_wallet_instance_success() {
     resp["name"].assert_eq(&wallet_unit.name);
     resp["os"].assert_eq(&wallet_unit.os);
     resp["status"].assert_eq(&String::from("REVOKED"));
-    resp["walletProviderType"].assert_eq(&String::from("PROCIVIS_ONE"));
-    resp["walletProviderName"].assert_eq(&wallet_unit.wallet_provider_name);
+    resp["providerName"].assert_eq(&wallet_unit.provider);
     resp["publicKey"].assert_eq(&wallet_unit.authentication_key_jwk);
     assert!(resp["createdDate"].is_string());
     assert!(resp["lastModified"].is_string());
@@ -75,7 +77,7 @@ async fn test_get_wallet_instance_user_sub_in_response() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let wallet_unit = context
         .db
-        .wallet_instances
+        .managed_instances
         .create(
             org,
             TestWalletInstance {

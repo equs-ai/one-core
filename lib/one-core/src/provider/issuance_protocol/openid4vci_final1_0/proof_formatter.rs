@@ -12,7 +12,7 @@ use crate::provider::credential_formatter::model::{
     AuthenticationFn, PublicKeySource, TokenVerifier,
 };
 use crate::provider::did_method::error::DidMethodError;
-use crate::service::wallet_provider::dto::WalletUnitAttestationClaims;
+use crate::service::managed_instance::dto::WalletUnitAttestationClaims;
 
 const JWT_PROOF_TYPE: &str = "openid4vci-proof+jwt";
 

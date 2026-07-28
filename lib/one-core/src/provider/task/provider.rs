@@ -28,14 +28,13 @@ use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::claim_repository::ClaimRepository;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::history_repository::HistoryRepository;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
+use crate::repository::instance_repository::InstanceRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::notification_repository::NotificationRepository;
 use crate::repository::proof_repository::ProofRepository;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
-use crate::repository::verifier_instance_repository::VerifierInstanceRepository;
 
 #[cfg_attr(test, mockall::automock)]
 pub trait TaskProvider: Send + Sync {
@@ -64,7 +63,7 @@ pub(crate) fn task_provider_from_config(
     interaction_repository: Arc<dyn InteractionRepository>,
     notification_repository: Arc<dyn NotificationRepository>,
     trust_list_subscription_repository: Arc<dyn TrustListSubscriptionRepository>,
-    holder_wallet_unit_repository: Arc<dyn HolderWalletInstanceRepository>,
+    holder_wallet_unit_repository: Arc<dyn InstanceRepository>,
     trust_collection_repository: Arc<dyn TrustCollectionRepository>,
     credential_validity_manager: Arc<dyn CredentialValidityManager>,
     certificate_validator: Arc<dyn CertificateValidator>,
@@ -75,7 +74,6 @@ pub(crate) fn task_provider_from_config(
     collection_sync: Arc<dyn TrustCollectionManager>,
     subscription_sync: Arc<dyn TrustListSubscriptionSync>,
     wallet_unit_client: Arc<dyn WalletProviderClient>,
-    verifier_repository: Arc<dyn VerifierInstanceRepository>,
     verifier_provider_client: Arc<dyn VerifierProviderClient>,
 ) -> Result<Arc<dyn TaskProvider>, ConfigValidationError> {
     let mut tasks: HashMap<TaskId, Arc<dyn Task>> = HashMap::new();
@@ -141,7 +139,6 @@ pub(crate) fn task_provider_from_config(
             TaskType::TrustCollectionSync => Arc::new(TrustCollectionSyncTask::new(
                 holder_wallet_unit_repository.clone(),
                 wallet_unit_client.clone(),
-                verifier_repository.clone(),
                 verifier_provider_client.clone(),
                 collection_sync.clone(),
                 trust_collection_repository.clone(),

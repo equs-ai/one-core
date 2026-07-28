@@ -1,7 +1,5 @@
-use crate::model::holder_wallet_instance::HolderWalletInstance;
-use crate::model::wallet_instance::WalletProviderType;
-use crate::service::wallet_instance::dto::WalletProviderDTO;
-use crate::service::wallet_provider::dto::IssueWalletUnitAttestationResponseDTO;
+use crate::model::instance::{Instance, WalletProviderType};
+use crate::service::managed_instance::dto::IssueWalletUnitAttestationResponseDTO;
 
 #[derive(Clone, Debug)]
 pub enum IssueWalletAttestationResponse {
@@ -15,28 +13,17 @@ pub struct MetadataTarget {
     pub metadata_url: String,
 }
 
-impl From<WalletProviderDTO> for MetadataTarget {
-    fn from(value: WalletProviderDTO) -> Self {
-        Self {
-            r#type: value.r#type,
-            metadata_url: value.url,
-        }
-    }
-}
-
-impl From<HolderWalletInstance> for MetadataTarget {
-    fn from(value: HolderWalletInstance) -> Self {
-        let HolderWalletInstance {
-            wallet_provider_url,
-            wallet_provider_type,
-            wallet_provider_name,
+impl From<Instance> for MetadataTarget {
+    fn from(value: Instance) -> Self {
+        let Instance {
+            provider_url,
+            provider_type,
+            provider_name,
             ..
         } = value;
         Self {
-            r#type: wallet_provider_type,
-            metadata_url: format!(
-                "{wallet_provider_url}/ssi/wallet-provider/v1/{wallet_provider_name}"
-            ),
+            r#type: provider_type,
+            metadata_url: format!("{provider_url}/ssi/wallet-provider/v1/{provider_name}"),
         }
     }
 }

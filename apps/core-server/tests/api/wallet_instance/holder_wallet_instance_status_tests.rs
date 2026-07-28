@@ -1,4 +1,5 @@
-use one_core::model::wallet_instance::{WalletInstanceStatus, WalletProviderType};
+use one_core::model::instance::WalletProviderType;
+use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
@@ -7,7 +8,7 @@ use crate::utils::context::TestContext;
 use crate::utils::db_clients::holder_wallet_instance::TestHolderWalletInstanceParams;
 
 #[tokio::test]
-async fn test_holder_wallet_unit_status_not_found() {
+async fn test_holder_instance_status_not_found() {
     // GIVEN
     let context = TestContext::new(None).await;
     let non_existent_id = Uuid::new_v4().into();
@@ -26,7 +27,7 @@ async fn test_holder_wallet_unit_status_not_found() {
 }
 
 #[tokio::test]
-async fn test_holder_wallet_unit_status_already_revoked() {
+async fn test_holder_instance_status_already_revoked() {
     // GIVEN - Wallet unit that's already revoked should return success without checking
     let (context, org) = TestContext::new_with_organisation(None).await;
     let now = one_core::clock::now_utc();
@@ -57,12 +58,12 @@ async fn test_holder_wallet_unit_status_already_revoked() {
             org.clone(),
             Some(authentication_key.clone()),
             TestHolderWalletInstanceParams {
-                status: Some(WalletInstanceStatus::Revoked),
-                wallet_provider_type: Some(WalletProviderType::ProcivisOne),
-                wallet_provider_name: Some("PROCIVIS_ONE".to_string()),
-                wallet_provider_url: Some("https://wallet.provider".to_string()),
+                status: Some(InstanceStatus::Revoked),
+                provider_type: Some(WalletProviderType::ProcivisOne),
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some("https://wallet.provider".to_string()),
                 provider_wallet_unit_id: Some(Uuid::new_v4().into()),
-                ..Default::default()
+                role: Some(ManagedInstanceRole::Wallet),
             },
         )
         .await;
@@ -85,5 +86,5 @@ async fn test_holder_wallet_unit_status_already_revoked() {
         .await
         .expect("wallet unit should exist");
 
-    assert_eq!(updated_wallet_unit.status, WalletInstanceStatus::Revoked);
+    assert_eq!(updated_wallet_unit.status, InstanceStatus::Revoked);
 }

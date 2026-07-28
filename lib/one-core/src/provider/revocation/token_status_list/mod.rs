@@ -21,14 +21,14 @@ use crate::model::common::LockType;
 use crate::model::credential::Credential;
 use crate::model::did::KeyRole;
 use crate::model::identifier::{Identifier, IdentifierRelations, IdentifierType};
+use crate::model::managed_instance::ManagedInstanceRelations;
+use crate::model::managed_instance_attested_key::{
+    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
+};
 use crate::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntry, RevocationListEntryState,
     RevocationListPurpose, RevocationListRelations, StatusListCredentialFormat,
     UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
-};
-use crate::model::wallet_instance::WalletInstanceRelations;
-use crate::model::wallet_instance_attested_key::{
-    WalletInstanceAttestedKey, WalletInstanceAttestedKeyRevocationInfo,
 };
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::http_client::HttpClient;
@@ -55,8 +55,8 @@ use crate::provider::revocation::model::{
 };
 use crate::repository::error::DataLayerError;
 use crate::repository::identifier_repository::IdentifierRepository;
+use crate::repository::managed_instance_repository::ManagedInstanceRepository;
 use crate::repository::revocation_list_repository::RevocationListRepository;
-use crate::repository::wallet_instance_repository::WalletInstanceRepository;
 use crate::util::key_selection::{CertificateFilter, KeyFilter, KeySelection, SelectedKey};
 
 pub mod resolver;
@@ -91,7 +91,7 @@ pub struct TokenStatusList {
     formatter_provider: Arc<dyn CredentialFormatterProvider>,
     certificate_validator: Arc<dyn CertificateValidator>,
     revocation_list_repository: Arc<dyn RevocationListRepository>,
-    wallet_unit_repository: Arc<dyn WalletInstanceRepository>,
+    wallet_unit_repository: Arc<dyn ManagedInstanceRepository>,
     identifier_repository: Arc<dyn IdentifierRepository>,
     transaction_manager: Arc<dyn TransactionManager>,
     resolver: Arc<StatusListResolver>,
@@ -110,7 +110,7 @@ impl TokenStatusList {
         formatter_provider: Arc<dyn CredentialFormatterProvider>,
         certificate_validator: Arc<dyn CertificateValidator>,
         revocation_list_repository: Arc<dyn RevocationListRepository>,
-        wallet_unit_repository: Arc<dyn WalletInstanceRepository>,
+        wallet_unit_repository: Arc<dyn ManagedInstanceRepository>,
         identifier_repository: Arc<dyn IdentifierRepository>,
         transaction_manager: Arc<dyn TransactionManager>,
         client: Arc<dyn HttpClient>,
@@ -333,13 +333,13 @@ impl RevocationMethod for TokenStatusList {
 
     async fn add_issued_attestation(
         &self,
-        attestation: &WalletInstanceAttestedKey,
+        attestation: &ManagedInstanceAttestedKey,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         let wallet_instance = self
             .wallet_unit_repository
-            .get_wallet_instance(
-                &attestation.wallet_instance_id,
-                &WalletInstanceRelations {
+            .get(
+                &attestation.instance_id,
+                &ManagedInstanceRelations {
                     organisation: Some(Default::default()),
                     ..Default::default()
                 },
@@ -397,7 +397,7 @@ impl RevocationMethod for TokenStatusList {
 
     async fn get_attestation_revocation_info(
         &self,
-        key_info: &WalletInstanceAttestedKeyRevocationInfo,
+        key_info: &ManagedInstanceAttestedKeyRevocationInfo,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         Ok(CredentialRevocationInfo {
             credential_status: self.create_credential_status(
@@ -410,7 +410,7 @@ impl RevocationMethod for TokenStatusList {
 
     async fn update_attestation_entries(
         &self,
-        keys: Vec<WalletInstanceAttestedKeyRevocationInfo>,
+        keys: Vec<ManagedInstanceAttestedKeyRevocationInfo>,
         new_state: RevocationState,
     ) -> Result<(), RevocationError> {
         let mut revocation_lists: HashMap<RevocationListId, (RevocationList, Vec<usize>)> =

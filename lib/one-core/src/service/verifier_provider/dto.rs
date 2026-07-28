@@ -1,6 +1,10 @@
+use serde::Deserialize;
 use shared_types::TrustCollectionId;
 
-use crate::provider::verifier::model::{FeatureFlags, VerifierAppVersion};
+use crate::provider::verifier::model::VerifierAppVersion;
+use crate::service::managed_instance::dto::{
+    UserAuthenticationDTO, WalletUnitAttestationMetadataDTO,
+};
 
 #[derive(Clone, Debug)]
 pub struct VerifierProviderMetadataResponseDTO {
@@ -8,6 +12,17 @@ pub struct VerifierProviderMetadataResponseDTO {
     pub app_version: Option<VerifierAppVersion>,
     pub trust_collections: Vec<ProviderTrustCollectionDTO>,
     pub feature_flags: FeatureFlags,
+    pub verifier_app_attestation: WalletUnitAttestationMetadataDTO,
+    pub user_authentication: Option<UserAuthenticationDTO>,
+    pub proof_schemas: Option<Vec<String>>,
+    pub credential_schemas: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeatureFlags {
+    pub trust_ecosystems_enabled: bool,
+    pub access_certificate_provisioning_enabled: bool,
 }
 
 #[derive(Clone, Debug)]

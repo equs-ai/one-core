@@ -23,7 +23,7 @@ impl From<ProviderTrustCollectionDTO> for RemoteTrustCollectionInfoDTO {
 }
 
 impl From<ProviderTrustCollectionDTO>
-    for crate::service::wallet_provider::dto::ProviderTrustCollectionDTO
+    for crate::service::managed_instance::dto::ProviderTrustCollectionDTO
 {
     fn from(value: ProviderTrustCollectionDTO) -> Self {
         Self {
@@ -37,7 +37,7 @@ impl From<ProviderTrustCollectionDTO>
     }
 }
 
-impl From<DisplayNameDTO> for crate::service::wallet_provider::dto::DisplayNameDTO {
+impl From<DisplayNameDTO> for crate::service::managed_instance::dto::DisplayNameDTO {
     fn from(value: DisplayNameDTO) -> Self {
         Self {
             lang: value.lang,

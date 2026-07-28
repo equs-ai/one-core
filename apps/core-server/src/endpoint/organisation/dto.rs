@@ -1,14 +1,14 @@
 use one_core::service::error::ServiceError;
 use one_core::service::organisation::dto::{
     CreateOrganisationRequestDTO, GetOrganisationDetailsResponseDTO,
-    GetOrganisationListItemResponseDTO, HolderWalletInstanceDetailResponseDTO,
-    OrganisationFilterParamsDTO, VerifierInstanceDetailResponseDTO,
+    GetOrganisationListItemResponseDTO, InstanceDetailResponseDTO, OrganisationConfigurationDTO,
+    OrganisationFilterParamsDTO, TrustCollectionInfoDTO, VerifierProviderDetailResponseDTO,
     WalletProviderDetailResponseDTO,
 };
 use one_dto_mapper::{From, Into, TryInto, convert_inner};
 use proc_macros::options_not_nullable;
 use serde::{Deserialize, Serialize};
-use shared_types::{HolderWalletInstanceId, IdentifierId, OrganisationId, VerifierInstanceId};
+use shared_types::{IdentifierId, InstanceId, OrganisationId, TrustCollectionId};
 use time::OffsetDateTime;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
@@ -16,6 +16,7 @@ use uuid::Uuid;
 use crate::deserialize::deserialize_timestamp;
 use crate::dto::common::{Boolean, ListQueryParamsRest};
 use crate::endpoint::identifier::dto::GetIdentifierListItemResponseRestDTO;
+use crate::endpoint::ssi::wallet_provider::dto::ProviderTrustCollectionRestDTO;
 use crate::serialize::{front_time, front_time_option};
 
 #[options_not_nullable]
@@ -37,20 +38,49 @@ pub(crate) struct CreateOrganisationRequestRestDTO {
 pub(crate) struct UpsertOrganisationRequestRestDTO {
     #[schema(value_type = bool, example = true)]
     pub deactivate: Option<bool>,
-    /// Specify which configured `walletProvider` this organization will use
-    /// to issue attestations to wallet units.
+    /// Specify which configured wallet provider this organization will use
+    /// to issue attestations to wallet units, and the identifier used to
+    /// sign them. Sending `null` clears the wallet provider association.
     #[serde(default, with = "::serde_with::rust::double_option")]
-    #[schema(example = "PROCIVIS_ONE")]
-    pub wallet_provider: Option<Option<String>>,
-    /// Specify which identifier to use as the attestation issuer. This can
-    /// be any type of identifier but it must be backed by an ECDSA key.
+    pub wallet_provider: Option<Option<UpsertProviderRequestRestDTO>>,
+    /// Specify which configured verifier provider this organization will
+    /// use, and the identifier used to authenticate to it. Sending `null`
+    /// clears the verifier provider association.
     #[serde(default, with = "::serde_with::rust::double_option")]
-    pub wallet_provider_issuer: Option<Option<IdentifierId>>,
+    pub verifier_provider: Option<Option<UpsertProviderRequestRestDTO>>,
+    /// Policy-level configuration for this organization.
+    pub configuration: Option<UpsertOrganisationConfigurationRestDTO>,
+    /// The trust collections this organization's wallet subscribes to,
+    /// selected from those made available by the Wallet Provider. Omit to
+    /// leave the current selection unchanged.
+    pub trust_collections: Option<Vec<TrustCollectionId>>,
     /// Optionally assign a parent organization to share policy-level
     /// configuration, such as trust collections, across a one-level hierarchy.
     /// The provided organization must not have a parent organization.
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub parent_organisation: Option<Option<OrganisationId>>,
+}
+
+#[derive(Clone, Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct UpsertProviderRequestRestDTO {
+    #[schema(example = "PROCIVIS_ONE")]
+    pub name: Option<String>,
+    /// Identifier used by this organization to authenticate to the
+    /// provider. This can be any type of identifier but it must be backed
+    /// by an ECDSA key.
+    pub issuer: Option<IdentifierId>,
+}
+
+#[derive(Clone, Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct UpsertOrganisationConfigurationRestDTO {
+    /// When true, the verifier will only validate presentations of
+    /// credentials issued by trusted issuers.
+    pub trusted_issuer_required: Option<bool>,
+    /// When true, the wallet only accepts presentation requests from
+    /// trusted relying parties.
+    pub trusted_rp_required: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema)]
@@ -77,39 +107,31 @@ pub(crate) struct GetOrganisationDetailsResponseRestDTO {
     /// The parent organization this organization inherits policy-level
     /// configuration from, if any.
     pub parent_organisation: Option<OrganisationId>,
+    /// Policy-level configuration for this organization.
+    #[from(with_fn = convert_inner)]
+    pub configuration: Option<OrganisationConfigurationRestDTO>,
     #[from(with_fn = convert_inner)]
     pub wallet_provider: Option<WalletProviderDetailResponseRestDTO>,
+    #[from(with_fn = convert_inner)]
+    pub verifier_provider: Option<VerifierProviderDetailResponseRestDTO>,
     /// Wallet registration details for this organization's Business
     /// Wallet.
     #[from(with_fn = convert_inner)]
-    pub wallet_instance: Option<HolderWalletInstanceResponseRestDTO>,
-    /// Wallet registration details for this organization's Business
-    /// Wallet.
+    pub wallet_instance: Option<InstanceDetailResponseRestDTO>,
+    /// Verifier registration details for this organization's Business
+    /// Verifier.
     #[from(with_fn = convert_inner)]
-    pub verifier_instance: Option<VerifierInstanceDetailResponseRestDTO>,
+    pub verifier_instance: Option<InstanceDetailResponseRestDTO>,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
 #[serde(rename_all = "camelCase")]
-#[from(HolderWalletInstanceDetailResponseDTO)]
-pub(crate) struct HolderWalletInstanceResponseRestDTO {
-    pub id: HolderWalletInstanceId,
-    pub trusted_rp_required: bool,
-    pub wallet_provider_url: String,
-    pub wallet_provider_name: String,
+#[from(InstanceDetailResponseDTO)]
+pub(crate) struct InstanceDetailResponseRestDTO {
+    pub id: InstanceId,
+    pub provider_name: String,
+    pub provider_url: String,
     pub authentication_key_type: String,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[serde(rename_all = "camelCase")]
-#[from(VerifierInstanceDetailResponseDTO)]
-pub(crate) struct VerifierInstanceDetailResponseRestDTO {
-    pub id: VerifierInstanceId,
-    /// When true, the verifier will only validate presentations of
-    /// credentials issued by trusted issuers. Requires the Verifier
-    /// Provider to have the `trustEcosystemsEnabled` feature flag
-    /// enabled.
-    pub trusted_issuer_required: bool,
 }
 
 #[options_not_nullable]
@@ -123,6 +145,31 @@ pub(crate) struct WalletProviderDetailResponseRestDTO {
     /// Identifier used by this organization to provide wallets.
     #[from(with_fn = convert_inner)]
     pub issuer: Option<GetIdentifierListItemResponseRestDTO>,
+}
+
+#[options_not_nullable]
+#[derive(Clone, Debug, Serialize, ToSchema, From)]
+#[serde(rename_all = "camelCase")]
+#[from(VerifierProviderDetailResponseDTO)]
+pub(crate) struct VerifierProviderDetailResponseRestDTO {
+    /// Verifier Provider configuration used by this organization.
+    pub provider_name: Option<String>,
+    /// Identifier used by this organization to authenticate to the
+    /// verifier provider.
+    #[from(with_fn = convert_inner)]
+    pub issuer: Option<GetIdentifierListItemResponseRestDTO>,
+}
+
+#[derive(Clone, Debug, Serialize, ToSchema, From)]
+#[serde(rename_all = "camelCase")]
+#[from(OrganisationConfigurationDTO)]
+pub(crate) struct OrganisationConfigurationRestDTO {
+    /// When true, the verifier will only validate presentations of
+    /// credentials issued by trusted issuers.
+    pub trusted_issuer_required: bool,
+    /// When true, the wallet only accepts presentation requests from
+    /// trusted relying parties.
+    pub trusted_rp_required: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, ToSchema, Into)]
@@ -192,7 +239,20 @@ pub(crate) struct OrganisationListItemResponseRestDTO {
     pub deactivated_at: Option<OffsetDateTime>,
     #[from(with_fn = convert_inner)]
     pub wallet_provider: Option<WalletProviderDetailResponseRestDTO>,
+    #[from(with_fn = convert_inner)]
+    pub verifier_provider: Option<VerifierProviderDetailResponseRestDTO>,
     /// The parent organization this organization inherits policy-level
     /// configuration from, if any.
     pub parent_organisation: Option<OrganisationId>,
+}
+
+#[options_not_nullable]
+#[derive(Clone, Debug, Serialize, ToSchema, From)]
+#[from(TrustCollectionInfoDTO)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct OrganisationTrustCollectionRestDTO {
+    /// When true, the organization is subscribed to this trust collection.
+    pub selected: bool,
+    #[serde(flatten)]
+    pub collection: ProviderTrustCollectionRestDTO,
 }

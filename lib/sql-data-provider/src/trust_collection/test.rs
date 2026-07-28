@@ -12,6 +12,7 @@ use one_core::repository::organisation_repository::{
     MockOrganisationRepository, OrganisationRepository,
 };
 use one_core::repository::trust_collection_repository::TrustCollectionRepository;
+use one_core::service::test_utilities::dummy_organisation;
 use sea_orm::DatabaseConnection;
 use shared_types::OrganisationId;
 use similar_asserts::assert_eq;
@@ -251,6 +252,9 @@ async fn test_list_trust_collection_with_parent_organisation_filter() {
             deactivate: None,
             wallet_provider: None,
             wallet_provider_issuer: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: None,
         })
         .await
         .unwrap();
@@ -306,6 +310,9 @@ async fn test_list_trust_collection_with_organisation_filter_no_duplicates_with_
             deactivate: None,
             wallet_provider: None,
             wallet_provider_issuer: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: None,
         })
         .await
         .unwrap();
@@ -318,6 +325,9 @@ async fn test_list_trust_collection_with_organisation_filter_no_duplicates_with_
             deactivate: None,
             wallet_provider: None,
             wallet_provider_issuer: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: None,
         })
         .await
         .unwrap();
@@ -422,13 +432,9 @@ async fn test_get_trust_collection_with_organisation_relation() {
         .expect_get_organisation()
         .returning(move |id| {
             Ok(Some(Organisation {
-                id: *id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
-                deactivated_at: None,
-                wallet_provider: None,
-                wallet_provider_issuer: None,
-                parent_organisation: None,
+                ..dummy_organisation(Some(*id))
             }))
         });
 

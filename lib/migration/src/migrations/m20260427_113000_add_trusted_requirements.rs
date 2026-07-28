@@ -283,7 +283,7 @@ enum WalletInstance {
 }
 
 #[derive(DeriveIden)]
-enum VerifierInstance {
+pub enum VerifierInstance {
     TrustedIssuerRequired,
     TableNew,
 }

@@ -2343,7 +2343,7 @@ pub enum Notification {
     OrganisationId,
 }
 
-#[derive(DeriveIden)]
+#[derive(Clone, DeriveIden)]
 pub enum Organisation {
     Table,
     Id,

@@ -11,8 +11,8 @@ use super::model::{
 use crate::model::certificate::Certificate;
 use crate::model::credential::Credential;
 use crate::model::identifier::Identifier;
-use crate::model::wallet_instance_attested_key::{
-    WalletInstanceAttestedKey, WalletInstanceAttestedKeyRevocationInfo,
+use crate::model::managed_instance_attested_key::{
+    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
 };
 use crate::provider::Provider;
 use crate::provider::credential_formatter::model::{CredentialStatus, IdentifierDetails};
@@ -66,21 +66,21 @@ impl<T: Provider + RevocationMethod + Display + ?Sized> RevocationMethod for Dis
 
     async fn add_issued_attestation(
         &self,
-        _attestation: &WalletInstanceAttestedKey,
+        _attestation: &ManagedInstanceAttestedKey,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         self.disabled_error()
     }
 
     async fn get_attestation_revocation_info(
         &self,
-        key_info: &WalletInstanceAttestedKeyRevocationInfo,
+        key_info: &ManagedInstanceAttestedKeyRevocationInfo,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         self.inner().get_attestation_revocation_info(key_info).await
     }
 
     async fn update_attestation_entries(
         &self,
-        keys: Vec<WalletInstanceAttestedKeyRevocationInfo>,
+        keys: Vec<ManagedInstanceAttestedKeyRevocationInfo>,
         new_state: RevocationState,
     ) -> Result<(), RevocationError> {
         self.inner()
@@ -191,21 +191,21 @@ impl RevocationMethod for CapabilityChecked {
 
     async fn add_issued_attestation(
         &self,
-        attestation: &WalletInstanceAttestedKey,
+        attestation: &ManagedInstanceAttestedKey,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         self.0.add_issued_attestation(attestation).await
     }
 
     async fn get_attestation_revocation_info(
         &self,
-        key_info: &WalletInstanceAttestedKeyRevocationInfo,
+        key_info: &ManagedInstanceAttestedKeyRevocationInfo,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         self.0.get_attestation_revocation_info(key_info).await
     }
 
     async fn update_attestation_entries(
         &self,
-        keys: Vec<WalletInstanceAttestedKeyRevocationInfo>,
+        keys: Vec<ManagedInstanceAttestedKeyRevocationInfo>,
         new_state: RevocationState,
     ) -> Result<(), RevocationError> {
         self.check_revocation_state_eligibility(&new_state)?;

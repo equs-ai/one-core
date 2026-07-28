@@ -18,6 +18,10 @@ mod did_tests;
 mod history_tests;
 #[path = "test/identifier.rs"]
 mod identifier_tests;
+#[path = "test/identifier_trust_information.rs"]
+mod identifier_trust_information_tests;
+#[path = "test/instance.rs"]
+mod instance_tests;
 #[path = "test/interaction.rs"]
 mod interaction_tests;
 #[path = "test/key.rs"]
@@ -38,10 +42,3 @@ mod remote_entity_cache_tests;
 mod revocation_list_tests;
 #[path = "test/trust.rs"]
 mod trust_tests;
-#[path = "test/verifier_instance.rs"]
-mod verifier_instance_tests;
-#[path = "test/wallet_instance.rs"]
-mod wallet_instance_tests;
-
-#[path = "test/identifier_trust_information.rs"]
-mod identifier_trust_information_tests;

@@ -1,6 +1,7 @@
+use one_core::service::managed_instance::dto::DisplayNameDTO;
 use one_core::service::organisation::dto::{
-    GetOrganisationDetailsResponseDTO, HolderWalletInstanceDetailResponseDTO,
-    VerifierInstanceDetailResponseDTO, WalletProviderDetailResponseDTO,
+    GetOrganisationDetailsResponseDTO, InstanceDetailResponseDTO, OrganisationConfigurationDTO,
+    VerifierProviderDetailResponseDTO, WalletProviderDetailResponseDTO,
 };
 use one_dto_mapper::{From, convert_inner};
 
@@ -51,6 +52,17 @@ impl OneCore {
         let response = core.organisation_service.get_organisation(&id).await?;
         Ok(response.into())
     }
+
+    #[uniffi::method]
+    pub async fn get_organisation_trust_collections(
+        &self,
+        id: String,
+    ) -> Result<Vec<TrustCollectionInfoBindingDTO>, BindingError> {
+        let core = self.use_core().await?;
+        let id = into_id(&id)?;
+        let response = core.organisation_service.get_trust_collections(&id).await?;
+        Ok(convert_inner(response))
+    }
 }
 
 #[derive(Clone, Debug, uniffi::Record)]
@@ -72,9 +84,30 @@ pub struct UpsertOrganisationRequestBindingDTO {
     pub wallet_provider: Option<OptionalString>,
     /// Wallet Provider use only.
     pub wallet_provider_issuer: Option<OptionalString>,
+    /// Verifier Provider use only.
+    pub verifier_provider: Option<OptionalString>,
+    /// Verifier Provider use only.
+    pub verifier_provider_issuer: Option<OptionalString>,
+    /// Policy-level configuration for this organization.
+    pub configuration: Option<UpsertOrganisationConfigurationBindingDTO>,
+    /// The trust collections this organization's wallet subscribes to,
+    /// selected from those made available by the Wallet Provider. Omit to
+    /// leave the current selection unchanged.
+    pub trust_collections: Option<Vec<String>>,
     /// The parent organization this organization inherits policy-level
     /// configuration from, if any.
     pub parent_organisation: Option<OptionalString>,
+}
+
+#[derive(Clone, Debug, uniffi::Record)]
+#[uniffi(name = "UpsertOrganisationConfiguration")]
+pub struct UpsertOrganisationConfigurationBindingDTO {
+    /// When true, the verifier will only validate presentations of
+    /// credentials issued by trusted issuers.
+    pub trusted_issuer_required: Option<bool>,
+    /// When true, the wallet only accepts presentation requests from
+    /// trusted relying parties.
+    pub trusted_rp_required: Option<bool>,
 }
 
 #[derive(Clone, Debug, uniffi::Record, From)]
@@ -93,41 +126,32 @@ pub struct GetOrganisationDetailsResponseBindingDTO {
     /// configuration from, if any.
     #[from(with_fn = "from_id_opt")]
     pub parent_organisation: Option<String>,
+    /// Policy-level configuration for this organization.
+    #[from(with_fn = convert_inner)]
+    pub configuration: Option<OrganisationConfigurationBindingDTO>,
     #[from(with_fn = convert_inner)]
     pub wallet_provider: Option<WalletProviderDetailResponseBindingDTO>,
+    #[from(with_fn = convert_inner)]
+    pub verifier_provider: Option<VerifierProviderDetailResponseBindingDTO>,
     /// Wallet registration details for this organization's Business
     /// Wallet.
     #[from(with_fn = convert_inner)]
-    pub wallet_instance: Option<HolderWalletInstanceDetailResponseBindingDTO>,
-    /// Wallet registration details for this organization's Business
-    /// Wallet.
+    pub wallet_instance: Option<InstanceDetailResponseBindingDTO>,
+    /// Verifier registration details for this organization's Business
+    /// Verifier.
     #[from(with_fn = convert_inner)]
-    pub verifier_instance: Option<VerifierInstanceDetailResponseBindingDTO>,
+    pub verifier_instance: Option<InstanceDetailResponseBindingDTO>,
 }
 
 #[derive(Clone, Debug, uniffi::Record, From)]
-#[uniffi(name = "HolderWalletInstanceDetail")]
-#[from(HolderWalletInstanceDetailResponseDTO)]
-pub(crate) struct HolderWalletInstanceDetailResponseBindingDTO {
+#[uniffi(name = "InstanceDetail")]
+#[from(InstanceDetailResponseDTO)]
+pub(crate) struct InstanceDetailResponseBindingDTO {
     #[from(with_fn_ref = "ToString::to_string")]
     pub id: String,
-    pub trusted_rp_required: bool,
-    pub wallet_provider_url: String,
-    pub wallet_provider_name: String,
+    pub provider_url: String,
+    pub provider_name: String,
     pub authentication_key_type: String,
-}
-
-#[derive(Clone, Debug, uniffi::Record, From)]
-#[uniffi(name = "VerifierInstanceDetail")]
-#[from(VerifierInstanceDetailResponseDTO)]
-pub(crate) struct VerifierInstanceDetailResponseBindingDTO {
-    #[from(with_fn_ref = "ToString::to_string")]
-    pub id: String,
-    /// When true, the verifier will only validate presentations of
-    /// credentials issued by trusted issuers. Requires the Verifier
-    /// Provider to have the `trustEcosystemsEnabled` feature flag
-    /// enabled.
-    pub trusted_issuer_required: bool,
 }
 
 #[derive(Clone, Debug, uniffi::Record, From)]
@@ -140,4 +164,49 @@ pub(crate) struct WalletProviderDetailResponseBindingDTO {
     /// Identifier used by this organization to provide wallets.
     #[from(with_fn = convert_inner)]
     pub issuer: Option<GetIdentifierListItemBindingDTO>,
+}
+
+#[derive(Clone, Debug, uniffi::Record, From)]
+#[uniffi(name = "VerifierProviderDetail")]
+#[from(VerifierProviderDetailResponseDTO)]
+pub(crate) struct VerifierProviderDetailResponseBindingDTO {
+    /// Verifier Provider configuration used by this organization.
+    pub provider_name: Option<String>,
+    /// Identifier used by this organization to authenticate to the
+    /// verifier provider.
+    #[from(with_fn = convert_inner)]
+    pub issuer: Option<GetIdentifierListItemBindingDTO>,
+}
+
+#[derive(Clone, Debug, uniffi::Record, From)]
+#[uniffi(name = "OrganisationConfiguration")]
+#[from(OrganisationConfigurationDTO)]
+pub(crate) struct OrganisationConfigurationBindingDTO {
+    /// When true, the verifier will only validate presentations of
+    /// credentials issued by trusted issuers.
+    pub trusted_issuer_required: bool,
+    /// When true, the wallet only accepts presentation requests from
+    /// trusted relying parties.
+    pub trusted_rp_required: bool,
+}
+
+#[derive(Clone, Debug, uniffi::Record)]
+#[uniffi(name = "TrustCollectionInfo")]
+pub struct TrustCollectionInfoBindingDTO {
+    /// When true, the organization is subscribed to this trust collection.
+    pub selected: bool,
+    pub id: String,
+    pub name: String,
+    pub logo: String,
+    pub display_name: Vec<DisplayNameBindingDTO>,
+    pub description: Vec<DisplayNameBindingDTO>,
+    pub default_selected: Option<bool>,
+}
+
+#[derive(Clone, Debug, uniffi::Record, From)]
+#[from(DisplayNameDTO)]
+#[uniffi(name = "DisplayName")]
+pub struct DisplayNameBindingDTO {
+    pub lang: String,
+    pub value: String,
 }

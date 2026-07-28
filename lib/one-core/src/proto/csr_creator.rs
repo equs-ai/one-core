@@ -63,7 +63,7 @@ impl ErrorCodeMixin for CsrCreationError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CsrRequestSubject {
     pub country_name: Option<String>,
     pub common_name: Option<String>,

@@ -300,6 +300,8 @@ impl MigratorTrait for Migrator {
             Box::new(migrations::m20260701_090000_clear_stale_lotl_lote_cache::Migration),
             Box::new(migrations::m20260703_120000_add_history_target_index::Migration),
             Box::new(migrations::m20260717_084043_common_json_ld_context::Migration),
+            Box::new(migrations::m20260720_091548_instance::Migration),
+            Box::new(migrations::m20260722_121557_drop_verifier_instance_history::Migration),
         ]
     }
 }

@@ -1,0 +1,202 @@
+use one_core::model::instance::{
+    CreateInstanceRequest, Instance, InstanceRelations, UpdateInstanceRequest, WalletProviderType,
+};
+use one_core::model::key::{Key, KeyRelations};
+use one_core::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use one_core::model::organisation::Organisation;
+use one_core::model::wallet_instance_attestation::{
+    WalletInstanceAttestation, WalletInstanceAttestationRelations,
+};
+use one_core::repository::instance_repository::InstanceRepository;
+use shared_types::InstanceId;
+use similar_asserts::assert_eq;
+use uuid::Uuid;
+
+use crate::instance::InstanceProvider;
+use crate::test_utilities::{
+    dummy_organisation, get_dummy_date, insert_key_to_database, insert_organisation_to_database,
+    setup_test_data_layer_and_connection,
+};
+use crate::transaction_context::TransactionManagerImpl;
+
+struct TestSetup {
+    pub provider: InstanceProvider,
+    pub organisation: Organisation,
+    pub key: Key,
+}
+
+#[tokio::test]
+async fn create_holder_wallet_instance_success() {
+    let TestSetup {
+        provider,
+        organisation,
+        key,
+        ..
+    } = setup_empty().await;
+
+    let id = Uuid::new_v4().into();
+    let result = provider
+        .create(instance_to_create_request(test_wallet_instance(id, organisation, key)).await)
+        .await;
+
+    assert!(result.is_ok());
+
+    let response = result.unwrap();
+    assert_eq!(id, response);
+}
+
+#[tokio::test]
+async fn get_holder_wallet_instance_success() {
+    let TestSetup {
+        provider,
+        organisation,
+        key,
+        ..
+    } = setup_empty().await;
+
+    let id = Uuid::new_v4().into();
+    provider
+        .create(instance_to_create_request(test_wallet_instance(id, organisation, key)).await)
+        .await
+        .unwrap();
+
+    let result = provider
+        .get(&id, &InstanceRelations::default())
+        .await
+        .unwrap()
+        .unwrap();
+
+    // no relations
+    assert!(result.authentication_key.is_none());
+    assert_eq!(result.id, id);
+}
+
+#[tokio::test]
+async fn update_holder_wallet_instance_success() {
+    let TestSetup {
+        provider,
+        organisation,
+        key,
+        ..
+    } = setup_empty().await;
+
+    let id = Uuid::new_v4().into();
+    provider
+        .create(
+            instance_to_create_request(test_wallet_instance(id, organisation.clone(), key.clone()))
+                .await,
+        )
+        .await
+        .unwrap();
+
+    let now = one_core::clock::now_utc();
+    let update_request = UpdateInstanceRequest {
+        status: Some(InstanceStatus::Revoked),
+        wallet_unit_attestations: Some(vec![WalletInstanceAttestation {
+            id: Uuid::new_v4().into(),
+            created_date: now,
+            last_modified: now,
+            expiration_date: now,
+            attestation: "dummy attestation".to_string(),
+            holder_wallet_unit_id: id,
+            revocation_list_url: None,
+            revocation_list_index: None,
+            attested_key: Some(key.clone()),
+        }]),
+        authentication_key_id: None,
+    };
+
+    provider.update(&id, update_request).await.unwrap();
+
+    let reloaded = provider
+        .get(
+            &id,
+            &InstanceRelations {
+                wallet_unit_attestations: Some(WalletInstanceAttestationRelations {
+                    attested_key: Some(KeyRelations::default()),
+                }),
+                authentication_key: Some(KeyRelations::default()),
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(reloaded.wallet_unit_attestations.is_some());
+    assert_eq!(reloaded.wallet_unit_attestations.unwrap().len(), 1);
+    assert_eq!(reloaded.organisation.id(), organisation.id);
+    assert_eq!(reloaded.authentication_key.unwrap().id, key.id);
+}
+
+fn test_wallet_instance(id: InstanceId, organisation: Organisation, key: Key) -> Instance {
+    let now = one_core::clock::now_utc();
+    Instance {
+        id,
+        created_date: now,
+        last_modified: now,
+        status: InstanceStatus::Pending,
+        role: ManagedInstanceRole::Wallet,
+        provider_type: WalletProviderType::ProcivisOne,
+        provider_name: "test_name".to_string(),
+        provider_url: "test_url".to_string(),
+        organisation: organisation.into(),
+        authentication_key: Some(key),
+        provider_instance_id: Uuid::new_v4().into(),
+        wallet_unit_attestations: None,
+        nonce: None,
+        user_nonce: None,
+    }
+}
+
+async fn instance_to_create_request(instance: Instance) -> CreateInstanceRequest {
+    CreateInstanceRequest {
+        id: instance.id,
+        role: instance.role,
+        provider_type: instance.provider_type,
+        provider_name: instance.provider_name,
+        provider_url: instance.provider_url,
+        provider_instance_id: instance.provider_instance_id,
+        status: instance.status,
+        organisation: instance.organisation.as_ref().await.unwrap().to_owned(),
+        authentication_key: instance.authentication_key,
+        nonce: instance.nonce,
+        user_nonce: instance.user_nonce,
+    }
+}
+
+async fn setup_empty() -> TestSetup {
+    let data_layer = setup_test_data_layer_and_connection().await;
+    let db = data_layer.db;
+
+    let organisation_id = insert_organisation_to_database(&db, None).await.unwrap();
+
+    let key_id = insert_key_to_database(
+        &db,
+        "ED25519".to_string(),
+        vec![],
+        vec![],
+        None,
+        organisation_id,
+    )
+    .await
+    .unwrap();
+    TestSetup {
+        provider: InstanceProvider {
+            db: TransactionManagerImpl::new(db),
+            organisation_repository: data_layer.organisation_repository,
+            key_repository: data_layer.key_repository,
+            wallet_unit_attestation_repository: data_layer.wallet_instance_attestation_repository,
+        },
+        organisation: dummy_organisation(Some(organisation_id)),
+        key: Key {
+            id: key_id,
+            created_date: get_dummy_date(),
+            last_modified: get_dummy_date(),
+            public_key: vec![],
+            name: "test_key".to_string(),
+            key_reference: Some("private".to_string().bytes().collect()),
+            storage_type: "INTERNAL".to_string(),
+            key_type: "ED25519".to_string(),
+            organisation: dummy_organisation(Some(organisation_id)).into(),
+        },
+    }
+}

@@ -4,7 +4,6 @@ use one_core::model::claim::Claim;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::Credential;
 use one_core::model::credential_schema::{CredentialSchema, TransactionCode};
-use one_core::model::organisation::Organisation;
 use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::error::DataLayerError;
@@ -87,18 +86,7 @@ pub(super) fn credential_from_unexportable_model(
             formats,
             key_storage_security: convert_inner(value.credential_schema_key_storage_security),
             claim_schemas: claim_schemas.into(),
-            organisation: Organisation {
-                id: value.organisation_id,
-                created_date: value.organisation_created_date,
-                last_modified: value.organisation_last_modified,
-                deactivated_at: value.organisation_deactivated_at,
-                wallet_provider: value.organisation_wallet_provider,
-                wallet_provider_issuer: value.organisation_wallet_provider_issuer,
-                parent_organisation: value
-                    .organisation_parent_organisation
-                    .map(|org_id| Related::new(org_id, organisation_repository.to_owned())),
-            }
-            .into(),
+            organisation: Related::new(value.organisation_id, organisation_repository.to_owned()),
             layout_type: value.credential_schema_layout_type.into(),
             layout_properties: None,
             allow_suspension: value.credential_schema_allow_suspension,

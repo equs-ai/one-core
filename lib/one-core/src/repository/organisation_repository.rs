@@ -31,6 +31,11 @@ pub trait OrganisationRepository: Send + Sync {
         wallet_provider: &str,
     ) -> Result<Option<Organisation>, DataLayerError>;
 
+    async fn get_organisation_for_verifier_provider(
+        &self,
+        verifier_provider: &str,
+    ) -> Result<Option<Organisation>, DataLayerError>;
+
     async fn get_organisation_list(
         &self,
         query: OrganisationListQuery,

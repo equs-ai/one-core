@@ -527,6 +527,9 @@ mod tests {
             wallet_provider: None,
             wallet_provider_issuer: None,
             parent_organisation: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: Default::default(),
         };
         let identifier_id = Uuid::new_v4().into();
         let publisher_id: TrustListPublisherId = "LOTE".into();

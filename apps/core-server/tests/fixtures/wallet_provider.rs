@@ -6,6 +6,7 @@ use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use one_core::provider::key_algorithm::model::GeneratedKey;
 use one_crypto::encryption::encrypt_data;
 use secrecy::SecretSlice;
+use shared_types::IdentifierId;
 
 use crate::fixtures::jwt::signed_jwt;
 use crate::fixtures::{TestingDidParams, TestingIdentifierParams, TestingKeyParams};
@@ -15,10 +16,8 @@ pub(crate) async fn create_key_possession_proof(key: &GeneratedKey, aud: String)
     signed_jwt(key, "ES256", Some(aud), None, None, (), None).await
 }
 
-pub(crate) async fn create_wallet_unit_attestation_issuer_identifier(
-    context: &TestContext,
-    org: &Organisation,
-) {
+/// Creates a DID identifier that can act as a wallet/verifier provider's attestation issuer.
+async fn create_issuer_identifier(context: &TestContext, org: &Organisation) -> IdentifierId {
     let issuer_key_pair = Ecdsa.generate_key().unwrap();
     let internal_storage_encryption_key = SecretSlice::from(
         hex::decode("93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e").unwrap(), // has to match config keyStorage.INTERNAL.params.private.encryption
@@ -55,7 +54,7 @@ pub(crate) async fn create_wallet_unit_attestation_issuer_identifier(
             },
         )
         .await;
-    let identifier = context
+    context
         .db
         .identifiers
         .create(
@@ -68,7 +67,15 @@ pub(crate) async fn create_wallet_unit_attestation_issuer_identifier(
                 ..Default::default()
             },
         )
-        .await;
+        .await
+        .id
+}
+
+pub(crate) async fn create_wallet_unit_attestation_issuer_identifier(
+    context: &TestContext,
+    org: &Organisation,
+) {
+    let identifier_id = create_issuer_identifier(context, org).await;
     context
         .db
         .organisations
@@ -76,8 +83,32 @@ pub(crate) async fn create_wallet_unit_attestation_issuer_identifier(
             id: org.id,
             deactivate: None,
             wallet_provider: Some(Some("PROCIVIS_ONE".to_string())),
-            wallet_provider_issuer: Some(Some(identifier.id)),
+            wallet_provider_issuer: Some(Some(identifier_id)),
             parent_organisation: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: None,
+        })
+        .await;
+}
+
+pub(crate) async fn create_verifier_provider_issuer_identifier(
+    context: &TestContext,
+    org: &Organisation,
+) {
+    let identifier_id = create_issuer_identifier(context, org).await;
+    context
+        .db
+        .organisations
+        .update(UpdateOrganisationRequest {
+            id: org.id,
+            deactivate: None,
+            wallet_provider: None,
+            wallet_provider_issuer: None,
+            parent_organisation: None,
+            verifier_provider: Some(Some("PROCIVIS_ONE".to_string())),
+            verifier_provider_issuer: Some(Some(identifier_id)),
+            configuration: None,
         })
         .await;
 }

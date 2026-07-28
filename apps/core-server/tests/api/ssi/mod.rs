@@ -18,4 +18,5 @@ mod get_wallet_provider_metadata;
 mod issue_wallet_attestations;
 mod oid4vci_get_credential_offer;
 mod oid4vci_nonce;
+mod register_instance;
 mod register_wallet_unit;

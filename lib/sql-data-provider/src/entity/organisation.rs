@@ -1,6 +1,11 @@
 use std::str::FromStr;
 
+use one_core::model::organisation::OrganisationConfiguration;
+use one_dto_mapper::{From, Into};
+use sea_orm::FromJsonQueryResult;
 use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use shared_types::{IdentifierId, OrganisationId};
 use time::OffsetDateTime;
 
@@ -15,6 +20,17 @@ pub struct Model {
     pub wallet_provider: Option<String>,
     pub wallet_provider_issuer: Option<IdentifierId>,
     pub parent_organisation: Option<OrganisationId>,
+    #[sea_orm(column_type = "Json")]
+    pub configuration: Option<Configuration>,
+    pub verifier_provider: Option<String>,
+    pub verifier_provider_issuer: Option<IdentifierId>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
+pub struct Configuration {
+    pub trusted_rp_required: Option<bool>,
+    pub trusted_issuer_required: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -27,8 +43,6 @@ pub enum Relation {
     ProofSchema,
     #[sea_orm(has_many = "super::interaction::Entity")]
     Interaction,
-    #[sea_orm(has_many = "super::wallet_instance::Entity")]
-    WalletUnit,
     #[sea_orm(
         belongs_to = "Entity",
         from = "Column::Id",
@@ -60,12 +74,6 @@ impl Related<super::proof_schema::Entity> for Entity {
 impl Related<super::interaction::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Interaction.def()
-    }
-}
-
-impl Related<super::wallet_instance::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::WalletUnit.def()
     }
 }
 

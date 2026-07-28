@@ -114,10 +114,13 @@ pub struct ImportProofSchemaRequestDTO {
     pub organisation_id: OrganisationId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportProofSchemaDTO {
     pub id: ProofSchemaId,
+    #[serde(deserialize_with = "time::serde::rfc3339::deserialize")]
     pub created_date: OffsetDateTime,
+    #[serde(deserialize_with = "time::serde::rfc3339::deserialize")]
     pub last_modified: OffsetDateTime,
     pub name: String,
     pub organisation_id: OrganisationId,
@@ -126,28 +129,39 @@ pub struct ImportProofSchemaDTO {
     pub imported_source_url: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportProofSchemaInputSchemaDTO {
+    #[serde(default)]
     pub claim_schemas: Vec<ImportProofSchemaClaimSchemaDTO>,
     pub credential_schema: ImportProofSchemaCredentialSchemaDTO,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportProofSchemaClaimSchemaDTO {
     pub id: ClaimSchemaId,
     pub requested: bool,
     pub required: bool,
     pub key: String,
     pub data_type: String,
+    #[serde(default)]
     pub claims: Vec<ImportProofSchemaClaimSchemaDTO>,
     pub array: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportProofSchemaCredentialSchemaDTO {
     pub id: CredentialSchemaId,
+    #[serde(deserialize_with = "time::serde::rfc3339::deserialize")]
     pub created_date: OffsetDateTime,
+    #[serde(deserialize_with = "time::serde::rfc3339::deserialize")]
     pub last_modified: OffsetDateTime,
+    #[serde(
+        default,
+        deserialize_with = "time::serde::rfc3339::option::deserialize"
+    )]
     pub deleted_at: Option<OffsetDateTime>,
     pub name: String,
     pub format: CredentialFormat,

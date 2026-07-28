@@ -28,6 +28,7 @@ one-dto-mapper.workspace     = true
 sea-orm                      = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio", "macros", "with-time", "with-json"] }
 serde.workspace              = true
 serde_json.workspace         = true
+serde_with.workspace         = true
 shared-types.workspace       = true
 similar-asserts              = { workspace = true, optional = true }
 standardized-types.workspace = true

@@ -1,4 +1,4 @@
-use one_core::model::wallet_instance::WalletInstanceStatus;
+use one_core::model::managed_instance::InstanceStatus;
 use serde_json::json;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
@@ -13,7 +13,7 @@ use crate::utils::context::TestContext;
 use crate::utils::db_clients::holder_wallet_instance::TestHolderWalletInstanceParams;
 use crate::utils::field_match::FieldHelpers;
 
-fn metadata_without_user_auth() -> serde_json::Value {
+pub(super) fn metadata_without_user_auth() -> serde_json::Value {
     json!({
         "name": "PROCIVIS_ONE",
         "walletUnitAttestation": {
@@ -98,7 +98,7 @@ async fn holder_register_wallet_unit_successfully() {
         .await;
 
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1"))
+        .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
         })))
@@ -132,6 +132,17 @@ async fn holder_register_wallet_unit_successfully() {
         .get_by_entity_id(&resp["id"].parse())
         .await;
     assert!(!history.values.is_empty());
+
+    let org_detail = context.api.organisations.get(&org.id).await;
+    assert_eq!(org_detail.status(), 200);
+    let org_detail = org_detail.json_value().await;
+    assert!(
+        !org_detail
+            .as_object()
+            .unwrap()
+            .contains_key("verifierInstance")
+    );
+    assert_eq!(org_detail["walletInstance"]["id"], resp["id"]);
 }
 
 #[tokio::test]
@@ -149,7 +160,7 @@ async fn holder_register_wallet_unit_with_user_auth_sets_pending_status() {
         .await;
 
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1"))
+        .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
             "userNonce": "user-nonce-abc123",
@@ -195,7 +206,7 @@ async fn holder_register_wallet_unit_with_user_auth_skips_activation() {
         .await;
 
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1"))
+        .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
             "userNonce": "user-nonce-abc123",
@@ -206,7 +217,9 @@ async fn holder_register_wallet_unit_with_user_auth_skips_activation() {
 
     // activate endpoint must NOT be called
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1/activate"))
+        .and(wiremock::matchers::path_regex(
+            r"/ssi/instance/v1/.*/activate",
+        ))
         .respond_with(ResponseTemplate::new(200))
         .expect(0)
         .mount(&mock_server)
@@ -238,7 +251,7 @@ async fn register_with_user_auth(
     org_id: shared_types::OrganisationId,
     mock_server: &wiremock::MockServer,
     metadata: serde_json::Value,
-) -> shared_types::HolderWalletInstanceId {
+) -> shared_types::InstanceId {
     Mock::given(method(Method::GET))
         .and(path("/ssi/wallet-provider/v1/PROCIVIS_ONE"))
         .respond_with(ResponseTemplate::new(200).set_body_json(metadata))
@@ -246,7 +259,7 @@ async fn register_with_user_auth(
         .await;
 
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1"))
+        .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
             "userNonce": "user-nonce-abc123",
@@ -282,9 +295,9 @@ async fn holder_activate_wallet_unit_successfully() {
 
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
-            r"/ssi/wallet-unit/v1/.*/activate",
+            r"/ssi/instance/v1/.*/activate",
         ))
-        .respond_with(ResponseTemplate::new(200))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({})))
         .expect(1)
         .mount(&mock_server)
         .await;
@@ -303,7 +316,8 @@ async fn holder_activate_wallet_unit_successfully() {
         .await;
 
     // THEN
-    assert_eq!(resp.status(), 204);
+    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.json_value().await, json!({}));
 }
 
 #[tokio::test]
@@ -320,7 +334,7 @@ async fn holder_activate_wallet_unit_without_user_auth_returns_error() {
         .await;
 
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1"))
+        .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
         })))
@@ -341,8 +355,7 @@ async fn holder_activate_wallet_unit_without_user_auth_returns_error() {
         })
         .await;
     assert_eq!(register_resp.status(), 201);
-    let wallet_unit_id: shared_types::HolderWalletInstanceId =
-        register_resp.json_value().await["id"].parse();
+    let wallet_unit_id: shared_types::InstanceId = register_resp.json_value().await["id"].parse();
 
     // metadata mock for activate call (same endpoint, returns without userAuthentication)
     Mock::given(method(Method::GET))
@@ -395,12 +408,12 @@ async fn holder_activate_wallet_unit_passes_user_id_token_to_provider() {
 
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
-            r"/ssi/wallet-unit/v1/.*/activate",
+            r"/ssi/instance/v1/.*/activate",
         ))
         .and(wiremock::matchers::body_partial_json(json!({
             "userIdToken": "user-jwt-token-xyz"
         })))
-        .respond_with(ResponseTemplate::new(200))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({})))
         .expect(1)
         .mount(&mock_server)
         .await;
@@ -419,7 +432,8 @@ async fn holder_activate_wallet_unit_passes_user_id_token_to_provider() {
         .await;
 
     // THEN
-    assert_eq!(resp.status(), 204);
+    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.json_value().await, json!({}));
 }
 
 #[tokio::test]
@@ -438,9 +452,9 @@ async fn holder_activate_wallet_unit_optional_auth_skips_sign_in() {
 
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
-            r"/ssi/wallet-unit/v1/.*/activate",
+            r"/ssi/instance/v1/.*/activate",
         ))
-        .respond_with(ResponseTemplate::new(200))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({})))
         .expect(1)
         .mount(&mock_server)
         .await;
@@ -459,7 +473,8 @@ async fn holder_activate_wallet_unit_optional_auth_skips_sign_in() {
         .await;
 
     // THEN
-    assert_eq!(resp.status(), 204);
+    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.json_value().await, json!({}));
 }
 
 #[tokio::test]
@@ -474,7 +489,7 @@ async fn holder_activate_wallet_unit_required_auth_missing_token_fails_early() {
     // activate endpoint must NOT be called when the required token is missing
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
-            r"/ssi/wallet-unit/v1/.*/activate",
+            r"/ssi/instance/v1/.*/activate",
         ))
         .respond_with(ResponseTemplate::new(200))
         .expect(0)
@@ -512,7 +527,7 @@ async fn holder_activate_wallet_unit_expired_nonce_marks_error_and_signals_resta
     // The wallet provider rejects activation because the registration nonce has expired (BR_0153).
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
-            r"/ssi/wallet-unit/v1/.*/activate",
+            r"/ssi/instance/v1/.*/activate",
         ))
         .respond_with(ResponseTemplate::new(400).set_body_json(json!({ "code": "BR_0153" })))
         .expect(1)
@@ -561,7 +576,7 @@ async fn holder_register_wallet_unit_succeeds_when_existing_wallet_unit_failed()
             org.clone(),
             None,
             TestHolderWalletInstanceParams {
-                status: Some(WalletInstanceStatus::Error),
+                status: Some(InstanceStatus::Error),
                 ..Default::default()
             },
         )
@@ -577,7 +592,7 @@ async fn holder_register_wallet_unit_succeeds_when_existing_wallet_unit_failed()
         .await;
 
     Mock::given(method(Method::POST))
-        .and(path("/ssi/wallet-unit/v1"))
+        .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
         })))

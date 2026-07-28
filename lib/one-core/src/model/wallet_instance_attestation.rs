@@ -1,4 +1,4 @@
-use shared_types::{HolderWalletInstanceId, WalletInstanceAttestationId};
+use shared_types::{InstanceId, WalletInstanceAttestationId};
 use time::OffsetDateTime;
 
 use crate::model::key::{Key, KeyRelations};
@@ -11,7 +11,7 @@ pub struct WalletInstanceAttestation {
     pub last_modified: OffsetDateTime,
     pub expiration_date: OffsetDateTime,
     pub attestation: String,
-    pub holder_wallet_unit_id: HolderWalletInstanceId, // not a relation because of reverse relation exists
+    pub holder_wallet_unit_id: InstanceId, // not a relation because of reverse relation exists
     pub revocation_list_url: Option<String>,
     pub revocation_list_index: Option<i64>,
 

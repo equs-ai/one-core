@@ -1,5 +1,7 @@
 use std::string::FromUtf8Error;
 
+use shared_types::OrganisationId;
+
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +34,8 @@ pub(crate) enum WRPValidatorError {
     MissingSigningDetails,
     #[error("Invalid signing method: `{0}`")]
     InvalidSigningMethod(String),
+    #[error("Missing organisation: {0}")]
+    MissingOrganisation(OrganisationId),
 
     #[error("Missing issuer")]
     MissingIssuer,
@@ -59,6 +63,7 @@ impl ErrorCodeMixin for WRPValidatorError {
             | Self::InvalidRegistryUrl(_)
             | Self::InvalidSigningMethod(_)
             | Self::RegistrationCertificateMissmatch { .. } => ErrorCode::BR_0224,
+            Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::URLParsing(_) | Self::FromUtf8Error(_) => ErrorCode::BR_0047,
             Self::Nested(nested) => nested.error_code(),
         }

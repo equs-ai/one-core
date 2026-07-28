@@ -514,6 +514,9 @@ pub fn dummy_organisation(id: Option<OrganisationId>) -> Organisation {
         wallet_provider: None,
         wallet_provider_issuer: None,
         parent_organisation: None,
+        verifier_provider: None,
+        verifier_provider_issuer: None,
+        configuration: Default::default(),
     }
 }
 

@@ -2,13 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use shared_types::HolderWalletInstanceId;
+use shared_types::InstanceId;
 use time::Duration;
 
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::mapper::x509::x5c_into_pem_chain;
-use crate::model::holder_wallet_instance::{HolderWalletInstance, HolderWalletInstanceRelations};
+use crate::model::instance::{Instance, InstanceRelations};
 use crate::model::key::{Key, KeyRelations};
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CertificateValidator, ParsedCertificate,
@@ -29,9 +29,9 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::model::RevocationState;
 use crate::provider::revocation::provider::RevocationMethodProvider;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::repository::instance_repository::InstanceRepository;
 use crate::service::error::MissingProviderError;
-use crate::service::wallet_provider::dto::{
+use crate::service::managed_instance::dto::{
     IssueWalletUnitAttestationRequestDTO, IssueWalletUnitAttestationResponseDTO,
     IssueWiaRequestDTO, IssueWuaRequestDTO, WalletUnitAttestationClaims,
 };
@@ -70,13 +70,13 @@ pub(crate) struct IssuedWalletUnitAttestations {
 pub(crate) trait HolderWalletUnitProto: Send + Sync {
     async fn issue_wallet_attestations<'a>(
         &self,
-        holder_wallet_unit_id: &HolderWalletInstanceId,
+        holder_wallet_unit_id: &InstanceId,
         request: IssueWalletAttestationRequest<'a>,
     ) -> Result<IssuedWalletUnitAttestations, Error>;
 
     async fn check_wallet_unit_status(
         &self,
-        holder_wallet_unit: &HolderWalletInstance,
+        holder_wallet_unit: &Instance,
     ) -> Result<WalletUnitStatusCheckResponse, Error>;
 
     async fn check_wallet_unit_attestation_status(
@@ -115,7 +115,7 @@ pub struct HolderWalletUnitProtoImpl {
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     wallet_provider_client: Arc<dyn WalletProviderClient>,
     revocation_method_provider: Arc<dyn RevocationMethodProvider>,
-    holder_wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
+    holder_wallet_instance_repository: Arc<dyn InstanceRepository>,
     certificate_validator: Arc<dyn CertificateValidator>,
 }
 
@@ -125,7 +125,7 @@ impl HolderWalletUnitProtoImpl {
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
         wallet_provider_client: Arc<dyn WalletProviderClient>,
         revocation_method_provider: Arc<dyn RevocationMethodProvider>,
-        holder_wallet_unit_repository: Arc<dyn HolderWalletInstanceRepository>,
+        holder_wallet_unit_repository: Arc<dyn InstanceRepository>,
         certificate_validator: Arc<dyn CertificateValidator>,
     ) -> Self {
         Self {
@@ -298,7 +298,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
 
     async fn check_wallet_unit_status(
         &self,
-        holder_wallet_unit: &HolderWalletInstance,
+        holder_wallet_unit: &Instance,
     ) -> Result<WalletUnitStatusCheckResponse, Error> {
         let key = holder_wallet_unit
             .authentication_key
@@ -321,7 +321,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
         let (key_handle, key_algorithm) = self.get_key_handle(key)?;
         let bearer_token = self
             .create_proof_of_key_possesion(
-                &holder_wallet_unit.wallet_provider_url,
+                &holder_wallet_unit.provider_url,
                 &key_handle,
                 key_algorithm.as_ref(),
             )
@@ -330,8 +330,8 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
         let revocation_check_status = self
             .wallet_provider_client
             .issue_attestation(
-                &holder_wallet_unit.wallet_provider_url,
-                holder_wallet_unit.provider_wallet_unit_id,
+                &holder_wallet_unit.provider_url,
+                holder_wallet_unit.provider_instance_id,
                 &bearer_token,
                 IssueWalletUnitAttestationRequestDTO {
                     wia: vec![],
@@ -349,14 +349,14 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
 
     async fn issue_wallet_attestations<'a>(
         &self,
-        holder_wallet_unit_id: &HolderWalletInstanceId,
+        holder_wallet_unit_id: &InstanceId,
         request: IssueWalletAttestationRequest<'a>,
     ) -> Result<IssuedWalletUnitAttestations, Error> {
         let holder_wallet_instance = self
             .holder_wallet_instance_repository
             .get(
                 holder_wallet_unit_id,
-                &HolderWalletInstanceRelations {
+                &InstanceRelations {
                     authentication_key: Some(KeyRelations::default()),
                     ..Default::default()
                 },
@@ -389,7 +389,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
 
                 let proof = self
                     .create_proof_of_key_possesion(
-                        &holder_wallet_instance.wallet_provider_url,
+                        &holder_wallet_instance.provider_url,
                         key.key_handle(),
                         key_algorithm.as_ref(),
                     )
@@ -419,7 +419,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
                     let (key_handle, key_algorithm) = self.get_key_handle(key)?;
                     let proof = self
                         .create_proof_of_key_possesion(
-                            &holder_wallet_instance.wallet_provider_url,
+                            &holder_wallet_instance.provider_url,
                             &key_handle,
                             key_algorithm.as_ref(),
                         )
@@ -438,7 +438,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
         let (key_handle, key_algorithm) = self.get_key_handle(authentication_key)?;
         let bearer_token = self
             .create_proof_of_key_possesion(
-                &holder_wallet_instance.wallet_provider_url,
+                &holder_wallet_instance.provider_url,
                 &key_handle,
                 key_algorithm.as_ref(),
             )
@@ -447,8 +447,8 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
         let issuance_result = self
             .wallet_provider_client
             .issue_attestation(
-                &holder_wallet_instance.wallet_provider_url,
-                holder_wallet_instance.provider_wallet_unit_id,
+                &holder_wallet_instance.provider_url,
+                holder_wallet_instance.provider_instance_id,
                 &bearer_token,
                 IssueWalletUnitAttestationRequestDTO {
                     wia: wia_proof,

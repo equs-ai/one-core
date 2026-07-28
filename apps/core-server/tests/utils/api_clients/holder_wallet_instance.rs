@@ -1,5 +1,5 @@
 use serde_json::json;
-use shared_types::{HolderWalletInstanceId, OrganisationId, TrustCollectionId};
+use shared_types::{InstanceId, OrganisationId};
 
 use crate::utils::api_clients::{HttpClient, Response};
 
@@ -13,9 +13,10 @@ pub struct TestHolderActivateRequest {
     pub user_id_token: Option<String>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct TestHolderRegisterRequest {
     pub organization_id: Option<OrganisationId>,
+    pub role: Option<String>,
     pub wallet_provider_url: Option<String>,
     pub wallet_provider_type: Option<String>,
     pub key_type: Option<String>,
@@ -28,25 +29,10 @@ impl HolderWalletInstancesApi {
 
     pub async fn holder_get_wallet_instance_details(
         &self,
-        wallet_unit_id: &HolderWalletInstanceId,
+        wallet_unit_id: &InstanceId,
     ) -> Response {
         self.client
-            .get(&format!(
-                "/api/holder-wallet-instance/v1/{}",
-                wallet_unit_id
-            ))
-            .await
-    }
-
-    pub async fn holder_get_wallet_instance_trust_collections(
-        &self,
-        wallet_unit_id: &HolderWalletInstanceId,
-    ) -> Response {
-        self.client
-            .get(&format!(
-                "/api/holder-wallet-instance/v1/{}/trust-collections",
-                wallet_unit_id
-            ))
+            .get(&format!("/api/instance/v1/{}", wallet_unit_id))
             .await
     }
 
@@ -54,7 +40,8 @@ impl HolderWalletInstancesApi {
         let body = json!(
             {
             "organisationId": request.organization_id,
-            "walletProvider": {
+            "role": request.role.unwrap_or("WALLET".to_string()),
+            "provider": {
                 "url": request.wallet_provider_url.unwrap_or("http://localhost:3000".to_string()),
                 "type": request.wallet_provider_type.unwrap_or("PROCIVIS_ONE".to_string()),
             },
@@ -62,14 +49,12 @@ impl HolderWalletInstancesApi {
             }
         );
 
-        self.client
-            .post("/api/holder-wallet-instance/v1", body)
-            .await
+        self.client.post("/api/instance/v1", body).await
     }
 
     pub async fn holder_activate(
         &self,
-        wallet_unit_id: &HolderWalletInstanceId,
+        wallet_unit_id: &InstanceId,
         request: TestHolderActivateRequest,
     ) -> Response {
         let mut body = json!({
@@ -79,43 +64,13 @@ impl HolderWalletInstancesApi {
             body["userIdToken"] = json!(token);
         }
         self.client
-            .post(
-                &format!("/api/holder-wallet-instance/v1/{wallet_unit_id}/activate"),
-                body,
-            )
+            .post(&format!("/api/instance/v1/{wallet_unit_id}/activate"), body)
             .await
     }
 
-    pub async fn holder_wallet_instance_status(
-        &self,
-        wallet_unit_id: &HolderWalletInstanceId,
-    ) -> Response {
+    pub async fn holder_wallet_instance_status(&self, wallet_unit_id: &InstanceId) -> Response {
         self.client
-            .post(
-                &format!("/api/holder-wallet-instance/v1/{}/status", wallet_unit_id),
-                None,
-            )
-            .await
-    }
-
-    pub async fn holder_wallet_instance_edit(
-        &self,
-        wallet_unit_id: &HolderWalletInstanceId,
-        trust_collections: Option<&[TrustCollectionId]>,
-        trusted_rp_required: Option<bool>,
-    ) -> Response {
-        let mut body = json!({});
-        if let Some(trust_collections) = trust_collections {
-            body["trustCollections"] = json!(trust_collections);
-        }
-        if let Some(trusted_rp_required) = trusted_rp_required {
-            body["trustedRpRequired"] = json!(trusted_rp_required);
-        }
-        self.client
-            .patch(
-                &format!("/api/holder-wallet-instance/v1/{wallet_unit_id}"),
-                body,
-            )
+            .post(&format!("/api/instance/v1/{}/status", wallet_unit_id), None)
             .await
     }
 }

@@ -28,9 +28,9 @@ use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 use crate::repository::identifier_repository::IdentifierRepository;
+use crate::repository::managed_instance_repository::ManagedInstanceRepository;
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 use crate::repository::revocation_list_repository::RevocationListRepository;
-use crate::repository::wallet_instance_repository::WalletInstanceRepository;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait RevocationMethodProvider: Send + Sync {
@@ -81,7 +81,7 @@ fn initialize_provider(
     transaction_manager: &Arc<dyn TransactionManager>,
     revocation_list_repository: &Arc<dyn RevocationListRepository>,
     remote_entity_cache_repository: &Arc<dyn RemoteEntityCacheRepository>,
-    wallet_unit_repository: &Arc<dyn WalletInstanceRepository>,
+    wallet_unit_repository: &Arc<dyn ManagedInstanceRepository>,
     identifier_repository: &Arc<dyn IdentifierRepository>,
     client: &Arc<dyn HttpClient>,
 ) -> Result<Arc<dyn RevocationMethod>, InitializationError> {
@@ -149,7 +149,7 @@ pub(crate) fn revocation_method_provider_from_config(
     transaction_manager: Arc<dyn TransactionManager>,
     revocation_list_repository: Arc<dyn RevocationListRepository>,
     remote_entity_cache_repository: Arc<dyn RemoteEntityCacheRepository>,
-    wallet_unit_repository: Arc<dyn WalletInstanceRepository>,
+    wallet_unit_repository: Arc<dyn ManagedInstanceRepository>,
     identifier_repository: Arc<dyn IdentifierRepository>,
     client: Arc<dyn HttpClient>,
 ) -> Result<Arc<dyn RevocationMethodProvider>, ConfigValidationError> {

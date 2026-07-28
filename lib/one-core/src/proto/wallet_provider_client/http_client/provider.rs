@@ -1,21 +1,22 @@
 use serde::Deserialize;
-use shared_types::WalletInstanceId;
+use shared_types::ManagedInstanceId;
 use url::Url;
 
 use super::HTTPWalletProviderClient;
 use super::dto::{
-    ActivateWalletUnitRequestRestDTO, IssueWalletUnitAttestationRequestRestDTO,
-    IssueWalletUnitAttestationResponseRestDTO, RegisterWalletUnitRequestRestDTO,
-    RegisterWalletUnitResponseRestDTO,
+    ActivateWalletUnitRequestRestDTO, ActivateWalletUnitResponseRestDTO,
+    IssueWalletUnitAttestationRequestRestDTO, IssueWalletUnitAttestationResponseRestDTO,
+    RegisterWalletUnitRequestRestDTO, RegisterWalletUnitResponseRestDTO,
 };
 use crate::error::{ContextWithErrorCode, ErrorCode};
-use crate::model::wallet_instance::WalletProviderType;
+use crate::model::instance::WalletProviderType;
 use crate::proto::wallet_provider_client::WalletProviderClient;
 use crate::proto::wallet_provider_client::dto::{IssueWalletAttestationResponse, MetadataTarget};
 use crate::proto::wallet_provider_client::error::WalletProviderClientError;
-use crate::service::wallet_provider::dto::{
-    ActivateWalletUnitRequestDTO, IssueWalletUnitAttestationRequestDTO,
-    RegisterWalletUnitRequestDTO, RegisterWalletUnitResponseDTO, WalletProviderMetadataResponseDTO,
+use crate::service::managed_instance::dto::{
+    ActivateWalletUnitRequestDTO, ActivateWalletUnitResponseDTO,
+    IssueWalletUnitAttestationRequestDTO, RegisterWalletUnitRequestDTO,
+    RegisterWalletUnitResponseDTO, WalletProviderMetadataResponseDTO,
 };
 
 #[async_trait::async_trait]
@@ -42,7 +43,7 @@ impl WalletProviderClient for HTTPWalletProviderClient {
         wallet_provider_url: &str,
         request: RegisterWalletUnitRequestDTO,
     ) -> Result<RegisterWalletUnitResponseDTO, WalletProviderClientError> {
-        let url = Url::parse(format!("{wallet_provider_url}/ssi/wallet-unit/v1").as_str())?;
+        let url = Url::parse(format!("{wallet_provider_url}/ssi/instance/v1").as_str())?;
 
         let response = async {
             self.http_client
@@ -75,11 +76,11 @@ impl WalletProviderClient for HTTPWalletProviderClient {
     async fn activate(
         &self,
         wallet_provider_url: &str,
-        wallet_unit_id: WalletInstanceId,
+        wallet_unit_id: ManagedInstanceId,
         request: ActivateWalletUnitRequestDTO,
-    ) -> Result<(), WalletProviderClientError> {
+    ) -> Result<ActivateWalletUnitResponseDTO, WalletProviderClientError> {
         let url = Url::parse(
-            format!("{wallet_provider_url}/ssi/wallet-unit/v1/{wallet_unit_id}/activate").as_str(),
+            format!("{wallet_provider_url}/ssi/instance/v1/{wallet_unit_id}/activate").as_str(),
         )?;
 
         let response = async {
@@ -105,22 +106,24 @@ impl WalletProviderClient for HTTPWalletProviderClient {
             }
         }
 
-        response
+        let response: ActivateWalletUnitResponseRestDTO = response
             .error_for_status()
+            .error_while("requesting activation of wallet unit")?
+            .json()
             .error_while("requesting activation of wallet unit")?;
 
-        Ok(())
+        Ok(response.into())
     }
 
     async fn issue_attestation(
         &self,
         wallet_provider_url: &str,
-        wallet_unit_id: WalletInstanceId,
+        wallet_unit_id: ManagedInstanceId,
         bearer_token: &str,
         request: IssueWalletUnitAttestationRequestDTO,
     ) -> Result<IssueWalletAttestationResponse, WalletProviderClientError> {
         let url = Url::parse(
-            format!("{wallet_provider_url}/ssi/wallet-unit/v1/{wallet_unit_id}/issue-attestation")
+            format!("{wallet_provider_url}/ssi/instance/v1/{wallet_unit_id}/issue-attestation")
                 .as_str(),
         )?;
 

@@ -72,8 +72,8 @@ use crate::provider::issuance_protocol::openid4vci_final1_0::service::{
 use crate::provider::revocation::model::{Operation, RevocationState};
 use crate::repository::error::DataLayerError;
 use crate::service::credential::dto::{WalletInstanceAttestationDTO, WalletUnitAttestationDTO};
+use crate::service::managed_instance::dto::WalletInstanceAttestationClaims;
 use crate::service::ssi_validator::validate_issuance_protocol_type;
-use crate::service::wallet_provider::dto::WalletInstanceAttestationClaims;
 use crate::validator::throw_if_credential_state_not_eq;
 
 impl OID4VCIFinal1_0Service {

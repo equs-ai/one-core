@@ -1,0 +1,97 @@
+use one_dto_mapper::{From, Into};
+use serde::{Deserialize, Serialize};
+use shared_types::{InstanceId, KeyId, ManagedInstanceId, OrganisationId};
+use strum::{AsRefStr, Display};
+use time::OffsetDateTime;
+
+use crate::config;
+use crate::model::common::GetListResponse;
+use crate::model::key::{Key, KeyRelations};
+use crate::model::list_filter::ListFilterValue;
+use crate::model::list_query::ListQuery;
+use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
+use crate::model::organisation::Organisation;
+use crate::model::relation::Related;
+use crate::model::wallet_instance_attestation::{
+    WalletInstanceAttestation, WalletInstanceAttestationRelations,
+};
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
+pub struct Instance {
+    pub id: InstanceId,
+    pub created_date: OffsetDateTime,
+    pub last_modified: OffsetDateTime,
+    pub provider_type: WalletProviderType,
+    pub provider_name: String,
+    pub provider_url: String,
+    pub provider_instance_id: ManagedInstanceId,
+    pub status: InstanceStatus,
+    /// Integrity-check nonce issued by the server during registration; used in `holder_activate`.
+    pub nonce: Option<String>,
+    /// User-auth nonce issued by the server during registration; passed to the IdP during activation.
+    pub user_nonce: Option<String>,
+    pub role: ManagedInstanceRole,
+
+    // Relations:
+    pub organisation: Related<Organisation>,
+    pub authentication_key: Option<Key>,
+    pub wallet_unit_attestations: Option<Vec<WalletInstanceAttestation>>,
+}
+
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Display, AsRefStr, Into, From,
+)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[into(config::core_config::WalletProviderType)]
+#[from(config::core_config::WalletProviderType)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum WalletProviderType {
+    ProcivisOne,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct InstanceRelations {
+    pub wallet_unit_attestations: Option<WalletInstanceAttestationRelations>,
+    pub authentication_key: Option<KeyRelations>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
+pub struct CreateInstanceRequest {
+    pub id: InstanceId,
+    pub provider_type: WalletProviderType,
+    pub provider_name: String,
+    pub provider_url: String,
+    pub provider_instance_id: ManagedInstanceId,
+    pub status: InstanceStatus,
+    pub role: ManagedInstanceRole,
+    pub organisation: Organisation,
+    pub authentication_key: Option<Key>,
+    pub nonce: Option<String>,
+    pub user_nonce: Option<String>,
+}
+
+#[derive(Clone, Debug, Default)]
+#[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
+pub struct UpdateInstanceRequest {
+    pub status: Option<InstanceStatus>,
+    pub wallet_unit_attestations: Option<Vec<WalletInstanceAttestation>>,
+    pub authentication_key_id: Option<KeyId>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SortableInstanceColumn {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum InstanceFilterValue {
+    OrganisationIds(Vec<OrganisationId>),
+    Role(ManagedInstanceRole),
+    Status(InstanceStatus),
+}
+
+impl ListFilterValue for InstanceFilterValue {}
+
+pub type InstanceListQuery = ListQuery<SortableInstanceColumn, InstanceFilterValue>;
+
+pub type InstanceList = GetListResponse<Instance>;

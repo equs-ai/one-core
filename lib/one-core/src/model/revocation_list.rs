@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use shared_types::{
-    CredentialId, RevocationListEntryId, RevocationListId, RevocationMethodId, SignerId,
-    WalletInstanceAttestedKeyId,
+    CredentialId, ManagedInstanceAttestedKeyId, RevocationListEntryId, RevocationListId,
+    RevocationMethodId, SignerId,
 };
 use standardized_types::x509::CertificateSerial;
 use strum::Display;
@@ -69,7 +69,7 @@ pub enum RevocationListEntryState {
 pub enum RevocationListEntityId {
     Credential(CredentialId),
     Signature(SignerId, Option<CertificateSerial>),
-    WalletUnitAttestedKey(WalletInstanceAttestedKeyId),
+    WalletUnitAttestedKey(ManagedInstanceAttestedKeyId),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

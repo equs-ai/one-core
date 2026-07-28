@@ -28,12 +28,30 @@ pub struct OrganisationsApi {
 }
 
 #[skip_serializing_none]
+#[derive(Debug, Default, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderParams {
+    pub name: Option<String>,
+    pub issuer: Option<IdentifierId>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Default, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertOrganisationConfigurationParams {
+    pub trusted_issuer_required: Option<bool>,
+    pub trusted_rp_required: Option<bool>,
+}
+
+#[skip_serializing_none]
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpsertParams {
     pub deactivate: Option<bool>,
-    pub wallet_provider: Option<Option<String>>,
-    pub wallet_provider_issuer: Option<Option<IdentifierId>>,
+    pub wallet_provider: Option<Option<ProviderParams>>,
+    pub verifier_provider: Option<Option<ProviderParams>>,
+    pub configuration: Option<UpsertOrganisationConfigurationParams>,
+    pub trust_collections: Option<Vec<shared_types::TrustCollectionId>>,
     pub parent_organisation: Option<Option<OrganisationId>>,
 }
 
@@ -113,6 +131,11 @@ impl OrganisationsApi {
 
     pub async fn get(&self, id: &impl Display) -> Response {
         let url = format!("/api/organisation/v1/{id}");
+        self.client.get(&url).await
+    }
+
+    pub async fn get_trust_collections(&self, id: &impl Display) -> Response {
+        let url = format!("/api/organisation/v1/{id}/trust-collections");
         self.client.get(&url).await
     }
 }

@@ -181,7 +181,7 @@ before_script:
     WAIT_ON_TIMEOUT: 10m
   trigger:
     project: procivis/one/one-tests
-    branch: v1.82.1
+    branch: v1.82.2
     strategy: depend
     forward:
       pipeline_variables: true
@@ -225,7 +225,6 @@ tests:postgres:
     - docker stop $RUST_CONTAINER_NAME
     - docker rm $RUST_CONTAINER_NAME
     - *delete_network
-
 
 tests:sqlite:
   extends:
@@ -498,7 +497,6 @@ sdk:update_doc_sdk_version:
   before_script:
     - jq --arg id "$CI_PIPELINE_ID" '.current = ($id|tonumber)' sdk_version.json > tmp.json && mv tmp.json sdk_version.json
 
-
 tests:api:
   variables:
     API_TEST: "CORE"
@@ -508,7 +506,6 @@ tests:api:
     - when: on_success
       needs:
         - job: build_image
-
 
 .deploy_trigger:
   stage: deploy
@@ -622,7 +619,6 @@ dtrack:generate-bom:
     paths:
       - ${SBOM_FILE_PATH}
     expire_in: 5 days
-
 
 dtrack:upload-bom:
   stage: scan

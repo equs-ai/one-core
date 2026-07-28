@@ -8,8 +8,8 @@ use super::model::{CredentialRevocationInfo, Operation};
 use crate::model::certificate::Certificate;
 use crate::model::credential::Credential;
 use crate::model::identifier::Identifier;
-use crate::model::wallet_instance_attested_key::{
-    WalletInstanceAttestedKey, WalletInstanceAttestedKeyRevocationInfo,
+use crate::model::managed_instance_attested_key::{
+    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
 };
 use crate::provider::credential_formatter::model::{CredentialStatus, IdentifierDetails};
 use crate::provider::revocation::RevocationMethod;
@@ -64,7 +64,7 @@ impl RevocationMethod for MdocMsoUpdateSuspensionRevocation {
 
     async fn add_issued_attestation(
         &self,
-        _attestation: &WalletInstanceAttestedKey,
+        _attestation: &ManagedInstanceAttestedKey,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         Err(RevocationError::OperationNotSupported(
             "Attestations not supported".to_string(),
@@ -73,7 +73,7 @@ impl RevocationMethod for MdocMsoUpdateSuspensionRevocation {
 
     async fn get_attestation_revocation_info(
         &self,
-        _key_info: &WalletInstanceAttestedKeyRevocationInfo,
+        _key_info: &ManagedInstanceAttestedKeyRevocationInfo,
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         Err(RevocationError::OperationNotSupported(
             "Attestations not supported".to_string(),
@@ -82,7 +82,7 @@ impl RevocationMethod for MdocMsoUpdateSuspensionRevocation {
 
     async fn update_attestation_entries(
         &self,
-        _keys: Vec<WalletInstanceAttestedKeyRevocationInfo>,
+        _keys: Vec<ManagedInstanceAttestedKeyRevocationInfo>,
         _new_state: RevocationState,
     ) -> Result<(), RevocationError> {
         Err(RevocationError::OperationNotSupported(

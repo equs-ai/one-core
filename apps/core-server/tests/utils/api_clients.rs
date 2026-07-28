@@ -23,7 +23,6 @@ use self::proofs::ProofsApi;
 use self::ssi::SSIApi;
 use self::tasks::TasksApi;
 use self::trust_collections::TrustCollectionsApi;
-use self::verifier_instance::VerifierIntanceApi;
 use self::wallet_units::WalletUnitsApi;
 use super::field_match::FieldHelpers;
 use crate::utils::api_clients::cache::CacheApi;
@@ -52,7 +51,6 @@ pub mod signatures;
 pub mod ssi;
 pub mod tasks;
 pub mod trust_collections;
-pub mod verifier_instance;
 pub mod wallet_units;
 
 pub mod holder_wallet_instance;
@@ -227,7 +225,6 @@ pub struct Client {
     pub certificates: CertificatesApi,
     pub wallet_provider: WalletProviderApi,
     pub wallet_units: WalletUnitsApi,
-    pub verifier_instances: VerifierIntanceApi,
     pub holder_wallet_instances: HolderWalletInstancesApi,
     pub signatures: SignaturesApi,
     pub statistics: StatisticsApi,
@@ -266,7 +263,6 @@ impl Client {
             wallet_provider: WalletProviderApi::new(client.clone()),
             wallet_units: WalletUnitsApi::new(client.clone()),
             holder_wallet_instances: HolderWalletInstancesApi::new(client.clone()),
-            verifier_instances: VerifierIntanceApi::new(client.clone()),
             signatures: SignaturesApi::new(client.clone()),
             statistics: StatisticsApi::new(client.clone()),
             trust_list_publication: TrustListPublicationApi::new(client.clone()),

@@ -5,7 +5,7 @@ use axum_extra::extract::WithRejection;
 use headers::Authorization;
 use headers::authorization::Bearer;
 use proc_macros::endpoint;
-use shared_types::WalletInstanceId;
+use shared_types::ManagedInstanceId;
 
 use crate::dto::error::ErrorResponseRestDTO;
 use crate::dto::response::{CreatedOrErrorResponse, EmptyOrErrorResponse, OkOrErrorResponse};
@@ -28,6 +28,7 @@ use crate::router::AppState;
         Register new wallet unit.
     "},
 )]
+#[deprecated = "Deprecated in favor of POST /ssi/instance/v1"]
 pub(crate) async fn register_wallet_unit(
     state: State<AppState>,
     WithRejection(Json(request), _): WithRejection<
@@ -38,7 +39,7 @@ pub(crate) async fn register_wallet_unit(
     let result = state
         .core
         .wallet_provider_service
-        .register_wallet_unit(request.into())
+        .register_instance(request.into())
         .await;
     CreatedOrErrorResponse::from_result(result, state, "registering wallet unit")
 }
@@ -48,7 +49,7 @@ pub(crate) async fn register_wallet_unit(
     post,
     path = "/ssi/wallet-unit/v1/{id}/activate",
     params(
-        ("id" = WalletInstanceId, Path, description = "Wallet unit id")
+        ("id" = ManagedInstanceId, Path, description = "Wallet unit id")
     ),
     request_body = WalletUnitActivationRequestRestDTO,
     responses(EmptyOrErrorResponse),
@@ -58,9 +59,10 @@ pub(crate) async fn register_wallet_unit(
         Activates wallet unit.
     "},
 )]
+#[deprecated = "Deprecated in favor of POST /ssi/instance/v1/{id}/activate"]
 pub(crate) async fn activate_wallet_unit(
     state: State<AppState>,
-    WithRejection(Path(id), _): WithRejection<Path<WalletInstanceId>, ErrorResponseRestDTO>,
+    WithRejection(Path(id), _): WithRejection<Path<ManagedInstanceId>, ErrorResponseRestDTO>,
     WithRejection(Json(request), _): WithRejection<
         Json<WalletUnitActivationRequestRestDTO>,
         ErrorResponseRestDTO,
@@ -69,9 +71,9 @@ pub(crate) async fn activate_wallet_unit(
     let result = state
         .core
         .wallet_provider_service
-        .activate_wallet_unit(id, request.into())
+        .activate_instance(id, request.into())
         .await;
-    EmptyOrErrorResponse::from_result(result, state, "activating wallet unit")
+    EmptyOrErrorResponse::from_result(result.map(|_| ()), state, "activating wallet unit")
 }
 
 #[endpoint(
@@ -79,7 +81,7 @@ pub(crate) async fn activate_wallet_unit(
     post,
     path = "/ssi/wallet-unit/v1/{id}/issue-attestation",
     params(
-        ("id" = WalletInstanceId, Path, description = "Wallet unit id")
+        ("id" = ManagedInstanceId, Path, description = "Wallet unit id")
     ),
     request_body = IssueWalletUnitAttestationRequestRestDTO,
     responses(OkOrErrorResponse<IssueWalletUnitAttestationResponseRestDTO>),
@@ -92,9 +94,10 @@ pub(crate) async fn activate_wallet_unit(
         Issue wallet app and wallet unit attestations.
     "},
 )]
+#[deprecated = "Deprecated in favor of POST /ssi/instance/v1/{id}/issue-attestation"]
 pub(crate) async fn issue_wallet_unit_attestation(
     state: State<AppState>,
-    WithRejection(Path(id), _): WithRejection<Path<WalletInstanceId>, ErrorResponseRestDTO>,
+    WithRejection(Path(id), _): WithRejection<Path<ManagedInstanceId>, ErrorResponseRestDTO>,
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
     WithRejection(Json(request), _): WithRejection<
         Json<IssueWalletUnitAttestationRequestRestDTO>,

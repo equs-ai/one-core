@@ -18,6 +18,7 @@ pub mod credential_schema;
 pub mod did;
 pub mod history;
 pub mod identifier;
+pub mod instance;
 pub mod interaction;
 pub mod jsonld;
 pub mod key;
@@ -32,9 +33,7 @@ pub mod qes;
 pub mod revocation;
 pub mod task;
 mod trust_information;
-pub mod verifier_instance;
 pub mod version;
-pub mod wallet_unit;
 
 type CoreBuilder = Box<
     dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<one_core::OneCore, BindingError>> + Send>>

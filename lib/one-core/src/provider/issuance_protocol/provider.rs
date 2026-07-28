@@ -29,7 +29,7 @@ use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
 use crate::repository::history_repository::HistoryRepository;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::repository::instance_repository::InstanceRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::key_repository::KeyRepository;
 
@@ -88,7 +88,7 @@ fn initialize_provider(
     blob_storage_provider: &Arc<dyn BlobStorageProvider>,
     credential_schema_importer: &Arc<dyn CredentialSchemaImporter>,
     wallet_unit_proto: &Arc<dyn HolderWalletUnitProto>,
-    holder_wallet_unit_repository: &Arc<dyn HolderWalletInstanceRepository>,
+    holder_wallet_unit_repository: &Arc<dyn InstanceRepository>,
     wrp_validator: &Arc<dyn WRPValidator>,
     history_repository: &Arc<dyn HistoryRepository>,
     session_provider: &Arc<dyn SessionProvider>,
@@ -173,7 +173,7 @@ pub(crate) fn issuance_protocol_provider_from_config(
     blob_storage_provider: Arc<dyn BlobStorageProvider>,
     credential_schema_importer: Arc<dyn CredentialSchemaImporter>,
     wallet_unit_proto: Arc<dyn HolderWalletUnitProto>,
-    holder_wallet_unit_repository: Arc<dyn HolderWalletInstanceRepository>,
+    holder_wallet_unit_repository: Arc<dyn InstanceRepository>,
     wrp_validator: Arc<dyn WRPValidator>,
     history_repository: Arc<dyn HistoryRepository>,
     session_provider: Arc<dyn SessionProvider>,

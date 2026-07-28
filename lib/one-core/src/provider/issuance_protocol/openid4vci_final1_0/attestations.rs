@@ -10,11 +10,11 @@ use super::{
     HolderInteractionData, IssuanceProtocolError, OpenID4VCIFinal1_0, WalletAttestationResult,
 };
 use crate::error::ContextWithErrorCode;
-use crate::model::holder_wallet_instance::{HolderWalletInstance, HolderWalletInstanceFilterValue};
+use crate::model::instance::{Instance, InstanceFilterValue};
 use crate::model::key::Key;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
-use crate::model::wallet_instance::WalletInstanceStatus;
+use crate::model::managed_instance::InstanceStatus;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::JWTPayload;
 use crate::proto::wallet_instance::{
@@ -42,7 +42,7 @@ impl OpenID4VCIFinal1_0 {
         let holder_wallet_unit = self.get_current_wallet_unit(organisation_id).await?;
         let wallet_unit_provided = holder_wallet_unit
             .as_ref()
-            .is_some_and(|unit| unit.status == WalletInstanceStatus::Active);
+            .is_some_and(|unit| unit.status == InstanceStatus::Active);
 
         // WIA requirements
 
@@ -241,13 +241,12 @@ impl OpenID4VCIFinal1_0 {
     async fn get_current_wallet_unit(
         &self,
         organisation_id: OrganisationId,
-    ) -> Result<Option<HolderWalletInstance>, IssuanceProtocolError> {
+    ) -> Result<Option<Instance>, IssuanceProtocolError> {
         let list = self
             .holder_wallet_unit_repository
             .list(ListQuery {
                 filtering: Some(
-                    HolderWalletInstanceFilterValue::OrganisationIds(vec![organisation_id])
-                        .condition(),
+                    InstanceFilterValue::OrganisationIds(vec![organisation_id]).condition(),
                 ),
                 ..Default::default()
             })

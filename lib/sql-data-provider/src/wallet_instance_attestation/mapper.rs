@@ -19,7 +19,7 @@ impl TryFrom<WalletInstanceAttestation> for ActiveModel {
             attestation: Set(wallet_unit_attestation.attestation.into_bytes()),
             revocation_list_url: Set(wallet_unit_attestation.revocation_list_url),
             revocation_list_index: Set(wallet_unit_attestation.revocation_list_index),
-            holder_wallet_unit_id: Set(wallet_unit_attestation.holder_wallet_unit_id),
+            instance_id: Set(wallet_unit_attestation.holder_wallet_unit_id),
             attested_key_id: Set(attested_key_id),
         })
     }
@@ -33,7 +33,7 @@ impl From<Model> for WalletInstanceAttestation {
             last_modified: value.last_modified,
             expiration_date: value.expiration_date,
             attestation: String::from_utf8_lossy(&value.attestation).to_string(),
-            holder_wallet_unit_id: value.holder_wallet_unit_id,
+            holder_wallet_unit_id: value.instance_id,
             revocation_list_url: value.revocation_list_url,
             revocation_list_index: value.revocation_list_index,
             attested_key: None,

@@ -82,6 +82,19 @@ impl OrganisationRepository for OrganisationProvider {
         Ok(organisation.map(|org| organisation_from_model(org, &self.cloned())))
     }
 
+    async fn get_organisation_for_verifier_provider(
+        &self,
+        verifier_provider: &str,
+    ) -> Result<Option<Organisation>, DataLayerError> {
+        let organisation: Option<organisation::Model> = organisation::Entity::find()
+            .filter(organisation::Column::VerifierProvider.eq(verifier_provider))
+            .one(&self.db)
+            .await
+            .map_err(to_data_layer_error)?;
+
+        Ok(organisation.map(|org| organisation_from_model(org, &self.cloned())))
+    }
+
     async fn get_organisation_list(
         &self,
         query_params: OrganisationListQuery,

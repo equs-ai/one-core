@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use ct_codecs::{Base64, Base64UrlSafeNoPadding, Encoder};
+use one_core::model::managed_instance::ManagedInstanceRole;
+use one_core::model::organisation::{OrganisationConfiguration, UpdateOrganisationRequest};
 use rcgen::{CertificateParams, SanType};
 use serde_json::{Value, json};
 use similar_asserts::assert_eq;
@@ -2257,8 +2259,9 @@ async fn test_handle_invitation_trust_disabled_succeeds() {
             organisation.clone(),
             None,
             TestHolderWalletInstanceParams {
-                wallet_provider_name: Some("PROCIVIS_ONE".to_string()),
-                wallet_provider_url: Some(mock_server.uri()),
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some(mock_server.uri()),
+                role: Some(ManagedInstanceRole::Wallet),
                 ..Default::default()
             },
         )
@@ -2327,12 +2330,30 @@ async fn test_handle_invitation_trust_mandatory_without_identifier_returns_error
             organisation.clone(),
             None,
             TestHolderWalletInstanceParams {
-                wallet_provider_name: Some("PROCIVIS_ONE".to_string()),
-                wallet_provider_url: Some(mock_server.uri()),
-                trusted_rp_required: Some(true),
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some(mock_server.uri()),
+                role: Some(ManagedInstanceRole::Wallet),
                 ..Default::default()
             },
         )
+        .await;
+
+    context
+        .db
+        .organisations
+        .update(UpdateOrganisationRequest {
+            id: organisation.id,
+            deactivate: None,
+            wallet_provider: None,
+            wallet_provider_issuer: None,
+            parent_organisation: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: Some(OrganisationConfiguration {
+                trusted_rp_required: true,
+                ..Default::default()
+            }),
+        })
         .await;
 
     Mock::given(method(Method::GET))
@@ -2452,12 +2473,30 @@ async fn test_handle_invitation_trust_mandatory_with_x509_certificate_not_in_tru
             organisation.clone(),
             None,
             TestHolderWalletInstanceParams {
-                wallet_provider_name: Some("PROCIVIS_ONE".to_string()),
-                wallet_provider_url: Some(mock_server.uri()),
-                trusted_rp_required: Some(true),
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some(mock_server.uri()),
+                role: Some(ManagedInstanceRole::Wallet),
                 ..Default::default()
             },
         )
+        .await;
+
+    context
+        .db
+        .organisations
+        .update(UpdateOrganisationRequest {
+            id: organisation.id,
+            deactivate: None,
+            wallet_provider: None,
+            wallet_provider_issuer: None,
+            parent_organisation: None,
+            verifier_provider: None,
+            verifier_provider_issuer: None,
+            configuration: Some(OrganisationConfiguration {
+                trusted_rp_required: true,
+                ..Default::default()
+            }),
+        })
         .await;
 
     Mock::given(method(Method::GET))

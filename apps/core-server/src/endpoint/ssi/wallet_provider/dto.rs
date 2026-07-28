@@ -1,16 +1,16 @@
 use one_core::config::core_config::DocumentSignerType;
 use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
-use one_core::service::wallet_provider::dto;
+use one_core::service::managed_instance::dto;
 use one_dto_mapper::{From, Into, convert_inner};
 use proc_macros::options_not_nullable;
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
-use shared_types::{TrustCollectionId, WalletInstanceId};
+use shared_types::{ManagedInstanceId, TrustCollectionId};
 use standardized_types::jwk::PublicJwk;
 use utoipa::ToSchema;
 
 use crate::deserialize::one_or_many;
-use crate::endpoint::wallet_provider::dto::WalletInstanceOsRestEnum;
+use crate::endpoint::managed_instance::dto::ManagedInstanceOsRestEnum;
 
 #[derive(Clone, Debug, Deserialize, ToSchema, Into)]
 #[into(dto::IssueWalletUnitAttestationRequestDTO)]
@@ -63,14 +63,27 @@ pub(crate) struct IssueWalletUnitAttestationResponseRestDTO {
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[into(dto::RegisterWalletUnitRequestDTO)]
+#[derive(Clone, Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct RegisterWalletUnitRequestRestDTO {
     pub wallet_provider: String,
-    pub os: WalletInstanceOsRestEnum,
+    pub os: ManagedInstanceOsRestEnum,
     pub public_key: Option<PublicJwk>,
     pub proof: Option<String>,
+}
+
+// Deprecated endpoint: only ever registers a WALLET-role instance, unlike
+// `RegisterInstanceRequestRestDTO` which lets the caller choose the role.
+impl From<RegisterWalletUnitRequestRestDTO> for dto::RegisterWalletUnitRequestDTO {
+    fn from(value: RegisterWalletUnitRequestRestDTO) -> Self {
+        Self {
+            provider: value.wallet_provider,
+            role: one_core::model::managed_instance::ManagedInstanceRole::Wallet,
+            os: value.os.into(),
+            public_key: value.public_key,
+            proof: value.proof,
+        }
+    }
 }
 
 #[options_not_nullable]
@@ -78,7 +91,7 @@ pub(crate) struct RegisterWalletUnitRequestRestDTO {
 #[from(dto::RegisterWalletUnitResponseDTO)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RegisterWalletUnitResponseRestDTO {
-    pub id: WalletInstanceId,
+    pub id: ManagedInstanceId,
     pub nonce: Option<String>,
     pub user_nonce: Option<String>,
 }
@@ -96,6 +109,16 @@ pub(crate) struct WalletUnitActivationRequestRestDTO {
     pub attestation_key_proof: Option<String>,
     pub device_signing_key_proof: Option<String>,
     pub user_id_token: Option<String>,
+    pub verifier_access_certificate_csr: Option<String>,
+    pub user_access_token: Option<String>,
+}
+
+#[options_not_nullable]
+#[derive(Clone, Debug, Serialize, ToSchema, From)]
+#[from(dto::WalletUnitActivationResponseDTO)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WalletUnitActivationResponseRestDTO {
+    pub access_certificate: Option<String>,
 }
 
 #[options_not_nullable]
@@ -116,6 +139,7 @@ pub(crate) struct WalletProviderMetadataResponseRestDTO {
     user_authentication: Option<UserAuthenticationRestDTO>,
 }
 
+#[options_not_nullable]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
 #[serde(rename_all = "camelCase")]
 #[from(dto::UserAuthenticationDTO)]

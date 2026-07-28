@@ -11,13 +11,11 @@ use crate::config::core_config::KeySecurityLevelType;
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialStateEnum};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
-use crate::model::holder_wallet_instance::{
-    HolderWalletInstanceFilterValue, HolderWalletInstanceListQuery,
-};
 use crate::model::identifier::IdentifierType;
+use crate::model::instance::{InstanceFilterValue, InstanceListQuery};
 use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterValue;
-use crate::model::wallet_instance::WalletInstanceStatus;
+use crate::model::managed_instance::InstanceStatus;
 use crate::provider::issuance_protocol::error::{
     IssuanceProtocolError, OpenID4VCIError, OpenIDIssuanceError,
 };
@@ -25,7 +23,7 @@ use crate::provider::issuance_protocol::model::CredentialWithBlob;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_security_level::provider::KeySecurityLevelProvider;
 use crate::provider::key_storage::provider::KeyProvider;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::repository::instance_repository::InstanceRepository;
 
 pub(crate) fn throw_if_token_request_invalid(
     request: &OpenID4VCITokenRequestDTO,
@@ -212,14 +210,14 @@ fn security_level_and_algs_supported(
 }
 
 pub(super) async fn validate_has_active_wallet_instance(
-    holder_wallet_instance_repository: &dyn HolderWalletInstanceRepository,
+    holder_wallet_instance_repository: &dyn InstanceRepository,
     organisation_id: OrganisationId,
 ) -> Result<(), IssuanceProtocolError> {
     let list = holder_wallet_instance_repository
-        .list(HolderWalletInstanceListQuery {
+        .list(InstanceListQuery {
             filtering: Some(
-                HolderWalletInstanceFilterValue::OrganisationIds(vec![organisation_id]).condition()
-                    & HolderWalletInstanceFilterValue::Status(WalletInstanceStatus::Active),
+                InstanceFilterValue::OrganisationIds(vec![organisation_id]).condition()
+                    & InstanceFilterValue::Status(InstanceStatus::Active),
             ),
             ..Default::default()
         })

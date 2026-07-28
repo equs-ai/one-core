@@ -1,0 +1,3 @@
+mod delete_managed_instance;
+mod managed_instance_verifier;
+mod revoke_managed_instance;

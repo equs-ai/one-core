@@ -4,14 +4,14 @@ use proc_macros::endpoint;
 
 use crate::dto::error::ErrorResponseRestDTO;
 use crate::dto::response::OkOrErrorResponse;
-use crate::endpoint::ssi::verifier_provider::dto::VerifierProviderResponseDTO;
+use crate::endpoint::ssi::verifier_provider::dto::VerifierProviderResponseRestDTO;
 use crate::router::AppState;
 
 #[endpoint(
     permissions = [],
     get,
     path = "/ssi/verifier-provider/v1/{verifierProvider}",
-    responses(OkOrErrorResponse<VerifierProviderResponseDTO>),
+    responses(OkOrErrorResponse<VerifierProviderResponseRestDTO>),
     params(
         ("verifierProvider" = String, Path, description = "Verifier provider ID")
     ),
@@ -24,7 +24,7 @@ use crate::router::AppState;
 pub(crate) async fn get_verification_provider(
     state: State<AppState>,
     WithRejection(Path(id), _): WithRejection<Path<String>, ErrorResponseRestDTO>,
-) -> OkOrErrorResponse<VerifierProviderResponseDTO> {
+) -> OkOrErrorResponse<VerifierProviderResponseRestDTO> {
     let result = state
         .core
         .verifier_provider_service

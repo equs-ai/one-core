@@ -6,7 +6,9 @@ use one_core::model::history::HistoryAction;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
-use crate::utils::api_clients::organisations::UpsertParams;
+use crate::utils::api_clients::organisations::{
+    ProviderParams, UpsertOrganisationConfigurationParams, UpsertParams,
+};
 use crate::utils::context::TestContext;
 
 #[tokio::test]
@@ -82,7 +84,10 @@ async fn test_upsert_organisation_success_existing() {
         .upsert(
             &organisation.id,
             UpsertParams {
-                wallet_provider: Some(Some("PROCIVIS_ONE".to_string())),
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )
@@ -150,7 +155,10 @@ async fn test_upsert_organisation_reactivate_deactivated() {
             &organisation.id,
             UpsertParams {
                 deactivate: Some(true),
-                wallet_provider: Some(Some("PROCIVIS_ONE".to_string())),
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )
@@ -206,7 +214,10 @@ async fn test_upsert_organisation_fail_non_existing_identifier() {
         .upsert(
             &organisation.id,
             UpsertParams {
-                wallet_provider_issuer: Some(Some(Uuid::new_v4().into())),
+                wallet_provider: Some(Some(ProviderParams {
+                    issuer: Some(Uuid::new_v4().into()),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )
@@ -229,7 +240,10 @@ async fn test_upsert_organisation_success_existing_identifier() {
         .upsert(
             &org.id,
             UpsertParams {
-                wallet_provider_issuer: Some(Some(identifier.id)),
+                wallet_provider: Some(Some(ProviderParams {
+                    issuer: Some(identifier.id),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )
@@ -259,7 +273,10 @@ async fn test_upsert_organisation_fail_org_mismatched_identifier() {
         .upsert(
             &organisation_id,
             UpsertParams {
-                wallet_provider_issuer: Some(Some(identifier.id)),
+                wallet_provider: Some(Some(ProviderParams {
+                    issuer: Some(identifier.id),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )
@@ -282,7 +299,10 @@ async fn test_upsert_organisation_success_wallet_provider() {
         .upsert(
             &org.id,
             UpsertParams {
-                wallet_provider: Some(Some("PROCIVIS_ONE".to_string())),
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )
@@ -488,6 +508,54 @@ async fn test_upsert_organisation_fail_non_existing_parent_organisation() {
 }
 
 #[tokio::test]
+async fn test_upsert_organisation_success_configuration_partial_update() {
+    // GIVEN
+    let (context, org) = TestContext::new_with_organisation(None).await;
+
+    // WHEN: set both flags
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                configuration: Some(UpsertOrganisationConfigurationParams {
+                    trusted_issuer_required: Some(true),
+                    trusted_rp_required: Some(true),
+                }),
+                ..Default::default()
+            },
+        )
+        .await;
+    assert_eq!(resp.status(), 204);
+    let updated = context.db.organisations.get(&org.id).await;
+    assert!(updated.configuration.trusted_issuer_required);
+    assert!(updated.configuration.trusted_rp_required);
+
+    // WHEN: only update trustedRpRequired, omitting trustedIssuerRequired
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                configuration: Some(UpsertOrganisationConfigurationParams {
+                    trusted_issuer_required: None,
+                    trusted_rp_required: Some(false),
+                }),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // THEN: the omitted field keeps its previous value
+    assert_eq!(resp.status(), 204);
+    let updated = context.db.organisations.get(&org.id).await;
+    assert!(updated.configuration.trusted_issuer_required);
+    assert!(!updated.configuration.trusted_rp_required);
+}
+
+#[tokio::test]
 async fn test_upsert_organisation_fail_non_existing_wallet_provider() {
     // GIVEN
     let (context, org) = TestContext::new_with_organisation(None).await;
@@ -499,7 +567,10 @@ async fn test_upsert_organisation_fail_non_existing_wallet_provider() {
         .upsert(
             &org.id,
             UpsertParams {
-                wallet_provider: Some(Some("INVALID_VALUE".to_string())),
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("INVALID_VALUE".to_string()),
+                    ..Default::default()
+                })),
                 ..Default::default()
             },
         )

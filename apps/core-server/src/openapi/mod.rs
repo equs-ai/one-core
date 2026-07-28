@@ -249,11 +249,8 @@ fn get_tags(config: Arc<ServerConfig>) -> Vec<Tag> {
             create_tag("wallet_instance", "Wallet Instances (Provider)",
                 "For Wallet Providers, manage wallet instances and attestations issued by the system."
             ),
-            create_tag("holder_wallet_instance", "Wallet Instances (Holder)",
-                "For wallet units, register with the Wallet Provider, check status and get trust information."
-            ),
-            create_tag("verifier_instance", "Verifier Instances",
-                "For verifier units, register with the Verifier Provider and get trust information."
+            create_tag("instance", "Instances (Holder)",
+                "For wallet and verifier instances, register with the provider and check status."
             ),
             create_tag("signature", "Signatures", "Create and revoke signatures."),
             create_tag("qes", "Qualified Electronic Signature (QES)", "Document signing."),

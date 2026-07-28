@@ -117,7 +117,6 @@ pub enum HistoryEntityTypeBindingEnum {
     TrustListPublication,
     TrustCollection,
     TrustListSubscription,
-    VerifierInstance,
     QesDocument,
 }
 

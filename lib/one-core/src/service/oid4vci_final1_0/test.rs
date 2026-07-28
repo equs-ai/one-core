@@ -58,8 +58,8 @@ use crate::repository::credential_repository::MockCredentialRepository;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
 use crate::repository::error::DataLayerError;
 use crate::repository::history_repository::MockHistoryRepository;
-use crate::repository::holder_wallet_instance_repository::MockHolderWalletInstanceRepository;
 use crate::repository::identifier_repository::MockIdentifierRepository;
+use crate::repository::instance_repository::MockInstanceRepository;
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::repository::key_repository::MockKeyRepository;
 use crate::service::oid4vci_final1_0::dto::{
@@ -126,7 +126,7 @@ pub struct ProtocolMocks {
     pub key_security_level_provider: MockKeySecurityLevelProvider,
     pub blob_storage_provider: MockBlobStorageProvider,
     pub holder_wallet_unit_proto: MockHolderWalletUnitProto,
-    pub holder_wallet_unit_repository: MockHolderWalletInstanceRepository,
+    pub holder_wallet_unit_repository: MockInstanceRepository,
     pub certificate_validator: MockCertificateValidator,
     pub wrp_validator: MockWRPValidator,
     pub history_repository: MockHistoryRepository,
@@ -181,13 +181,9 @@ fn setup_protocol(protocol_mocks: ProtocolMocks) -> OpenID4VCIFinal1_0 {
 fn generic_organisation() -> Organisation {
     let now = crate::clock::now_utc();
     Organisation {
-        id: Uuid::new_v4().into(),
         created_date: now,
         last_modified: now,
-        deactivated_at: None,
-        wallet_provider: None,
-        wallet_provider_issuer: None,
-        parent_organisation: None,
+        ..dummy_organisation(None)
     }
 }
 

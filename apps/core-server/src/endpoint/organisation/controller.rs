@@ -9,11 +9,14 @@ use shared_types::{OrganisationId, Permission};
 
 use super::dto::{
     CreateOrganisationRequestRestDTO, CreateOrganisationResponseRestDTO,
-    GetOrganisationDetailsResponseRestDTO, GetOrganisationsQuery, UpsertOrganisationRequestRestDTO,
+    GetOrganisationDetailsResponseRestDTO, GetOrganisationsQuery,
+    OrganisationTrustCollectionRestDTO, UpsertOrganisationRequestRestDTO,
 };
 use crate::dto::common::GetOrganisationListResponseRestDTO;
 use crate::dto::error::ErrorResponseRestDTO;
-use crate::dto::response::{CreatedOrErrorResponse, EmptyOrErrorResponse, OkOrErrorResponse};
+use crate::dto::response::{
+    CreatedOrErrorResponse, EmptyOrErrorResponse, OkOrErrorResponse, VecResponse,
+};
 use crate::endpoint::organisation::mapper::upsert_request_from_request;
 use crate::extractor::Qs;
 use crate::router::AppState;
@@ -153,4 +156,35 @@ pub(crate) async fn patch_organisation(
         .upsert_organisation(upsert_request_from_request(id, request))
         .await;
     EmptyOrErrorResponse::from_result(result, state, "upserting organization")
+}
+
+#[endpoint(
+    permissions = [Permission::StsOrganisationDetail],
+    get,
+    path = "/api/organisation/v1/{id}/trust-collections",
+    responses(OkOrErrorResponse<VecResponse<OrganisationTrustCollectionRestDTO>>),
+    params(
+        ("id" = OrganisationId, Path, description = "Organization id")
+    ),
+    tag = "organisation_management",
+    security(
+        ("bearer" = [])
+    ),
+    summary = "Retrieve organization trust collections",
+    description = indoc::formatdoc! {"
+        Returns the trust collections available to this organization's wallet
+        provider, annotated with whether the organization currently
+        subscribes to each one.
+    "},
+)]
+pub(crate) async fn get_organisation_trust_collections(
+    state: State<AppState>,
+    Path(id): Path<OrganisationId>,
+) -> OkOrErrorResponse<VecResponse<OrganisationTrustCollectionRestDTO>> {
+    let result = state
+        .core
+        .organisation_service
+        .get_trust_collections(&id)
+        .await;
+    OkOrErrorResponse::from_result(result, state, "getting organization trust collections")
 }

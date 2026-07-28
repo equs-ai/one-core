@@ -36,13 +36,9 @@ async fn test_create_organisation() {
     let now = one_core::clock::now_utc();
 
     let organisation = Organisation {
-        id: org_id,
         created_date: now,
         last_modified: now,
-        deactivated_at: None,
-        wallet_provider: None,
-        wallet_provider_issuer: None,
-        parent_organisation: None,
+        ..dummy_organisation(Some(org_id))
     };
 
     let result = repository.create_organisation(organisation).await;
@@ -135,6 +131,9 @@ async fn test_update_organisation() {
         wallet_provider: Some(Some("TEST".to_string())),
         wallet_provider_issuer: None,
         parent_organisation: None,
+        verifier_provider: None,
+        verifier_provider_issuer: None,
+        configuration: None,
     };
 
     let result = repository.update_organisation(request).await;

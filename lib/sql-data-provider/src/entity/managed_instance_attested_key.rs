@@ -1,0 +1,53 @@
+use sea_orm::{
+    ActiveModelBehavior, DeriveEntityModel, DerivePrimaryKey, DeriveRelation, EntityTrait,
+    EnumIter, PrimaryKeyTrait, Related, RelationDef, RelationTrait,
+};
+use shared_types::{ManagedInstanceAttestedKeyId, ManagedInstanceId, RevocationListEntryId};
+use time::OffsetDateTime;
+
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
+#[sea_orm(table_name = "managed_instance_attested_key")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: ManagedInstanceAttestedKeyId,
+    pub created_date: OffsetDateTime,
+    pub last_modified: OffsetDateTime,
+    pub expiration_date: OffsetDateTime,
+    pub public_key_jwk: String,
+    pub managed_instance_id: ManagedInstanceId,
+    pub revocation_list_entry_id: Option<RevocationListEntryId>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::managed_instance::Entity",
+        from = "Column::ManagedInstanceId",
+        to = "super::managed_instance::Column::Id",
+        on_update = "Restrict",
+        on_delete = "Restrict"
+    )]
+    ManagedInstance,
+    #[sea_orm(
+        belongs_to = "super::revocation_list_entry::Entity",
+        from = "Column::RevocationListEntryId",
+        to = "super::revocation_list_entry::Column::Id",
+        on_update = "Restrict",
+        on_delete = "Restrict"
+    )]
+    RevocationListEntry,
+}
+
+impl Related<super::managed_instance::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ManagedInstance.def()
+    }
+}
+
+impl Related<super::revocation_list_entry::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RevocationListEntry.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}

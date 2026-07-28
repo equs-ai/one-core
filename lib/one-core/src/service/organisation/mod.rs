@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
 use crate::config::core_config::CoreConfig;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::proto::trust_list_subscription_sync::TrustListSubscriptionSync;
+use crate::proto::verifier_provider_client::VerifierProviderClient;
+use crate::proto::wallet_provider_client::WalletProviderClient;
 use crate::repository::identifier_repository::IdentifierRepository;
+use crate::repository::instance_repository::InstanceRepository;
 use crate::repository::organisation_repository::OrganisationRepository;
-use crate::repository::verifier_instance_repository::VerifierInstanceRepository;
+use crate::repository::trust_collection_repository::TrustCollectionRepository;
+use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 
 pub mod dto;
 pub mod error;
@@ -15,24 +19,37 @@ pub mod service;
 pub struct OrganisationService {
     organisation_repository: Arc<dyn OrganisationRepository>,
     identifier_repository: Arc<dyn IdentifierRepository>,
-    holder_wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
-    verifier_instance_repository: Arc<dyn VerifierInstanceRepository>,
+    instance_repository: Arc<dyn InstanceRepository>,
+    wallet_provider_client: Arc<dyn WalletProviderClient>,
+    verifier_provider_client: Arc<dyn VerifierProviderClient>,
+    trust_list_subscription_sync: Arc<dyn TrustListSubscriptionSync>,
+    trust_collection_repository: Arc<dyn TrustCollectionRepository>,
+    trust_subscription_repository: Arc<dyn TrustListSubscriptionRepository>,
     core_config: Arc<CoreConfig>,
 }
 
 impl OrganisationService {
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         organisation_repository: Arc<dyn OrganisationRepository>,
         identifier_repository: Arc<dyn IdentifierRepository>,
-        holder_wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
-        verifier_instance_repository: Arc<dyn VerifierInstanceRepository>,
+        instance_repository: Arc<dyn InstanceRepository>,
+        wallet_provider_client: Arc<dyn WalletProviderClient>,
+        verifier_provider_client: Arc<dyn VerifierProviderClient>,
+        trust_list_subscription_sync: Arc<dyn TrustListSubscriptionSync>,
+        trust_collection_repository: Arc<dyn TrustCollectionRepository>,
+        trust_subscription_repository: Arc<dyn TrustListSubscriptionRepository>,
         core_config: Arc<CoreConfig>,
     ) -> Self {
         Self {
             organisation_repository,
             identifier_repository,
-            holder_wallet_instance_repository,
-            verifier_instance_repository,
+            instance_repository,
+            wallet_provider_client,
+            verifier_provider_client,
+            trust_list_subscription_sync,
+            trust_collection_repository,
+            trust_subscription_repository,
             core_config,
         }
     }

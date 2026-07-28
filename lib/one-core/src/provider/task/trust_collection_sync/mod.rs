@@ -1,37 +1,34 @@
 use std::sync::Arc;
 
-use HolderWalletInstanceFilterValue::Status;
+use InstanceFilterValue::Status;
 use one_dto_mapper::convert_inner;
 use serde_json::{Value, json};
-use shared_types::{HolderWalletInstanceId, OrganisationId, VerifierInstanceId};
+use shared_types::{InstanceId, OrganisationId};
 
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
-use crate::model::holder_wallet_instance::{
-    HolderWalletInstance, HolderWalletInstanceFilterValue, HolderWalletInstanceListQuery,
-};
+use crate::model::instance::{Instance, InstanceFilterValue, InstanceListQuery};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListPagination;
+use crate::model::managed_instance::{InstanceStatus, ManagedInstanceRole};
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
-use crate::model::verifier_instance::{VerifierInstance, VerifierInstanceListQuery};
-use crate::model::wallet_instance::WalletInstanceStatus;
 use crate::proto::trust_collection::TrustCollectionManager;
 use crate::proto::trust_collection::dto::RemoteTrustCollectionInfoDTO;
 use crate::proto::trust_list_subscription_sync::TrustListSubscriptionSync;
 use crate::proto::verifier_provider_client::VerifierProviderClient;
 use crate::proto::wallet_provider_client::WalletProviderClient;
+use crate::proto::wallet_provider_client::dto::MetadataTarget;
 use crate::provider::task::Task;
-use crate::repository::holder_wallet_instance_repository::HolderWalletInstanceRepository;
+use crate::repository::instance_repository::InstanceRepository;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
-use crate::repository::verifier_instance_repository::VerifierInstanceRepository;
 use crate::service::error::ServiceError;
+use crate::service::instance::service::provider_metadata_url;
 
 #[cfg(test)]
 mod test;
 
 pub(crate) struct TrustCollectionSyncTask {
-    wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
+    wallet_instance_repository: Arc<dyn InstanceRepository>,
     wallet_unit_client: Arc<dyn WalletProviderClient>,
-    verifier_instance_repository: Arc<dyn VerifierInstanceRepository>,
     verifier_client: Arc<dyn VerifierProviderClient>,
     trust_collection_sync: Arc<dyn TrustCollectionManager>,
     trust_collection_repository: Arc<dyn TrustCollectionRepository>,
@@ -43,9 +40,7 @@ pub enum TrustCollectionSyncError {
     #[error("Invalid task params: {0}")]
     InvalidParams(#[from] serde_json::Error),
     #[error("Wallet unit not found: {0}")]
-    WalletUnitNotFound(HolderWalletInstanceId),
-    #[error("Verifier instance not found: {0}")]
-    VerifierInstanceNotFound(VerifierInstanceId),
+    WalletUnitNotFound(InstanceId),
     #[error("Mapping error: {0}")]
     MappingError(String),
     #[error(transparent)]
@@ -57,7 +52,6 @@ impl ErrorCodeMixin for TrustCollectionSyncError {
         match self {
             Self::InvalidParams(_) => ErrorCode::BR_0405,
             Self::WalletUnitNotFound(_) => ErrorCode::BR_0259,
-            Self::VerifierInstanceNotFound(_) => ErrorCode::BR_0406,
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::Nested(nested_error) => nested_error.error_code(),
         }
@@ -83,9 +77,8 @@ struct RemoteCollectionData {
 
 impl TrustCollectionSyncTask {
     pub fn new(
-        wallet_instance_repository: Arc<dyn HolderWalletInstanceRepository>,
+        wallet_instance_repository: Arc<dyn InstanceRepository>,
         wallet_unit_client: Arc<dyn WalletProviderClient>,
-        verifier_instance_repository: Arc<dyn VerifierInstanceRepository>,
         verifier_client: Arc<dyn VerifierProviderClient>,
         trust_collection_sync: Arc<dyn TrustCollectionManager>,
         trust_collection_repository: Arc<dyn TrustCollectionRepository>,
@@ -94,7 +87,6 @@ impl TrustCollectionSyncTask {
         Self {
             wallet_instance_repository,
             wallet_unit_client,
-            verifier_instance_repository,
             verifier_client,
             trust_collection_sync,
             trust_collection_repository,
@@ -102,8 +94,7 @@ impl TrustCollectionSyncTask {
         }
     }
     async fn run_internal(&self) -> Result<Value, TrustCollectionSyncError> {
-        let synced_collections_count = self.sync_wallet_instance_collections().await?
-            + self.sync_verifier_instance_collections().await?;
+        let synced_collections_count = self.sync_wallet_instance_collections().await?;
         Ok(json!({
             "syncedTrustCollectionsCount": synced_collections_count,
         }))
@@ -116,14 +107,14 @@ impl TrustCollectionSyncTask {
             let mut data_to_sync = vec![];
             let wallet_instances = self
                 .wallet_instance_repository
-                .list(HolderWalletInstanceListQuery {
+                .list(InstanceListQuery {
                     pagination: Some(ListPagination {
                         page,
                         page_size: 1000,
                     }),
                     filtering: Some(
-                        Status(WalletInstanceStatus::Active).condition()
-                            | Status(WalletInstanceStatus::Unattested),
+                        Status(InstanceStatus::Active).condition()
+                            | Status(InstanceStatus::Unattested),
                     ),
                     ..Default::default()
                 })
@@ -135,37 +126,6 @@ impl TrustCollectionSyncTask {
             for holder_wallet_instance in wallet_instances.values {
                 let data = self
                     .fetch_data_for_holder_wallet_instance(holder_wallet_instance)
-                    .await?;
-                data_to_sync.push(data);
-            }
-            count += self.sync_collections(data_to_sync).await?;
-            page += 1;
-        }
-        Ok(count)
-    }
-
-    async fn sync_verifier_instance_collections(&self) -> Result<usize, TrustCollectionSyncError> {
-        let mut count = 0;
-        let mut page = 0;
-        loop {
-            let mut data_to_sync = vec![];
-            let verifier_instances = self
-                .verifier_instance_repository
-                .list(VerifierInstanceListQuery {
-                    pagination: Some(ListPagination {
-                        page,
-                        page_size: 1000,
-                    }),
-                    ..Default::default()
-                })
-                .await
-                .error_while("listing verifier instances")?;
-            if verifier_instances.values.is_empty() {
-                break;
-            }
-            for verifier_instance in verifier_instances.values {
-                let data = self
-                    .fetch_data_for_verifier_instance(verifier_instance)
                     .await?;
                 data_to_sync.push(data);
             }
@@ -223,39 +183,40 @@ impl TrustCollectionSyncTask {
         Ok(count)
     }
 
-    async fn fetch_data_for_verifier_instance(
-        &self,
-        verifier_instance: VerifierInstance,
-    ) -> Result<RemoteCollectionData, TrustCollectionSyncError> {
-        let metadata_url = format!(
-            "{}/ssi/verifier-provider/v1/{}",
-            verifier_instance.provider_url, verifier_instance.provider_name
-        );
-        let metadata = self
-            .verifier_client
-            .get_verifier_provider_metadata(&metadata_url)
-            .await
-            .error_while("getting verifier provider metadata")?;
-        Ok(RemoteCollectionData {
-            organisation_id: verifier_instance.organisation.id(),
-            provider_url: verifier_instance.provider_url,
-            remote_collections: convert_inner(metadata.trust_collections),
-        })
-    }
-
     async fn fetch_data_for_holder_wallet_instance(
         &self,
-        holder_wallet_unit: HolderWalletInstance,
+        holder_wallet_unit: Instance,
     ) -> Result<RemoteCollectionData, TrustCollectionSyncError> {
-        let metadata = self
-            .wallet_unit_client
-            .get_wallet_provider_metadata(holder_wallet_unit.to_owned().into())
-            .await
-            .error_while("getting wallet provider metadata")?;
+        let metadata_url = provider_metadata_url(
+            &holder_wallet_unit.provider_url,
+            &holder_wallet_unit.provider_name,
+            holder_wallet_unit.role,
+        );
+        let remote_collections = match holder_wallet_unit.role {
+            ManagedInstanceRole::Wallet => {
+                let metadata = self
+                    .wallet_unit_client
+                    .get_wallet_provider_metadata(MetadataTarget {
+                        r#type: holder_wallet_unit.provider_type,
+                        metadata_url,
+                    })
+                    .await
+                    .error_while("getting wallet provider metadata")?;
+                convert_inner(metadata.trust_collections)
+            }
+            ManagedInstanceRole::Verifier => {
+                let metadata = self
+                    .verifier_client
+                    .get_verifier_provider_metadata(&metadata_url)
+                    .await
+                    .error_while("getting verifier provider metadata")?;
+                convert_inner(metadata.trust_collections)
+            }
+        };
         Ok(RemoteCollectionData {
             organisation_id: holder_wallet_unit.organisation.id(),
-            provider_url: holder_wallet_unit.wallet_provider_url,
-            remote_collections: convert_inner(metadata.trust_collections),
+            provider_url: holder_wallet_unit.provider_url,
+            remote_collections,
         })
     }
 }

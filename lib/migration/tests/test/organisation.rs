@@ -14,11 +14,19 @@ async fn test_db_schema_organisation() {
             "wallet_provider",
             "wallet_provider_issuer",
             "parent_organisation",
+            "configuration",
+            "verifier_provider",
+            "verifier_provider_issuer",
         ])
         .index(
             "index-Organisation-WalletProvider-Unique",
             true,
             &["wallet_provider"],
+        )
+        .index(
+            "index-Organisation-VerifierProvider-Unique",
+            true,
+            &["verifier_provider"],
         )
         .index(
             "index-Organisation-ParentOrganisation",
@@ -63,4 +71,17 @@ async fn test_db_schema_organisation() {
         .r#type(ColumnType::Uuid)
         .nullable(true)
         .foreign_key("fk-Organisation-ParentOrganisation", "organisation", "id");
+    organisation
+        .column("configuration")
+        .r#type(ColumnType::JsonBinary)
+        .nullable(true);
+    organisation
+        .column("verifier_provider")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+    organisation
+        .column("verifier_provider_issuer")
+        .r#type(ColumnType::Uuid)
+        .nullable(true)
+        .foreign_key("fk-Organisation-VerifierProviderIssuer", "identifier", "id");
 }

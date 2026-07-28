@@ -1,0 +1,330 @@
+use crate::fixtures::{ColumnType, get_schema};
+
+#[tokio::test]
+async fn test_db_schema_managed_instance() {
+    let schema = get_schema().await;
+
+    let managed_instance = schema
+        .table("managed_instance")
+        .columns(&[
+            "id",
+            "created_date",
+            "last_modified",
+            "last_issuance",
+            "name",
+            "status",
+            "os",
+            "nonce",
+            "user_nonce",
+            "user_sub",
+            "organisation_id",
+            "provider",
+            "authentication_key_jwk",
+            "role",
+            "verifier_csr",
+            "verifier_signature_ids",
+        ])
+        .index(
+            "index-ManagedInstance-AuthenticationKey-Organisation-Role-Unique",
+            true,
+            &["authentication_key_jwk", "organisation_id", "role"],
+        );
+    managed_instance
+        .column("id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .primary_key();
+    managed_instance
+        .column("created_date")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("last_modified")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("last_issuance")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(true);
+    managed_instance
+        .column("name")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("status")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("os")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("nonce")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+    managed_instance
+        .column("user_nonce")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+    managed_instance
+        .column("user_sub")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+    managed_instance
+        .column("organisation_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .foreign_key("fk-ManagedInstance-OrganisationId", "organisation", "id");
+    managed_instance
+        .column("provider")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("authentication_key_jwk")
+        .r#type(ColumnType::Text)
+        .nullable(true);
+    managed_instance
+        .column("role")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    managed_instance
+        .column("verifier_csr")
+        .r#type(ColumnType::Text)
+        .nullable(true);
+    managed_instance
+        .column("verifier_signature_ids")
+        .r#type(ColumnType::JsonBinary)
+        .nullable(true);
+}
+
+#[tokio::test]
+async fn test_db_schema_instance() {
+    let schema = get_schema().await;
+
+    let instance = schema
+        .table("instance")
+        .columns(&[
+            "id",
+            "created_date",
+            "last_modified",
+            "authentication_key_id",
+            "provider_name",
+            "provider_type",
+            "provider_url",
+            "provider_instance_id",
+            "status",
+            "organisation_id",
+            "role",
+            "nonce",
+            "user_nonce",
+        ])
+        .index(
+            "index-Instance-Role-OrganisationId-Unique",
+            true,
+            &["role", "organisation_id"],
+        );
+    instance
+        .column("id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .primary_key();
+    instance
+        .column("created_date")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    instance
+        .column("last_modified")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    instance
+        .column("authentication_key_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(true)
+        .foreign_key("fk-Instance-AuthenticationKeyId", "key", "id");
+    instance
+        .column("provider_name")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    instance
+        .column("provider_type")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    instance
+        .column("provider_url")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    instance
+        .column("provider_instance_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None);
+    instance
+        .column("status")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    instance
+        .column("role")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
+    instance
+        .column("organisation_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .foreign_key("fk-Instance-OrganisationId", "organisation", "id");
+    instance
+        .column("nonce")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+    instance
+        .column("user_nonce")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+}
+
+#[tokio::test]
+async fn test_db_schema_wallet_instance_attestation() {
+    let schema = get_schema().await;
+
+    let wallet_instance_attestation = schema
+        .table("wallet_instance_attestation")
+        .columns(&[
+            "id",
+            "created_date",
+            "last_modified",
+            "expiration_date",
+            "attestation",
+            "instance_id",
+            "attested_key_id",
+            "revocation_list_url",
+            "revocation_list_index",
+        ])
+        .index(
+            "index-WalletInstanceAttestation-AttestedKey-Unique",
+            true,
+            &["attested_key_id"],
+        );
+    wallet_instance_attestation
+        .column("id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .primary_key();
+    wallet_instance_attestation
+        .column("created_date")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    wallet_instance_attestation
+        .column("last_modified")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    wallet_instance_attestation
+        .column("expiration_date")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    wallet_instance_attestation
+        .column("attestation")
+        .r#type(ColumnType::Blob)
+        .nullable(false)
+        .default(None);
+    wallet_instance_attestation
+        .column("instance_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .foreign_key("fk-WalletInstanceAttestation-InstanceId", "instance", "id");
+    wallet_instance_attestation
+        .column("attested_key_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .foreign_key("fk-WalletInstanceAttestation-AttestedKeyId", "key", "id");
+    wallet_instance_attestation
+        .column("revocation_list_url")
+        .r#type(ColumnType::String(None))
+        .nullable(true);
+    wallet_instance_attestation
+        .column("revocation_list_index")
+        .r#type(ColumnType::Integer)
+        .nullable(true);
+}
+
+#[tokio::test]
+async fn test_db_schema_managed_instance_attested_key() {
+    let schema = get_schema().await;
+
+    let managed_instance_attested_key = schema.table("managed_instance_attested_key").columns(&[
+        "id",
+        "created_date",
+        "last_modified",
+        "expiration_date",
+        "public_key_jwk",
+        "managed_instance_id",
+        "revocation_list_entry_id",
+    ]);
+    managed_instance_attested_key
+        .column("id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .primary_key();
+    managed_instance_attested_key
+        .column("created_date")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    managed_instance_attested_key
+        .column("last_modified")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    managed_instance_attested_key
+        .column("expiration_date")
+        .r#type(ColumnType::TimestampMilliseconds)
+        .nullable(false)
+        .default(None);
+    managed_instance_attested_key
+        .column("public_key_jwk")
+        .r#type(ColumnType::Text)
+        .nullable(false)
+        .default(None);
+    managed_instance_attested_key
+        .column("managed_instance_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(false)
+        .default(None)
+        .foreign_key(
+            "fk-ManagedInstanceAttestedKey-ManagedInstanceId",
+            "managed_instance",
+            "id",
+        );
+    managed_instance_attested_key
+        .column("revocation_list_entry_id")
+        .r#type(ColumnType::Uuid)
+        .nullable(true)
+        .foreign_key(
+            "fk-ManagedInstanceAttestedKey-RevocationListEntryId",
+            "revocation_list_entry",
+            "id",
+        );
+}
