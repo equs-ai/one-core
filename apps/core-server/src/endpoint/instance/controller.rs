@@ -29,7 +29,7 @@ use crate::router::AppState;
         Register a wallet instance with a Wallet Provider.
     "},
 )]
-pub(crate) async fn register_instance(
+pub(crate) async fn register_remote_instance(
     state: State<AppState>,
     WithRejection(Json(request), _): WithRejection<
         Json<RegisterManagedInstanceRequestRestDTO>,
@@ -124,7 +124,7 @@ pub(crate) async fn instance_status(
         Required when the Wallet Provider has user authentication configured.
     "},
 )]
-pub(crate) async fn activate_instance(
+pub(crate) async fn activate_remote_instance(
     state: State<AppState>,
     WithRejection(Path(id), _): WithRejection<Path<InstanceId>, ErrorResponseRestDTO>,
     WithRejection(Json(request), _): WithRejection<

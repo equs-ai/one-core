@@ -488,11 +488,11 @@ fn get_management_endpoints(
             )
             .route(
                 "/api/instance/v1/{id}/activate",
-                post(instance::controller::activate_instance),
+                post(instance::controller::activate_remote_instance),
             )
             .route(
                 "/api/instance/v1",
-                post(instance::controller::register_instance),
+                post(instance::controller::register_remote_instance),
             )
             .route(
                 "/api/statistics/v1/dashboard",
