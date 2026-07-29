@@ -170,7 +170,7 @@ async fn test_handle_invitation_success() {
                     is_remote: true,
                     state: IdentifierState::Active,
                     deleted_at: None,
-                    trust_information: None,
+                    trust_information: Default::default(),
                 },
                 RemoteIdentifierRelation::Did(verifier_did),
             ))

@@ -3,7 +3,6 @@ use shared_types::{IdentifierId, OrganisationId};
 use super::error::OrganisationServiceError;
 use crate::config::core_config::{ConfigExt, CoreConfig, KeyAlgorithmType};
 use crate::error::ContextWithErrorCode;
-use crate::model::identifier::IdentifierRelations;
 use crate::model::list_filter::ListFilterCondition;
 use crate::model::list_query::ListPagination;
 use crate::model::organisation::{OrganisationFilterValue, OrganisationListQuery};
@@ -22,12 +21,7 @@ pub(super) async fn validate_wallet_provider_issuer(
     };
 
     let identifier = identifier_repository
-        .get(
-            issuer_id,
-            &IdentifierRelations {
-                ..Default::default()
-            },
-        )
+        .get(issuer_id)
         .await
         .error_while("getting identifier")?;
     let Some(identifier) = identifier else {

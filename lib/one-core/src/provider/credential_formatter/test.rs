@@ -127,7 +127,7 @@ fn generate_credential_matching_detail(
             state: crate::model::identifier::IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: Some(Identifier {
@@ -156,7 +156,7 @@ fn generate_credential_matching_detail(
             state: crate::model::identifier::IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         schema: Some(CredentialSchema {
             batch_size: None,

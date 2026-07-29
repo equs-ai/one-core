@@ -207,7 +207,7 @@ fn generic_credential_did() -> Credential {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
     generic_credential(issuer_identifier)
 }
@@ -230,7 +230,7 @@ fn generic_credential_did_with_holder_identifier() -> Credential {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     });
     credential
 }
@@ -265,7 +265,7 @@ fn generic_credential_key() -> Credential {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
     let mut credential = generic_credential(issuer_identifier);
     let holder_identifier = Identifier {
@@ -280,7 +280,7 @@ fn generic_credential_key() -> Credential {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
     credential.holder_identifier = Some(holder_identifier);
     credential

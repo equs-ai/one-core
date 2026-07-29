@@ -438,19 +438,13 @@ async fn test_get_proof_exists() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -687,19 +681,13 @@ async fn test_get_proof_with_array_holder() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -973,19 +961,13 @@ async fn test_get_proof_with_array_in_object_holder() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -1274,19 +1256,13 @@ async fn test_get_proof_with_object_array_holder() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -1557,19 +1533,13 @@ async fn test_get_proof_with_array() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -1850,19 +1820,13 @@ async fn test_get_proof_with_array_in_object() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -2159,19 +2123,13 @@ async fn test_get_proof_with_object_array() {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -2418,7 +2376,7 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| Ok(Some(dummy_identifier())));
+        .return_once(|_| Ok(Some(dummy_identifier())));
 
     let mut formatter = MockCredentialFormatter::default();
     let mut credential_formatter_provider = MockCredentialFormatterProvider::default();
@@ -2546,7 +2504,7 @@ async fn test_create_proof_using_invalid_did_method() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -2670,7 +2628,7 @@ async fn test_create_proof_using_identifier() {
     };
 
     let mut identifier_repository = MockIdentifierRepository::default();
-    identifier_repository.expect_get().return_once(|_, _| {
+    identifier_repository.expect_get().return_once(|_| {
         Ok(Some(Identifier {
             data: IdentifierData::Did((verifier_did).into()),
             ..dummy_identifier()
@@ -2812,7 +2770,7 @@ async fn test_create_proof_without_related_key() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -2950,7 +2908,7 @@ async fn test_create_proof_with_related_key() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -3093,7 +3051,7 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -3248,7 +3206,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -3361,7 +3319,7 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -3533,7 +3491,7 @@ async fn test_create_proof_did_deactivated_error() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()
@@ -3709,7 +3667,7 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((verifier_did).into()),
                 ..dummy_identifier()

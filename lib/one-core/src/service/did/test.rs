@@ -305,7 +305,7 @@ async fn test_update_did() {
     identifier_repository
         .expect_get_from_did_id()
         .once()
-        .return_once(|_, _| Ok(Some(dummy_identifier())));
+        .return_once(|_| Ok(Some(dummy_identifier())));
     identifier_repository
         .expect_update()
         .once()

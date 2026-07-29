@@ -175,32 +175,30 @@ async fn test_register_wallet_unit() {
     let (issuer_private, issuer_public) = ECDSASigner::generate_key_pair();
     let issuer_public_clone = issuer_public.clone();
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository
-        .expect_get()
-        .return_once(move |id, _| {
-            Ok(Some(Identifier {
-                id,
+    identifier_repository.expect_get().return_once(move |id| {
+        Ok(Some(Identifier {
+            id,
+            created_date: get_dummy_date(),
+            last_modified: get_dummy_date(),
+            name: "test".to_string(),
+            data: IdentifierData::Key(Related::from(Key {
+                id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
-                name: "test".to_string(),
-                data: IdentifierData::Key(Related::from(Key {
-                    id: Uuid::new_v4().into(),
-                    created_date: get_dummy_date(),
-                    last_modified: get_dummy_date(),
-                    public_key: issuer_public_clone,
-                    name: "".to_string(),
-                    key_reference: None,
-                    storage_type: "TEST".to_string(),
-                    key_type: "ECDSA".to_string(),
-                    organisation: dummy_organisation(None).into(),
-                })),
-                is_remote: false,
-                state: IdentifierState::Active,
-                deleted_at: None,
-                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-                trust_information: None,
-            }))
-        });
+                public_key: issuer_public_clone,
+                name: "".to_string(),
+                key_reference: None,
+                storage_type: "TEST".to_string(),
+                key_type: "ECDSA".to_string(),
+                organisation: dummy_organisation(None).into(),
+            })),
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
+            trust_information: Default::default(),
+        }))
+    });
 
     let issuer_key_handle = Ecdsa
         .reconstruct_key(&issuer_public, Some(issuer_private.clone()), None)
@@ -284,32 +282,30 @@ async fn test_register_wallet_unit_integrity_check() {
     let (issuer_private, issuer_public) = ECDSASigner::generate_key_pair();
     let issuer_public_clone = issuer_public.clone();
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository
-        .expect_get()
-        .return_once(move |id, _| {
-            Ok(Some(Identifier {
-                id,
+    identifier_repository.expect_get().return_once(move |id| {
+        Ok(Some(Identifier {
+            id,
+            created_date: get_dummy_date(),
+            last_modified: get_dummy_date(),
+            name: "test".to_string(),
+            data: IdentifierData::Key(Related::from(Key {
+                id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
-                name: "test".to_string(),
-                data: IdentifierData::Key(Related::from(Key {
-                    id: Uuid::new_v4().into(),
-                    created_date: get_dummy_date(),
-                    last_modified: get_dummy_date(),
-                    public_key: issuer_public_clone,
-                    name: "".to_string(),
-                    key_reference: None,
-                    storage_type: "TEST".to_string(),
-                    key_type: "ECDSA".to_string(),
-                    organisation: dummy_organisation(None).into(),
-                })),
-                is_remote: false,
-                state: IdentifierState::Active,
-                deleted_at: None,
-                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-                trust_information: None,
-            }))
-        });
+                public_key: issuer_public_clone,
+                name: "".to_string(),
+                key_reference: None,
+                storage_type: "TEST".to_string(),
+                key_type: "ECDSA".to_string(),
+                organisation: dummy_organisation(None).into(),
+            })),
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
+            trust_information: Default::default(),
+        }))
+    });
 
     let issuer_key_handle = Ecdsa
         .reconstruct_key(&issuer_public, Some(issuer_private.clone()), None)

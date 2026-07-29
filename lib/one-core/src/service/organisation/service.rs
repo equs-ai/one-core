@@ -125,7 +125,7 @@ impl OrganisationService {
             if let Some(identifier_id) = &organisation.wallet_provider_issuer {
                 Some(
                     self.identifier_repository
-                        .get(*identifier_id, &Default::default())
+                        .get(*identifier_id)
                         .await
                         .error_while("getting identifier")?
                         .ok_or(OrganisationServiceError::IdentifierNotFound(*identifier_id))?,
@@ -137,7 +137,7 @@ impl OrganisationService {
             if let Some(identifier_id) = &organisation.verifier_provider_issuer {
                 Some(
                     self.identifier_repository
-                        .get(*identifier_id, &Default::default())
+                        .get(*identifier_id)
                         .await
                         .error_while("getting identifier")?
                         .ok_or(OrganisationServiceError::IdentifierNotFound(*identifier_id))?,

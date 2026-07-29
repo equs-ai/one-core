@@ -258,7 +258,7 @@ async fn test_accept_credential() {
     let identifier_id = Uuid::new_v4().into();
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().return_once(move |_, _| {
+    identifier_repository.expect_get().return_once(move |_| {
         Ok(Some(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
@@ -393,7 +393,7 @@ async fn test_accept_credential_with_did() {
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did(
                     (Did {
@@ -632,7 +632,7 @@ async fn test_accept_credential_wrong_tx_code() {
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             Ok(Some(Identifier {
                 id: identifier_id,
                 data: IdentifierData::Did(
@@ -1089,7 +1089,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(None).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -1183,7 +1183,7 @@ async fn test_accept_credential_identifier_org_mismatch() {
     let session_organisation_id = Uuid::new_v4().into();
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().return_once(move |_, _| {
+    identifier_repository.expect_get().return_once(move |_| {
         Ok(Some(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
@@ -1227,7 +1227,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
     let session_organisation_id = Uuid::new_v4().into();
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().return_once(move |_, _| {
+    identifier_repository.expect_get().return_once(move |_| {
         Ok(Some(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
@@ -1291,7 +1291,7 @@ async fn test_reject_credential_credential_org_mismatch() {
     let session_organisation_id = Uuid::new_v4().into();
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().return_once(move |_, _| {
+    identifier_repository.expect_get().return_once(move |_| {
         Ok(Some(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(

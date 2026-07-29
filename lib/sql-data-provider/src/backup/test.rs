@@ -5,6 +5,7 @@ use one_core::repository::backup_repository::BackupRepository;
 use one_core::repository::certificate_repository::MockCertificateRepository;
 use one_core::repository::credential_repository::MockCredentialRepository;
 use one_core::repository::did_repository::MockDidRepository;
+use one_core::repository::identifier_trust_information_repository::MockIdentifierTrustInformationRepository;
 use one_core::repository::key_repository::MockKeyRepository;
 use one_core::repository::organisation_repository::MockOrganisationRepository;
 use sea_orm::ActiveValue::NotSet;
@@ -287,6 +288,7 @@ async fn setup_empty() -> TestSetup {
             did_repository: Arc::new(MockDidRepository::new()),
             key_repository: Arc::new(MockKeyRepository::new()),
             certificate_repository: Arc::new(MockCertificateRepository::new()),
+            trust_information_repository: Arc::new(MockIdentifierTrustInformationRepository::new()),
         },
         organisation_id,
         _db_holder,

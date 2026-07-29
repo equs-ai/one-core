@@ -112,19 +112,13 @@ impl ProofService {
                                 schema: Some(Default::default()),
                             }),
                             schema: Some(Default::default()),
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(Default::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(Default::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
@@ -394,12 +388,7 @@ impl ProofService {
         let verifier_identifier = match request.verifier_identifier_id {
             Some(verifier_identifier_id) => self
                 .identifier_repository
-                .get(
-                    verifier_identifier_id,
-                    &IdentifierRelations {
-                        ..Default::default()
-                    },
-                )
+                .get(verifier_identifier_id)
                 .await
                 .error_while("getting identifier")?
                 .ok_or(ProofServiceError::MissingIdentifier(verifier_identifier_id))?,
@@ -409,12 +398,7 @@ impl ProofService {
                     .ok_or(ProofServiceError::NoVerifier)?;
 
                 self.identifier_repository
-                    .get_from_did_id(
-                        verifier_did_id,
-                        &IdentifierRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get_from_did_id(verifier_did_id)
                     .await
                     .error_while("getting identifier")?
                     .ok_or(ProofServiceError::MissingDid(verifier_did_id))?
@@ -1176,9 +1160,7 @@ impl ProofService {
                         ..Default::default()
                     }),
                     verifier_key: Some(Default::default()),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(Default::default()),
                 },
                 None,

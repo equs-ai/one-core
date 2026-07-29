@@ -256,7 +256,7 @@ impl IdentifierCreator for IdentifierCreatorProto {
                         state: IdentifierState::Active,
                         deleted_at: None,
                         organisation: organisation.into(),
-                        trust_information: None,
+                        trust_information: Default::default(),
                     };
                     self.identifier_repository
                         .create(identifier)

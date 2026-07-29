@@ -21,7 +21,7 @@ use crate::config::core_config::{FormatType, KeyStorageType, Params};
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaListQuery};
-use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::key::Key;
 use crate::model::list_filter::{ListFilterValue, StringMatch};
 use crate::model::relation::RelatedVec;
@@ -399,12 +399,7 @@ impl SSIIssuerService {
         identifier_id: &IdentifierId,
     ) -> Result<Identifier, IssuerServiceError> {
         self.identifier_repository
-            .get(
-                *identifier_id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(*identifier_id)
             .await
             .error_while("fetching identifier")?
             .ok_or_else(|| IssuerServiceError::MissingIdentifier(*identifier_id))

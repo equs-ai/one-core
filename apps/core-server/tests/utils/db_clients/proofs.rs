@@ -158,9 +158,7 @@ impl ProofsDB {
                             credential_schema: Some(CredentialSchemaRelations::default()),
                         }),
                     }),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
                     verifier_key: Some(KeyRelations::default()),
                     ..Default::default()

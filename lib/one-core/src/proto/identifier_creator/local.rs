@@ -10,7 +10,7 @@ use crate::config::core_config::SignerType;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::did::Did;
-use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations, IdentifierState};
+use crate::model::identifier::{Identifier, IdentifierData, IdentifierState};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::model::relation::{Related, RelatedVec};
@@ -52,7 +52,7 @@ impl IdentifierCreatorProto {
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            trust_information: None,
+            trust_information: Default::default(),
         };
         self.identifier_repository
             .create(identifier.to_owned())
@@ -87,7 +87,7 @@ impl IdentifierCreatorProto {
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            trust_information: None,
+            trust_information: Default::default(),
         };
         self.identifier_repository
             .create(identifier.to_owned())
@@ -125,7 +125,7 @@ impl IdentifierCreatorProto {
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            trust_information: None,
+            trust_information: Default::default(),
         };
         self.identifier_repository
             .create(identifier.to_owned())
@@ -173,7 +173,7 @@ impl IdentifierCreatorProto {
             is_remote: false,
             state: IdentifierState::Active,
             deleted_at: None,
-            trust_information: None,
+            trust_information: Default::default(),
         };
         self.identifier_repository
             .create(identifier.to_owned())
@@ -351,12 +351,7 @@ impl IdentifierCreatorProto {
 
                 let identifier = self
                     .identifier_repository
-                    .get(
-                        content.certificate_authority.identifier_id,
-                        &IdentifierRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get(content.certificate_authority.identifier_id)
                     .await
                     .error_while("getting CA identifier")?
                     .ok_or(Error::IdentifierNotFound(

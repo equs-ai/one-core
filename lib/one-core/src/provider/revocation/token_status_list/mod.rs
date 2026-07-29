@@ -362,12 +362,7 @@ impl RevocationMethod for TokenStatusList {
 
         let issuer_identifier = self
             .identifier_repository
-            .get(
-                issuer_id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(issuer_id)
             .await
             .error_while("getting identifier")?
             .ok_or(RevocationError::MappingError(
@@ -515,9 +510,7 @@ impl RevocationMethod for TokenStatusList {
                     .get_revocation_list_by_entry_id(
                         signature_id,
                         &RevocationListRelations {
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(Default::default()),
                         },
                     )

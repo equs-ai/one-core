@@ -120,12 +120,7 @@ impl OID4VCIFinal1_0Service {
         identifier_id: &IdentifierId,
     ) -> Result<Identifier, OID4VCIFinal1_0ServiceError> {
         self.identifier_repository
-            .get(
-                *identifier_id,
-                &IdentifierRelations {
-                    trust_information: Some(Default::default()),
-                },
-            )
+            .get(*identifier_id)
             .await
             .error_while("getting issuer identifier")?
             .ok_or(OID4VCIFinal1_0ServiceError::IdentifierNotFound(
@@ -930,9 +925,7 @@ impl OID4VCIFinal1_0Service {
             .get_credentials_by_interaction_id(
                 &interaction.id,
                 &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
                     interaction: Some(Default::default()),
                     schema: Some(Default::default()),

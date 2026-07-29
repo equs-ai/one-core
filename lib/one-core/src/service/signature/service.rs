@@ -27,12 +27,7 @@ impl SignatureService {
         let signature_type = request.signer.to_owned();
         let issuer = self
             .identifier_repository
-            .get(
-                request.issuer,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(request.issuer)
             .await
             .error_while("Loading issuer identifier")?
             .ok_or(SignatureServiceError::IdentifierNotFound(request.issuer))?;
@@ -98,9 +93,7 @@ impl SignatureService {
             .get_revocation_list_by_entry_id(
                 id.into(),
                 &RevocationListRelations {
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
             )

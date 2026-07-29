@@ -10,6 +10,7 @@ use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::{Into, try_convert_inner};
@@ -39,6 +40,7 @@ use crate::mapper::to_data_layer_error;
 use crate::transaction_context::TransactionManagerImpl;
 
 impl BackupProvider {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         db: TransactionManagerImpl,
         credential_repository: Arc<dyn CredentialRepository>,
@@ -47,6 +49,7 @@ impl BackupProvider {
         did_repository: Arc<dyn DidRepository>,
         key_repository: Arc<dyn KeyRepository>,
         certificate_repository: Arc<dyn CertificateRepository>,
+        trust_information_repository: Arc<dyn IdentifierTrustInformationRepository>,
     ) -> Self {
         Self {
             db,
@@ -56,6 +59,7 @@ impl BackupProvider {
             did_repository,
             key_repository,
             certificate_repository,
+            trust_information_repository,
         }
     }
 
@@ -455,6 +459,7 @@ impl BackupRepository for BackupProvider {
                         &self.did_repository,
                         &self.key_repository,
                         &self.certificate_repository,
+                        &self.trust_information_repository,
                     )
                 })
                 .collect::<Result<Vec<_>, DataLayerError>>()?,

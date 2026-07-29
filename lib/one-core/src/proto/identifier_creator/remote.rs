@@ -10,8 +10,8 @@ use crate::model::certificate::{
 };
 use crate::model::did::{Did, DidType};
 use crate::model::identifier::{
-    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations,
-    IdentifierState, IdentifierType,
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierState,
+    IdentifierType,
 };
 use crate::model::key::{Key, KeyFilterValue, KeyListQuery};
 use crate::model::list_filter::ListFilterValue;
@@ -67,12 +67,7 @@ impl IdentifierCreatorProto {
 
         let identifier = match self
             .identifier_repository
-            .get_from_did_id(
-                did.id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get_from_did_id(did.id)
             .await
             .error_while("getting did")?
         {
@@ -88,7 +83,7 @@ impl IdentifierCreatorProto {
                     state: IdentifierState::Active,
                     deleted_at: None,
                     organisation: organisation.to_owned().into(),
-                    trust_information: None,
+                    trust_information: Default::default(),
                 };
                 self.identifier_repository
                     .create(identifier.clone())
@@ -124,7 +119,7 @@ impl IdentifierCreatorProto {
         if let Some(certificate) = list.values.into_iter().next() {
             let identifier = self
                 .identifier_repository
-                .get(certificate.identifier_id, &Default::default())
+                .get(certificate.identifier_id)
                 .await
                 .error_while("getting identifier")?
                 .ok_or(Error::MappingError(
@@ -163,7 +158,7 @@ impl IdentifierCreatorProto {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: organisation.to_owned().into(),
-            trust_information: None,
+            trust_information: Default::default(),
         };
         self.identifier_repository
             .create(identifier.clone())
@@ -276,7 +271,7 @@ impl IdentifierCreatorProto {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: organisation.to_owned().into(),
-            trust_information: None,
+            trust_information: Default::default(),
         };
         self.identifier_repository
             .create(identifier.clone())
@@ -305,12 +300,7 @@ impl IdentifierCreatorProto {
 
                 let Some(identifier) = self
                     .identifier_repository
-                    .get_from_did_id(
-                        did.id,
-                        &IdentifierRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get_from_did_id(did.id)
                     .await
                     .error_while("getting identifier")?
                 else {
@@ -342,7 +332,7 @@ impl IdentifierCreatorProto {
 
                 let Some(identifier) = self
                     .identifier_repository
-                    .get(certificate.identifier_id, &Default::default())
+                    .get(certificate.identifier_id)
                     .await
                     .error_while("getting identifier")?
                 else {

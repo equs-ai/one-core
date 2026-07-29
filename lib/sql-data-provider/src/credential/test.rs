@@ -27,6 +27,9 @@ use one_core::repository::credential_schema_repository::{
 use one_core::repository::did_repository::{DidRepository, MockDidRepository};
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::{IdentifierRepository, MockIdentifierRepository};
+use one_core::repository::identifier_trust_information_repository::{
+    IdentifierTrustInformationRepository, MockIdentifierTrustInformationRepository,
+};
 use one_core::repository::interaction_repository::{
     InteractionRepository, MockInteractionRepository,
 };
@@ -189,7 +192,7 @@ async fn setup_empty() -> TestSetup {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(organisation_id)).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     TestSetup {
@@ -245,6 +248,7 @@ struct Repositories {
     pub certificate_repository: Arc<dyn CertificateRepository>,
     pub key_repository: Arc<dyn KeyRepository>,
     pub organisation_repository: Arc<dyn OrganisationRepository>,
+    pub trust_information_repository: Arc<dyn IdentifierTrustInformationRepository>,
 }
 
 impl Default for Repositories {
@@ -258,6 +262,9 @@ impl Default for Repositories {
             certificate_repository: Arc::new(MockCertificateRepository::default()),
             key_repository: Arc::new(MockKeyRepository::default()),
             organisation_repository: Arc::new(MockOrganisationRepository::default()),
+            trust_information_repository: Arc::new(
+                MockIdentifierTrustInformationRepository::default(),
+            ),
         }
     }
 }
@@ -277,6 +284,7 @@ fn credential_repository(
         certificate_repository: repositories.certificate_repository,
         key_repository: repositories.key_repository,
         organisation_repository: repositories.organisation_repository,
+        trust_information_repository: repositories.trust_information_repository,
     }
 }
 
@@ -299,7 +307,7 @@ async fn test_create_credential_success() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository.expect_get().return_once({
         let identifier = identifier.clone();
-        |_, _| Ok(Some(identifier))
+        |_| Ok(Some(identifier))
     });
 
     let mut schema_repository = MockCredentialSchemaRepository::default();

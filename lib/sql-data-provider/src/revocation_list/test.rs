@@ -71,7 +71,7 @@ async fn setup() -> TestSetup {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(Some(organisation_id)).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     TestSetup {

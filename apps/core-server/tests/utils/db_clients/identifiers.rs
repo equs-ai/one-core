@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use one_core::model::identifier::{Identifier, IdentifierRelations, IdentifierState};
+use one_core::model::identifier::{Identifier, IdentifierState};
 use one_core::model::organisation::Organisation;
 use one_core::repository::identifier_repository::IdentifierRepository;
 use shared_types::IdentifierId;
@@ -36,7 +36,7 @@ impl IdentifiersDB {
             data,
             is_remote: params.is_remote.unwrap_or_default(),
             deleted_at: params.deleted_at,
-            trust_information: None,
+            trust_information: Default::default(),
         };
 
         let _ = self.repository.create(identifier.clone()).await.unwrap();
@@ -45,15 +45,6 @@ impl IdentifiersDB {
     }
 
     pub async fn get(&self, identifier_id: IdentifierId) -> Identifier {
-        self.repository
-            .get(
-                identifier_id,
-                &IdentifierRelations {
-                    trust_information: Some(Default::default()),
-                },
-            )
-            .await
-            .unwrap()
-            .unwrap()
+        self.repository.get(identifier_id).await.unwrap().unwrap()
     }
 }

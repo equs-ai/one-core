@@ -3,13 +3,16 @@ use std::sync::Arc;
 use one_core::model::identifier::{
     Identifier, IdentifierData, IdentifierFilterValue, IdentifierType, SortableIdentifierColumn,
 };
-use one_core::model::identifier_trust_information::SchemaFormat;
+use one_core::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use one_core::model::list_filter::{ListFilterCondition, StringMatch, StringMatchType};
 use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
-use one_core::repository::identifier_repository::IdentifierCertificatesLoader;
+use one_core::repository::identifier_repository::{
+    IdentifierCertificatesLoader, IdentifierTrustInformationLoader,
+};
+use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::sea_query::{Alias, ColumnRef, ExprTrait, IntoCondition, IntoIden, SimpleExpr};
@@ -88,12 +91,25 @@ pub(crate) fn identifier_data_from_ids(
     Ok(data)
 }
 
+/// Builds the lazily loaded trust information relation of an identifier. Shared between the
+/// identifier mapper and the credential/proof/trust entry projections that embed an identifier.
+pub(crate) fn identifier_trust_information(
+    identifier_id: IdentifierId,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
+) -> RelatedVec<IdentifierTrustInformation> {
+    RelatedVec::new(IdentifierTrustInformationLoader {
+        id: identifier_id,
+        trust_information_repository: trust_information_repository.to_owned(),
+    })
+}
+
 pub(crate) fn identifier_from_model(
     value: identifier::Model,
     organisation_repository: &Arc<dyn OrganisationRepository>,
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
 ) -> Result<Identifier, DataLayerError> {
     let id = value.id;
     Ok(Identifier {
@@ -114,7 +130,7 @@ pub(crate) fn identifier_from_model(
         state: value.state.into(),
         deleted_at: value.deleted_at,
         organisation: Related::new(value.organisation_id, organisation_repository.to_owned()),
-        trust_information: None,
+        trust_information: identifier_trust_information(id, trust_information_repository),
     })
 }
 

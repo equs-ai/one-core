@@ -59,12 +59,7 @@ impl CredentialService {
         let issuer_identifier = match request.issuer {
             Some(issuer_identifier_id) => self
                 .identifier_repository
-                .get(
-                    issuer_identifier_id,
-                    &IdentifierRelations {
-                        ..Default::default()
-                    },
-                )
+                .get(issuer_identifier_id)
                 .await
                 .error_while("getting identifier")?
                 .ok_or(CredentialServiceError::MissingIdentifier(
@@ -74,12 +69,7 @@ impl CredentialService {
                 let issuer_did_id = request.issuer_did.ok_or(CredentialServiceError::NoIssuer)?;
 
                 self.identifier_repository
-                    .get_from_did_id(
-                        issuer_did_id,
-                        &IdentifierRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get_from_did_id(issuer_did_id)
                     .await
                     .error_while("getting identifier")?
                     .ok_or(CredentialServiceError::MissingDid(issuer_did_id))?
@@ -666,12 +656,8 @@ impl CredentialService {
                         schema: Some(ClaimSchemaRelations::default()),
                     }),
                     schema: Some(Default::default()),
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
-                    holder_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
+                    holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
                     ..Default::default()

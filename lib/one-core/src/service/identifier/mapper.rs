@@ -80,11 +80,7 @@ pub(super) async fn identifier_to_response_dto(
             certificate_authorities = Some(map_certificates(certs).await?);
         }
     }
-    let trust_information = value
-        .trust_information
-        .ok_or(IdentifierServiceError::MappingError(
-            "missing trust information".to_string(),
-        ))?;
+    let trust_information = value.trust_information.as_ref().await?.to_owned();
     let trust_information = map_trust_information(blob_storage_provider, trust_information).await?;
 
     Ok(GetIdentifierResponseDTO {

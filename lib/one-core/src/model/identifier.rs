@@ -14,9 +14,7 @@ use super::organisation::Organisation;
 use super::relation::{Related, RelatedVec};
 use crate::config;
 use crate::error::NestedError;
-use crate::model::identifier_trust_information::{
-    IdentifierTrustInformation, IdentifierTrustInformationRelations, SchemaFormat,
-};
+use crate::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use crate::model::list_filter::ValueComparison;
 
 #[derive(Clone, Debug)]
@@ -33,8 +31,7 @@ pub struct Identifier {
     pub deleted_at: Option<OffsetDateTime>,
 
     pub organisation: Related<Organisation>,
-
-    pub trust_information: Option<Vec<IdentifierTrustInformation>>,
+    pub trust_information: RelatedVec<IdentifierTrustInformation>,
 }
 
 /// The identifier type carrying the relation data relevant to each variant.
@@ -116,9 +113,7 @@ pub enum IdentifierState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct IdentifierRelations {
-    pub trust_information: Option<IdentifierTrustInformationRelations>,
-}
+pub struct IdentifierRelations {}
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct UpdateIdentifierRequest {

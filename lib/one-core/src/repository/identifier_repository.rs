@@ -8,29 +8,22 @@ use crate::model::certificate::{
 };
 use crate::model::common::SortDirection;
 use crate::model::identifier::{
-    GetIdentifierList, Identifier, IdentifierListQuery, IdentifierRelations,
-    UpdateIdentifierRequest,
+    GetIdentifierList, Identifier, IdentifierListQuery, UpdateIdentifierRequest,
 };
+use crate::model::identifier_trust_information::IdentifierTrustInformation;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListSorting;
 use crate::model::relation::AsyncVecLoader;
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::error::DataLayerError;
+use crate::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub trait IdentifierRepository: Send + Sync {
     async fn create(&self, request: Identifier) -> Result<IdentifierId, DataLayerError>;
-    async fn get(
-        &self,
-        id: IdentifierId,
-        relations: &IdentifierRelations,
-    ) -> Result<Option<Identifier>, DataLayerError>;
-    async fn get_from_did_id(
-        &self,
-        did_id: DidId,
-        relations: &IdentifierRelations,
-    ) -> Result<Option<Identifier>, DataLayerError>;
+    async fn get(&self, id: IdentifierId) -> Result<Option<Identifier>, DataLayerError>;
+    async fn get_from_did_id(&self, did_id: DidId) -> Result<Option<Identifier>, DataLayerError>;
     async fn update(
         &self,
         id: &IdentifierId,
@@ -65,5 +58,19 @@ impl AsyncVecLoader<Certificate> for IdentifierCertificatesLoader {
             .await?
             .values;
         Ok(certificates)
+    }
+}
+
+pub struct IdentifierTrustInformationLoader {
+    pub id: IdentifierId,
+    pub trust_information_repository: Arc<dyn IdentifierTrustInformationRepository>,
+}
+
+#[async_trait::async_trait]
+impl AsyncVecLoader<IdentifierTrustInformation> for IdentifierTrustInformationLoader {
+    async fn load(&self) -> Result<Vec<IdentifierTrustInformation>, DataLayerError> {
+        self.trust_information_repository
+            .get_by_identifier_id(&self.id)
+            .await
     }
 }

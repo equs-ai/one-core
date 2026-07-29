@@ -175,7 +175,7 @@ async fn generic_credential() -> Credential {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -276,7 +276,7 @@ async fn generic_credential_list_entity() -> Credential {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: organisation.clone().into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -870,7 +870,7 @@ async fn test_create_credential_based_on_issuer_did_success() {
 
         identifier_repository
             .expect_get_from_did_id()
-            .return_once(|_, _| {
+            .return_once(|_| {
                 Ok(Some(Identifier {
                     data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
@@ -973,7 +973,7 @@ async fn test_create_credential_based_on_issuer_identifier_success() {
 
         identifier_repository
             .expect_get()
-            .return_once(|_, _| Ok(Some(issuer_identifier)));
+            .return_once(|_| Ok(Some(issuer_identifier)));
 
         credential_schema_repository
             .expect_get_credential_schema()
@@ -1080,7 +1080,7 @@ async fn test_create_credential_failed_unsupported_wallet_storage_type() {
 
         identifier_repository
             .expect_get()
-            .return_once(|_, _| Ok(Some(issuer_identifier)));
+            .return_once(|_| Ok(Some(issuer_identifier)));
 
         credential_schema_repository
             .expect_get_credential_schema()
@@ -1141,7 +1141,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
 
         identifier_repository
             .expect_get_from_did_id()
-            .return_once(|_, _| {
+            .return_once(|_| {
                 Ok(Some(Identifier {
                     data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
@@ -1248,7 +1248,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
 
         identifier_repository
             .expect_get_from_did_id()
-            .return_once(|_, _| {
+            .return_once(|_| {
                 Ok(Some(Identifier {
                     data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
@@ -1355,7 +1355,7 @@ async fn test_create_credential_fails_if_did_is_deactivated() {
 
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
@@ -1484,7 +1484,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
 
         identifier_repository
             .expect_get_from_did_id()
-            .return_once(|_, _| {
+            .return_once(|_| {
                 Ok(Some(Identifier {
                     data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
@@ -1602,7 +1602,7 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
 
         identifier_repository
             .expect_get_from_did_id()
-            .return_once(|_, _| {
+            .return_once(|_| {
                 Ok(Some(Identifier {
                     data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
@@ -1745,7 +1745,7 @@ async fn test_create_credential_namespace_optional() {
     identifier_repository.expect_get_from_did_id().returning({
         let issuer_did = issuer_did.clone();
 
-        move |_, _| {
+        move |_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did(issuer_did.clone()),
                 ..dummy_identifier()
@@ -1883,7 +1883,7 @@ async fn test_create_credential_schema_deleted() {
 
         identifier_repository
             .expect_get_from_did_id()
-            .return_once(|_, _| {
+            .return_once(|_| {
                 Ok(Some(Identifier {
                     data: IdentifierData::Did(issuer_did),
                     ..dummy_identifier()
@@ -1969,7 +1969,7 @@ async fn test_create_credential_key_with_issuer_key() {
 
     identifier_repository.expect_get_from_did_id().return_once({
         let issuer_did = issuer_did.clone();
-        |_, _| {
+        |_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
@@ -2126,7 +2126,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
 
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
@@ -2253,7 +2253,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
 
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
@@ -2352,7 +2352,7 @@ async fn test_fail_to_create_credential_unknown_key_id() {
 
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
@@ -2470,7 +2470,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
 
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
@@ -2588,7 +2588,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
 
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((issuer_did).into()),
                 ..dummy_identifier()
@@ -2693,7 +2693,7 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
     let issuer_did = issuer_identifier_did.clone();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
@@ -2793,7 +2793,7 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
 
     identifier_repository.expect_get_from_did_id().return_once({
         let issuer_did = issuer_did.clone();
-        |_, _| {
+        |_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did(issuer_did),
                 ..dummy_identifier()
@@ -2902,7 +2902,7 @@ async fn test_create_credential_fail_webhook_not_allowed() {
 
         identifier_repository
             .expect_get()
-            .return_once(|_, _| Ok(Some(issuer_identifier)));
+            .return_once(|_| Ok(Some(issuer_identifier)));
 
         credential_schema_repository
             .expect_get_credential_schema()
@@ -3582,7 +3582,7 @@ async fn test_get_credential_success_array_complex_nested_all() {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -4363,7 +4363,7 @@ async fn test_get_credential_success_array_index_sorting() {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -4781,7 +4781,7 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -5054,7 +5054,7 @@ async fn test_get_credential_success_array_single_element() {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,
@@ -5297,7 +5297,7 @@ async fn test_create_credential_array(
     let did_clone = did.clone();
     identifier_repository
         .expect_get_from_did_id()
-        .return_once(|_, _| {
+        .return_once(|_| {
             Ok(Some(Identifier {
                 data: IdentifierData::Did((did_clone).into()),
                 ..dummy_identifier()
@@ -5580,7 +5580,7 @@ async fn test_create_credential_session_org_mismatch() {
     let credential = generic_credential().await;
     identifier_repository
         .expect_get()
-        .return_once(|_, _| Ok(Some(credential.issuer_identifier.unwrap())));
+        .return_once(|_| Ok(Some(credential.issuer_identifier.unwrap())));
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
     credential_schema_repository
         .expect_get_credential_schema()
@@ -5694,7 +5694,7 @@ async fn test_create_credential_invalid_certificate_role() {
         roles: vec![],
         key: Some(dummy_key().into()),
     };
-    identifier_repository.expect_get().return_once(move |_, _| {
+    identifier_repository.expect_get().return_once(move |_| {
         Ok(Some(Identifier {
             id: identifier_id,
             data: IdentifierData::Certificate(RelatedVec::from(vec![certificate])),

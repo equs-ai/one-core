@@ -119,6 +119,7 @@ impl ProofRepository for ProofProvider {
             &self.did_repository,
             &self.key_repository,
             &self.certificate_repository,
+            &self.trust_information_repository,
         )
     }
 
@@ -348,12 +349,12 @@ impl ProofProvider {
             proof.claims = Some(self.resolve_claims(&proof_model, claim_relations).await?);
         }
 
-        if let Some(identifier_relations) = &relations.verifier_identifier
+        if relations.verifier_identifier.is_some()
             && let Some(verifier_identifier_id) = &proof_model.verifier_identifier_id
         {
             let verifier_identifier = self
                 .identifier_repository
-                .get(*verifier_identifier_id, identifier_relations)
+                .get(*verifier_identifier_id)
                 .await?
                 .ok_or(DataLayerError::Db(anyhow!("Verifier identifier not found")))?;
             proof.verifier_identifier = Some(verifier_identifier);

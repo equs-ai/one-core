@@ -9,7 +9,6 @@ use crate::model::certificate::{
     UpdateCertificateRequest,
 };
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
-use crate::model::identifier::IdentifierRelations;
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::error::DataLayerError;
@@ -30,12 +29,7 @@ impl CertificateHistoryDecorator {
     ) -> Result<Option<OrganisationId>, DataLayerError> {
         Ok(self
             .identifier_repository
-            .get(
-                identifier_id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(identifier_id)
             .await?
             .map(|identifier| identifier.organisation.id()))
     }

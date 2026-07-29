@@ -63,9 +63,7 @@ impl SSIHolderService {
                 interaction_id,
                 &ProofRelations {
                     interaction: Some(Default::default()),
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
             )
@@ -476,9 +474,7 @@ impl SSIHolderService {
                         schema: Some(Default::default()),
                     }),
                     key: Some(Default::default()),
-                    holder_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    holder_identifier: Some(IdentifierRelations {}),
                     schema: Some(Default::default()),
                     ..Default::default()
                 },
@@ -528,9 +524,7 @@ impl SSIHolderService {
                     .get_credential(
                         &item.id,
                         &CredentialRelations {
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             key: Some(KeyRelations::default()),
                             ..Default::default()
                         },

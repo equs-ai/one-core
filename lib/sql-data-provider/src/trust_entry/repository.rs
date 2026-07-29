@@ -60,16 +60,13 @@ impl TrustEntryRepository for TrustEntryProvider {
             );
         }
 
-        if let Some(identifier_relations) = &relations.identifier {
-            result.identifier = Some(
-                self.identifier_repository
-                    .get(identifier_id, identifier_relations)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "trust_entry-identifier",
-                        id: identifier_id.to_string(),
-                    })?,
-            );
+        if relations.identifier.is_some() {
+            result.identifier = Some(self.identifier_repository.get(identifier_id).await?.ok_or(
+                DataLayerError::MissingRequiredRelation {
+                    relation: "trust_entry-identifier",
+                    id: identifier_id.to_string(),
+                },
+            )?);
         }
 
         Ok(Some(result))
@@ -136,6 +133,7 @@ impl TrustEntryRepository for TrustEntryProvider {
                         &self.did_repository,
                         &self.key_repository,
                         &self.certificate_repository,
+                        &self.trust_information_repository,
                     )
                 })
                 .collect::<Result<Vec<_>, _>>()?,

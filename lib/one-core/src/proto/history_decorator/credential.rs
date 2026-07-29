@@ -45,12 +45,8 @@ impl CredentialHistoryDecorator {
                 &credential_id,
                 &CredentialRelations {
                     schema: Some(Default::default()),
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
-                    holder_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
+                    holder_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
             )

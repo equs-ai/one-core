@@ -6,12 +6,10 @@ use one_core::model::certificate::{Certificate, CertificateRole, CertificateStat
 use one_core::model::common::SortDirection;
 use one_core::model::did::Did;
 use one_core::model::identifier::{
-    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations,
-    IdentifierState, IdentifierType, SortableIdentifierColumn,
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierState,
+    IdentifierType, SortableIdentifierColumn,
 };
-use one_core::model::identifier_trust_information::{
-    IdentifierTrustInformation, IdentifierTrustInformationRelations, SchemaFormat,
-};
+use one_core::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use one_core::model::key::Key;
 use one_core::model::list_filter::{ListFilterCondition, ListFilterValue};
 use one_core::model::list_query::{ListPagination, ListSorting};
@@ -110,7 +108,7 @@ async fn test_create_and_delete_identifier() {
         state: IdentifierState::Active,
         organisation: setup.organisation.into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     assert_eq!(id, setup.provider.create(identifier.clone()).await.unwrap());
@@ -138,27 +136,15 @@ async fn test_get_identifier() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     setup.provider.create(identifier.clone()).await.unwrap();
 
     let non_existent_id = Uuid::new_v4().into();
-    assert!(
-        setup
-            .provider
-            .get(non_existent_id, &Default::default())
-            .await
-            .unwrap()
-            .is_none()
-    );
+    assert!(setup.provider.get(non_existent_id).await.unwrap().is_none());
 
-    let retrieved = setup
-        .provider
-        .get(id, &Default::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let retrieved = setup.provider.get(id).await.unwrap().unwrap();
     assert_eq!(retrieved.id, identifier.id);
     assert_eq!(retrieved.name, identifier.name);
     assert_eq!(retrieved.data, identifier.data);
@@ -208,18 +194,13 @@ async fn test_get_identifier_of_type_key_resolves_key_lazily() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     setup.provider.create(identifier).await.unwrap();
 
     // No relation request is needed: `key` is now lazily populated from the FK.
-    let retrieved = setup
-        .provider
-        .get(id, &Default::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let retrieved = setup.provider.get(id).await.unwrap().unwrap();
 
     let_assert!(IdentifierData::Key(retrieved_key) = &retrieved.data);
     let loaded = retrieved_key.as_ref().await.unwrap();
@@ -242,7 +223,7 @@ async fn test_get_identifier_list() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     let did2_id = insert_did_key(
@@ -281,7 +262,7 @@ async fn test_get_identifier_list() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     setup.provider.create(identifier1.clone()).await.unwrap();
@@ -344,7 +325,7 @@ async fn test_get_identifier_with_trust_info() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     setup.provider.create(identifier.clone()).await.unwrap();
@@ -407,20 +388,12 @@ async fn test_get_identifier_with_trust_info() {
         .await
         .unwrap();
 
-    let identifier = setup
-        .provider
-        .get(
-            id,
-            &IdentifierRelations {
-                trust_information: Some(IdentifierTrustInformationRelations::default()),
-            },
-        )
-        .await
-        .unwrap()
-        .unwrap();
+    let identifier = setup.provider.get(id).await.unwrap().unwrap();
 
-    assert!(identifier.trust_information.is_some());
-    assert_eq!(identifier.trust_information.unwrap().len(), 2);
+    assert_eq!(
+        identifier.trust_information.as_ref().await.unwrap().len(),
+        2
+    );
 }
 
 #[tokio::test]
@@ -438,7 +411,7 @@ async fn test_list_identifier_filter_trust_info() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
     setup.provider.create(identifier.clone()).await.unwrap();
 
@@ -568,7 +541,7 @@ async fn test_list_identifier_filter_certificate_role() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
     setup.provider.create(identifier.clone()).await.unwrap();
 
@@ -633,7 +606,7 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
         state: IdentifierState::Active,
         organisation: setup.organisation.clone().into(),
         deleted_at: None,
-        trust_information: None,
+        trust_information: Default::default(),
     };
     setup.provider.create(identifier.clone()).await.unwrap();
 
@@ -667,12 +640,7 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
 
     let resolved = setup
         .provider
-        .get(
-            identifier_id,
-            &IdentifierRelations {
-                ..Default::default()
-            },
-        )
+        .get(identifier_id)
         .await
         .unwrap()
         .expect("identifier should still be retrievable");

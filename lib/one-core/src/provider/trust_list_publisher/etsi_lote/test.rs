@@ -534,7 +534,7 @@ async fn test_create_trust_list_rejects_identifier_without_certificate() {
     let mut identifier_repo = MockIdentifierRepository::new();
     identifier_repo
         .expect_get()
-        .returning(move |_id, _relations| Ok(Some(identifier_clone.clone())));
+        .returning(move |_id| Ok(Some(identifier_clone.clone())));
 
     let publisher = make_publisher(
         MockKeyProvider::new(),
@@ -581,7 +581,7 @@ async fn test_lifecycle_create_add_update_remove() {
     let mut identifier_repo = MockIdentifierRepository::new();
     identifier_repo
         .expect_get()
-        .returning(move |_id, _relations| Ok(Some(identifier.clone())));
+        .returning(move |_id| Ok(Some(identifier.clone())));
 
     let repos = make_stateful_repos(key.clone(), certificate.clone());
     let xades_proto = MockXAdESProto::new();
@@ -735,7 +735,7 @@ async fn test_add_entry_includes_certificate_in_digital_identity() {
     let mut identifier_repo = MockIdentifierRepository::new();
     identifier_repo
         .expect_get()
-        .returning(move |_id, _relations| Ok(Some(identifier.clone())));
+        .returning(move |_id| Ok(Some(identifier.clone())));
     let xades_proto = MockXAdESProto::new();
 
     let publisher = make_publisher(
@@ -866,7 +866,7 @@ async fn test_create_trust_list_with_params_enriches_scheme_info() {
     let mut identifier_repo = MockIdentifierRepository::new();
     identifier_repo
         .expect_get()
-        .returning(move |_id, _relations| Ok(Some(identifier.clone())));
+        .returning(move |_id| Ok(Some(identifier.clone())));
 
     let repos = make_stateful_repos(key.clone(), certificate.clone());
     let xades_proto = MockXAdESProto::new();
@@ -951,7 +951,7 @@ async fn test_generate_trust_list_content_returns_fresh_content() {
     let mut identifier_repo = MockIdentifierRepository::new();
     identifier_repo
         .expect_get()
-        .returning(move |_id, _relations| Ok(Some(identifier.clone())));
+        .returning(move |_id| Ok(Some(identifier.clone())));
 
     let repos = make_stateful_repos(key.clone(), certificate.clone());
 
@@ -1023,7 +1023,7 @@ async fn test_generate_trust_list_content_resigns_stale_content() {
     let mut identifier_repo = MockIdentifierRepository::new();
     identifier_repo
         .expect_get()
-        .returning(move |_id, _relations| Ok(Some(identifier.clone())));
+        .returning(move |_id| Ok(Some(identifier.clone())));
 
     let repos = make_stateful_repos(key.clone(), certificate.clone());
     let xades_proto = MockXAdESProto::new();

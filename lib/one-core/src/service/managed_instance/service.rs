@@ -1198,12 +1198,7 @@ impl ManagedInstanceService {
     ) -> Result<(JwtPublicKeyInfo, AuthenticationFn), ManagedInstanceError> {
         let issuer_identifier = self
             .identifier_repository
-            .get(
-                issuer_identifier_id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(issuer_identifier_id)
             .await
             .error_while("getting identifier")?;
 
@@ -1367,9 +1362,7 @@ impl ManagedInstanceService {
                     organisation: Some(OrganisationRelations::default()),
                     attested_keys: Some(ManagedInstanceAttestedKeyRelations {
                         revocation: Some(RevocationListRelations {
-                            issuer_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(Default::default()),
                         }),
                     }),

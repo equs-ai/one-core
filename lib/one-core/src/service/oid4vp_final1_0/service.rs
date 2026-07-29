@@ -17,9 +17,7 @@ use crate::error::ErrorCode::BR_0000;
 use crate::model::blob::{Blob, BlobType};
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::identifier::{Identifier, IdentifierRelations};
-use crate::model::identifier_trust_information::{
-    IdentifierTrustInformation, IdentifierTrustInformationRelations,
-};
+use crate::model::identifier_trust_information::IdentifierTrustInformation;
 use crate::model::key::KeyRelations;
 use crate::model::organisation::OrganisationRelations;
 use crate::model::proof::{Proof, ProofRelations, ProofStateEnum, UpdateProofRequest};
@@ -69,9 +67,7 @@ impl OID4VPFinal1_0Service {
                 &id,
                 &ProofRelations {
                     interaction: Some(Default::default()),
-                    verifier_identifier: Some(IdentifierRelations {
-                        trust_information: Some(IdentifierTrustInformationRelations {}),
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_key: Some(Default::default()),
                     verifier_certificate: Some(Default::default()),
                     schema: Some(ProofSchemaRelations {
@@ -221,9 +217,7 @@ impl OID4VPFinal1_0Service {
             .get_proof(
                 &id,
                 &ProofRelations {
-                    verifier_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_key: Some(Default::default()),
                     ..Default::default()
                 },
@@ -549,9 +543,7 @@ impl OID4VPFinal1_0Service {
         &self,
         identifier: &Identifier,
     ) -> Result<Vec<VerifierInfoAttestation>, OID4VPFinal1_0ServiceError> {
-        let Some(trust_information) = identifier.trust_information.as_deref() else {
-            return Ok(vec![]);
-        };
+        let trust_information = identifier.trust_information.as_ref().await?;
 
         let now = now_utc();
         let valid_registration_certificates: Vec<&IdentifierTrustInformation> = trust_information

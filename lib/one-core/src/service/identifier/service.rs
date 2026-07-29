@@ -27,12 +27,10 @@ use crate::error::ErrorCode::BR_0224;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::blob::Blob;
 use crate::model::identifier::{
-    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierRelations,
-    IdentifierType, SortableIdentifierColumn,
+    Identifier, IdentifierData, IdentifierFilterValue, IdentifierListQuery, IdentifierType,
+    SortableIdentifierColumn,
 };
-use crate::model::identifier_trust_information::{
-    IdentifierTrustInformation, IdentifierTrustInformationRelations,
-};
+use crate::model::identifier_trust_information::IdentifierTrustInformation;
 use crate::model::list_filter::{ListFilterCondition, ListFilterValue, StringMatch};
 use crate::model::organisation::Organisation;
 use crate::model::trust_collection::{
@@ -67,12 +65,7 @@ impl IdentifierService {
     ) -> Result<GetIdentifierResponseDTO, IdentifierServiceError> {
         let identifier = self
             .identifier_repository
-            .get(
-                *id,
-                &IdentifierRelations {
-                    trust_information: Some(IdentifierTrustInformationRelations::default()),
-                },
-            )
+            .get(*id)
             .await
             .error_while("getting identifier")?
             .filter(|i| i.deleted_at.is_none())
@@ -552,12 +545,7 @@ impl IdentifierService {
     pub async fn delete_identifier(&self, id: &IdentifierId) -> Result<(), IdentifierServiceError> {
         let identifier = self
             .identifier_repository
-            .get(
-                *id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(*id)
             .await
             .error_while("getting identifier")?;
         let Some(identifier) = identifier else {
@@ -621,7 +609,15 @@ impl IdentifierService {
         &self,
         request: ResolveTrustEntriesRequestDTO,
     ) -> Result<Vec<ResolvedTrustEntriesResponseDTO>, IdentifierServiceError> {
-        let identifiers = self.fetch_identifiers(request.identifiers).await?;
+        let identifiers = self
+            .identifier_repository
+            .get_identifier_list(IdentifierListQuery {
+                filtering: Some(IdentifierFilterValue::Ids(request.identifiers).condition()),
+                ..Default::default()
+            })
+            .await
+            .error_while("getting identifiers")?
+            .values;
 
         let requested_roles = request.roles.clone().unwrap_or_default();
         let trust_list_subscriptions = self
@@ -726,30 +722,6 @@ impl IdentifierService {
                 (identifier_id, trust_entity, trust_list_subscription.clone())
             })
             .collect())
-    }
-
-    async fn fetch_identifiers(
-        &self,
-        identifier_ids: Vec<IdentifierId>,
-    ) -> Result<Vec<Identifier>, IdentifierServiceError> {
-        let mut identifiers = Vec::new();
-        for identifier_id in identifier_ids {
-            let identifier = self
-                .identifier_repository
-                .get(
-                    // TODO: This is really a bad solution, fix once a lazy loading is implemented
-                    identifier_id,
-                    &IdentifierRelations {
-                        trust_information: None,
-                    },
-                )
-                .await
-                .error_while("getting identifiers")?;
-            if let Some(identifier) = identifier {
-                identifiers.push(identifier);
-            } // We want to ignore missing identifiers, as they are not relevant for the trust list subscription
-        }
-        Ok(identifiers)
     }
 
     async fn fetch_trust_collections(

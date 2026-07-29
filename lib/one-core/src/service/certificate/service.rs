@@ -46,7 +46,7 @@ impl CertificateService {
 
         let identifier = self
             .identifier_repository
-            .get(certificate.identifier_id, &Default::default())
+            .get(certificate.identifier_id)
             .await
             .error_while("getting identifier")?
             .ok_or(CertificateServiceError::MappingError(format!(
@@ -83,7 +83,7 @@ impl CertificateService {
 
         let identifier = self
             .identifier_repository
-            .get(certificate.identifier_id, &Default::default())
+            .get(certificate.identifier_id)
             .await
             .error_while("getting identifier")?
             .ok_or(CertificateServiceError::MappingError(format!(

@@ -25,6 +25,3 @@ pub struct SchemaFormat {
     pub format: String,
     pub schema_id: String,
 }
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct IdentifierTrustInformationRelations {}

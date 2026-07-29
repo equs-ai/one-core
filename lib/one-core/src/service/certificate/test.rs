@@ -68,7 +68,7 @@ async fn test_get_certificate_authority_invalid_identifier() {
     });
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().returning(|_, _| {
+    identifier_repository.expect_get().returning(|_| {
         Ok(Some(Identifier {
             data: IdentifierData::Certificate(RelatedVec::from(vec![])),
             ..dummy_identifier()
@@ -119,7 +119,7 @@ async fn test_get_certificate_pem_success() {
     });
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().returning(|_, _| {
+    identifier_repository.expect_get().returning(|_| {
         Ok(Some(Identifier {
             data: IdentifierData::Certificate(RelatedVec::from(vec![])),
             ..dummy_identifier()
@@ -160,7 +160,7 @@ async fn test_get_certificate_pem_invalid_identifier() {
     });
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository.expect_get().returning(|_, _| {
+    identifier_repository.expect_get().returning(|_| {
         Ok(Some(Identifier {
             data: IdentifierData::CertificateAuthority(RelatedVec::from(vec![])),
             ..dummy_identifier()

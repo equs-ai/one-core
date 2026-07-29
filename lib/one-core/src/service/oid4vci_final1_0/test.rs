@@ -432,7 +432,7 @@ async fn test_get_issuer_metadata_jwt() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(Some(identifier.clone())));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -575,7 +575,7 @@ async fn test_get_issuer_metadata_sd_jwt() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(Some(identifier.clone())));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -744,7 +744,7 @@ async fn test_get_issuer_metadata_mdoc() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(Some(identifier.clone())));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -901,7 +901,7 @@ async fn test_get_issuer_metadata_includes_schema_translations() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(Some(identifier.clone())));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -1062,7 +1062,7 @@ async fn test_get_issuer_metadata_includes_claim_translations() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(Some(identifier.clone())));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider

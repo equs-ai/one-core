@@ -9,9 +9,7 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{
     CertificateFilterValue, CertificateListQuery, CertificateState, UpdateCertificateRequest,
 };
-use crate::model::identifier::{
-    IdentifierData, IdentifierRelations, IdentifierState, UpdateIdentifierRequest,
-};
+use crate::model::identifier::{IdentifierData, IdentifierState, UpdateIdentifierRequest};
 use crate::model::list_filter::{ComparisonType, ListFilterValue, ValueComparison};
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::repository::certificate_repository::CertificateRepository;
@@ -61,12 +59,7 @@ impl Task for CertificateCheck {
         for identifier_id in affected_identifier_ids {
             let identifier = self
                 .identifier_repository
-                .get(
-                    identifier_id,
-                    &IdentifierRelations {
-                        ..Default::default()
-                    },
-                )
+                .get(identifier_id)
                 .await
                 .error_while("getting identifier")?
                 .ok_or(EntityNotFoundError::Identifier(identifier_id))?;

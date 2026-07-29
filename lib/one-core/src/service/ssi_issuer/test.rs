@@ -98,7 +98,7 @@ async fn test_get_sd_jwt_vc_issuer_metadata_success_with_did() {
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| Ok(Some(identifier)));
+        .return_once(move |_| Ok(Some(identifier)));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::new();
     credential_schema_repository
@@ -177,7 +177,7 @@ async fn test_get_sd_jwt_vc_issuer_metadata_success() {
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| Ok(Some(identifier)));
+        .return_once(move |_| Ok(Some(identifier)));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::new();
     credential_schema_repository
@@ -316,7 +316,7 @@ async fn test_get_sd_jwt_vc_issuer_metadata_fails_when_identifier_not_found() {
     identifier_repository
         .expect_get()
         .once()
-        .return_once(|_, _| Ok(None));
+        .return_once(|_| Ok(None));
 
     let service = setup_service(
         MockCredentialSchemaRepository::new(),
@@ -358,7 +358,7 @@ async fn test_get_sd_jwt_vc_issuer_metadata_fails_when_credential_schema_not_fou
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| Ok(Some(dummy_identifier())));
+        .return_once(move |_| Ok(Some(dummy_identifier())));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::new();
     credential_schema_repository

@@ -560,7 +560,7 @@ mod tests {
                 state: IdentifierState::Active,
                 deleted_at: None,
                 organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-                trust_information: None,
+                trust_information: Default::default(),
             },
             RemoteIdentifierRelation::Did(did),
             None,

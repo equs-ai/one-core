@@ -167,7 +167,7 @@ async fn resolve_untrusted_identifier() {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(None).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     let result = subscriber
@@ -210,7 +210,7 @@ async fn resolve_trusted_identifier() {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(None).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     let result = subscriber
@@ -493,7 +493,7 @@ async fn resolve_trusted_identifier_xml() {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(None).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     let result = subscriber
@@ -537,7 +537,7 @@ async fn resolve_untrusted_identifier_xml() {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(None).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     let result = subscriber

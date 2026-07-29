@@ -241,7 +241,7 @@ impl DidService {
 
             let identifier = self
                 .identifier_repository
-                .get_from_did_id(did.id, &Default::default())
+                .get_from_did_id(did.id)
                 .await
                 .error_while("getting identifier")?
                 .ok_or(DidServiceError::MappingError(

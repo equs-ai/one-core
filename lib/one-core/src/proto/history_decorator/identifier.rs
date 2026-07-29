@@ -6,8 +6,7 @@ use uuid::Uuid;
 
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::identifier::{
-    GetIdentifierList, Identifier, IdentifierListQuery, IdentifierRelations, IdentifierState,
-    UpdateIdentifierRequest,
+    GetIdentifierList, Identifier, IdentifierListQuery, IdentifierState, UpdateIdentifierRequest,
 };
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::repository::error::DataLayerError;
@@ -54,19 +53,11 @@ impl IdentifierHistoryDecorator {
 
 #[async_trait::async_trait]
 impl IdentifierRepository for IdentifierHistoryDecorator {
-    async fn get(
-        &self,
-        id: IdentifierId,
-        relations: &IdentifierRelations,
-    ) -> Result<Option<Identifier>, DataLayerError> {
-        self.inner.get(id, relations).await
+    async fn get(&self, id: IdentifierId) -> Result<Option<Identifier>, DataLayerError> {
+        self.inner.get(id).await
     }
-    async fn get_from_did_id(
-        &self,
-        did_id: DidId,
-        relations: &IdentifierRelations,
-    ) -> Result<Option<Identifier>, DataLayerError> {
-        self.inner.get_from_did_id(did_id, relations).await
+    async fn get_from_did_id(&self, did_id: DidId) -> Result<Option<Identifier>, DataLayerError> {
+        self.inner.get_from_did_id(did_id).await
     }
     async fn get_identifier_list(
         &self,
@@ -96,12 +87,7 @@ impl IdentifierRepository for IdentifierHistoryDecorator {
         if let Some(state) = request.state {
             let identifier = self
                 .inner
-                .get(
-                    *id,
-                    &IdentifierRelations {
-                        ..Default::default()
-                    },
-                )
+                .get(*id)
                 .await?
                 .context("identifier is missing")?;
 
@@ -122,15 +108,7 @@ impl IdentifierRepository for IdentifierHistoryDecorator {
     }
 
     async fn delete(&self, id: &IdentifierId) -> Result<(), DataLayerError> {
-        let identifier = self
-            .inner
-            .get(
-                *id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
-            .await;
+        let identifier = self.inner.get(*id).await;
 
         self.inner.delete(id).await?;
 

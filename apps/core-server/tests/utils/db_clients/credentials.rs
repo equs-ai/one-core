@@ -37,9 +37,7 @@ impl CredentialsDB {
                     }),
                     schema: Some(Default::default()),
                     interaction: Some(Default::default()),
-                    holder_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    holder_identifier: Some(IdentifierRelations {}),
                     key: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),

@@ -11,6 +11,7 @@ use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::convert_inner;
@@ -23,7 +24,7 @@ use crate::TransactionManagerImpl;
 use crate::credential::entity_model::CredentialListEntityModel;
 use crate::credential_schema::mapper::{ClaimSchemasLoader, CredentialSchemaFormatsLoader};
 use crate::entity::{claim, credential, credential_schema, credential_schema_format, identifier};
-use crate::identifier::mapper::identifier_data_from_ids;
+use crate::identifier::mapper::{identifier_data_from_ids, identifier_trust_information};
 use crate::list_query_generic::{
     IntoFilterCondition, IntoJoinRelations, IntoSortingColumn, JoinRelation,
     get_blob_match_condition, get_comparison_condition, get_equals_condition,
@@ -267,6 +268,7 @@ pub(super) fn credential_list_model_to_repository_model(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Credential, DataLayerError> {
     let transaction_code = match (
@@ -360,7 +362,10 @@ pub(super) fn credential_list_model_to_repository_model(
                 .ok_or(DataLayerError::MappingError)?
                 .into(),
             deleted_at: None,
-            trust_information: None,
+            trust_information: identifier_trust_information(
+                issuer_identifier_id,
+                trust_information_repository,
+            ),
         }),
     };
 
@@ -405,6 +410,7 @@ pub(super) fn credentials_to_repository(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Vec<Credential>, DataLayerError> {
     let mut result: Vec<Credential> = Vec::new();
@@ -416,6 +422,7 @@ pub(super) fn credentials_to_repository(
             did_repository,
             key_repository,
             certificate_repository,
+            trust_information_repository,
             db,
         )?);
     }

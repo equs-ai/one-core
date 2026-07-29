@@ -278,7 +278,7 @@ fn generic_credential() -> Credential {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         issuer_certificate: None,
         holder_identifier: None,

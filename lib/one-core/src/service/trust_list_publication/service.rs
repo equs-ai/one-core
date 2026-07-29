@@ -337,12 +337,7 @@ impl TrustListPublicationService {
         identifier_id: IdentifierId,
     ) -> Result<Identifier, TrustListPublicationServiceError> {
         self.identifier_repository
-            .get(
-                identifier_id,
-                &IdentifierRelations {
-                    ..Default::default()
-                },
-            )
+            .get(identifier_id)
             .await
             .error_while("fetching identifier")?
             .ok_or_else(|| TrustListPublicationServiceError::IdentifierNotFound(identifier_id))
@@ -572,13 +567,13 @@ mod tests {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: organisation.clone().into(),
-            trust_information: None,
+            trust_information: Default::default(),
         };
 
         identifier_repository
             .expect_get()
-            .with(predicate::eq(identifier_id), predicate::always())
-            .returning(move |_, _| Ok(Some(identifier.clone())));
+            .with(predicate::eq(identifier_id))
+            .returning(move |_| Ok(Some(identifier.clone())));
 
         trust_list_publisher
             .expect_get_capabilities()
@@ -973,7 +968,7 @@ mod tests {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }
     }
 
@@ -989,7 +984,7 @@ mod tests {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }
     }
 
@@ -1038,7 +1033,7 @@ mod tests {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }
     }
 }

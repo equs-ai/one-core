@@ -46,7 +46,7 @@ pub(crate) fn create_issuer_metadata_response(
         schema,
         credential_configurations_supported,
     }: PreparedMetadata,
-    issuer_info: Option<Vec<EtsiIssuerInfoResponseDTO>>,
+    issuer_info: Vec<EtsiIssuerInfoResponseDTO>,
 ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, OpenID4VCIError> {
     let credential_schema_id = schema.id;
     let credential_issuer = format!(
@@ -78,7 +78,7 @@ pub(crate) fn create_issuer_metadata_response(
             locale: Some("en".to_string()),
             logo: None,
         }]),
-        issuer_info: issuer_info.unwrap_or_default(),
+        issuer_info,
         batch_credential_issuance,
         credential_request_encryption: None,
         credential_response_encryption: None,

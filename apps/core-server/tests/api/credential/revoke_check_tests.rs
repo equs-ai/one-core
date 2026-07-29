@@ -1745,7 +1745,7 @@ async fn minimal_mdoc_credential(params: serde_json::Value) -> SerializedCredent
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(None).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         holder_key_id: None,
         issuer_certificate: None,

@@ -22,7 +22,6 @@ use crate::model::blob::{Blob, BlobType};
 use crate::model::credential::{
     Credential, CredentialRelations, CredentialStateEnum, UpdateCredentialRequest,
 };
-use crate::model::identifier::IdentifierRelations;
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::proto::oauth_client::{OAuthAuthorizationRequest, OAuthClientProvider};
@@ -55,24 +54,14 @@ impl SSIHolderService {
         let identifier = match (did_id, identifier_id) {
             (Some(did_id), None) => Some(
                 self.identifier_repository
-                    .get_from_did_id(
-                        did_id,
-                        &IdentifierRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get_from_did_id(did_id)
                     .await
                     .error_while("getting identifier")?
                     .ok_or(HolderServiceError::MissingDid(did_id))?,
             ),
             (None, Some(identifier_id)) => Some(
                 self.identifier_repository
-                    .get(
-                        identifier_id,
-                        &IdentifierRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get(identifier_id)
                     .await
                     .error_while("getting identifier")?
                     .ok_or(HolderServiceError::MissingIdentifier(identifier_id))?,

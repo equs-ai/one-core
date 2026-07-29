@@ -108,7 +108,7 @@ fn setup_service_simple(identifier: Option<Identifier>) -> IdentifierService {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(identifier.clone()));
+        .returning(move |_| Ok(identifier.clone()));
 
     setup_service(Mocks {
         identifier_repository,
@@ -235,8 +235,14 @@ async fn test_resolve_trust_entries_success() {
     identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![]));
 
     identifier_repository
-        .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .expect_get_identifier_list()
+        .returning(move |_| {
+            Ok(GetIdentifierList {
+                values: vec![identifier.clone()],
+                total_items: 1,
+                total_pages: 1,
+            })
+        });
 
     let trust_collection_id = Uuid::new_v4().into();
     let (subscription, trust_collection) = dummy_trust_list_subscription(trust_collection_id);
@@ -331,8 +337,14 @@ async fn test_resolve_trust_entries_filters_local() {
     identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![]));
 
     identifier_repository
-        .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .expect_get_identifier_list()
+        .returning(move |_| {
+            Ok(GetIdentifierList {
+                values: vec![identifier.clone()],
+                total_items: 1,
+                total_pages: 1,
+            })
+        });
 
     trust_list_subscription_repository
         .expect_list()
@@ -410,8 +422,14 @@ async fn test_resolve_trust_entries_ignores_missing_identifiers() {
 
     let identifier_id = Uuid::new_v4().into();
     identifier_repository
-        .expect_get()
-        .returning(move |_, _| Ok(None));
+        .expect_get_identifier_list()
+        .returning(move |_| {
+            Ok(GetIdentifierList {
+                values: vec![],
+                total_items: 0,
+                total_pages: 0,
+            })
+        });
 
     trust_list_subscription_repository
         .expect_list()
@@ -470,8 +488,14 @@ async fn test_resolve_trust_entries_subscriber_error() {
     identifier.data = IdentifierData::Certificate(RelatedVec::from(vec![]));
 
     identifier_repository
-        .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .expect_get_identifier_list()
+        .returning(move |_| {
+            Ok(GetIdentifierList {
+                values: vec![identifier.clone()],
+                total_items: 1,
+                total_pages: 1,
+            })
+        });
 
     trust_list_subscription_repository
         .expect_list()
@@ -553,8 +577,14 @@ async fn test_resolve_trust_entries_filters_key_type() {
     identifier.data = IdentifierData::Key(dummy_key().into());
 
     identifier_repository
-        .expect_get()
-        .returning(move |_, _| Ok(Some(identifier.clone())));
+        .expect_get_identifier_list()
+        .returning(move |_| {
+            Ok(GetIdentifierList {
+                values: vec![identifier.clone()],
+                total_items: 1,
+                total_pages: 1,
+            })
+        });
 
     trust_list_subscription_repository
         .expect_list()
@@ -898,7 +928,7 @@ async fn test_delete_identifier_cascades_to_certificates() {
     let returned_identifier = identifier.clone();
     identifier_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(returned_identifier.clone())));
+        .returning(move |_| Ok(Some(returned_identifier.clone())));
     identifier_repository
         .expect_delete()
         .times(1)

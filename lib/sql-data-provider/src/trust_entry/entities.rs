@@ -6,6 +6,7 @@ use one_core::model::trust_entry::TrustEntry;
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::FromQueryResult;
@@ -16,7 +17,7 @@ use time::OffsetDateTime;
 
 use crate::entity::identifier::{IdentifierState, IdentifierType};
 use crate::entity::trust_entry::TrustEntryState;
-use crate::identifier::mapper::identifier_data_from_ids;
+use crate::identifier::mapper::{identifier_data_from_ids, identifier_trust_information};
 
 #[derive(Clone, Debug, FromQueryResult)]
 pub struct TrustEntryWithIdentifier {
@@ -46,6 +47,7 @@ pub(crate) fn trust_entry_from_model(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
 ) -> Result<TrustEntry, DataLayerError> {
     Ok(TrustEntry {
         id: value.id,
@@ -77,7 +79,10 @@ pub(crate) fn trust_entry_from_model(
                 value.identifier_organisation_id,
                 organisation_repository.to_owned(),
             ),
-            trust_information: None,
+            trust_information: identifier_trust_information(
+                value.identifier_id,
+                trust_information_repository,
+            ),
         }),
     })
 }

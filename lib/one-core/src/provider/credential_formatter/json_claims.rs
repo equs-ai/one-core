@@ -305,6 +305,6 @@ pub fn prepare_identifier(
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: organisation.into(),
-        trust_information: None,
+        trust_information: Default::default(),
     })
 }

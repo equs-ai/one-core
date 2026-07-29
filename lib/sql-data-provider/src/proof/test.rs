@@ -24,6 +24,7 @@ use one_core::repository::claim_repository::{ClaimRepository, MockClaimRepositor
 use one_core::repository::credential_repository::{CredentialRepository, MockCredentialRepository};
 use one_core::repository::did_repository::MockDidRepository;
 use one_core::repository::identifier_repository::{IdentifierRepository, MockIdentifierRepository};
+use one_core::repository::identifier_trust_information_repository::MockIdentifierTrustInformationRepository;
 use one_core::repository::interaction_repository::{
     InteractionRepository, MockInteractionRepository,
 };
@@ -183,6 +184,9 @@ async fn setup(
             key_repository,
             certificate_repository,
             organisation_repository: Arc::new(MockOrganisationRepository::default()),
+            trust_information_repository: Arc::new(
+                MockIdentifierTrustInformationRepository::default(),
+            ),
         }),
         db,
         organisation_id,
@@ -374,7 +378,7 @@ async fn test_create_proof_success() {
             state: IdentifierState::Active,
             deleted_at: None,
             organisation: dummy_organisation(None).into(),
-            trust_information: None,
+            trust_information: Default::default(),
         }),
         interaction: None,
         profile: None,
@@ -521,39 +525,36 @@ async fn test_get_proof_with_relations() {
         });
 
     let mut identifier_repository = MockIdentifierRepository::default();
-    identifier_repository
-        .expect_get()
-        .times(1)
-        .returning(|id, _| {
-            Ok(Some(Identifier {
-                id: id.to_owned(),
-                created_date: get_dummy_date(),
-                last_modified: get_dummy_date(),
-                name: "identifier".to_string(),
-                data: IdentifierData::Did(
-                    (Did {
-                        deleted_at: None,
-                        id: Uuid::new_v4().into(),
-                        created_date: get_dummy_date(),
-                        last_modified: get_dummy_date(),
-                        name: "verifier".to_string(),
-                        did: "did:key:123".parse().unwrap(),
-                        did_type: DidType::Local,
-                        did_method: "KEY".into(),
-                        organisation: dummy_organisation(None).into(),
-                        keys: Default::default(),
-                        deactivated: false,
-                        log: None,
-                    })
-                    .into(),
-                ),
-                is_remote: false,
-                state: IdentifierState::Active,
-                deleted_at: None,
-                organisation: dummy_organisation(None).into(),
-                trust_information: None,
-            }))
-        });
+    identifier_repository.expect_get().times(1).returning(|id| {
+        Ok(Some(Identifier {
+            id: id.to_owned(),
+            created_date: get_dummy_date(),
+            last_modified: get_dummy_date(),
+            name: "identifier".to_string(),
+            data: IdentifierData::Did(
+                (Did {
+                    deleted_at: None,
+                    id: Uuid::new_v4().into(),
+                    created_date: get_dummy_date(),
+                    last_modified: get_dummy_date(),
+                    name: "verifier".to_string(),
+                    did: "did:key:123".parse().unwrap(),
+                    did_type: DidType::Local,
+                    did_method: "KEY".into(),
+                    organisation: dummy_organisation(None).into(),
+                    keys: Default::default(),
+                    deactivated: false,
+                    log: None,
+                })
+                .into(),
+            ),
+            is_remote: false,
+            state: IdentifierState::Active,
+            deleted_at: None,
+            organisation: dummy_organisation(None).into(),
+            trust_information: Default::default(),
+        }))
+    });
 
     let credential_id = Uuid::new_v4().into();
     let claim_id: ClaimId = Uuid::new_v4().into();
@@ -726,9 +727,7 @@ async fn test_get_proof_with_relations() {
                     credential: Some(Default::default()),
                 }),
                 schema: Some(Default::default()),
-                verifier_identifier: Some(IdentifierRelations {
-                    ..Default::default()
-                }),
+                verifier_identifier: Some(IdentifierRelations {}),
                 verifier_key: Some(Default::default()),
                 interaction: Some(Default::default()),
                 ..Default::default()

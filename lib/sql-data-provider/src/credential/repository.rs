@@ -532,6 +532,7 @@ impl CredentialRepository for CredentialProvider {
                 &self.did_repository,
                 &self.key_repository,
                 &self.certificate_repository,
+                &self.trust_information_repository,
                 &self.db,
             )?,
             total_pages: calculate_pages_count(items_count, limit.unwrap_or(0)),
@@ -711,9 +712,9 @@ async fn get_related_identifier(
 ) -> Result<Option<Identifier>, DataLayerError> {
     let identifier = match id.zip(relations) {
         None => None,
-        Some((id, relations)) => {
+        Some((id, _relations)) => {
             let identifier =
-                repo.get(*id, relations)
+                repo.get(*id)
                     .await?
                     .ok_or(DataLayerError::MissingRequiredRelation {
                         relation: "credential-identifier",

@@ -29,9 +29,9 @@ impl RevocationListProvider {
         relations: &RevocationListRelations,
     ) -> Result<RevocationList, DataLayerError> {
         let issuer_identifier = match relations.issuer_identifier.as_ref() {
-            Some(relations) => Some(
+            Some(_relations) => Some(
                 self.identifier_repository
-                    .get(revocation_list.issuer_identifier_id, relations)
+                    .get(revocation_list.issuer_identifier_id)
                     .await?
                     .ok_or(DataLayerError::MissingRequiredRelation {
                         relation: "revocation_list-identifier",

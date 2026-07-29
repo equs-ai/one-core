@@ -9,6 +9,7 @@ use one_core::model::relation::Related;
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_core::service::proof::dto::ProofFilterValue;
@@ -20,7 +21,7 @@ use super::model::ProofListItemModel;
 use crate::common::calculate_pages_count;
 use crate::entity::proof::{ProofRequestState, ProofRole};
 use crate::entity::{identifier, interaction, proof, proof_claim, proof_schema};
-use crate::identifier::mapper::identifier_data_from_ids;
+use crate::identifier::mapper::{identifier_data_from_ids, identifier_trust_information};
 use crate::list_query_generic::{
     IntoFilterCondition, IntoSortingColumn, get_comparison_condition, get_string_match_condition,
 };
@@ -112,6 +113,7 @@ fn proof_from_list_item_model(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
 ) -> Result<Proof, DataLayerError> {
     let verifier_identifier = match value.verifier_identifier_id {
         None => None,
@@ -152,7 +154,10 @@ fn proof_from_list_item_model(
                 .ok_or(DataLayerError::MappingError)?
                 .into(),
             deleted_at: None,
-            trust_information: None,
+            trust_information: identifier_trust_information(
+                verifier_identifier_id,
+                trust_information_repository,
+            ),
         }),
     };
 
@@ -269,6 +274,7 @@ pub(super) fn create_list_response(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
 ) -> Result<GetProofList, DataLayerError> {
     let values = proofs
         .into_iter()
@@ -279,6 +285,7 @@ pub(super) fn create_list_response(
                 did_repository,
                 key_repository,
                 certificate_repository,
+                trust_information_repository,
             )
         })
         .collect::<Result<Vec<Proof>, DataLayerError>>()?;

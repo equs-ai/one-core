@@ -423,7 +423,7 @@ pub fn dummy_identifier() -> Identifier {
         state: IdentifierState::Active,
         deleted_at: None,
         organisation: dummy_organisation(None).into(),
-        trust_information: None,
+        trust_information: Default::default(),
     }
 }
 

@@ -3,7 +3,6 @@ use shared_types::ProofId;
 
 use crate::error::ContextWithErrorCode;
 use crate::model::identifier::IdentifierRelations;
-use crate::model::identifier_trust_information::IdentifierTrustInformationRelations;
 use crate::model::proof::ProofRelations;
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::DecomposedJwt;
@@ -22,9 +21,7 @@ impl OID4VPFinal1_0SwiyuService {
             .get_proof(
                 &id,
                 &ProofRelations {
-                    verifier_identifier: Some(IdentifierRelations {
-                        trust_information: Some(IdentifierTrustInformationRelations {}),
-                    }),
+                    verifier_identifier: Some(IdentifierRelations {}),
                     verifier_key: Some(Default::default()),
                     verifier_certificate: Some(Default::default()),
                     ..Default::default()

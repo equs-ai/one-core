@@ -156,13 +156,9 @@ impl CredentialValidityManagerImpl {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
-                    holder_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    holder_identifier: Some(IdentifierRelations {}),
                     schema: Some(Default::default()),
                     key: Some(KeyRelations::default()),
                     ..Default::default()
@@ -599,12 +595,8 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 &credential_id,
                 &CredentialRelations {
                     schema: Some(Default::default()),
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
-                    holder_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
+                    holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
                     key: Some(KeyRelations::default()),
                     ..Default::default()
@@ -697,9 +689,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                         .get_credential(
                             &batch_item.id,
                             &CredentialRelations {
-                                issuer_identifier: Some(IdentifierRelations {
-                                    ..Default::default()
-                                }),
+                                issuer_identifier: Some(IdentifierRelations {}),
                                 ..Default::default()
                             },
                         )

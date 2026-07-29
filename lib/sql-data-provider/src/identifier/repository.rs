@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use one_core::model::identifier::{
-    GetIdentifierList, Identifier, IdentifierListQuery, IdentifierRelations,
-    UpdateIdentifierRequest,
+    GetIdentifierList, Identifier, IdentifierListQuery, UpdateIdentifierRequest,
 };
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::IdentifierRepository;
@@ -19,28 +18,18 @@ use crate::list_query_generic::{SelectWithFilterJoin, SelectWithListQuery};
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
 
 impl IdentifierProvider {
-    async fn resolve_relations(
+    fn identifier_from_model(
         &self,
         model: identifier::Model,
-        relations: &IdentifierRelations,
     ) -> Result<Identifier, DataLayerError> {
-        let mut result = identifier_from_model(
-            model.clone(),
+        identifier_from_model(
+            model,
             &self.organisation_repository,
             &self.did_repository,
             &self.key_repository,
             &self.certificate_repository,
-        )?;
-
-        if let Some(_trust_relations) = &relations.trust_information {
-            result.trust_information = Some(
-                self.trust_information_repository
-                    .get_by_identifier_id(&model.id)
-                    .await?,
-            );
-        }
-
-        Ok(result)
+            &self.trust_information_repository,
+        )
     }
 }
 
@@ -55,37 +44,27 @@ impl IdentifierRepository for IdentifierProvider {
         Ok(identifier.id)
     }
 
-    async fn get(
-        &self,
-        id: IdentifierId,
-        relations: &IdentifierRelations,
-    ) -> Result<Option<Identifier>, DataLayerError> {
+    async fn get(&self, id: IdentifierId) -> Result<Option<Identifier>, DataLayerError> {
         let identifier = identifier::Entity::find_by_id(id)
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?;
 
-        match identifier {
-            None => Ok(None),
-            Some(identifier) => Ok(Some(self.resolve_relations(identifier, relations).await?)),
-        }
+        identifier
+            .map(|identifier| self.identifier_from_model(identifier))
+            .transpose()
     }
 
-    async fn get_from_did_id(
-        &self,
-        did_id: DidId,
-        relations: &IdentifierRelations,
-    ) -> Result<Option<Identifier>, DataLayerError> {
+    async fn get_from_did_id(&self, did_id: DidId) -> Result<Option<Identifier>, DataLayerError> {
         let identifier = identifier::Entity::find()
             .filter(identifier::Column::DidId.eq(did_id))
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?;
 
-        match identifier {
-            None => Ok(None),
-            Some(identifier) => Ok(Some(self.resolve_relations(identifier, relations).await?)),
-        }
+        identifier
+            .map(|identifier| self.identifier_from_model(identifier))
+            .transpose()
     }
 
     async fn update(
@@ -138,13 +117,7 @@ impl IdentifierRepository for IdentifierProvider {
         let query = get_identifier_list_query(&query_params);
 
         list_query_with_custom_model(query, query_params, &self.db, |model| {
-            identifier_from_model(
-                model,
-                &self.organisation_repository,
-                &self.did_repository,
-                &self.key_repository,
-                &self.certificate_repository,
-            )
+            self.identifier_from_model(model)
         })
         .await
     }

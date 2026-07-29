@@ -352,15 +352,11 @@ impl EtsiLotePublisher {
             .await
             .error_while("listing trust entries")?;
 
-        let identifier_relations = IdentifierRelations {
-            ..Default::default()
-        };
-
         let mut entries_with_identifiers = Vec::new();
         for entry in entry_list.values {
             let identifier = self
                 .identifier_repository
-                .get(entry.identifier_id, &identifier_relations)
+                .get(entry.identifier_id)
                 .await
                 .error_while("fetching entry identifier")?
                 .ok_or_else(|| {

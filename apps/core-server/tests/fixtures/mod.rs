@@ -531,7 +531,7 @@ pub async fn create_identifier(
         data,
         is_remote: params.is_remote.unwrap_or_default(),
         deleted_at: params.deleted_at,
-        trust_information: None,
+        trust_information: Default::default(),
     };
 
     data_layer
@@ -1083,9 +1083,7 @@ pub async fn get_proof(db_conn: &DbConn, proof_id: &ProofId) -> Proof {
                         credential_schema: Some(CredentialSchemaRelations::default()),
                     }),
                 }),
-                verifier_identifier: Some(IdentifierRelations {
-                    ..Default::default()
-                }),
+                verifier_identifier: Some(IdentifierRelations {}),
                 verifier_key: Some(KeyRelations::default()),
                 verifier_certificate: Some(Default::default()),
                 interaction: Some(Default::default()),

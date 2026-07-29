@@ -1374,10 +1374,12 @@ impl OpenID4VCIFinal1_0 {
         &self,
         identifier: &Identifier,
         credential_schema: &CredentialSchema,
-    ) -> Result<Option<Vec<EtsiIssuerInfoResponseDTO>>, IssuanceProtocolError> {
-        let Some(trust_information_list) = identifier.trust_information.as_ref() else {
-            return Ok(None);
-        };
+    ) -> Result<Vec<EtsiIssuerInfoResponseDTO>, IssuanceProtocolError> {
+        let trust_information_list = identifier.trust_information.as_ref().await?;
+        if trust_information_list.is_empty() {
+            return Ok(vec![]);
+        }
+
         let blob_storage = self
             .blob_storage_provider
             .get_blob_storage(BlobStorageType::Db)?;
@@ -1426,7 +1428,7 @@ impl OpenID4VCIFinal1_0 {
             }
         }
 
-        Ok(Some(result))
+        Ok(result)
     }
 
     pub(super) async fn prepare_issuer_metadata(
@@ -1969,9 +1971,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                         schema: Some(ClaimSchemaRelations::default()),
                     }),
                     schema: Some(Default::default()),
-                    issuer_identifier: Some(IdentifierRelations {
-                        ..Default::default()
-                    }),
+                    issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(CertificateRelations::default()),
                     key: Some(KeyRelations::default()),
                     ..Default::default()
@@ -2269,9 +2269,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                         &credential_id,
                         &CredentialRelations {
                             schema: Some(Default::default()),
-                            holder_identifier: Some(IdentifierRelations {
-                                ..Default::default()
-                            }),
+                            holder_identifier: Some(IdentifierRelations {}),
                             key: Some(Default::default()),
                             ..Default::default()
                         },

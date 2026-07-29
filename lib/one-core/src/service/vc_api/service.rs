@@ -80,7 +80,7 @@ impl VCAPIService {
             .ok_or(ServiceError::Other("Issuer DID not found".to_string()))?;
         let _issuer_identifier = self
             .identifier_repository
-            .get_from_did_id(issuer_did.id, &Default::default())
+            .get_from_did_id(issuer_did.id)
             .await
             .error_while("getting identifier")?
             .ok_or(ServiceError::Other(
