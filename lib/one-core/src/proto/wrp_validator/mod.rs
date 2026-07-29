@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::model::claim::Claim;
 use crate::model::credential_schema::CredentialSchema;
-use crate::provider::credential_formatter::model::X5References;
+use crate::provider::credential_formatter::model::{PublicKeySource, X5References};
 use crate::provider::signer::registration_certificate::model::Payload;
 use crate::provider::trust_list_subscriber::TrustEntityResponse;
 
@@ -69,6 +69,14 @@ pub(crate) trait WRPValidator: Send + Sync {
         credential_schema: &CredentialSchema,
         credential_category: Option<&'a str>,
         issuer_x5_references: X5References,
+        organisation_id: OrganisationId,
+    ) -> Result<Option<TrustEntityResponse>, WRPValidatorError>;
+
+    /// Validate that the wallet provider which signed a wallet attestation (WIA/WUA)
+    /// is trusted in the given organisation
+    async fn validate_wallet_provider<'a>(
+        &self,
+        key_source: PublicKeySource<'a>,
         organisation_id: OrganisationId,
     ) -> Result<Option<TrustEntityResponse>, WRPValidatorError>;
 

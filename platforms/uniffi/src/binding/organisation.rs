@@ -108,6 +108,9 @@ pub struct UpsertOrganisationConfigurationBindingDTO {
     /// When true, the wallet only accepts presentation requests from
     /// trusted relying parties.
     pub trusted_rp_required: Option<bool>,
+    /// When true, the issuer will only issue credentials requiring wallet
+    /// attestations to wallets of trusted wallet providers.
+    pub trusted_wallet_provider_required: Option<bool>,
 }
 
 #[derive(Clone, Debug, uniffi::Record, From)]
@@ -188,6 +191,9 @@ pub(crate) struct OrganisationConfigurationBindingDTO {
     /// When true, the wallet only accepts presentation requests from
     /// trusted relying parties.
     pub trusted_rp_required: bool,
+    /// When true, the issuer will only issue credentials requiring wallet
+    /// attestations to wallets of trusted wallet providers.
+    pub trusted_wallet_provider_required: bool,
 }
 
 #[derive(Clone, Debug, uniffi::Record)]

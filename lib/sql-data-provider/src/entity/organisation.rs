@@ -31,6 +31,7 @@ pub struct Model {
 pub struct Configuration {
     pub trusted_rp_required: Option<bool>,
     pub trusted_issuer_required: Option<bool>,
+    pub trusted_wallet_provider_required: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

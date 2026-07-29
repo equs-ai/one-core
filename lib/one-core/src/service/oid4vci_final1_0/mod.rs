@@ -6,6 +6,7 @@ use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::identifier_creator::IdentifierCreator;
 use crate::proto::transaction_manager::TransactionManager;
 use crate::proto::wallet_instance::HolderWalletUnitProto;
+use crate::proto::wrp_validator::WRPValidator;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
@@ -15,6 +16,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
+use crate::repository::history_repository::HistoryRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::service::oid4vci_final1_0::resolver::CredentialIssuerMetadataFetcher;
@@ -24,6 +26,7 @@ pub mod error;
 pub mod mapper;
 mod nonce;
 pub mod service;
+mod trust;
 pub mod validator;
 
 #[derive(Clone)]
@@ -47,6 +50,8 @@ pub struct OID4VCIFinal1_0Service {
     identifier_creator: Arc<dyn IdentifierCreator>,
     issuer_metadata_cache: Arc<dyn CredentialIssuerMetadataFetcher>,
     formatter_provider: Arc<dyn CredentialFormatterProvider>,
+    wrp_validator: Arc<dyn WRPValidator>,
+    history_repository: Arc<dyn HistoryRepository>,
 }
 
 #[expect(clippy::too_many_arguments)]
@@ -69,6 +74,8 @@ impl OID4VCIFinal1_0Service {
         identifier_creator: Arc<dyn IdentifierCreator>,
         issuer_metadata_cache: Arc<dyn CredentialIssuerMetadataFetcher>,
         formatter_provider: Arc<dyn CredentialFormatterProvider>,
+        wrp_validator: Arc<dyn WRPValidator>,
+        history_repository: Arc<dyn HistoryRepository>,
     ) -> Self {
         let protocol_base_url = core_base_url.as_ref().map(|url| get_protocol_base_url(url));
         Self {
@@ -91,6 +98,8 @@ impl OID4VCIFinal1_0Service {
             identifier_creator,
             issuer_metadata_cache,
             formatter_provider,
+            wrp_validator,
+            history_repository,
         }
     }
 
@@ -114,6 +123,8 @@ impl OID4VCIFinal1_0Service {
         holder_wallet_unit_proto: Arc<dyn HolderWalletUnitProto>,
         issuer_metadata_cache: Arc<dyn CredentialIssuerMetadataFetcher>,
         formatter_provider: Arc<dyn CredentialFormatterProvider>,
+        wrp_validator: Arc<dyn WRPValidator>,
+        history_repository: Arc<dyn HistoryRepository>,
     ) -> Self {
         Self {
             protocol_base_url,
@@ -135,6 +146,8 @@ impl OID4VCIFinal1_0Service {
             holder_wallet_unit_proto,
             issuer_metadata_cache,
             formatter_provider,
+            wrp_validator,
+            history_repository,
         }
     }
 }

@@ -83,6 +83,7 @@ pub struct VerifierProviderDetailResponseDTO {
 pub struct OrganisationConfigurationDTO {
     pub trusted_issuer_required: bool,
     pub trusted_rp_required: bool,
+    pub trusted_wallet_provider_required: bool,
 }
 
 impl From<OrganisationConfiguration> for OrganisationConfigurationDTO {
@@ -90,6 +91,7 @@ impl From<OrganisationConfiguration> for OrganisationConfigurationDTO {
         Self {
             trusted_issuer_required: value.trusted_issuer_required,
             trusted_rp_required: value.trusted_rp_required,
+            trusted_wallet_provider_required: value.trusted_wallet_provider_required,
         }
     }
 }
@@ -99,6 +101,7 @@ impl From<OrganisationConfigurationDTO> for OrganisationConfiguration {
         Self {
             trusted_issuer_required: value.trusted_issuer_required,
             trusted_rp_required: value.trusted_rp_required,
+            trusted_wallet_provider_required: value.trusted_wallet_provider_required,
         }
     }
 }
@@ -108,6 +111,7 @@ impl From<OrganisationConfigurationDTO> for OrganisationConfiguration {
 pub struct UpsertOrganisationConfigurationDTO {
     pub trusted_issuer_required: Option<bool>,
     pub trusted_rp_required: Option<bool>,
+    pub trusted_wallet_provider_required: Option<bool>,
 }
 
 pub type GetOrganisationListResponseDTO = GetListResponse<GetOrganisationListItemResponseDTO>;

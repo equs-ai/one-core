@@ -23,10 +23,21 @@ pub struct Organisation {
     pub configuration: OrganisationConfiguration,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OrganisationConfiguration {
     pub trusted_rp_required: bool,
     pub trusted_issuer_required: bool,
+    pub trusted_wallet_provider_required: bool,
+}
+
+impl Default for OrganisationConfiguration {
+    fn default() -> Self {
+        Self {
+            trusted_rp_required: false,
+            trusted_issuer_required: false,
+            trusted_wallet_provider_required: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

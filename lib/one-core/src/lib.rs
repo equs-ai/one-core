@@ -642,6 +642,8 @@ impl OneCore {
                 identifier_creator.clone(),
                 credential_issuer_metadata_cache.clone(),
                 credential_formatter_provider.clone(),
+                wrp_validator.clone(),
+                data_provider.get_history_repository(),
             ),
             oid4vci_final1_0_swiyu_service: OID4VCIFinal1_0SwiyuService::new(
                 core_base_url.clone(),
@@ -661,6 +663,8 @@ impl OneCore {
                 wallet_unit_proto.clone(),
                 credential_issuer_metadata_cache,
                 credential_formatter_provider.clone(),
+                wrp_validator.clone(),
+                data_provider.get_history_repository(),
             ),
             oid4vp_final1_0_service: OID4VPFinal1_0Service::new(
                 data_provider.get_credential_repository(),

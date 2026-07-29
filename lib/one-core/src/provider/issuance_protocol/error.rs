@@ -115,6 +115,8 @@ pub enum OpenID4VCIError {
     UnsupportedGrantType,
     #[error("invalid_grant")]
     InvalidGrant,
+    #[error("invalid_client")]
+    InvalidClient,
     #[error("invalid_request")]
     InvalidRequest,
     #[error("invalid_token")]

@@ -9,6 +9,7 @@ use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::identifier_creator::IdentifierCreator;
 use crate::proto::transaction_manager::TransactionManager;
 use crate::proto::wallet_instance::HolderWalletUnitProto;
+use crate::proto::wrp_validator::WRPValidator;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
@@ -18,6 +19,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
+use crate::repository::history_repository::HistoryRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::service::oid4vci_final1_0::OID4VCIFinal1_0Service;
@@ -49,6 +51,8 @@ impl OID4VCIFinal1_0SwiyuService {
         holder_wallet_unit_proto: Arc<dyn HolderWalletUnitProto>,
         credential_issuer_metadata_cache: Arc<dyn CredentialIssuerMetadataFetcher>,
         formatter_provider: Arc<dyn CredentialFormatterProvider>,
+        wrp_validator: Arc<dyn WRPValidator>,
+        history_repository: Arc<dyn HistoryRepository>,
     ) -> Self {
         let protocol_base_url = core_base_url
             .as_ref()
@@ -74,6 +78,8 @@ impl OID4VCIFinal1_0SwiyuService {
                 holder_wallet_unit_proto,
                 credential_issuer_metadata_cache,
                 formatter_provider,
+                wrp_validator,
+                history_repository,
             ),
             protocol_provider,
         }

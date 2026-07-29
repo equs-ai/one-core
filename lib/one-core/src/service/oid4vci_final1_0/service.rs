@@ -28,7 +28,7 @@ use super::nonce::{generate_nonce, validate_nonce};
 use super::validator::{
     self, extract_wallet_metadata, throw_if_access_token_invalid,
     validate_credential_request_format, validate_pop_audience, validate_timestamps,
-    verify_pop_signature, verify_wia_signature, verify_wua_wia_issuers_match,
+    verify_pop_signature, verify_wia_signature, verify_wua_wia_issuers_match, wia_key_source,
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{BlobStorageType, FormatType, IssuanceProtocolType};
@@ -45,6 +45,7 @@ use crate::model::credential::{
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::KeyRole;
+use crate::model::history::TrustResolutionResult;
 use crate::model::identifier::{Identifier, IdentifierRelations};
 use crate::model::interaction::UpdateInteractionRequest;
 use crate::model::relation::Related;
@@ -72,7 +73,9 @@ use crate::provider::issuance_protocol::openid4vci_final1_0::service::{
 use crate::provider::revocation::model::{Operation, RevocationState};
 use crate::repository::error::DataLayerError;
 use crate::service::credential::dto::{WalletInstanceAttestationDTO, WalletUnitAttestationDTO};
-use crate::service::managed_instance::dto::WalletInstanceAttestationClaims;
+use crate::service::managed_instance::dto::{
+    WalletInstanceAttestationClaims, WalletUnitAttestationClaims,
+};
 use crate::service::ssi_validator::validate_issuance_protocol_type;
 use crate::validator::throw_if_credential_state_not_eq;
 
@@ -414,6 +417,7 @@ impl OID4VCIFinal1_0Service {
                     &schema,
                     &params,
                     credential.wallet_instance_attestation_blob_id.as_ref(),
+                    credential.id,
                 )
                 .await?;
 
@@ -494,6 +498,7 @@ impl OID4VCIFinal1_0Service {
         schema: &CredentialSchema,
         params: &OpenID4VCIFinal1Params,
         wallet_instance_attestation_blob_id: Option<&BlobId>,
+        credential_id: CredentialId,
     ) -> Result<(PreparedIdentifier, NonceId), OID4VCIFinal1_0ServiceError> {
         let token_verifier = KeyVerification {
             key_algorithm_provider: self.key_algorithm_provider.clone(),
@@ -588,6 +593,26 @@ impl OID4VCIFinal1_0Service {
                         .error_while("parsing WIA token")?;
 
                 verify_wua_wia_issuers_match(key_attestation_jwt, &wia)?;
+            }
+
+            let wua = Jwt::<WalletUnitAttestationClaims>::decompose_token(key_attestation_jwt)
+                .error_while("parsing WUA token")?;
+            let key_source = wua
+                .public_key_source(None)
+                .error_while("extracting WUA public key")?;
+            let organisation = schema.organisation.as_ref().await?;
+            let trust = self
+                .resolve_wallet_provider_trust(
+                    key_source,
+                    &organisation,
+                    credential_id,
+                    &schema.name,
+                )
+                .await?;
+            if organisation.configuration.trusted_wallet_provider_required
+                && trust != TrustResolutionResult::Trusted
+            {
+                return Err(OpenID4VCIError::CredentialRequestDenied.into());
             }
 
             let proof_signing_key = match &holder_binding {
@@ -1021,6 +1046,7 @@ impl OID4VCIFinal1_0Service {
                 &credential.protocol,
                 issuer_identifier_id,
                 params.oauth_attestation_leeway,
+                credential.id,
             )
             .await?;
 
@@ -1187,6 +1213,7 @@ impl OID4VCIFinal1_0Service {
         Ok(result)
     }
 
+    #[expect(clippy::too_many_arguments)]
     async fn validate_oauth_client_attestation(
         &self,
         oauth_client_attestation: Option<&str>,
@@ -1195,6 +1222,7 @@ impl OID4VCIFinal1_0Service {
         protocol_id: &str,
         issuer_identifier_id: Option<IdentifierId>,
         leeway: Duration,
+        credential_id: CredentialId,
     ) -> Result<Option<WalletInstanceAttestationDTO>, OID4VCIFinal1_0ServiceError> {
         // If the credential schema does not require client attestation, no tokens are expected
         if !credential_schema.requires_wallet_instance_attestation {
@@ -1253,6 +1281,22 @@ impl OID4VCIFinal1_0Service {
         };
 
         verify_wia_signature(&wallet_instance_attestation, &verifier).await?;
+
+        let key_source = wia_key_source(&wallet_instance_attestation)?;
+        let organisation = credential_schema.organisation.as_ref().await?;
+        let trust = self
+            .resolve_wallet_provider_trust(
+                key_source,
+                &organisation,
+                credential_id,
+                &credential_schema.name,
+            )
+            .await?;
+        if organisation.configuration.trusted_wallet_provider_required
+            && trust != TrustResolutionResult::Trusted
+        {
+            return Err(OpenID4VCIError::InvalidClient.into());
+        }
 
         // Extract wallet metadata
         let (name, link) = extract_wallet_metadata(&wallet_instance_attestation)?;

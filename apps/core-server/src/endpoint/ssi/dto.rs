@@ -80,6 +80,7 @@ pub(crate) struct OpenID4VCIErrorResponseRestDTO {
 pub(crate) enum OpenID4VCIErrorRestEnum {
     UnsupportedGrantType,
     InvalidGrant,
+    InvalidClient,
     InvalidRequest,
     InvalidToken,
     InvalidNonce,

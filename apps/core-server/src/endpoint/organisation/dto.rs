@@ -2,8 +2,8 @@ use one_core::service::error::ServiceError;
 use one_core::service::organisation::dto::{
     CreateOrganisationRequestDTO, GetOrganisationDetailsResponseDTO,
     GetOrganisationListItemResponseDTO, InstanceDetailResponseDTO, OrganisationConfigurationDTO,
-    OrganisationFilterParamsDTO, TrustCollectionInfoDTO, VerifierProviderDetailResponseDTO,
-    WalletProviderDetailResponseDTO,
+    OrganisationFilterParamsDTO, TrustCollectionInfoDTO, UpsertOrganisationConfigurationDTO,
+    VerifierProviderDetailResponseDTO, WalletProviderDetailResponseDTO,
 };
 use one_dto_mapper::{From, Into, TryInto, convert_inner};
 use proc_macros::options_not_nullable;
@@ -72,7 +72,8 @@ pub(crate) struct UpsertProviderRequestRestDTO {
     pub issuer: Option<IdentifierId>,
 }
 
-#[derive(Clone, Debug, Deserialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
+#[into(UpsertOrganisationConfigurationDTO)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct UpsertOrganisationConfigurationRestDTO {
     /// When true, the verifier will only validate presentations of
@@ -81,6 +82,9 @@ pub(crate) struct UpsertOrganisationConfigurationRestDTO {
     /// When true, the wallet only accepts presentation requests from
     /// trusted relying parties.
     pub trusted_rp_required: Option<bool>,
+    /// When true, the issuer will only issue credentials requiring wallet
+    /// attestations to wallets of trusted wallet providers.
+    pub trusted_wallet_provider_required: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema)]
@@ -170,6 +174,9 @@ pub(crate) struct OrganisationConfigurationRestDTO {
     /// When true, the wallet only accepts presentation requests from
     /// trusted relying parties.
     pub trusted_rp_required: bool,
+    /// When true, the issuer will only issue credentials requiring wallet
+    /// attestations to wallets of trusted wallet providers.
+    pub trusted_wallet_provider_required: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, ToSchema, Into)]

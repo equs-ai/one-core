@@ -1,25 +1,14 @@
-use one_core::service::organisation::dto::{
-    UpsertOrganisationConfigurationDTO, UpsertOrganisationRequestDTO,
-};
+use one_core::service::organisation::dto::UpsertOrganisationRequestDTO;
 use shared_types::{IdentifierId, OrganisationId};
 
 use super::dto::{
-    CreateOrganisationResponseRestDTO, UpsertOrganisationConfigurationRestDTO,
-    UpsertOrganisationRequestRestDTO, UpsertProviderRequestRestDTO,
+    CreateOrganisationResponseRestDTO, UpsertOrganisationRequestRestDTO,
+    UpsertProviderRequestRestDTO,
 };
 
 impl From<OrganisationId> for CreateOrganisationResponseRestDTO {
     fn from(value: OrganisationId) -> Self {
         Self { id: value }
-    }
-}
-
-impl From<UpsertOrganisationConfigurationRestDTO> for UpsertOrganisationConfigurationDTO {
-    fn from(value: UpsertOrganisationConfigurationRestDTO) -> Self {
-        Self {
-            trusted_issuer_required: value.trusted_issuer_required,
-            trusted_rp_required: value.trusted_rp_required,
-        }
     }
 }
 

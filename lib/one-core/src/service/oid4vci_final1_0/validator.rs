@@ -130,22 +130,28 @@ pub(crate) fn verify_pop_signature(
     Ok(())
 }
 
+pub(crate) fn wia_key_source(
+    wallet_instance_attestation: &DecomposedJwt<WalletInstanceAttestationClaims>,
+) -> Result<PublicKeySource<'_>, OID4VCIFinal1_0ServiceError> {
+    match (
+        wallet_instance_attestation.header.jwk.as_ref(),
+        wallet_instance_attestation.header.x5c.as_ref(),
+    ) {
+        (Some(jwk), None) => Ok(jwk.into()),
+        (None, Some(x5c)) => Ok(PublicKeySource::X5c { x5c }),
+        _ => {
+            tracing::info!("WIA issuer not specified");
+            Err(OpenID4VCIError::InvalidRequest.into())
+        }
+    }
+}
+
 #[tracing::instrument(level = "debug", skip_all, err(level = "info"))]
 pub(crate) async fn verify_wia_signature(
     wallet_instance_attestation: &DecomposedJwt<WalletInstanceAttestationClaims>,
     verifier: &dyn TokenVerifier,
 ) -> Result<(), OID4VCIFinal1_0ServiceError> {
-    let public_key_source = match (
-        wallet_instance_attestation.header.jwk.as_ref(),
-        wallet_instance_attestation.header.x5c.as_ref(),
-    ) {
-        (Some(jwk), None) => jwk.into(),
-        (None, Some(x5c)) => PublicKeySource::X5c { x5c },
-        _ => {
-            tracing::info!("WIA issuer not specified");
-            return Err(OpenID4VCIError::InvalidRequest.into());
-        }
-    };
+    let public_key_source = wia_key_source(wallet_instance_attestation)?;
 
     wallet_instance_attestation
         .verify_signature(public_key_source, verifier)

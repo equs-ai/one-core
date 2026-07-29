@@ -298,6 +298,9 @@ impl OrganisationService {
                     trusted_rp_required: update
                         .trusted_rp_required
                         .unwrap_or(existing_configuration.trusted_rp_required),
+                    trusted_wallet_provider_required: update
+                        .trusted_wallet_provider_required
+                        .unwrap_or(existing_configuration.trusted_wallet_provider_required),
                 });
 
         let success_log = format!("Updated organisation {}", request.id);

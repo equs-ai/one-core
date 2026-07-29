@@ -305,6 +305,19 @@ impl WRPValidator for WRPValidatorImpl {
         Ok(Some(trusted_entity))
     }
 
+    async fn validate_wallet_provider<'a>(
+        &self,
+        key_source: PublicKeySource<'a>,
+        organisation_id: OrganisationId,
+    ) -> Result<Option<TrustEntityResponse>, WRPValidatorError> {
+        self.perform_trust_validation(
+            key_source.try_into()?,
+            TrustListRoleEnum::WalletProvider,
+            organisation_id,
+        )
+        .await
+    }
+
     async fn wallet_trust_mode(
         &self,
         organisation_id: OrganisationId,
