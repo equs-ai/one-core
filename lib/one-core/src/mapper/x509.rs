@@ -4,6 +4,7 @@ use ct_codecs::{Base64, Decoder, Encoder};
 use futures::executor::block_on;
 use one_crypto::signer::ecdsa::ECDSASigner;
 use standardized_types::x509::KeyIdentifier;
+use tokio::task::block_in_place;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::extensions::ParsedExtension;
 use x509_parser::oid_registry::{
@@ -221,49 +222,49 @@ impl rcgen::SigningKey for SigningKeyAdapter {
         let msg = msg.to_vec();
         let algorithm = self.algorithm;
 
-        let local = tokio::task::LocalSet::new();
-        let handle = local.run_until(async move {
-            let mut signature = key_storage
-                .key_handle(&key)
-                .map_err(|error| {
-                    tracing::warn!(%error, "Failed to sign X509 - key handle failure");
-                    rcgen::Error::RemoteKeyError
-                })?
-                .sign(&msg)
-                .await
-                .map_err(|error| {
-                    tracing::warn!(%error, "Failed to sign X509");
-                    rcgen::Error::RemoteKeyError
-                })?;
-
-            // P256 signature must be ASN.1 encoded
-            if algorithm == &rcgen::PKCS_ECDSA_P256_SHA256 {
-                use asn1_rs::{Integer, SequenceOf, ToDer};
-
-                let s: [u8; 32] = signature.split_off(32).try_into().map_err(|_| {
-                    tracing::warn!("Failed to convert generated signature");
-                    rcgen::Error::RemoteKeyError
-                })?;
-                let r: [u8; 32] = signature.try_into().map_err(|_| {
-                    tracing::warn!("Failed to convert generated signature");
-                    rcgen::Error::RemoteKeyError
-                })?;
-
-                let r = Integer::from_const_array(r);
-                let s = Integer::from_const_array(s);
-                let seq = SequenceOf::from_iter([r, s]);
-                signature = seq.to_der_vec().map_err(|error| {
-                    tracing::warn!(%error, "Failed to serialize P256 signature");
-                    rcgen::Error::RemoteKeyError
-                })?;
-            }
-
-            Ok(signature)
-        });
         // block_in_place keeps the runtime workers available to drive the
         // HTTP futures of remote key storages while this thread blocks;
         // requires a multi-thread runtime (tests need the multi_thread flavor)
-        tokio::task::block_in_place(|| block_on(handle))
+        block_in_place(|| {
+            block_on(async move {
+                let mut signature = key_storage
+                    .key_handle(&key)
+                    .map_err(|error| {
+                        tracing::warn!(%error, "Failed to sign X509 - key handle failure");
+                        rcgen::Error::RemoteKeyError
+                    })?
+                    .sign(&msg)
+                    .await
+                    .map_err(|error| {
+                        tracing::warn!(%error, "Failed to sign X509");
+                        rcgen::Error::RemoteKeyError
+                    })?;
+
+                // P256 signature must be ASN.1 encoded
+                if algorithm == &rcgen::PKCS_ECDSA_P256_SHA256 {
+                    use asn1_rs::{Integer, SequenceOf, ToDer};
+
+                    let s: [u8; 32] = signature.split_off(32).try_into().map_err(|_| {
+                        tracing::warn!("Failed to convert generated signature");
+                        rcgen::Error::RemoteKeyError
+                    })?;
+                    let r: [u8; 32] = signature.try_into().map_err(|_| {
+                        tracing::warn!("Failed to convert generated signature");
+                        rcgen::Error::RemoteKeyError
+                    })?;
+
+                    let r = Integer::from_const_array(r);
+                    let s = Integer::from_const_array(s);
+                    let seq = SequenceOf::from_iter([r, s]);
+                    signature = seq.to_der_vec().map_err(|error| {
+                        tracing::warn!(%error, "Failed to serialize P256 signature");
+                        rcgen::Error::RemoteKeyError
+                    })?;
+                }
+
+                Ok(signature)
+            })
+        })
     }
 }
 

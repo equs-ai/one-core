@@ -27,7 +27,10 @@ use crate::provider::revocation::RevocationMethod;
 use crate::repository::revocation_list_repository::MockRevocationListRepository;
 use crate::service::test_utilities::{dummy_identifier, dummy_key, dummy_organisation};
 
-#[tokio::test(flavor = "multi_thread")]
+// Note: if this tests starts failing / times out, but works if number of worker threads is increased,
+// then the async -> sync -> async sandwich in one_core::mapper::x509::SigningKeyAdapter::sign
+// has been broken. Do not change unless you know exactly what you're doing.
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_add_signature_new_list() {
     let issuer = dummy_identifier();
     let certificate = dummy_ca_certificate(&issuer);
