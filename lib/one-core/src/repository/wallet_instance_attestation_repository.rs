@@ -3,7 +3,6 @@ use shared_types::{InstanceId, KeyId, WalletInstanceAttestationId};
 use super::error::DataLayerError;
 use crate::model::wallet_instance_attestation::{
     UpdateWalletInstanceAttestationRequest, WalletInstanceAttestation,
-    WalletInstanceAttestationRelations,
 };
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -22,7 +21,6 @@ pub trait WalletInstanceAttestationRepository: Send + Sync + 'static {
     async fn get_wallet_instance_attestations_by_holder_wallet_unit(
         &self,
         holder_wallet_unit_id: &InstanceId,
-        relations: &WalletInstanceAttestationRelations,
     ) -> Result<Vec<WalletInstanceAttestation>, DataLayerError>;
 
     async fn update_wallet_attestation(

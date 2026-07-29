@@ -154,13 +154,10 @@ impl InstanceProvider {
             holder_wallet_unit.authentication_key = Some(key)
         }
 
-        if let Some(wallet_unit_attestation_relations) = &relations.wallet_unit_attestations {
+        if let Some(_wallet_unit_attestation_relations) = &relations.wallet_unit_attestations {
             let attestations = self
                 .wallet_unit_attestation_repository
-                .get_wallet_instance_attestations_by_holder_wallet_unit(
-                    &id,
-                    wallet_unit_attestation_relations,
-                )
+                .get_wallet_instance_attestations_by_holder_wallet_unit(&id)
                 .await?;
             holder_wallet_unit.wallet_unit_attestations = Some(attestations)
         }

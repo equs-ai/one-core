@@ -1,7 +1,8 @@
 use shared_types::{InstanceId, WalletInstanceAttestationId};
 use time::OffsetDateTime;
 
-use crate::model::key::{Key, KeyRelations};
+use crate::model::key::Key;
+use crate::model::relation::Related;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
@@ -16,13 +17,11 @@ pub struct WalletInstanceAttestation {
     pub revocation_list_index: Option<i64>,
 
     // Relations:
-    pub attested_key: Option<Key>,
+    pub attested_key: Related<Key>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct WalletInstanceAttestationRelations {
-    pub attested_key: Option<KeyRelations>,
-}
+pub struct WalletInstanceAttestationRelations {}
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct UpdateWalletInstanceAttestationRequest {

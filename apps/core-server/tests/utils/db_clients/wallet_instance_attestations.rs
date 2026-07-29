@@ -2,9 +2,7 @@ use std::ops::Add;
 use std::sync::Arc;
 
 use one_core::model::key::Key;
-use one_core::model::wallet_instance_attestation::{
-    WalletInstanceAttestation, WalletInstanceAttestationRelations,
-};
+use one_core::model::wallet_instance_attestation::WalletInstanceAttestation;
 use one_core::repository::wallet_instance_attestation_repository::WalletInstanceAttestationRepository;
 use shared_types::{InstanceId, WalletInstanceAttestationId};
 use time::{Duration, OffsetDateTime};
@@ -34,10 +32,7 @@ impl WalletInstanceAttestationsDB {
         holder_wallet_instance_id: &InstanceId,
     ) -> Vec<WalletInstanceAttestation> {
         self.repository
-            .get_wallet_instance_attestations_by_holder_wallet_unit(
-                holder_wallet_instance_id,
-                &WalletInstanceAttestationRelations::default(),
-            )
+            .get_wallet_instance_attestations_by_holder_wallet_unit(holder_wallet_instance_id)
             .await
             .unwrap()
     }
@@ -65,7 +60,7 @@ impl WalletInstanceAttestationsDB {
             holder_wallet_unit_id: holder_wallet_instance_id,
             revocation_list_url: test_wallet_instance_attestation.revocation_list_url,
             revocation_list_index: test_wallet_instance_attestation.revocation_list_index,
-            attested_key: Some(attested_key),
+            attested_key: attested_key.into(),
         };
         self.repository
             .create_wallet_instance_attestation(attestation.clone())

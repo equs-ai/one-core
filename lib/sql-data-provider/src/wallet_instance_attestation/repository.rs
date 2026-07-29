@@ -1,8 +1,5 @@
-use std::collections::HashMap;
-
 use one_core::model::wallet_instance_attestation::{
     UpdateWalletInstanceAttestationRequest, WalletInstanceAttestation,
-    WalletInstanceAttestationRelations,
 };
 use one_core::repository::error::DataLayerError;
 use one_core::repository::wallet_instance_attestation_repository::WalletInstanceAttestationRepository;
@@ -10,6 +7,7 @@ use sea_orm::sea_query::IntoCondition;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, Unchanged};
 use shared_types::{InstanceId, KeyId, WalletInstanceAttestationId};
 
+use super::mapper::wallet_instance_attestation_from_model;
 use crate::entity::wallet_instance_attestation;
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
 use crate::wallet_instance_attestation::WalletInstanceAttestationProvider;
@@ -20,7 +18,7 @@ impl WalletInstanceAttestationRepository for WalletInstanceAttestationProvider {
         &self,
         request: WalletInstanceAttestation,
     ) -> Result<WalletInstanceAttestationId, DataLayerError> {
-        let wallet_unit_attestation = wallet_instance_attestation::ActiveModel::try_from(request)?
+        let wallet_unit_attestation = wallet_instance_attestation::ActiveModel::from(request)
             .insert(&self.db)
             .await
             .map_err(to_data_layer_error)?;
@@ -41,13 +39,12 @@ impl WalletInstanceAttestationRepository for WalletInstanceAttestationProvider {
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?
-            .map(Into::into))
+            .map(|model| wallet_instance_attestation_from_model(model, &self.key_repository)))
     }
 
     async fn get_wallet_instance_attestations_by_holder_wallet_unit(
         &self,
         holder_wallet_unit_id: &InstanceId,
-        relations: &WalletInstanceAttestationRelations,
     ) -> Result<Vec<WalletInstanceAttestation>, DataLayerError> {
         let entity_models: Vec<wallet_instance_attestation::Model> =
             wallet_instance_attestation::Entity::find()
@@ -64,37 +61,10 @@ impl WalletInstanceAttestationRepository for WalletInstanceAttestationProvider {
             return Ok(vec![]);
         };
 
-        let key_id_map = entity_models
-            .iter()
-            .map(|model| (model.id, model.attested_key_id))
-            .collect::<HashMap<_, _>>();
-        let mut wallet_unit_attestations: Vec<_> = entity_models
+        Ok(entity_models
             .into_iter()
-            .map(WalletInstanceAttestation::from)
-            .collect();
-
-        if relations.attested_key.is_some() {
-            let keys = self
-                .key_repository
-                .get_keys(&key_id_map.values().cloned().collect::<Vec<_>>())
-                .await?;
-            for attestation in wallet_unit_attestations.iter_mut() {
-                let key_id = key_id_map.get(&attestation.id).ok_or(
-                    DataLayerError::MissingRequiredRelation {
-                        relation: "walletUnitAttestation-key",
-                        id: attestation.id.to_string(),
-                    },
-                )?;
-                let key = keys.iter().find(|key| key.id == *key_id).ok_or(
-                    DataLayerError::MissingRequiredRelation {
-                        relation: "walletUnitAttestation-key",
-                        id: attestation.id.to_string(),
-                    },
-                )?;
-                attestation.attested_key = Some(key.clone());
-            }
-        }
-        Ok(wallet_unit_attestations)
+            .map(|model| wallet_instance_attestation_from_model(model, &self.key_repository))
+            .collect())
     }
 
     async fn update_wallet_attestation(

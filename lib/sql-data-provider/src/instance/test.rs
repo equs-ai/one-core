@@ -4,9 +4,7 @@ use one_core::model::instance::{
 };
 use one_core::model::key::{Key, KeyRelations};
 use one_core::model::organisation::Organisation;
-use one_core::model::wallet_instance_attestation::{
-    WalletInstanceAttestation, WalletInstanceAttestationRelations,
-};
+use one_core::model::wallet_instance_attestation::WalletInstanceAttestation;
 use one_core::repository::instance_repository::InstanceRepository;
 use shared_types::InstanceId;
 use similar_asserts::assert_eq;
@@ -98,7 +96,7 @@ async fn update_holder_wallet_instance_success() {
             holder_wallet_unit_id: id,
             revocation_list_url: None,
             revocation_list_index: None,
-            attested_key: Some(key.clone()),
+            attested_key: key.clone().into(),
         }]),
         authentication_key_id: None,
     };
@@ -109,9 +107,7 @@ async fn update_holder_wallet_instance_success() {
         .get(
             &id,
             &InstanceRelations {
-                wallet_unit_attestations: Some(WalletInstanceAttestationRelations {
-                    attested_key: Some(KeyRelations::default()),
-                }),
+                wallet_unit_attestations: Some(Default::default()),
                 authentication_key: Some(KeyRelations::default()),
             },
         )
