@@ -357,11 +357,13 @@ impl EncryptedJWE {
             .map_err(|e| EncryptionError::Crypto(format!("Failed to parse JWE header: {e}")))?;
 
         let alg = KeyAgreementAlgorithm::from_protected_header(&self.protected_header)?;
-        let shared_secret = self.derive_shared_secret(private_key_handle).await?;
 
         // Resolve the Content Encryption Key. For direct `ECDH-ES` the derived
         // key IS the CEK; for `ECDH-ES+A256KW` the derived key is a KEK used to
-        // unwrap the CEK carried in segment 2.
+        // unwrap the CEK carried in segment 2. `derive_shared_secret` is an
+        // expensive key-agreement operation, so it is deferred until after the
+        // cheap structural checks in each arm to avoid wasting it on a
+        // malformed JWE.
         let encryption_key = match alg {
             KeyAgreementAlgorithm::EcdhEs => {
                 if !self.encrypted_key.is_empty() {
@@ -369,9 +371,11 @@ impl EncryptedJWE {
                         "Invalid JWE: expected empty CEK".to_string(),
                     ));
                 }
+                let shared_secret = self.derive_shared_secret(private_key_handle).await?;
                 self.derive_encryption_key(&shared_secret, &header)?
             }
             KeyAgreementAlgorithm::EcdhEsA256Kw => {
+                let shared_secret = self.derive_shared_secret(private_key_handle).await?;
                 let kek = self.derive_key_encryption_key(&shared_secret, &header)?;
                 unwrap_cek_aes256(&kek, &self.encrypted_key)?
             }
