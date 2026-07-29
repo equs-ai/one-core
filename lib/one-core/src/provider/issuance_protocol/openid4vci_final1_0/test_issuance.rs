@@ -205,7 +205,6 @@ async fn test_issuer_submit_succeeds() {
             "oauthAttestationLeeway": 60,
             "keyAttestationLeeway": 60,
             "trustEcosystemLeeway": 60,
-            "requestSignedMetadata": false
         }),
         "OPENID4VCI_FINAL1".to_string(),
         Arc::new(MockHolderWalletUnitProto::new()),
@@ -377,7 +376,6 @@ async fn test_issue_credential_for_mdoc_succeeds() {
             "oauthAttestationLeeway": 60,
             "keyAttestationLeeway": 60,
             "trustEcosystemLeeway": 60,
-            "requestSignedMetadata": false
         }),
         "OPENID4VCI_FINAL1".to_string(),
         Arc::new(MockHolderWalletUnitProto::new()),
@@ -537,7 +535,6 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
             "oauthAttestationLeeway": 60,
             "keyAttestationLeeway": 60,
             "trustEcosystemLeeway": 60,
-            "requestSignedMetadata": false
         }),
         "OPENID4VCI_FINAL1".to_string(),
         Arc::new(MockHolderWalletUnitProto::new()),
@@ -640,7 +637,6 @@ async fn test_issue_credential_for_existing_mdoc_with_expected_update_in_the_fut
             "oauthAttestationLeeway": 60,
             "keyAttestationLeeway": 60,
             "trustEcosystemLeeway": 60,
-            "requestSignedMetadata": false
         }),
         "OPENID4VCI_FINAL1".to_string(),
         Arc::new(MockHolderWalletUnitProto::new()),

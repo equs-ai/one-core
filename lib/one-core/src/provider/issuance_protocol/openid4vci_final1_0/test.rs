@@ -128,7 +128,7 @@ struct TestInputs {
     pub certificate_validator: MockCertificateValidator,
     pub holder_wallet_unit_proto: MockHolderWalletUnitProto,
     pub holder_wallet_unit_repository: MockInstanceRepository,
-    pub wrp_validator: MockWRPValidator,
+    pub wrp_validator: Option<MockWRPValidator>,
     pub history_repository: MockHistoryRepository,
     pub interaction_repository: MockInteractionRepository,
     pub config: CoreConfig,
@@ -169,7 +169,14 @@ fn setup_protocol(inputs: TestInputs) -> OpenID4VCIFinal1_0 {
         Arc::new(inputs.holder_wallet_unit_proto),
         Arc::new(inputs.holder_wallet_unit_repository),
         Arc::new(inputs.certificate_validator),
-        Arc::new(inputs.wrp_validator),
+        Arc::new(inputs.wrp_validator.unwrap_or_else(|| {
+            // default to disabled since most tests don't test / mock calls to the wallet provider
+            let mut wrp_validator = MockWRPValidator::new();
+            wrp_validator
+                .expect_wallet_trust_mode()
+                .returning(|_| Ok(TrustMode::Disabled));
+            wrp_validator
+        })),
         Arc::new(inputs.history_repository),
         Arc::new(NoSessionProvider),
         Arc::new(inputs.interaction_repository),
@@ -2367,6 +2374,152 @@ async fn inner_test_handle_invitation_credential_by_ref_success(
     assert_eq!(key_storage_security, None);
 }
 
+fn unsigned_metadata_offer_url() -> Url {
+    let credential_offer = json!({
+        "credential_issuer": "http://issuer.url/issuer",
+        "credential_configuration_ids": ["doctype"],
+        "grants": {
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "c322aa7f-9803-410d-b891-939b279fb965" }
+        }
+    });
+    Url::parse_with_params(
+        "openid-credential-offer://",
+        &[("credential_offer", credential_offer.to_string())],
+    )
+    .unwrap()
+}
+
+#[tokio::test]
+async fn test_handle_invitation_falls_back_to_unsigned_metadata_when_trust_optional() {
+    let mut metadata_cache = MockOpenIDMetadataFetcher::new();
+    metadata_cache
+        .expect_get()
+        .with(
+            eq("http://issuer.url/.well-known/openid-credential-issuer/issuer"),
+            eq("application/jwt"),
+        )
+        .once()
+        .returning(|_, _| {
+            Err(serde_json::from_slice::<Value>(b"not a jwt")
+                .unwrap_err()
+                .into())
+        });
+    metadata_cache
+        .expect_get()
+        .with(
+            eq("http://issuer.url/.well-known/openid-credential-issuer/issuer"),
+            eq("application/json"),
+        )
+        .once()
+        .returning(|_, _| {
+            Ok(json!({
+                "credential_endpoint": "http://issuer.url/issuer/credential",
+                "credential_issuer": "http://issuer.url/issuer",
+                "nonce_endpoint": "http://issuer.url/issuer/nonce",
+                "credential_configurations_supported": {
+                    "doctype": {
+                        "credential_definition": {
+                            "type": ["VerifiableCredential"],
+                            "credentialSubject": {
+                                "address": {
+                                    "value_type": "STRING",
+                                }
+                            }
+                        },
+                        "format": "vc+sd-jwt",
+                    }
+                }
+            })
+            .to_string()
+            .into_bytes())
+        });
+    metadata_cache
+        .expect_get()
+        .with(
+            eq("http://issuer.url/.well-known/oauth-authorization-server/issuer"),
+            eq("application/json"),
+        )
+        .once()
+        .returning(|_, _| {
+            Ok(json!({
+                "issuer": "http://issuer.url/issuer",
+                "grant_types_supported": ["urn:ietf:params:oauth:grant-type:pre-authorized_code"],
+                "response_types_supported": ["token"],
+                "token_endpoint": "http://issuer.url/issuer/token"
+            })
+            .to_string()
+            .into_bytes())
+        });
+
+    let mut wrp_validator = MockWRPValidator::new();
+    wrp_validator
+        .expect_wallet_trust_mode()
+        .once()
+        .returning(|_| Ok(TrustMode::TrustOptional));
+
+    let mut interaction_repository = MockInteractionRepository::default();
+    interaction_repository
+        .expect_create_interaction()
+        .once()
+        .returning(|i: Interaction| Ok(i.id));
+
+    let protocol = setup_protocol(TestInputs {
+        metadata_cache,
+        wrp_validator: Some(wrp_validator),
+        interaction_repository,
+        ..Default::default()
+    });
+
+    let result = protocol
+        .holder_handle_invitation(
+            unsigned_metadata_offer_url(),
+            dummy_organisation(None),
+            None,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(result, InvitationResponseEnum::Credential { .. }));
+}
+
+#[tokio::test]
+async fn test_handle_invitation_requires_signed_metadata_when_trust_mandatory() {
+    // no "application/json" fallback expected, signed metadata is required
+    let mut metadata_cache = MockOpenIDMetadataFetcher::new();
+    metadata_cache
+        .expect_get()
+        .with(
+            eq("http://issuer.url/.well-known/openid-credential-issuer/issuer"),
+            eq("application/jwt"),
+        )
+        .once()
+        .returning(|_, _| {
+            Err(serde_json::from_slice::<Value>(b"not a jwt")
+                .unwrap_err()
+                .into())
+        });
+
+    let mut wrp_validator = MockWRPValidator::new();
+    wrp_validator
+        .expect_wallet_trust_mode()
+        .once()
+        .returning(|_| Ok(TrustMode::TrustMandatory));
+
+    let protocol = setup_protocol(TestInputs {
+        metadata_cache,
+        wrp_validator: Some(wrp_validator),
+        ..Default::default()
+    });
+
+    protocol
+        .holder_handle_invitation(
+            unsigned_metadata_offer_url(),
+            dummy_organisation(None),
+            None,
+        )
+        .await
+        .unwrap_err();
+}
+
 #[tokio::test]
 async fn test_handle_invitation_signed_metadata() {
     let mut client = MockHttpClient::new();
@@ -2633,14 +2786,10 @@ async fn test_handle_invitation_signed_metadata() {
         metadata_cache,
         key_algorithm_provider,
         certificate_validator,
-        wrp_validator,
+        wrp_validator: Some(wrp_validator),
         interaction_repository,
         client: Some(client),
-        params: Some({
-            let mut params = test_params("openid-credential-offer");
-            params["requestSignedMetadata"] = json!(true);
-            params
-        }),
+        params: Some(test_params("openid-credential-offer")),
         ..Default::default()
     });
 
@@ -4296,8 +4445,7 @@ fn test_params(issuance_url_scheme: &str) -> serde_json::Value {
         "urlScheme": issuance_url_scheme,
         "oauthAttestationLeeway": 60,
         "keyAttestationLeeway": 60,
-        "trustEcosystemLeeway": 60,
-        "requestSignedMetadata": false
+        "trustEcosystemLeeway": 60
     })
 }
 

@@ -175,7 +175,6 @@ fn setup_protocol(protocol_mocks: ProtocolMocks) -> OpenID4VCIFinal1_0 {
             "oauthAttestationLeeway": 0,
             "keyAttestationLeeway": 0,
             "trustEcosystemLeeway": 0,
-            "requestSignedMetadata": false
         }),
         "configId".to_string(),
         Arc::new(protocol_mocks.holder_wallet_unit_proto),

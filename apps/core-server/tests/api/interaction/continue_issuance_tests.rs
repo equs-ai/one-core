@@ -3,7 +3,7 @@ use one_core::model::interaction::InteractionType;
 use serde_json::json;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use crate::utils::context::TestContext;
@@ -11,17 +11,9 @@ use crate::utils::field_match::FieldHelpers;
 
 #[tokio::test]
 async fn test_continue_issuance_endpoint() {
-    let config = indoc::indoc! {"
-      issuanceProtocol:
-        OPENID4VCI_FINAL1:
-            params:
-              public:
-                requestSignedMetadata: false
-    "}
-    .to_string();
     // given
     let mock_server = MockServer::start().await;
-    let (context, organisation) = TestContext::new_with_organisation(Some(config)).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let interaction_id = Uuid::new_v4().into();
     let authorization_code = "aUtH_CoDe";
@@ -60,6 +52,7 @@ async fn test_continue_issuance_endpoint() {
         .and(path(format!(
             ".well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -189,17 +182,9 @@ async fn test_continue_issuance_endpoint() {
 
 #[tokio::test]
 async fn test_continue_issuance_endpoint_failed_invalid_authorization_server() {
-    let config = indoc::indoc! {"
-      issuanceProtocol:
-        OPENID4VCI_FINAL1:
-            params:
-              public:
-                requestSignedMetadata: false
-    "}
-    .to_string();
     // given
     let mock_server = MockServer::start().await;
-    let (context, organisation) = TestContext::new_with_organisation(Some(config)).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let authorization_code = "aUtH_CoDe";
     let credential_schema_id = Uuid::new_v4();
@@ -239,6 +224,7 @@ async fn test_continue_issuance_endpoint_failed_invalid_authorization_server() {
         .and(path(format!(
             ".well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),

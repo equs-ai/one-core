@@ -22,7 +22,6 @@ use super::super::model::{
     CommonParams, OpenID4VCIProofTypeSupported, OpenID4VCITxCode, OpenID4VCRedirectUriParams,
     default_issuance_url_scheme,
 };
-use crate::config::core_config::default_true;
 use crate::mapper::opt_secret_string;
 use crate::mapper::params::deserialize_encryption_key;
 use crate::model::credential_schema::{CodeTypeEnum, CredentialSchema, LayoutProperties};
@@ -58,9 +57,6 @@ pub(crate) struct OpenID4VCIFinal1Params {
     pub key_attestation_leeway: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
     pub trust_ecosystem_leeway: Duration,
-
-    #[serde(default = "default_true")]
-    pub request_signed_metadata: bool,
 
     #[serde(flatten)]
     pub common: CommonParams,

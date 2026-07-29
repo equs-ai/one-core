@@ -1084,36 +1084,47 @@ impl OpenID4VCIFinal1_0 {
             ))
         })?;
 
-        if !self.params.request_signed_metadata {
-            return Ok((
-                IssuerMetadataRepresentation::Unsigned(
-                    fetch_metadata_json_with_fallback(
-                        self.metadata_cache.as_ref(),
-                        &credential_issuer_endpoint,
-                        "openid-credential-issuer",
-                    )
-                    .await?,
-                ),
-                TrustMode::Disabled,
-            ));
-        }
-
-        let jwt = fetch_metadata_jwt_with_fallback(
-            self.metadata_cache.as_ref(),
-            &credential_issuer_endpoint,
-            "openid-credential-issuer",
-        )
-        .await?;
-
-        self.validate_jwt(&jwt)
-            .await
-            .error_while("validating issuer metadata JWT")?;
-
         let trust_mode = self
             .wrp_validator
             .wallet_trust_mode(organisation_id)
             .await
             .error_while("checking wallet trust mode")?;
+
+        let fetch_unsigned_metadata = async || {
+            Ok::<_, IssuanceProtocolError>(IssuerMetadataRepresentation::Unsigned(
+                fetch_metadata_json_with_fallback(
+                    self.metadata_cache.as_ref(),
+                    &credential_issuer_endpoint,
+                    "openid-credential-issuer",
+                )
+                .await?,
+            ))
+        };
+
+        if trust_mode == TrustMode::Disabled {
+            return Ok((fetch_unsigned_metadata().await?, trust_mode));
+        }
+
+        let jwt_result = fetch_metadata_jwt_with_fallback(
+            self.metadata_cache.as_ref(),
+            &credential_issuer_endpoint,
+            "openid-credential-issuer",
+        )
+        .await;
+
+        if trust_mode == TrustMode::TrustOptional
+            && let Err(err) = &jwt_result
+        {
+            tracing::warn!(
+                "Failed to fetch signed issuer metadata, falling back to unsigned metadata: {err}"
+            );
+            return Ok((fetch_unsigned_metadata().await?, trust_mode));
+        }
+        let jwt = jwt_result?;
+
+        self.validate_jwt(&jwt)
+            .await
+            .error_while("validating issuer metadata JWT")?;
 
         let Some(x5c) = jwt.header.x5c.as_ref() else {
             tracing::debug!("Issuer metadata signed via DID or JWK");

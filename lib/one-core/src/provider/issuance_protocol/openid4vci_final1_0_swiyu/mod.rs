@@ -81,8 +81,6 @@ pub(crate) struct OpenID4VCISwiyuParams {
     #[serde_as(as = "DurationSeconds<i64>")]
     pub trust_ecosystem_leeway: Duration,
 
-    pub request_signed_metadata: bool,
-
     #[serde(flatten)]
     pub common: CommonParams,
 }
@@ -101,7 +99,6 @@ impl From<OpenID4VCISwiyuParams> for OpenID4VCIFinal1Params {
             oauth_attestation_leeway: value.oauth_attestation_leeway,
             key_attestation_leeway: value.key_attestation_leeway,
             trust_ecosystem_leeway: value.trust_ecosystem_leeway,
-            request_signed_metadata: value.request_signed_metadata,
             common: value.common,
         }
     }

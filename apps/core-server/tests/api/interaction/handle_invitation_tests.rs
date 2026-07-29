@@ -19,24 +19,10 @@ use crate::utils::context::TestContext;
 use crate::utils::db_clients::holder_wallet_instance::TestHolderWalletInstanceParams;
 use crate::utils::field_match::FieldHelpers;
 
-fn openid4vci_final1_json_metadata_config() -> Option<String> {
-    Some(
-        indoc::indoc! {"
-          issuanceProtocol:
-            OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
-        "}
-        .to_string(),
-    )
-}
-
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value() {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -74,6 +60,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value()
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -204,8 +191,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value()
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_with_double_layered_nested_claims()
  {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -234,6 +220,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_w
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -319,8 +306,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_w
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_with_optional_object_array_and_required_field()
  {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -349,6 +335,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_w
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -433,8 +420,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_w
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_with_similar_prefix_keys()
  {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -463,6 +449,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_w
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -548,8 +535,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_w
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_matching_succeeds() {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let new_claim_schemas: Vec<(Uuid, &str, bool, &str, bool)> = vec![(
         Uuid::from_str("48db4654-01c4-4a43-9df4-300f1f425c40").unwrap(),
@@ -600,6 +586,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_m
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -682,8 +669,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_m
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_reference() {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_id = Uuid::new_v4();
     let credential_schema_id = Uuid::new_v4();
@@ -713,6 +699,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_referen
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -800,8 +787,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_referen
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_proof_by_reference() {
     let mock_server = MockServer::start().await;
-    let (context, organistion) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organistion) = TestContext::new_with_organisation(None).await;
 
     let client_metadata = ClientMetadata {
         jwks: Default::default(),
@@ -887,8 +873,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_proof_by_reference() {
 
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_proof_by_value_dcql() {
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let client_metadata = ClientMetadata {
         jwks: Default::default(),
@@ -976,8 +961,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_proof_by_value_dcql() {
 #[tokio::test]
 async fn test_handle_invitation_mdoc() {
     let mock_server = MockServer::start().await;
-    let (context, organistion) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organistion) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -1001,6 +985,7 @@ async fn test_handle_invitation_mdoc() {
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -1104,8 +1089,7 @@ async fn test_handle_invitation_mdoc() {
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_tx_code_passed() {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -1135,6 +1119,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_t
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -1224,8 +1209,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_t
 #[tokio::test]
 async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_no_subject() {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -1248,6 +1232,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_n
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -1364,8 +1349,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_issuance_offer_by_value_n
 #[tokio::test]
 async fn test_handle_invitation_external_sd_jwt_vc() {
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -1396,6 +1380,7 @@ async fn test_handle_invitation_external_sd_jwt_vc() {
         .and(path(format!(
             "/.well-known/openid-credential-issuer/ssi/openid4vci/final-1.0/{credential_schema_id}"
         )))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{credential_issuer}/credential"),
@@ -1487,8 +1472,7 @@ async fn test_handle_invitation_external_sd_jwt_vc() {
 #[tokio::test]
 async fn test_handle_invitation_fails_deactivated_organisation() {
     // GIVEN
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
     context.db.organisations.deactivate(&organisation.id).await;
 
     // WHEN
@@ -1529,11 +1513,6 @@ async fn test_handle_invitation_authorization_code() {
                 params:
                   public:
                     issuer: {issuer}
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
         "});
     let (context, organisation) = TestContext::new_with_organisation(additional_config).await;
 
@@ -1553,6 +1532,7 @@ async fn test_handle_invitation_authorization_code() {
 
     Mock::given(method(Method::GET))
         .and(path("/.well-known/openid-credential-issuer"))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{issuer}/credential"),
@@ -1620,11 +1600,6 @@ async fn test_handle_invitation_authorization_code_issuer_state() {
                 params:
                   public:
                     issuer: {issuer}
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
         "});
     let (context, organistion) = TestContext::new_with_organisation(additional_config).await;
 
@@ -1644,6 +1619,7 @@ async fn test_handle_invitation_authorization_code_issuer_state() {
 
     Mock::given(method(Method::GET))
         .and(path("/.well-known/openid-credential-issuer"))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_endpoint": format!("{issuer}/credential"),
@@ -1711,11 +1687,6 @@ async fn test_handle_invitation_authorization_code_authorization_server() {
                 params:
                   public:
                     issuer: {issuer_server_uri}
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
         "});
     let (context, organistion) = TestContext::new_with_organisation(additional_config).await;
 
@@ -1735,6 +1706,7 @@ async fn test_handle_invitation_authorization_code_authorization_server() {
 
     Mock::given(method(Method::GET))
         .and(path("/.well-known/openid-credential-issuer"))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_issuer": issuer_server_uri,
@@ -1806,16 +1778,12 @@ async fn test_handle_invitation_fails_authorization_code_authorization_server_no
                 params:
                   public:
                     issuer: {issuer_server_uri}
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
         "});
     let (context, organistion) = TestContext::new_with_organisation(additional_config).await;
 
     Mock::given(method(Method::GET))
         .and(path("/.well-known/openid-credential-issuer"))
+        .and(header("Accept", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             {
                 "credential_issuer": issuer_server_uri,
@@ -1874,19 +1842,32 @@ async fn test_handle_invitation_endpoint_for_openid4vc_final1_0_with_oauth_autho
  {
     let mock_server = MockServer::start().await;
 
-    let additional_config = Some(indoc::formatdoc! {"
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
-        "});
-    let (context, organisation) = TestContext::new_with_organisation(additional_config).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     context
         .db
         .holder_wallet_units
-        .create(organisation.clone(), None, Default::default())
+        .create(
+            organisation.clone(),
+            None,
+            TestHolderWalletInstanceParams {
+                provider_name: Some("PROCIVIS_ONE".to_string()),
+                provider_url: Some(mock_server.uri()),
+                role: Some(InstanceRole::Wallet),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    Mock::given(method(Method::GET))
+        .and(path("/ssi/wallet-provider/v1/PROCIVIS_ONE"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "name": "PROCIVIS_ONE",
+            "walletUnitAttestation": {"appIntegrityCheckRequired": false, "enabled": false, "required": false},
+            "featureFlags": {"trustEcosystemsEnabled": false, "refreshCredentialBatchEnabled": false},
+            "trustCollections": []
+        })))
+        .mount(&mock_server)
         .await;
 
     let credential_schema_id = Uuid::new_v4();
@@ -2016,14 +1997,7 @@ async fn test_handle_invitation_endpoint_for_openid4vc_final1_0_with_oauth_autho
 async fn test_handle_invitation_openid4vc_final1_wua_required_fails_no_wallet_instance() {
     let mock_server = MockServer::start().await;
 
-    let additional_config = Some(indoc::formatdoc! {"
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
-        "});
-    let (context, organisation) = TestContext::new_with_organisation(additional_config).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -2115,14 +2089,7 @@ async fn test_handle_invitation_openid4vc_final1_wua_required_fails_no_wallet_in
 async fn test_handle_invitation_openid4vc_final1_wua_required_fails_no_compatible_storage() {
     let mock_server = MockServer::start().await;
 
-    let additional_config = Some(indoc::formatdoc! {"
-            issuanceProtocol:
-              OPENID4VCI_FINAL1:
-                params:
-                  public:
-                    requestSignedMetadata: false
-        "});
-    let (context, organisation) = TestContext::new_with_organisation(additional_config).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     let credential_schema_id = Uuid::new_v4();
     let credential_issuer = format!(
@@ -2249,8 +2216,7 @@ fn make_redirect_uri_openid4vp_request() -> Url {
 async fn test_handle_invitation_trust_disabled_succeeds() {
     // GIVEN — wallet instance present but provider has trust ecosystems disabled → TrustMode::Disabled
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     context
         .db
@@ -2297,8 +2263,7 @@ async fn test_handle_invitation_trust_disabled_succeeds() {
 async fn test_handle_invitation_trust_optional_without_wallet_instance_succeeds() {
     // GIVEN — no wallet instance registered → defaults to TrustMode::TrustOptional
     //         redirect_uri produces no verifier identifier, but optional mode still succeeds
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     // WHEN
     let resp = context
@@ -2320,8 +2285,7 @@ async fn test_handle_invitation_trust_mandatory_without_identifier_returns_error
     // GIVEN — wallet instance with trusted_rp_required + trust ecosystems enabled → TrustMode::TrustMandatory
     //         redirect_uri client_id_scheme provides no verifier identifier → Untrusted → 400
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     context
         .db
@@ -2439,8 +2403,7 @@ async fn test_handle_invitation_trust_optional_with_x509_certificate_untrusted_s
     // GIVEN — no wallet instance → TrustOptional
     //         x509_san_dns cert present but no trust subscriptions → AccessCertificateNotTrusted
     //         Optional mode swallows the error → TrustResolutionResult::Untrusted → 201
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     // WHEN
     let resp = context
@@ -2463,8 +2426,7 @@ async fn test_handle_invitation_trust_mandatory_with_x509_certificate_not_in_tru
     // GIVEN — wallet instance with trusted_rp_required + trustEcosystemsEnabled → TrustMandatory
     //         x509_san_dns cert not in any trust list → AccessCertificateNotTrusted → 400 BR_0410
     let mock_server = MockServer::start().await;
-    let (context, organisation) =
-        TestContext::new_with_organisation(openid4vci_final1_json_metadata_config()).await;
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
 
     context
         .db
