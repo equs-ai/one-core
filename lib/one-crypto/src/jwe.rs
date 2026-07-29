@@ -311,9 +311,41 @@ pub async fn decrypt_jwe_payload(
 struct EncryptedJWE {
     protected_header_b64: String,
     protected_header: Vec<u8>,
+    // Wrapped Content Encryption Key (JWE segment 2). Empty for direct key
+    // agreement (`ECDH-ES`); non-empty for key-wrap modes (`ECDH-ES+A256KW`).
+    encrypted_key: Vec<u8>,
     nonce: Vec<u8>,
     payload: Vec<u8>,
     tag: Vec<u8>,
+}
+
+/// The JWE `alg` (key management) header parameter. Distinct from `enc`
+/// (content encryption). Only the key-agreement algorithms we support are
+/// modelled here.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum KeyAgreementAlgorithm {
+    /// Direct key agreement — the derived key IS the CEK, segment 2 is empty.
+    EcdhEs,
+    /// Key agreement with AES-256 key wrapping — the CEK is wrapped in segment 2.
+    EcdhEsA256Kw,
+}
+
+impl KeyAgreementAlgorithm {
+    /// Reads the `alg` field from the protected header JSON. Defaults to direct
+    /// `ECDH-ES` when absent (matches historic behaviour before this field was
+    /// inspected at all).
+    fn from_protected_header(protected_header: &[u8]) -> Result<Self, EncryptionError> {
+        let value: serde_json::Value = serde_json::from_slice(protected_header)
+            .map_err(|e| EncryptionError::Crypto(format!("Failed to parse JWE header: {e}")))?;
+
+        match value.get("alg").and_then(|alg| alg.as_str()) {
+            None | Some("ECDH-ES") => Ok(Self::EcdhEs),
+            Some("ECDH-ES+A256KW") => Ok(Self::EcdhEsA256Kw),
+            Some(other) => Err(EncryptionError::Crypto(format!(
+                "Unsupported JWE alg: {other}"
+            ))),
+        }
+    }
 }
 
 impl EncryptedJWE {
@@ -324,20 +356,41 @@ impl EncryptedJWE {
         let header: JweHeader<PublicJwk> = serde_json::from_slice(&self.protected_header)
             .map_err(|e| EncryptionError::Crypto(format!("Failed to parse JWE header: {e}")))?;
 
+        let alg = KeyAgreementAlgorithm::from_protected_header(&self.protected_header)?;
         let shared_secret = self.derive_shared_secret(private_key_handle).await?;
-        let encryption_key = self.derive_encryption_key(&shared_secret, &header)?;
+
+        // Resolve the Content Encryption Key. For direct `ECDH-ES` the derived
+        // key IS the CEK; for `ECDH-ES+A256KW` the derived key is a KEK used to
+        // unwrap the CEK carried in segment 2.
+        let encryption_key = match alg {
+            KeyAgreementAlgorithm::EcdhEs => {
+                if !self.encrypted_key.is_empty() {
+                    return Err(EncryptionError::Crypto(
+                        "Invalid JWE: expected empty CEK".to_string(),
+                    ));
+                }
+                self.derive_encryption_key(&shared_secret, &header)?
+            }
+            KeyAgreementAlgorithm::EcdhEsA256Kw => {
+                let kek = self.derive_key_encryption_key(&shared_secret, &header)?;
+                unwrap_cek_aes256(&kek, &self.encrypted_key)?
+            }
+        };
 
         let decrypted = match header.enc {
             EncryptionAlgorithm::A256GCM => {
-                let cipher =
-                    Aes256Gcm::new(GenericArray::from_slice(encryption_key.expose_secret()));
+                // `new_from_slice` rejects a wrong-length CEK with an error
+                // rather than panicking (the CEK length is attacker-influenced
+                // on the key-wrap path).
+                let cipher = Aes256Gcm::new_from_slice(encryption_key.expose_secret())
+                    .map_err(|e| EncryptionError::Crypto(format!("Invalid CEK length: {e}")))?;
                 let mut buf = self.payload.clone();
                 cipher
                     .decrypt_in_place_detached(
-                        GenericArray::from_slice(&self.nonce),
+                        aead_nonce(&self.nonce)?,
                         self.protected_header_b64.as_bytes(),
                         &mut buf,
-                        GenericArray::from_slice(&self.tag),
+                        aead_tag(&self.tag)?,
                     )
                     .map_err(|e| EncryptionError::Crypto(format!("Failed to decrypt JWE: {e}")))?;
                 buf
@@ -355,15 +408,15 @@ impl EncryptedJWE {
                 .to_vec()
             }
             EncryptionAlgorithm::A128GCM => {
-                let cipher =
-                    Aes128Gcm::new(GenericArray::from_slice(encryption_key.expose_secret()));
+                let cipher = Aes128Gcm::new_from_slice(encryption_key.expose_secret())
+                    .map_err(|e| EncryptionError::Crypto(format!("Invalid CEK length: {e}")))?;
                 let mut buf = self.payload.clone();
                 cipher
                     .decrypt_in_place_detached(
-                        GenericArray::from_slice(&self.nonce),
+                        aead_nonce(&self.nonce)?,
                         self.protected_header_b64.as_bytes(),
                         &mut buf,
-                        GenericArray::from_slice(&self.tag),
+                        aead_tag(&self.tag)?,
                     )
                     .map_err(|e| EncryptionError::Crypto(format!("Failed to decrypt JWE: {e}")))?;
                 buf
@@ -407,6 +460,31 @@ impl EncryptedJWE {
 
         derive_encryption_key(shared_secret, &apu, &apv, &header.enc)
     }
+
+    /// Derives the AES-256 key-encryption-key for `ECDH-ES+A256KW`. Per
+    /// RFC 7518 §4.6.2 the Concat-KDF `AlgorithmID` is the key-management `alg`
+    /// (`"ECDH-ES+A256KW"`) and `keydatalen` is the wrap key size (256), unlike
+    /// direct mode which uses the `enc` value and its key size.
+    fn derive_key_encryption_key(
+        &self,
+        shared_secret: &SecretSlice<u8>,
+        header: &JweHeader<PublicJwk>,
+    ) -> Result<SecretSlice<u8>, EncryptionError> {
+        let apu = header
+            .agreement_partyuinfo
+            .as_deref()
+            .map(|v| decode_b64(v, "apu"))
+            .transpose()?
+            .unwrap_or_default();
+        let apv = header
+            .agreement_partyvinfo
+            .as_deref()
+            .map(|v| decode_b64(v, "apv"))
+            .transpose()?
+            .unwrap_or_default();
+
+        concat_kdf_derive("ECDH-ES+A256KW", shared_secret, &apu, &apv, 256, 32)
+    }
 }
 
 pub(super) fn derive_encryption_key(
@@ -415,29 +493,91 @@ pub(super) fn derive_encryption_key(
     apv: &[u8],
     alg: &EncryptionAlgorithm,
 ) -> Result<SecretSlice<u8>, EncryptionError> {
-    let (key_len, key_buffer): (u32, _) = match alg {
-        EncryptionAlgorithm::A128GCM => (128, vec![0u8; 16]),
-        EncryptionAlgorithm::A256GCM | EncryptionAlgorithm::A128CBCHS256 => (256, vec![0u8; 32]),
+    let (key_len, out_len) = match alg {
+        EncryptionAlgorithm::A128GCM => (128, 16),
+        EncryptionAlgorithm::A256GCM | EncryptionAlgorithm::A128CBCHS256 => (256, 32),
     };
 
-    let alg = alg.to_string();
+    concat_kdf_derive(&alg.to_string(), shared_secret, apu, apv, key_len, out_len)
+}
+
+/// Concat-KDF (NIST SP 800-56A, one-pass) with SHA-256, as used by JWE ECDH-ES
+/// key derivation (RFC 7518 §4.6). `alg_id` is the `AlgorithmID` OtherInfo
+/// field, `key_len` the `keydatalen` (in bits) and `out_len` the number of
+/// output bytes.
+fn concat_kdf_derive(
+    alg_id: &str,
+    shared_secret: &SecretSlice<u8>,
+    apu: &[u8],
+    apv: &[u8],
+    key_len: u32,
+    out_len: usize,
+) -> Result<SecretSlice<u8>, EncryptionError> {
     let mut other_info = vec![];
-    other_info.extend((alg.len() as u32).to_be_bytes());
-    other_info.extend(alg.as_bytes());
+    other_info.extend((alg_id.len() as u32).to_be_bytes());
+    other_info.extend(alg_id.as_bytes());
     other_info.extend((apu.len() as u32).to_be_bytes());
     other_info.extend(apu);
     other_info.extend((apv.len() as u32).to_be_bytes());
     other_info.extend(apv);
     other_info.extend(key_len.to_be_bytes());
 
-    let mut encryption_key = SecretSlice::from(key_buffer);
+    let mut derived_key = SecretSlice::from(vec![0u8; out_len]);
     concat_kdf::derive_key_into::<sha2::Sha256>(
         shared_secret.expose_secret(),
         &other_info,
-        encryption_key.expose_secret_mut(),
+        derived_key.expose_secret_mut(),
     )
     .map_err(|e| EncryptionError::Crypto(format!("Failed to derive encryption key: {e}")))?;
-    Ok(encryption_key)
+    Ok(derived_key)
+}
+
+/// Validates and returns the 96-bit AES-GCM nonce. Returns an error rather than
+/// panicking (via `GenericArray::from_slice`) on attacker-supplied input of the
+/// wrong length.
+fn aead_nonce(nonce: &[u8]) -> Result<&GenericArray<u8, U12>, EncryptionError> {
+    if nonce.len() != 12 {
+        return Err(EncryptionError::Crypto(format!(
+            "Invalid JWE nonce length: expected 12, got {}",
+            nonce.len()
+        )));
+    }
+    Ok(GenericArray::from_slice(nonce))
+}
+
+/// Validates and returns the 128-bit AES-GCM authentication tag. Returns an
+/// error rather than panicking on attacker-supplied input of the wrong length.
+fn aead_tag(tag: &[u8]) -> Result<&GenericArray<u8, U16>, EncryptionError> {
+    if tag.len() != 16 {
+        return Err(EncryptionError::Crypto(format!(
+            "Invalid JWE tag length: expected 16, got {}",
+            tag.len()
+        )));
+    }
+    Ok(GenericArray::from_slice(tag))
+}
+
+/// Unwraps a Content Encryption Key wrapped with AES-256 Key Wrap (RFC 3394),
+/// as used by the JWE `ECDH-ES+A256KW` key-management algorithm.
+fn unwrap_cek_aes256(
+    kek: &SecretSlice<u8>,
+    wrapped_cek: &[u8],
+) -> Result<SecretSlice<u8>, EncryptionError> {
+    let kek: [u8; 32] = kek
+        .expose_secret()
+        .try_into()
+        .map_err(|_| EncryptionError::Crypto("A256KW KEK must be 32 bytes".to_string()))?;
+
+    // RFC 3394 unwrap produces 8 fewer bytes than the wrapped input.
+    let unwrapped_len = wrapped_cek.len().checked_sub(8).ok_or_else(|| {
+        EncryptionError::Crypto("Invalid JWE: wrapped CEK too short".to_string())
+    })?;
+
+    let mut cek = SecretSlice::from(vec![0u8; unwrapped_len]);
+    aes_kw::KekAes256::from(kek)
+        .unwrap(wrapped_cek, cek.expose_secret_mut())
+        .map_err(|e| EncryptionError::Crypto(format!("Failed to unwrap CEK: {e}")))?;
+    Ok(cek)
 }
 
 impl FromStr for EncryptedJWE {
@@ -451,15 +591,17 @@ impl FromStr for EncryptedJWE {
                 parts.len()
             )));
         }
-        if !parts
+        // Segment 2 (the wrapped CEK) is empty for direct `ECDH-ES` and
+        // non-empty for key-wrap modes. The emptiness constraint is enforced
+        // per-`alg` in `decrypt`, not here.
+        let encrypted_key_b64 = parts
             .get(1)
-            .ok_or(EncryptionError::Crypto("Invalid JWE".to_string()))?
-            .is_empty()
-        {
-            return Err(EncryptionError::Crypto(
-                "Invalid JWE: expected empty CEK".to_string(),
-            ));
-        }
+            .ok_or(EncryptionError::Crypto("Invalid JWE".to_string()))?;
+        let encrypted_key = if encrypted_key_b64.is_empty() {
+            Vec::new()
+        } else {
+            decode_b64(encrypted_key_b64, "encrypted key")?
+        };
         let protected_header_b64 = parts
             .first()
             .ok_or(EncryptionError::Crypto("Invalid JWE".to_string()))?
@@ -486,6 +628,7 @@ impl FromStr for EncryptedJWE {
         Ok(Self {
             protected_header_b64,
             protected_header,
+            encrypted_key,
             nonce,
             payload,
             tag,
@@ -510,6 +653,11 @@ mod test {
 
     const PRIVATE_JWK_EC: &str = r#"{"kty":"EC","crv":"P-256","x":"KRJIXU-pyEcHURRRQ54jTh9PTTmBYog57rQD1uCsvwo","y":"d31DZcRSqaxAUGBt70HB7uCZdufA6uKdL6BvAzUhbJU","d":"81vofgUlDnb6OUF-WPhH8p1T_mo_F2H9XZvaTvtEZHk"}"#;
     const PRIVATE_JWK_ED25519: &str = r#"{"kty":"OKP","crv":"Ed25519","x":"0yErlKcMCx5DG6zmgoUnnFvLBEQuuYWQSYILwV2O9TM","d":"IM92LwWowNDr7OHXEYwuZ1uVm71ihELJda3i50doJ53TISuUpwwLHkMbrOaChSecW8sERC65hZBJggvBXY71Mw"}"#;
+
+    // JWE produced by the `jose` library (ECDH-ES+A256KW / A256GCM, no apu/apv)
+    // encrypted to the public half of PRIVATE_JWK_EC. Plaintext:
+    // "test_payload_a256kw".
+    const A256KW_JWE: &str = "eyJhbGciOiJFQ0RILUVTK0EyNTZLVyIsImVuYyI6IkEyNTZHQ00iLCJraWQiOiJlZWMzNzc2Ny1hZDc0LTQ3YzktYTM0OS1kOTVhMWJkMjQxZDQiLCJlcGsiOnsieCI6InZueS1CS20xaThfMVRJM3JwWFJZQzVESkhYZXRqNXBQVS1UOFd1QzNLNjAiLCJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieSI6Ik1YZkZKN1JBcnl2dnZaZ3ZQX2hCOWFGNU9MOGpHWWYzWE1GdlkyY1lWUUkifX0.3PwpRQF-hmXZhBMEvAc3rWQGnjutw0G2J6RdI39THrIlL5hWAFD-_Q.vsXFAPdczz22r61W.x_2Gpz3RUWc7ZAphe0QTlJn0vw.ZBJI42sbHUuYCbs4Ah85eA";
 
     fn wrap_p256_private_key(jwk: &str) -> impl PrivateKeyAgreementHandle {
         pub struct Wrapper {
@@ -608,6 +756,131 @@ mod test {
             Base64UrlSafeNoPadding::encode_to_string(decrypted_payload_bytes).unwrap(),
             expected_payload
         )
+    }
+
+    #[tokio::test]
+    async fn test_decrypt_jwe_ec_a256kw() {
+        // Exercises the key-wrap path: a non-empty wrapped CEK in segment 2 that
+        // must be unwrapped with the ConcatKDF-derived KEK.
+        let decrypted_payload_bytes =
+            decrypt_jwe_payload(A256KW_JWE, &wrap_p256_private_key(PRIVATE_JWK_EC))
+                .await
+                .unwrap();
+
+        assert_eq!(b"test_payload_a256kw".to_vec(), decrypted_payload_bytes);
+    }
+
+    #[tokio::test]
+    async fn test_decrypt_jwe_a256kw_tampered_cek_fails() {
+        // Flipping a bit in the wrapped CEK must be caught by the RFC 3394
+        // integrity check and surface as an error (never garbage / a panic).
+        let mut segments: Vec<String> = A256KW_JWE.split('.').map(str::to_string).collect();
+        let mut cek: Vec<char> = segments[1].chars().collect();
+        let last = cek.len() - 1;
+        cek[last] = if cek[last] == 'A' { 'B' } else { 'A' };
+        segments[1] = cek.into_iter().collect();
+        let tampered = segments.join(".");
+
+        let result = decrypt_jwe_payload(&tampered, &wrap_p256_private_key(PRIVATE_JWK_EC)).await;
+
+        assert!(matches!(result, Err(EncryptionError::Crypto(_))));
+    }
+
+    #[tokio::test]
+    async fn test_decrypt_jwe_a256kw_wrong_cek_length_errors() {
+        // An attacker controls the ephemeral key and can therefore wrap a CEK of
+        // any length. A CEK that is not 32 bytes must be rejected with an error
+        // rather than panicking when the AES-256-GCM cipher is constructed. `z`
+        // is the known ECDH output for PRIVATE_JWK_EC against the epk below.
+        let z = SecretSlice::from(vec![
+            185, 127, 8, 220, 210, 43, 60, 110, 151, 231, 212, 11, 160, 247, 208, 50, 2, 70, 29,
+            59, 74, 15, 220, 210, 56, 58, 108, 68, 29, 73, 222, 66,
+        ]);
+        let kek = concat_kdf_derive("ECDH-ES+A256KW", &z, &[], &[], 256, 32).unwrap();
+        let kek: [u8; 32] = kek.expose_secret().try_into().unwrap();
+
+        // Validly wrap a deliberately wrong-length (24-byte) CEK.
+        let bad_cek = [7u8; 24];
+        let mut wrapped = vec![0u8; bad_cek.len() + 8];
+        aes_kw::KekAes256::from(kek)
+            .wrap(&bad_cek, &mut wrapped)
+            .unwrap();
+        let wrapped_b64 = Base64UrlSafeNoPadding::encode_to_string(&wrapped).unwrap();
+
+        let header = serde_json::json!({
+            "alg": "ECDH-ES+A256KW",
+            "enc": "A256GCM",
+            "kid": "test",
+            "epk": {
+                "kty": "EC", "crv": "P-256",
+                "x": "Fo4TzyDJOu5SGMnJx0en6u1EmRkUWCwvhS3BOA8UOqo",
+                "y": "J9BMexfC9wE_3-E5Z-EbDFUKEIMwBOBReKT9bEx2KdU"
+            }
+        });
+        let header_b64 =
+            Base64UrlSafeNoPadding::encode_to_string(serde_json::to_vec(&header).unwrap()).unwrap();
+        // nonce/payload/tag are irrelevant — the error is raised at cipher
+        // construction, before they are read.
+        let jwe = format!("{header_b64}.{wrapped_b64}.AAAAAAAAAAAAAAAA.AAAA.AAAAAAAAAAAAAAAAAAAAAA");
+
+        let result = decrypt_jwe_payload(&jwe, &wrap_p256_private_key(PRIVATE_JWK_EC)).await;
+
+        assert!(matches!(result, Err(EncryptionError::Crypto(_))));
+    }
+
+    #[tokio::test]
+    async fn test_decrypt_jwe_unsupported_alg_rejected() {
+        // A key-management alg we do not implement must be rejected outright.
+        let header_b64 = A256KW_JWE.split('.').next().unwrap();
+        let mut header: serde_json::Value = serde_json::from_slice(
+            &Base64UrlSafeNoPadding::decode_to_vec(header_b64, None).unwrap(),
+        )
+        .unwrap();
+        header["alg"] = serde_json::json!("ECDH-ES+A128KW");
+        let new_header_b64 =
+            Base64UrlSafeNoPadding::encode_to_string(serde_json::to_vec(&header).unwrap()).unwrap();
+        let rest: Vec<&str> = A256KW_JWE.split('.').skip(1).collect();
+        let jwe = format!("{new_header_b64}.{}", rest.join("."));
+
+        let result = decrypt_jwe_payload(&jwe, &wrap_p256_private_key(PRIVATE_JWK_EC)).await;
+
+        assert!(
+            matches!(result, Err(EncryptionError::Crypto(msg)) if msg.contains("Unsupported JWE alg"))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_decrypt_jwe_direct_with_cek_rejected() {
+        // A direct `ECDH-ES` JWE must still reject a non-empty wrapped CEK.
+        let z = SecretSlice::from(vec![
+            185, 127, 8, 220, 210, 43, 60, 110, 151, 231, 212, 11, 160, 247, 208, 50, 2, 70, 29,
+            59, 74, 15, 220, 210, 56, 58, 108, 68, 29, 73, 222, 66,
+        ]);
+        let remote_jwk = PublicJwk::Ec(PublicJwkEc {
+            alg: None,
+            r#use: None,
+            kid: None,
+            crv: "P-256".to_string(),
+            x: "Fo4TzyDJOu5SGMnJx0en6u1EmRkUWCwvhS3BOA8UOqo".to_string(),
+            y: Some("J9BMexfC9wE_3-E5Z-EbDFUKEIMwBOBReKT9bEx2KdU".to_string()),
+        });
+        let header = Header {
+            key_id: "test".to_string(),
+            agreement_partyuinfo: None,
+            agreement_partyvinfo: None,
+        };
+        let jwe = build_jwe(b"hello", header, z, remote_jwk, A256GCM).unwrap();
+
+        // Inject a non-empty CEK into the (empty) segment 2.
+        let mut segments: Vec<String> = jwe.split('.').map(str::to_string).collect();
+        segments[1] = "AAAA".to_string();
+        let tampered = segments.join(".");
+
+        let result = decrypt_jwe_payload(&tampered, &wrap_p256_private_key(PRIVATE_JWK_EC)).await;
+
+        assert!(
+            matches!(result, Err(EncryptionError::Crypto(msg)) if msg.contains("expected empty CEK"))
+        );
     }
 
     #[tokio::test]

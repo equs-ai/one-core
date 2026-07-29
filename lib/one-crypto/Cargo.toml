@@ -13,6 +13,7 @@ doctest = false
 [dependencies]
 aes                          = { version = "0.8.4" }
 aes-gcm                      = { version = "0.10.3", features = ["rand_core", "zeroize"] }
+aes-kw                       = { version = "0.2.1" }
 async-trait.workspace        = true
 blstrs                       = { version = "0.7" }
 cbc                          = { version = "0.1.2" }
