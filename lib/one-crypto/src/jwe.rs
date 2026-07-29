@@ -567,10 +567,10 @@ fn unwrap_cek_aes256(
     kek: &SecretSlice<u8>,
     wrapped_cek: &[u8],
 ) -> Result<SecretSlice<u8>, EncryptionError> {
-    let kek: [u8; 32] = kek
-        .expose_secret()
-        .try_into()
-        .map_err(|_| EncryptionError::Crypto("A256KW KEK must be 32 bytes".to_string()))?;
+    // Build the KEK straight from the secret slice so the key material is not
+    // lifted out of `SecretSlice` into a plain `[u8; 32]`.
+    let kek = aes_kw::KekAes256::try_from(kek.expose_secret())
+        .map_err(|e| EncryptionError::Crypto(format!("Invalid A256KW KEK: {e}")))?;
 
     // RFC 3394 unwrap produces 8 fewer bytes than the wrapped input.
     let unwrapped_len = wrapped_cek.len().checked_sub(8).ok_or_else(|| {
@@ -578,8 +578,7 @@ fn unwrap_cek_aes256(
     })?;
 
     let mut cek = SecretSlice::from(vec![0u8; unwrapped_len]);
-    aes_kw::KekAes256::from(kek)
-        .unwrap(wrapped_cek, cek.expose_secret_mut())
+    kek.unwrap(wrapped_cek, cek.expose_secret_mut())
         .map_err(|e| EncryptionError::Crypto(format!("Failed to unwrap CEK: {e}")))?;
     Ok(cek)
 }
