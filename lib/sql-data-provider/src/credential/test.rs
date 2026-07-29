@@ -3,7 +3,7 @@ use std::ops::Add;
 use std::sync::Arc;
 
 use one_core::clock::now_utc;
-use one_core::model::claim::{Claim, ClaimRelations};
+use one_core::model::claim::Claim;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
     Clearable, Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations,
@@ -20,6 +20,7 @@ use one_core::repository::certificate_repository::{
     CertificateRepository, MockCertificateRepository,
 };
 use one_core::repository::claim_repository::{ClaimRepository, MockClaimRepository};
+use one_core::repository::claim_schema_repository::MockClaimSchemaRepository;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::credential_schema_repository::{
     CredentialSchemaRepository, MockCredentialSchemaRepository,
@@ -45,6 +46,7 @@ use time::Duration;
 use uuid::Uuid;
 
 use super::CredentialProvider;
+use crate::claim::ClaimProvider;
 use crate::entity::credential_schema::KeyStorageSecurity;
 use crate::entity::{claim, credential, interaction};
 use crate::test_utilities;
@@ -365,7 +367,7 @@ async fn test_create_credential_success() {
             r#type: CredentialType::Single,
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
-            claims: Some(claims),
+            claims: claims.into(),
             issuer_identifier: Some(identifier),
             issuer_certificate: None,
             holder_identifier: None,
@@ -422,7 +424,7 @@ async fn test_create_credential_empty_claims() {
             r#type: CredentialType::Single,
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
-            claims: Some(vec![]),
+            claims: Default::default(),
             issuer_identifier: Some(identifier),
             issuer_certificate: None,
             holder_identifier: None,
@@ -491,7 +493,7 @@ async fn test_create_credential_already_exists() {
             r#type: CredentialType::Single,
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
-            claims: Some(claims),
+            claims: claims.into(),
             issuer_identifier: Some(identifier),
             issuer_certificate: None,
             holder_identifier: None,
@@ -870,7 +872,6 @@ async fn test_get_credential_list_success_filter_claim_name_value() {
 
 #[tokio::test]
 async fn test_get_credential_success() {
-    let mut claim_repository = MockClaimRepository::default();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
 
     let TestSetup {
@@ -897,7 +898,7 @@ async fn test_get_credential_success() {
 
     let claim_schema1 = credential_schema.claim_schemas.as_ref().await.unwrap()[1].to_owned();
     let claim_schema2 = credential_schema.claim_schemas.as_ref().await.unwrap()[0].to_owned();
-    let claims = vec![
+    let claims = [
         Claim {
             id: Uuid::new_v4().into(),
             credential_id,
@@ -946,24 +947,11 @@ async fn test_get_credential_success() {
         .times(1)
         .returning(move |_| Ok(Some(credential_schema_clone.clone())));
 
-    let claims_clone = claims.clone();
-    claim_repository
-        .expect_get_claim_list()
-        .withf(|ids| ids.len() == 2)
-        .times(1)
-        .returning(move |ids| {
-            // order based on the requested ids
-            Ok(ids
-                .into_iter()
-                .map(|id| {
-                    claims_clone
-                        .iter()
-                        .find(|claim| claim.id == id)
-                        .unwrap()
-                        .to_owned()
-                })
-                .collect())
-        });
+    // real claim provider: the credential-schema ordering of the claims is implemented there
+    let claim_repository = ClaimProvider {
+        db: TransactionManagerImpl::new(db.clone()),
+        claim_schema_repository: Arc::new(MockClaimSchemaRepository::default()),
+    };
 
     let provider = credential_repository(
         db.clone(),
@@ -978,7 +966,6 @@ async fn test_get_credential_success() {
         .get_credential(
             &credential_id,
             &CredentialRelations {
-                claims: Some(ClaimRelations {}),
                 schema: Some(Default::default()),
                 interaction: Some(Default::default()),
                 ..Default::default()
@@ -991,7 +978,7 @@ async fn test_get_credential_success() {
     assert_eq!(credential_id, credential.id);
     assert_eq!(credential_schema, credential.schema.unwrap());
     assert!(credential.interaction.is_none());
-    let credential_claims = credential.claims.unwrap();
+    let credential_claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(credential_claims.len(), 2);
 
     // claims must be ordered in the same way as in the credential_schema

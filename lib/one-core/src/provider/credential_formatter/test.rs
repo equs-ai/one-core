@@ -100,7 +100,7 @@ fn generate_credential_matching_detail(
         r#type: CredentialType::Single,
         state: crate::model::credential::CredentialStateEnum::Created,
         suspend_end_date: detail.suspend_end_date,
-        claims: None,
+        claims: Default::default(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: detail.created_date,

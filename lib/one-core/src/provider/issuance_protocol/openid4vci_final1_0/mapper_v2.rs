@@ -22,12 +22,7 @@ pub(super) async fn credential_to_credential_detail_v2(
     core_base_url: &str,
     credential_status: Vec<CredentialStatus>,
 ) -> Result<CredentialData, IssuanceProtocolError> {
-    let claims = credential
-        .claims
-        .as_ref()
-        .ok_or(IssuanceProtocolError::Failed(
-            "missing credential claims".to_string(),
-        ))?;
+    let claims = credential.claims.as_ref().await?;
     let mappings = credential_schema_format.claim_mappings.as_ref().await?;
     let mut published_claims = Vec::with_capacity(claims.len());
     for claim in claims

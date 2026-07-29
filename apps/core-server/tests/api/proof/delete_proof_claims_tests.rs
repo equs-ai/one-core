@@ -129,11 +129,22 @@ async fn test_delete_proof_claims_success() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     let credential = context.db.credentials.get(&credential.id).await;
-    assert!(!credential.claims.unwrap().is_empty());
+    assert!(
+        !credential
+            .claims
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
+            .is_empty()
+    );
 
     // WHEN
     let resp = context.api.proofs.delete_proof_claims(&proof.id).await;
@@ -154,10 +165,18 @@ async fn test_delete_proof_claims_success() {
         HistoryAction::ClaimsRemoved
     );
 
-    assert_eq!(proof.claims.unwrap().len(), 0);
+    assert_eq!(proof.claims.as_ref().unwrap().len(), 0);
 
     let credential = context.db.credentials.get(&credential.id).await;
-    assert!(credential.claims.unwrap().is_empty());
+    assert!(
+        credential
+            .claims
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
+            .is_empty()
+    );
 
     let get_credential_blob = context.db.blobs.get(&credential_blob.id).await;
     assert!(get_credential_blob.is_none());

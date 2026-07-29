@@ -154,7 +154,8 @@ async fn validate_proof(
                 .credential
                 .claims
                 .as_ref()
-                .ok_or(OpenID4VCError::MappingError("claims missing".to_string()))?
+                .await
+                .map_err(|e| OpenID4VCError::Other(e.to_string()))?
                 .to_owned(),
         );
 

@@ -65,7 +65,7 @@ async fn dummy_unexportable_entities() -> UnexportableEntities {
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
             profile: None,
-            claims: Some(vec![Claim {
+            claims: vec![Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
                 created_date: crate::clock::now_utc(),
@@ -85,7 +85,8 @@ async fn dummy_unexportable_entities() -> UnexportableEntities {
                     translations: Default::default(),
                 }
                 .into(),
-            }]),
+            }]
+            .into(),
             issuer_identifier: None,
             issuer_certificate: None,
             holder_identifier: None,

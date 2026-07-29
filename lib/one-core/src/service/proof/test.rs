@@ -432,7 +432,6 @@ async fn test_get_proof_exists() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -543,7 +542,7 @@ async fn test_get_proof_with_array_holder() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(vec![
+        claims: vec![
             Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
@@ -574,7 +573,8 @@ async fn test_get_proof_with_array_holder() {
                 selectively_disclosable: false,
                 schema: claim_schema.clone().into(),
             },
-        ]),
+        ]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -591,6 +591,7 @@ async fn test_get_proof_with_array_holder() {
 
         subscriber_information: None,
     };
+    let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
         id: Uuid::new_v4().into(),
@@ -604,10 +605,8 @@ async fn test_get_proof_with_array_holder() {
         completed_date: None,
         schema: None,
         claims: Some(
-            credential
-                .claims
+            credential_claims
                 .iter()
-                .flatten()
                 .map(|claim| ProofClaim {
                     claim: claim.clone(),
                     credential: Some(credential.clone()),
@@ -671,7 +670,6 @@ async fn test_get_proof_with_array_holder() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -809,7 +807,7 @@ async fn test_get_proof_with_array_in_object_holder() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(vec![
+        claims: vec![
             Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
@@ -850,7 +848,8 @@ async fn test_get_proof_with_array_in_object_holder() {
                 selectively_disclosable: false,
                 schema: claim_schemas[1].clone().into(),
             },
-        ]),
+        ]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -867,6 +866,7 @@ async fn test_get_proof_with_array_in_object_holder() {
 
         subscriber_information: None,
     };
+    let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
         id: Uuid::new_v4().into(),
@@ -880,10 +880,8 @@ async fn test_get_proof_with_array_in_object_holder() {
         completed_date: None,
         schema: None,
         claims: Some(
-            credential
-                .claims
+            credential_claims
                 .iter()
-                .flatten()
                 .map(|claim| ProofClaim {
                     claim: claim.clone(),
                     credential: Some(credential.clone()),
@@ -947,7 +945,6 @@ async fn test_get_proof_with_array_in_object_holder() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1090,7 +1087,7 @@ async fn test_get_proof_with_object_array_holder() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(vec![
+        claims: vec![
             Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
@@ -1141,7 +1138,8 @@ async fn test_get_proof_with_object_array_holder() {
                 selectively_disclosable: false,
                 schema: claim_schemas[1].clone().into(),
             },
-        ]),
+        ]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -1158,6 +1156,7 @@ async fn test_get_proof_with_object_array_holder() {
 
         subscriber_information: None,
     };
+    let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
         id: Uuid::new_v4().into(),
@@ -1171,10 +1170,8 @@ async fn test_get_proof_with_object_array_holder() {
         completed_date: None,
         schema: None,
         claims: Some(
-            credential
-                .claims
+            credential_claims
                 .iter()
-                .flatten()
                 .map(|claim| ProofClaim {
                     claim: claim.clone(),
                     credential: Some(credential.clone()),
@@ -1238,7 +1235,6 @@ async fn test_get_proof_with_object_array_holder() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1376,7 +1372,7 @@ async fn test_get_proof_with_array() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(vec![
+        claims: vec![
             Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
@@ -1407,7 +1403,8 @@ async fn test_get_proof_with_array() {
                 selectively_disclosable: false,
                 schema: claim_schema.clone().into(),
             },
-        ]),
+        ]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -1424,6 +1421,7 @@ async fn test_get_proof_with_array() {
 
         subscriber_information: None,
     };
+    let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
         id: Uuid::new_v4().into(),
@@ -1454,10 +1452,8 @@ async fn test_get_proof_with_array() {
             }]),
         }),
         claims: Some(
-            credential
-                .claims
+            credential_claims
                 .iter()
-                .flatten()
                 .map(|claim| ProofClaim {
                     claim: claim.clone(),
                     credential: Some(credential.clone()),
@@ -1511,7 +1507,6 @@ async fn test_get_proof_with_array() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1649,7 +1644,7 @@ async fn test_get_proof_with_array_in_object() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(vec![
+        claims: vec![
             Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
@@ -1690,7 +1685,8 @@ async fn test_get_proof_with_array_in_object() {
                 selectively_disclosable: false,
                 schema: claim_schemas[1].clone().into(),
             },
-        ]),
+        ]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -1707,6 +1703,7 @@ async fn test_get_proof_with_array_in_object() {
 
         subscriber_information: None,
     };
+    let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
         id: Uuid::new_v4().into(),
@@ -1737,10 +1734,8 @@ async fn test_get_proof_with_array_in_object() {
             }]),
         }),
         claims: Some(
-            credential
-                .claims
+            credential_claims
                 .iter()
-                .flatten()
                 .map(|claim| ProofClaim {
                     claim: claim.clone(),
                     credential: Some(credential.clone()),
@@ -1794,7 +1789,6 @@ async fn test_get_proof_with_array_in_object() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1938,7 +1932,7 @@ async fn test_get_proof_with_object_array() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(vec![
+        claims: vec![
             Claim {
                 id: Uuid::new_v4().into(),
                 credential_id: Uuid::new_v4().into(),
@@ -1989,7 +1983,8 @@ async fn test_get_proof_with_object_array() {
                 selectively_disclosable: false,
                 schema: claim_schemas[1].clone().into(),
             },
-        ]),
+        ]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -2006,6 +2001,7 @@ async fn test_get_proof_with_object_array() {
 
         subscriber_information: None,
     };
+    let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
         id: Uuid::new_v4().into(),
@@ -2036,10 +2032,8 @@ async fn test_get_proof_with_object_array() {
             }]),
         }),
         claims: Some(
-            credential
-                .claims
+            credential_claims
                 .iter()
-                .flatten()
                 .map(|claim| ProofClaim {
                     claim: claim.clone(),
                     credential: Some(credential.clone()),
@@ -2093,7 +2087,6 @@ async fn test_get_proof_with_object_array() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),

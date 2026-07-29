@@ -6,7 +6,7 @@ use shared_types::{
 use strum::{Display, EnumString};
 use time::OffsetDateTime;
 
-use super::claim::{Claim, ClaimRelations};
+use super::claim::Claim;
 use super::common::GetListResponse;
 use super::credential_schema::{CredentialSchema, CredentialSchemaRelations};
 use super::identifier::{Identifier, IdentifierRelations};
@@ -16,7 +16,7 @@ use super::list_query::ListQuery;
 use crate::model::certificate::{Certificate, CertificateRelations};
 use crate::model::key::KeyRelations;
 use crate::model::list_filter::{ListFilterValue, StringMatch, ValueComparison};
-use crate::model::relation::Related;
+use crate::model::relation::{Related, RelatedVec};
 
 #[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
@@ -43,7 +43,7 @@ pub struct Credential {
     pub subscriber_information: Option<String>,
 
     // Relations:
-    pub claims: Option<Vec<Claim>>,
+    pub claims: RelatedVec<Claim>,
     pub issuer_identifier: Option<Identifier>,
     pub issuer_certificate: Option<Certificate>,
     pub holder_identifier: Option<Identifier>,
@@ -55,7 +55,6 @@ pub struct Credential {
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct CredentialRelations {
-    pub claims: Option<ClaimRelations>,
     pub issuer_identifier: Option<IdentifierRelations>,
     pub issuer_certificate: Option<CertificateRelations>,
     pub holder_identifier: Option<IdentifierRelations>,

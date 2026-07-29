@@ -1,9 +1,11 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
-use shared_types::ClaimId;
+use shared_types::{ClaimId, CredentialId};
 
 use super::error::DataLayerError;
 use crate::model::claim::Claim;
+use crate::model::relation::AsyncVecLoader;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
@@ -21,4 +23,25 @@ pub trait ClaimRepository: Send + Sync {
     ) -> Result<(), DataLayerError>;
 
     async fn get_claim_list(&self, id: Vec<ClaimId>) -> Result<Vec<Claim>, DataLayerError>;
+
+    /// Claims belonging to a credential, ordered according to the claim order defined by the
+    /// owning credential schema.
+    async fn get_claims_for_credential(
+        &self,
+        credential_id: CredentialId,
+    ) -> Result<Vec<Claim>, DataLayerError>;
+}
+
+pub struct CredentialClaimsLoader {
+    pub credential_id: CredentialId,
+    pub claim_repository: Arc<dyn ClaimRepository>,
+}
+
+#[async_trait::async_trait]
+impl AsyncVecLoader<Claim> for CredentialClaimsLoader {
+    async fn load(&self) -> Result<Vec<Claim>, DataLayerError> {
+        self.claim_repository
+            .get_claims_for_credential(self.credential_id)
+            .await
+    }
 }

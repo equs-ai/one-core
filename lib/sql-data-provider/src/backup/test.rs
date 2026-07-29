@@ -677,7 +677,7 @@ async fn test_fetch_unexportable_credentials_local() {
     );
 
     // ONE-8026: claims must contain claim schemas
-    unexportable.credentials[0].claims.as_ref().unwrap()[0]
+    unexportable.credentials[0].claims.as_ref().await.unwrap()[0]
         .schema
         .as_ref()
         .await

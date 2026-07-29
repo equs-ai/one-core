@@ -106,7 +106,6 @@ impl ProofService {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(Default::default()),

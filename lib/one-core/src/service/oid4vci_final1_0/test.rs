@@ -328,7 +328,7 @@ fn dummy_credential(
         r#type: CredentialType::Single,
         state,
         suspend_end_date: None,
-        claims: None,
+        claims: Default::default(),
         issuer_identifier: Some(dummy_identifier()),
         issuer_certificate: None,
         holder_identifier: None,

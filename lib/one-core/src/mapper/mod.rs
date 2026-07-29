@@ -241,7 +241,7 @@ pub(crate) fn extracted_credential_to_model(
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
         profile: None,
-        claims: Some(model_claims),
+        claims: model_claims.into(),
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
         holder_identifier,
@@ -464,8 +464,8 @@ mod tests {
     use crate::model::identifier::{IdentifierData, IdentifierState};
     use crate::service::test_utilities::dummy_organisation;
 
-    #[test]
-    fn test_extracted_credential_to_model_mdoc() {
+    #[tokio::test]
+    async fn test_extracted_credential_to_model_mdoc() {
         let element_claim_schema = ClaimSchema {
             id: Uuid::new_v4().into(),
             key: "element".to_string(),
@@ -569,7 +569,7 @@ mod tests {
         )
         .unwrap();
 
-        let claims = credential.claims.unwrap();
+        let claims = credential.claims.as_ref().await.unwrap();
         assert_eq!(claims.len(), 1);
         assert!(
             claims

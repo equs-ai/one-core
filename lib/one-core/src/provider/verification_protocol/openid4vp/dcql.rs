@@ -512,12 +512,7 @@ async fn select_claims(
     formatter: &dyn CredentialFormatter,
     select_children: bool,
 ) -> Result<Vec<MatchedClaim>, VerificationProtocolError> {
-    let Some(claims) = &credential.claims else {
-        return Err(VerificationProtocolError::Failed(format!(
-            "credential {} missing claims",
-            credential.id
-        )));
-    };
+    let claims = credential.claims.as_ref().await?;
 
     let mut selected = HashMap::new();
     // add all nonselectively disclosable claims defined from root
@@ -530,7 +525,7 @@ async fn select_claims(
 
         // children of the root nonselectively disclosable that are also not selectively disclosable
         let nonselectively_disclosable_children_of_root = get_nonselectively_disclosable_children(
-            claims,
+            &claims,
             root_nonselectively_disclosable
                 .iter()
                 .map(|claim| claim.path.as_str())
@@ -585,7 +580,7 @@ async fn select_claims(
     // add claims requested by the verifier
     for claim_filter in &filter.claims {
         let matching_claims = get_matching_claims(
-            claims,
+            &claims,
             claim_filter,
             &user_claim_path,
             select_children,

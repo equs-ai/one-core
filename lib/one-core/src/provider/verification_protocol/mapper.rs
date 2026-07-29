@@ -6,7 +6,6 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::dto::CredentialSetResponseDTO;
-use crate::model::claim::ClaimRelations;
 use crate::model::credential::{
     Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations, CredentialRole,
     CredentialStateEnum, CredentialType,
@@ -116,7 +115,6 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
                     &CredentialRelations {
                         holder_identifier: Some(IdentifierRelations {}),
                         issuer_identifier: Some(IdentifierRelations {}),
-                        claims: Some(ClaimRelations {}),
                         schema: Some(Default::default()),
                         issuer_certificate: Some(Default::default()),
                         ..Default::default()

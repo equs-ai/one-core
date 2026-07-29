@@ -254,12 +254,7 @@ pub(crate) async fn presented_paths_to_disclosed_keys(
         .ok_or(ServiceError::MappingError(
             "credential_schema missing".to_string(),
         ))?;
-    let claims = credential
-        .claims
-        .as_ref()
-        .ok_or(ServiceError::MappingError(
-            "missing credential claims".to_string(),
-        ))?;
+    let claims = credential.claims.as_ref().await?;
     let formats = credential_schema.formats.as_ref().await?;
     let format = formats
         .first()

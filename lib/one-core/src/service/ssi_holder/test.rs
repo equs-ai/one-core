@@ -1061,7 +1061,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Pending,
         suspend_end_date: None,
-        claims: None,
+        claims: Default::default(),
         profile: None,
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),

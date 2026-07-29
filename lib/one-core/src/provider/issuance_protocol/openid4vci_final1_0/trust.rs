@@ -47,11 +47,13 @@ impl OpenID4VCIFinal1_0 {
         organisation_id: OrganisationId,
     ) -> TrustResolutionResult {
         let namespaced = formatter_requires_namespaces(formatter);
-        let is_qeaa = credential
-            .claims
-            .as_deref()
-            .and_then(|claims| credential_category(claims, namespaced))
-            == Some(QUALIFIED_EAA_CATEGORY);
+        let is_qeaa = match credential.claims.as_ref().await {
+            Ok(claims) => credential_category(&claims, namespaced) == Some(QUALIFIED_EAA_CATEGORY),
+            Err(err) => {
+                tracing::info!(%err, "Failed to load credential claims for trust resolution");
+                return TrustResolutionResult::Untrusted;
+            }
+        };
 
         if is_qeaa {
             return self
@@ -323,12 +325,9 @@ impl OpenID4VCIFinal1_0 {
         }
 
         let namespaced = formatter_requires_namespaces(formatter);
-        if credential
-            .claims
-            .as_deref()
-            .and_then(|claims| credential_category(claims, namespaced))
-            == Some(QUALIFIED_EAA_CATEGORY)
-        {
+        let claims = credential.claims.as_ref().await?;
+        let category = credential_category(&claims, namespaced);
+        if category == Some(QUALIFIED_EAA_CATEGORY) {
             let trust_resolution = self
                 .resolve_qeaa_issuer_trust(serialized, schema, formatter, organisation.id)
                 .await;

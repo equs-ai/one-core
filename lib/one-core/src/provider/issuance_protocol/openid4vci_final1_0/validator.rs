@@ -296,37 +296,32 @@ async fn single_schema_format(
         ))
 }
 
+// fully owned, because the values originate from lazily loaded relations
 #[derive(Eq, PartialEq)]
-struct ClaimWithType<'a> {
-    key: &'a String,
-    value: &'a Option<String>,
-    // owned, because it originates from a lazily loaded relation
+struct ClaimWithType {
+    key: String,
+    value: Option<String>,
     data_type: String,
 }
 
 async fn sorted_claim_entries(
     credential: &Credential,
-) -> Result<Vec<ClaimWithType<'_>>, IssuanceProtocolError> {
-    let claims = credential
-        .claims
-        .as_ref()
-        .ok_or(IssuanceProtocolError::Failed(
-            "Invalid parsed schema: missing claims".to_string(),
-        ))?;
+) -> Result<Vec<ClaimWithType>, IssuanceProtocolError> {
+    let claims = credential.claims.as_ref().await?;
     let mut claims_with_types = vec![];
-    for claim in claims {
+    for claim in claims.iter() {
         let claim_schema = claim.schema.as_ref().await?;
         if claim_schema.metadata {
             // Skip metadata claims, issuer is validated separately
             continue;
         }
         claims_with_types.push(ClaimWithType {
-            key: &claim.path,
-            value: &claim.value,
+            key: claim.path.to_owned(),
+            value: claim.value.to_owned(),
             data_type: claim_schema.data_type.to_owned(),
         })
     }
-    claims_with_types.sort_by(|a, b| a.key.cmp(b.key));
+    claims_with_types.sort_by(|a, b| a.key.cmp(&b.key));
     Ok(claims_with_types)
 }
 

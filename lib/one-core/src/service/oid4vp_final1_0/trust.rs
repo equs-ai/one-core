@@ -151,11 +151,8 @@ impl OID4VPFinal1_0Service {
             .r#type
             == FormatType::Mdoc;
 
-        let category = credential
-            .credential
-            .claims
-            .as_deref()
-            .and_then(|claims| credential_category(claims, namespaced));
+        let claims = credential.credential.claims.as_ref().await?;
+        let category = credential_category(&claims, namespaced);
 
         Ok(self
             .wrp_validator

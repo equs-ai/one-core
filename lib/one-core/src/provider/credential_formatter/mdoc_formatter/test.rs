@@ -1116,7 +1116,7 @@ async fn test_parse_credential() {
         credential.issuance_date.unwrap(),
         datetime!(2025-10-15 08:58:13 UTC)
     );
-    let claims = credential.claims.unwrap();
+    let claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(claims.len(), 7);
 
     let get_claim_paths = |filter: &dyn Fn(&Claim) -> bool| {

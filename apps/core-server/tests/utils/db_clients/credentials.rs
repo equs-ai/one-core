@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use one_core::model::claim::{Claim, ClaimRelations};
+use one_core::model::claim::Claim;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
     Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations, CredentialRole,
@@ -32,7 +32,6 @@ impl CredentialsDB {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {}),
                     schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
@@ -108,7 +107,7 @@ impl CredentialsDB {
         let credential_id = params.id.unwrap_or(Uuid::new_v4().into());
         let claim_schemas = credential_schema.claim_schemas.as_ref().await.unwrap();
 
-        let claims = if let Some(claims_data) = params.claims_data {
+        let claims: Vec<Claim> = if let Some(claims_data) = params.claims_data {
             claims_data
                 .into_iter()
                 .map(|new_claim| {
@@ -196,7 +195,7 @@ impl CredentialsDB {
             r#type: params.r#type.unwrap_or(CredentialType::Single),
             state,
             suspend_end_date: params.suspend_end_date,
-            claims: Some(claims),
+            claims: claims.into(),
             issuer_identifier: Some(issuer_identifier.to_owned()),
             issuer_certificate: params.issuer_certificate.or(match &issuer_identifier.data {
                 IdentifierData::Certificate(certs)
@@ -255,7 +254,7 @@ impl CredentialsDB {
             .await
             .unwrap();
         let batch_item_template = Credential {
-            claims: Some(vec![]),
+            claims: Default::default(),
             r#type: CredentialType::BatchItem,
             webhook_url: None,
             parent: Some(Related::new(id, self.repository.clone())),

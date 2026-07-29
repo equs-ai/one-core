@@ -1,4 +1,4 @@
-use one_dto_mapper::{convert_inner, convert_inner_of_inner};
+use one_dto_mapper::convert_inner;
 
 use crate::config::core_config::FormatType;
 use crate::error::ContextWithErrorCode;
@@ -52,7 +52,7 @@ pub(crate) async fn credential_from_proved(
         role: proved_credential.credential.role,
         r#type: CredentialType::Single,
         state: proved_credential.credential.state,
-        claims: convert_inner_of_inner(proved_credential.credential.claims),
+        claims: proved_credential.credential.claims,
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
         holder_identifier: Some(holder_identifier),

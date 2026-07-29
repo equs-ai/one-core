@@ -645,7 +645,10 @@ async fn test_get_proof_with_array() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     // WHEN
@@ -926,7 +929,10 @@ async fn test_get_proof_with_nested_optional_inputs() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     // WHEN
@@ -1056,7 +1062,10 @@ async fn test_get_proof_with_credentials() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
     context
         .db
@@ -1397,7 +1406,10 @@ async fn test_get_proof_with_deleted_claims() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     context
@@ -1492,7 +1504,10 @@ async fn test_get_proof_with_verifier_and_issuer_certificates() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     // WHEN
@@ -1632,7 +1647,10 @@ async fn test_get_proof_with_credentials_returns_profiles() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof.id, credential.claims.unwrap())
+        .set_proof_claims(
+            &proof.id,
+            credential.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     // WHEN

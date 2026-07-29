@@ -556,7 +556,7 @@ impl CredentialFormatter for JsonLdBbsplus {
             credential_blob_id: None,
             wallet_unit_attestation_blob_id: None,
             wallet_instance_attestation_blob_id: None,
-            claims: Some(claims),
+            claims: claims.into(),
             issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
             holder_identifier,

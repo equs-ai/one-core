@@ -973,7 +973,7 @@ pub async fn create_credential(
         r#type: params.r#type.unwrap_or(CredentialType::Single),
         state,
         suspend_end_date: params.suspend_end_date,
-        claims: Some(claims),
+        claims: claims.into(),
         issuer_identifier: Some(issuer_identifier.to_owned()),
         issuer_certificate: None,
         holder_identifier: params.holder_identifier,

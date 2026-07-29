@@ -19,12 +19,12 @@ use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::mapper::credential_schema_claim::{claim_schema_to_dto, translations_to_i18n};
 use crate::model::blob::{Blob, BlobType};
 use crate::model::certificate::Certificate;
-use crate::model::claim::{Claim, ClaimRelations};
+use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::common::SortDirection;
 use crate::model::credential::{
-    Credential, CredentialFilterValue, CredentialRelations, CredentialRole, CredentialStateEnum,
-    CredentialType, ExactCredentialFilterColumn, SortableCredentialColumn,
+    Credential, CredentialFilterValue, CredentialRole, CredentialStateEnum, CredentialType,
+    ExactCredentialFilterColumn, SortableCredentialColumn,
 };
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::identifier::Identifier;
@@ -67,35 +67,19 @@ pub(crate) async fn credential_detail_response_from_model(
             .map_err(|e: NestedError| CredentialServiceError::MappingError(e.to_string()))?;
 
     let claims = match value.r#type {
-        CredentialType::Single | CredentialType::BatchParent => value.claims.ok_or(
-            CredentialServiceError::MappingError("claims is None".to_string()),
-        )?,
+        CredentialType::Single | CredentialType::BatchParent => {
+            value.claims.as_ref().await?.to_owned()
+        }
         CredentialType::BatchItem => {
-            let parent_id = value
+            // batch items have no claims of their own, they are defined by the parent
+            let parent = value
                 .parent
                 .as_ref()
                 .ok_or(CredentialServiceError::MappingError(
                     "batch item parent is None".to_string(),
-                ))?
-                .id();
+                ))?;
 
-            credential_repository
-                .get_credential(
-                    &parent_id,
-                    &CredentialRelations {
-                        claims: Some(ClaimRelations {}),
-                        ..Default::default()
-                    },
-                )
-                .await
-                .error_while("getting parent credential")?
-                .ok_or(CredentialServiceError::MappingError(
-                    "batch item parent missing".to_string(),
-                ))?
-                .claims
-                .ok_or(CredentialServiceError::MappingError(
-                    "claims is None".to_string(),
-                ))?
+            parent.as_ref().await?.claims.as_ref().await?.to_owned()
         }
     };
 
@@ -514,7 +498,7 @@ pub(super) fn from_create_request(
         deleted_at: None,
         consumed_at: None,
         protocol: request.protocol,
-        claims: Some(claims),
+        claims: claims.into(),
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
         holder_identifier: None,

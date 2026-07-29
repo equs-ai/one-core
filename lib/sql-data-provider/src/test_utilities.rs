@@ -115,7 +115,7 @@ pub async fn insert_credential(
         state: credential.state.into(),
         suspend_end_date: credential.suspend_end_date,
         profile: credential.profile,
-        claims: None,
+        claims: Default::default(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,

@@ -546,7 +546,7 @@ async fn test_get_presentation_definition_v2() {
         redirect_uri: None,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(claims),
+        claims: claims.into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,

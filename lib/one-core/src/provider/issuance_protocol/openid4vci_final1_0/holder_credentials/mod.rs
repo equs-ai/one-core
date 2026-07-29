@@ -113,9 +113,17 @@ impl OpenID4VCIFinal1_0 {
                 issuer_certificate: None,
                 holder_identifier: None,
                 key: None,
+                // materialized on purpose: cloning the relation would alias the batch item's claims
+                claims: batch_item
+                    .credential
+                    .claims
+                    .as_ref()
+                    .await?
+                    .to_owned()
+                    .into(),
                 ..batch_item.credential.clone()
             };
-            remap_claim_credential_ids(&mut credential)?;
+            remap_claim_credential_ids(&mut credential).await?;
             let issuer_cert = batch_item.credential.issuer_certificate.clone();
             let issuer_serialized = batch_item.serialized.clone();
             let batch_parent = CredentialWithBlob {
@@ -245,7 +253,7 @@ impl OpenID4VCIFinal1_0 {
         credential.schema = Some(schema.clone());
         credential.r#type = CredentialType::BatchItem;
         credential.parent = Some(Related::new(parent_id, self.credential_repository.clone()));
-        credential.claims = Some(vec![]);
+        credential.claims = Default::default();
         credential.interaction = None;
     }
 
@@ -807,10 +815,7 @@ async fn validate_existing_and_find_new_claim_schemas(
 ) -> Result<(Vec<ClaimSchema>, Vec<CredentialSchemaFormatClaimSchema>), IssuanceProtocolError> {
     let mut new_claim_schemas = vec![];
     let mut new_mappings = vec![];
-    let claims = credential
-        .claims
-        .as_mut()
-        .ok_or(IssuanceProtocolError::Failed("Missing claims".to_string()))?;
+    let mut claims = credential.claims.as_mut().await?;
     claims.sort_by_key(|c| c.path.clone());
 
     let parsed_schema = credential
@@ -871,7 +876,7 @@ async fn validate_existing_and_find_new_claim_schemas(
                 known_claim_schema.key.clone(),
             );
             relink_claims(
-                claims,
+                &mut claims,
                 parsed_claim_schema.id,
                 known_claim_schema,
                 &mut claim_path_translations,
@@ -897,7 +902,7 @@ async fn validate_existing_and_find_new_claim_schemas(
                 parsed_claim_schema.key = mapped_child_key;
                 // relink to the same schema with changed path
                 relink_claims(
-                    claims,
+                    &mut claims,
                     parsed_claim_schema.id,
                     &parsed_claim_schema,
                     &mut claim_path_translations,

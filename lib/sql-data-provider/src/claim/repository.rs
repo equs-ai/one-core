@@ -1,16 +1,21 @@
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 
 use autometrics::autometrics;
 use one_core::model::claim::Claim;
 use one_core::model::relation::{BatchModelLoader, Related};
 use one_core::repository::claim_repository::ClaimRepository;
 use one_core::repository::error::DataLayerError;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{
+    ColumnTrait, EntityTrait, FromQueryResult, JoinType, QueryFilter, QueryOrder, QuerySelect,
+    RelationTrait,
+};
 use shared_types::{ClaimId, CredentialId};
+use uuid::Uuid;
 
 use super::ClaimProvider;
 use crate::claim::mapper::claim_from_model;
-use crate::entity::claim;
+use crate::entity::{claim, claim_schema};
 use crate::mapper::to_data_layer_error;
 
 #[autometrics]
@@ -91,5 +96,36 @@ impl ClaimRepository for ClaimProvider {
                 claim_from_model(model, schema)
             })
             .collect())
+    }
+
+    async fn get_claims_for_credential(
+        &self,
+        credential_id: CredentialId,
+    ) -> Result<Vec<Claim>, DataLayerError> {
+        #[derive(FromQueryResult)]
+        struct ClaimIdModel {
+            pub id: String,
+        }
+
+        let ids: Vec<ClaimId> = claim::Entity::find()
+            .select_only()
+            .columns([claim::Column::Id])
+            .filter(claim::Column::CredentialId.eq(credential_id))
+            .join(JoinType::InnerJoin, claim::Relation::ClaimSchema.def())
+            .join(
+                JoinType::InnerJoin,
+                claim_schema::Relation::CredentialSchema.def(),
+            )
+            // sorting claims according to the order from credential_schema
+            .order_by_asc(claim_schema::Column::Order)
+            .into_model::<ClaimIdModel>()
+            .all(&self.db)
+            .await
+            .map_err(|e| DataLayerError::Db(e.into()))?
+            .into_iter()
+            .map(|claim| Uuid::from_str(&claim.id).map(ClaimId::from))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.get_claim_list(ids).await
     }
 }

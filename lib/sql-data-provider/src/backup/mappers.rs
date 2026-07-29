@@ -72,7 +72,7 @@ pub(super) fn credential_from_unexportable_model(
         state: value.state.into(),
         suspend_end_date: value.suspend_end_date,
         profile: value.profile,
-        claims: Some(claims),
+        claims: claims.into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,

@@ -115,7 +115,7 @@ pub(crate) fn extracted_credential_to_model(
             state: CredentialStateEnum::Accepted,
             suspend_end_date: None,
             profile: profile.clone(),
-            claims: Some(model_claims.to_owned()),
+            claims: model_claims.to_owned().into(),
             issuer_identifier: None,
             issuer_certificate: None,
             holder_identifier: None,

@@ -22,7 +22,7 @@ use crate::config::validator::transport::{
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::mapper::credential_schema_claim::presented_paths_to_disclosed_keys;
 use crate::mapper::oidc::detect_format_with_crypto_suite;
-use crate::model::claim::{Claim, ClaimRelations};
+use crate::model::claim::Claim;
 use crate::model::common::SortDirection;
 use crate::model::credential::{
     Clearable, CredentialFilterValue, CredentialListQuery, CredentialRelations,
@@ -470,7 +470,6 @@ impl SSIHolderService {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {}),
                     key: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
                     schema: Some(Default::default()),
@@ -593,11 +592,11 @@ impl SSIHolderService {
 
         let claims = credential
             .claims
-            .ok_or(HolderServiceError::MappingError(format!(
-                "Missing claims on credential `{credential_id}`"
-            )))?
-            .into_iter()
+            .as_ref()
+            .await?
+            .iter()
             .filter(|c| presented_paths.contains(&c.path))
+            .cloned()
             .collect();
 
         Ok(SubmissionItem {

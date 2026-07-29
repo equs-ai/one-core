@@ -340,20 +340,42 @@ async fn test_run_retain_proof_check_with_update() {
     context
         .db
         .proofs
-        .set_proof_claims(&proof_1.id, credential_1.claims.unwrap())
+        .set_proof_claims(
+            &proof_1.id,
+            credential_1.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     context
         .db
         .proofs
-        .set_proof_claims(&proof_2.id, credential_2.claims.unwrap())
+        .set_proof_claims(
+            &proof_2.id,
+            credential_2.claims.as_ref().await.unwrap().to_owned(),
+        )
         .await;
 
     let credential_1 = context.db.credentials.get(&credential_1.id).await;
-    assert!(!credential_1.claims.unwrap().is_empty());
+    assert!(
+        !credential_1
+            .claims
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
+            .is_empty()
+    );
 
     let credential_2 = context.db.credentials.get(&credential_2.id).await;
-    assert!(!credential_2.claims.unwrap().is_empty());
+    assert!(
+        !credential_2
+            .claims
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
+            .is_empty()
+    );
 
     // WHEN
     let resp = context.api.tasks.run("RETAIN_PROOF_CHECK").await;
@@ -362,10 +384,18 @@ async fn test_run_retain_proof_check_with_update() {
     assert_eq!(resp.status(), 200);
 
     let proof = context.db.proofs.get(&proof_1.id).await;
-    assert!(proof.claims.unwrap().is_empty());
+    assert!(proof.claims.as_ref().unwrap().is_empty());
 
     let credential = context.db.credentials.get(&credential_1.id).await;
-    assert!(credential.claims.unwrap().is_empty());
+    assert!(
+        credential
+            .claims
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
+            .is_empty()
+    );
 
     let get_credential_blob = context.db.blobs.get(&credential_1_blob.id).await;
     assert!(get_credential_blob.is_none());
@@ -374,10 +404,18 @@ async fn test_run_retain_proof_check_with_update() {
     assert!(get_proof_blob.is_none());
 
     let proof = context.db.proofs.get(&proof_2.id).await;
-    assert!(!proof.claims.unwrap().is_empty());
+    assert!(!proof.claims.as_ref().unwrap().is_empty());
 
     let credential = context.db.credentials.get(&credential_2.id).await;
-    assert!(!credential.claims.unwrap().is_empty());
+    assert!(
+        !credential
+            .claims
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
+            .is_empty()
+    );
 
     let get_credential_blob = context.db.blobs.get(&credential_2_blob.id).await;
     assert!(get_credential_blob.is_some());

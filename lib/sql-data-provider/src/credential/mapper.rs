@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use one_core::model::claim::Claim;
 use one_core::model::credential::{
     Clearable, Credential, CredentialFilterValue, SortableCredentialColumn,
 };
@@ -8,6 +9,7 @@ use one_core::model::identifier::Identifier;
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::certificate_repository::CertificateRepository;
+use one_core::repository::claim_repository::{ClaimRepository, CredentialClaimsLoader};
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
@@ -18,7 +20,7 @@ use one_dto_mapper::convert_inner;
 use sea_orm::sea_query::query::IntoCondition;
 use sea_orm::sea_query::{ExprTrait, Query, SelectStatement, SimpleExpr};
 use sea_orm::{ActiveValue, ColumnTrait, IntoSimpleExpr, JoinType, RelationTrait, Set, Value};
-use shared_types::{BlobId, CertificateId, IdentifierId, InteractionId, KeyId};
+use shared_types::{BlobId, CertificateId, CredentialId, IdentifierId, InteractionId, KeyId};
 
 use crate::TransactionManagerImpl;
 use crate::credential::entity_model::CredentialListEntityModel;
@@ -180,11 +182,25 @@ impl IntoJoinRelations for CredentialFilterValue {
     }
 }
 
+/// Builds the lazily loaded claims relation of a credential. Shared between the credential
+/// mapper and the credential list projection.
+pub(crate) fn credential_claims(
+    credential_id: CredentialId,
+    claim_repository: &Arc<dyn ClaimRepository>,
+) -> RelatedVec<Claim> {
+    RelatedVec::new(CredentialClaimsLoader {
+        credential_id,
+        claim_repository: claim_repository.to_owned(),
+    })
+}
+
 pub(crate) fn model_to_credential(
     credential: credential::Model,
     credential_repository: &Arc<dyn CredentialRepository>,
+    claim_repository: &Arc<dyn ClaimRepository>,
 ) -> Credential {
     Credential {
+        claims: credential_claims(credential.id, claim_repository),
         id: credential.id,
         created_date: credential.created_date,
         issuance_date: credential.issuance_date,
@@ -198,7 +214,6 @@ pub(crate) fn model_to_credential(
         state: credential.state.into(),
         suspend_end_date: credential.suspend_end_date,
         profile: credential.profile,
-        claims: None,
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
@@ -264,6 +279,7 @@ pub(super) fn request_to_active_model(
 pub(super) fn credential_list_model_to_repository_model(
     credential: CredentialListEntityModel,
     credential_repository: &Arc<dyn CredentialRepository>,
+    claim_repository: &Arc<dyn ClaimRepository>,
     organisation_repository: &Arc<dyn OrganisationRepository>,
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
@@ -383,7 +399,7 @@ pub(super) fn credential_list_model_to_repository_model(
         state: credential.state.into(),
         suspend_end_date: credential.suspend_end_date,
         profile: credential.profile,
-        claims: None,
+        claims: credential_claims(credential.id, claim_repository),
         issuer_identifier,
         issuer_certificate: None,
         holder_identifier: None,
@@ -406,6 +422,7 @@ pub(super) fn credential_list_model_to_repository_model(
 pub(super) fn credentials_to_repository(
     credentials: Vec<CredentialListEntityModel>,
     credential_repository: &Arc<dyn CredentialRepository>,
+    claim_repository: &Arc<dyn ClaimRepository>,
     organisation_repository: &Arc<dyn OrganisationRepository>,
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
@@ -418,6 +435,7 @@ pub(super) fn credentials_to_repository(
         result.push(credential_list_model_to_repository_model(
             credential,
             credential_repository,
+            claim_repository,
             organisation_repository,
             did_repository,
             key_repository,

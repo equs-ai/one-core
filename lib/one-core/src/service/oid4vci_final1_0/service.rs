@@ -1357,7 +1357,7 @@ impl OID4VCIFinal1_0Service {
             )),
             webhook_url: None,
             interaction: None,
-            claims: Some(vec![]),
+            claims: Default::default(),
 
             // state and last_modified are reused from the parent credential,
             // so that they can be checked in the issuance protocol (e.g. MSO refresh rate limiting)

@@ -63,7 +63,7 @@ async fn matches_existing_schema() {
 
     assert!(claim_schemas.is_empty());
     assert!(mappings.is_empty());
-    let claims = credential.claims.as_ref().unwrap();
+    let claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(claims[0].schema.as_ref().await.unwrap().id, stored_cs_id);
     assert_eq!(claims[0].path, "addr/city");
     assert_eq!(credential.schema.as_ref().unwrap().id, stored_id);
@@ -128,7 +128,7 @@ async fn remaps_nested_and_array_claim_paths() {
 
     assert!(claim_schemas.is_empty());
     assert!(mappings.is_empty());
-    let claims = credential.claims.as_ref().unwrap();
+    let claims = credential.claims.as_ref().await.unwrap();
     // claims keep their (original-path) sort order; only the path strings are rewritten
     assert_eq!(claims[0].path, "addr");
     assert_eq!(claims[0].schema.as_ref().await.unwrap().id, stored_root_id);
@@ -222,42 +222,6 @@ async fn errors_on_new_claim_schema_when_disallowed() {
     );
 
     let mut credential = credential(parsed_schema, vec![claim("newClaim", &parsed_cs)]);
-
-    let result = validate_existing_and_find_new_claim_schemas(
-        &mut stored_schema,
-        &mut credential,
-        &format,
-        "en",
-        false,
-    )
-    .await;
-
-    assert!(result.is_err());
-}
-
-#[tokio::test]
-async fn errors_when_claims_missing() {
-    let format: CredentialFormat = "JWT".into();
-
-    let parsed_format_id = Uuid::new_v4().into();
-    let parsed_schema = credential_schema(
-        Uuid::new_v4().into(),
-        parsed_format_id,
-        "JWT",
-        vec![],
-        vec![],
-    );
-
-    let mut stored_schema = credential_schema(
-        Uuid::new_v4().into(),
-        Uuid::new_v4().into(),
-        "JWT",
-        vec![],
-        vec![],
-    );
-
-    let mut credential = credential(parsed_schema, vec![]);
-    credential.claims = None;
 
     let result = validate_existing_and_find_new_claim_schemas(
         &mut stored_schema,
@@ -488,7 +452,7 @@ async fn remaps_new_nested_and_array_claim_paths() {
     assert_eq!(mappings.len(), 1);
     assert_eq!(mappings[0].technical_key, "root_mapped/nested2");
     assert_eq!(mappings[0].namespace, None);
-    let claims = credential.claims.as_ref().unwrap();
+    let claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(claims.len(), 5);
     assert_eq!(claims[0].path, "root");
     assert_eq!(claims[1].path, "root/nested2");
@@ -613,7 +577,7 @@ fn credential(parsed_schema: CredentialSchema, claims: Vec<Claim>) -> Credential
         wallet_instance_attestation_blob_id: None,
         webhook_url: None,
         embedded_disclosure_policy: None,
-        claims: Some(claims),
+        claims: claims.into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,

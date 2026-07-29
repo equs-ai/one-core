@@ -341,7 +341,7 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: Some(vec![Claim {
+        claims: vec![Claim {
             id: Uuid::from_str("c322aa7f-9803-410d-b891-939b279fb965")
                 .unwrap()
                 .into(),
@@ -352,7 +352,8 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
             path: claim_schema.key.to_owned(),
             selectively_disclosable: false,
             schema: claim_schema.clone().into(),
-        }]),
+        }]
+        .into(),
         // Callers only pass did/key identifiers (no certificates).
         issuer_certificate: None,
         issuer_identifier: Some(issuer_identifier),

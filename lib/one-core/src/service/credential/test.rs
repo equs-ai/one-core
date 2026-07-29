@@ -155,7 +155,7 @@ async fn generic_credential() -> Credential {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: Some(vec![Claim {
+        claims: vec![Claim {
             id: Uuid::new_v4().into(),
             credential_id,
             created_date: now,
@@ -164,7 +164,8 @@ async fn generic_credential() -> Credential {
             path: claim_schema.key.clone(),
             selectively_disclosable: false,
             schema: claim_schema.clone().into(),
-        }]),
+        }]
+        .into(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,
@@ -249,7 +250,7 @@ async fn generic_credential_list_entity() -> Credential {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: None,
+        claims: Default::default(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,
@@ -937,18 +938,18 @@ async fn test_create_credential_based_on_issuer_did_success() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -1036,18 +1037,18 @@ async fn test_create_credential_based_on_issuer_identifier_success() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -1072,7 +1073,7 @@ async fn test_create_credential_failed_unsupported_wallet_storage_type() {
     } = generic_credential().await;
 
     let mut schema = schema.unwrap();
-    let claims = claims.unwrap();
+    let claims = claims.as_ref().await.unwrap().to_owned();
     let issuer_identifier = issuer_identifier.unwrap();
 
     schema.key_storage_security = Some(KeyStorageSecurity::EnhancedBasic);
@@ -1202,18 +1203,18 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -1310,18 +1311,18 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -1784,7 +1785,8 @@ async fn test_create_credential_namespace_optional() {
     credential_repository
         .expect_create_credential()
         .withf(move |request| {
-            let claims = request.claims.as_ref().unwrap();
+            // already loaded, so this does not actually block on any I/O
+            let claims = futures::executor::block_on(request.claims.as_ref()).unwrap();
             assert_eq!(claims.len(), 1);
             let claim = &claims[0];
             assert_eq!(claim.value.as_ref().unwrap(), "value");
@@ -2053,18 +2055,18 @@ async fn test_create_credential_key_with_issuer_key() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2199,18 +2201,18 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2318,18 +2320,18 @@ async fn test_fail_to_create_credential_no_assertion_key() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2418,18 +2420,18 @@ async fn test_fail_to_create_credential_unknown_key_id() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2537,18 +2539,18 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2656,18 +2658,18 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2760,18 +2762,18 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -2875,18 +2877,18 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: Some("invalid://domain.com".to_string()),
             profile: None,
@@ -2969,18 +2971,18 @@ async fn test_create_credential_fail_webhook_not_allowed() {
             issuer_certificate: None,
             protocol: "OPENID4VCI_FINAL1".to_string(),
             claim_values: vec![CredentialRequestClaimDTO {
-                claim_schema_id: credential.claims.as_ref().unwrap()[0]
+                claim_schema_id: credential.claims.as_ref().await.unwrap()[0]
                     .schema
                     .as_ref()
                     .await
                     .unwrap()
                     .id
                     .to_owned(),
-                value: credential.claims.as_ref().unwrap()[0]
+                value: credential.claims.as_ref().await.unwrap()[0]
                     .value
                     .to_owned()
                     .unwrap(),
-                path: credential.claims.as_ref().unwrap()[0].path.to_owned(),
+                path: credential.claims.as_ref().await.unwrap()[0].path.to_owned(),
             }],
             redirect_uri: None,
             profile: None,
@@ -3399,7 +3401,7 @@ async fn test_get_credential_success_with_non_required_nested_object() {
             .await
             .unwrap(),
     );
-    *credential.claims.as_mut().unwrap() = vec![Claim {
+    *credential.claims.as_mut().await.unwrap() = vec![Claim {
         id: Uuid::new_v4().into(),
         credential_id: credential.id,
         created_date: now,
@@ -3552,7 +3554,7 @@ async fn test_get_credential_success_array_complex_nested_all() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: Some(claims.to_owned()),
+        claims: claims.to_owned().into(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,
@@ -4333,7 +4335,7 @@ async fn test_get_credential_success_array_index_sorting() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: Some(claims.to_owned()),
+        claims: claims.to_owned().into(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,
@@ -4751,7 +4753,7 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        claims: Some(claims.to_owned()),
+        claims: claims.to_owned().into(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,
@@ -5024,7 +5026,7 @@ async fn test_get_credential_success_array_single_element() {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: Some(claims.to_owned()),
+        claims: claims.to_owned().into(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,

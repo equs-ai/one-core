@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use autometrics::autometrics;
@@ -12,7 +11,6 @@ use one_core::model::credential::{
 use one_core::model::credential_schema::{CredentialSchema, CredentialSchemaRelations};
 use one_core::model::identifier::{Identifier, IdentifierRelations};
 use one_core::proto::transaction_manager::IsolationLevel;
-use one_core::repository::claim_repository::ClaimRepository;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
 use one_core::repository::error::DataLayerError;
@@ -21,11 +19,10 @@ use one_dto_mapper::convert_inner;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::sea_query::{Expr, IntoCondition};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, FromQueryResult, JoinType, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, RelationTrait, Select, Set, SqlErr, Unchanged,
+    ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect, RelationTrait, Select, Set, SqlErr, Unchanged,
 };
 use shared_types::{ClaimId, CredentialId, CredentialSchemaId, IdentifierId, InteractionId};
-use uuid::Uuid;
 
 use super::CredentialProvider;
 use super::entity_model::CredentialListEntityModel;
@@ -36,7 +33,6 @@ use crate::common::calculate_pages_count;
 use crate::entity::{claim, claim_schema, credential, credential_schema, identifier};
 use crate::list_query_generic::{SelectWithFilterJoin, SelectWithListQuery};
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
-use crate::transaction_context::TransactionManagerImpl;
 
 async fn get_credential_schema(
     schema_id: &CredentialSchemaId,
@@ -54,38 +50,6 @@ async fn get_credential_schema(
             )?,
         )),
     }
-}
-
-async fn get_claims(
-    credential: &credential::Model,
-    db: &TransactionManagerImpl,
-    claim_repository: Arc<dyn ClaimRepository>,
-) -> Result<Vec<Claim>, DataLayerError> {
-    #[derive(FromQueryResult)]
-    struct ClaimIdModel {
-        pub id: String,
-    }
-
-    let ids: Vec<ClaimId> = claim::Entity::find()
-        .select_only()
-        .columns([claim::Column::Id])
-        .filter(claim::Column::CredentialId.eq(credential.id))
-        .join(JoinType::InnerJoin, claim::Relation::ClaimSchema.def())
-        .join(
-            JoinType::InnerJoin,
-            claim_schema::Relation::CredentialSchema.def(),
-        )
-        // sorting claims according to the order from credential_schema
-        .order_by_asc(claim_schema::Column::Order)
-        .into_model::<ClaimIdModel>()
-        .all(db)
-        .await
-        .map_err(|e| DataLayerError::Db(e.into()))?
-        .into_iter()
-        .map(|claim| Uuid::from_str(&claim.id).map(ClaimId::from))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    claim_repository.get_claim_list(ids).await
 }
 
 impl CredentialProvider {
@@ -114,12 +78,6 @@ impl CredentialProvider {
             self.credential_schema_repository.clone(),
         )
         .await?;
-
-        let claims = if relations.claims.is_some() {
-            Some(get_claims(&credential, &self.db, self.claim_repository.clone()).await?)
-        } else {
-            None
-        };
 
         let interaction = if let Some(_interaction_relations) = &relations.interaction {
             match &credential.interaction_id {
@@ -179,12 +137,11 @@ impl CredentialProvider {
         Ok(Credential {
             issuer_identifier,
             holder_identifier,
-            claims,
             schema,
             interaction,
             key,
             issuer_certificate,
-            ..model_to_credential(credential, &self.cloned())
+            ..model_to_credential(credential, &self.cloned(), &self.claim_repository)
         })
     }
 
@@ -383,10 +340,7 @@ impl CredentialRepository for CredentialProvider {
             .to_owned()
             .ok_or(DataLayerError::MappingError)?;
 
-        let claims = request
-            .claims
-            .to_owned()
-            .ok_or(DataLayerError::MappingError)?;
+        let claims = request.claims.as_ref().await?.to_owned();
 
         let interaction_id = request
             .interaction
@@ -519,6 +473,7 @@ impl CredentialRepository for CredentialProvider {
             values: credentials_to_repository(
                 credentials,
                 &self.cloned(),
+                &self.claim_repository,
                 &self.organisation_repository,
                 &self.did_repository,
                 &self.key_repository,

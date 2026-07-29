@@ -295,7 +295,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
         state: CredentialStateEnum::Pending,
         suspend_end_date: None,
         profile: None,
-        claims: Some(vec![Claim {
+        claims: vec![Claim {
             id: Uuid::new_v4().into(),
             credential_id,
             created_date: crate::clock::now_utc(),
@@ -315,7 +315,8 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
                 translations: Default::default(),
             }
             .into(),
-        }]),
+        }]
+        .into(),
         issuer_identifier: Some(Identifier {
             data: IdentifierData::Did((dummy_did()).into()),
             ..dummy_identifier()

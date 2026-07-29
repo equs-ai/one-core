@@ -596,7 +596,7 @@ async fn test_get_proof_with_relations() {
                 r#type: CredentialType::Single,
                 state: CredentialStateEnum::Accepted,
                 suspend_end_date: None,
-                claims: None,
+                claims: Default::default(),
                 issuer_identifier: None,
                 issuer_certificate: None,
                 holder_identifier: None,

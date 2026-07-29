@@ -729,7 +729,7 @@ async fn dummy_credential() -> Credential {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Pending,
         suspend_end_date: None,
-        claims: Some(vec![Claim {
+        claims: vec![Claim {
             id: Uuid::new_v4().into(),
             credential_id,
             created_date: crate::clock::now_utc(),
@@ -749,7 +749,8 @@ async fn dummy_credential() -> Credential {
                 translations: Default::default(),
             }
             .into(),
-        }]),
+        }]
+        .into(),
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,

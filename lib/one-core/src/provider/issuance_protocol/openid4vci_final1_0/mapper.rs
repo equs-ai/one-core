@@ -317,17 +317,13 @@ pub(super) fn credential_config_to_holder_signing_algs_and_key_storage_security(
     (algs, convert_inner_of_inner(key_storage_security))
 }
 
-pub(super) fn remap_claim_credential_ids(
+pub(super) async fn remap_claim_credential_ids(
     credential: &mut Credential,
 ) -> Result<(), IssuanceProtocolError> {
-    let claims = credential
-        .claims
-        .as_mut()
-        .ok_or(IssuanceProtocolError::Failed(
-            "missing claims on batch parent".to_string(),
-        ))?;
-    for claim in claims {
-        claim.credential_id = credential.id;
+    let credential_id = credential.id;
+    let mut claims = credential.claims.as_mut().await?;
+    for claim in claims.iter_mut() {
+        claim.credential_id = credential_id;
     }
     Ok(())
 }

@@ -67,7 +67,6 @@ use crate::mapper::openid4vp::format_type_to_dcql_format;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::certificate::CertificateRelations;
-use crate::model::claim::ClaimRelations;
 use crate::model::credential::{
     Credential, CredentialRelations, CredentialStateEnum, CredentialType,
 };
@@ -1977,7 +1976,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {}),
                     schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(CertificateRelations::default()),
@@ -1995,29 +1993,16 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
 
         if credential.r#type == CredentialType::BatchItem {
             // backfill claims for batch items, as these are only stored on the parent
-            let parent_id = credential
+            let parent = credential
                 .parent
                 .as_ref()
                 .ok_or(IssuanceProtocolError::Failed(format!(
                     "batch item {} is missing parent id",
                     credential.id
-                )))?
-                .id();
-            let parent = self
-                .credential_repository
-                .get_credential(
-                    &parent_id,
-                    &CredentialRelations {
-                        claims: Some(ClaimRelations {}),
-                        ..Default::default()
-                    },
-                )
-                .await
-                .error_while("getting parent credential claims")?
-                .ok_or(IssuanceProtocolError::Failed(
-                    "parent credential not found".to_string(),
-                ))?;
-            credential.claims = parent.claims;
+                )))?;
+            // materialized on purpose: cloning the relation would alias the parent's claims
+            let parent_claims = parent.as_ref().await?.claims.as_ref().await?.to_owned();
+            credential.claims = parent_claims.into();
         }
 
         credential.holder_identifier = Some(holder_identifier.clone());

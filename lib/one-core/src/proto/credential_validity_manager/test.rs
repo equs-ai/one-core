@@ -1470,7 +1470,7 @@ fn generic_credential() -> Credential {
         r#type: CredentialType::Single,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
-        claims: Some(vec![Claim {
+        claims: vec![Claim {
             id: Uuid::new_v4().into(),
             credential_id,
             created_date: now,
@@ -1479,7 +1479,8 @@ fn generic_credential() -> Credential {
             path: claim_schema.key.clone(),
             selectively_disclosable: false,
             schema: claim_schema.clone().into(),
-        }]),
+        }]
+        .into(),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),
             created_date: now,

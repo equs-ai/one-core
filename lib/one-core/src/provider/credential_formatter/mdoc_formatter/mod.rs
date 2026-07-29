@@ -612,7 +612,7 @@ impl CredentialFormatter for MdocFormatter {
             schema: Some(credential_schema),
             interaction: None,
             key: None,
-            claims: Some(claims),
+            claims: claims.into(),
             webhook_url: None,
             parent: None,
             embedded_disclosure_policy: None,

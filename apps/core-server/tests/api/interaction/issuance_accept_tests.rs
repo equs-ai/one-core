@@ -201,7 +201,7 @@ async fn test_issuance_accept_openid4vc() {
     assert_eq!(holder_did.id, credential_holder_did.id());
     assert_eq!(CredentialStateEnum::Accepted, credential.state);
 
-    let claims = credential.claims.unwrap();
+    let claims = credential.claims.as_ref().await.unwrap().to_owned();
     let iss_claim = claims.iter().find(|claim| claim.path == "iss").unwrap();
     assert_eq!(
         iss_claim.value.as_ref().unwrap(),
@@ -330,7 +330,7 @@ async fn test_issuance_accept_with_new_nested_optional_claims() {
     let credential = context.db.credentials.get(&resp["id"].parse()).await;
     assert_eq!(CredentialStateEnum::Accepted, credential.state);
 
-    let claims = credential.claims.unwrap();
+    let claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     // new nested optional claim (schemas)
     let city_claim = claims

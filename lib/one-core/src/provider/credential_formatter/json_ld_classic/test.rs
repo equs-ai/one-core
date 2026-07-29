@@ -370,11 +370,11 @@ async fn test_parse_credential() {
         "http://127.0.0.1:9876/ssi/schema/v1/4224e72d-087c-4376-8dcd-b48e8095e647"
     );
 
-    let claims = credential.claims.as_ref().unwrap();
+    let claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(claims.len(), 4);
 
     let mut metadata_paths: HashSet<&str> = HashSet::new();
-    for claim in claims {
+    for claim in claims.iter() {
         if claim.schema.as_ref().await.unwrap().metadata {
             metadata_paths.insert(claim.path.as_str());
         }

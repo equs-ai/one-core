@@ -370,11 +370,7 @@ pub(crate) async fn accept_proof(
             credential.issuance_date,
         )?;
 
-        let mut claims = credential
-            .claims
-            .as_ref()
-            .ok_or(ServiceError::MappingError("claims missing".to_string()))?
-            .to_owned();
+        let mut claims = credential.claims.as_ref().await?.to_owned();
         proof_claims.append(&mut claims);
 
         credential_repository
