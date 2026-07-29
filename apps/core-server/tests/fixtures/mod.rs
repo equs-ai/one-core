@@ -17,7 +17,7 @@ use one_core::config::core_config::{self, AppConfig, InputFormat};
 use one_core::model::blob::Blob;
 use one_core::model::certificate::{Certificate, CertificateRole, CertificateState};
 use one_core::model::claim::{Claim, ClaimRelations};
-use one_core::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
+use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
     Credential, CredentialRelations, CredentialRole, CredentialStateEnum, CredentialType,
 };
@@ -954,7 +954,7 @@ pub async fn create_credential(
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
             value: Some("test".to_string()),
-            schema: Some(claim_schema.to_owned()),
+            schema: claim_schema.to_owned().into(),
             path: claim_schema.key.clone(),
             selectively_disclosable: false,
         })
@@ -1071,9 +1071,7 @@ pub async fn get_proof(db_conn: &DbConn, proof_id: &ProofId) -> Proof {
             proof_id,
             &ProofRelations {
                 claims: Some(ProofClaimRelations {
-                    claim: ClaimRelations {
-                        schema: Some(ClaimSchemaRelations {}),
-                    },
+                    claim: ClaimRelations {},
                     credential: Some(CredentialRelations::default()),
                 }),
                 schema: Some(ProofSchemaRelations {

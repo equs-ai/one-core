@@ -470,9 +470,7 @@ impl SSIHolderService {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {
-                        schema: Some(Default::default()),
-                    }),
+                    claims: Some(ClaimRelations {}),
                     key: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
                     schema: Some(Default::default()),

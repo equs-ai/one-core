@@ -208,11 +208,11 @@ async fn test_issuance_accept_openid4vc() {
         &issuer_did.did.to_string()
     );
     assert_eq!(iss_claim.selectively_disclosable, false);
-    assert_eq!(iss_claim.schema.as_ref().unwrap().metadata, true);
+    assert_eq!(iss_claim.schema.as_ref().await.unwrap().metadata, true);
     let payload_claim = claims.iter().find(|claim| claim.path == "string").unwrap();
     assert_eq!(payload_claim.value.as_ref().unwrap(), "string");
     assert_eq!(payload_claim.selectively_disclosable, false);
-    assert_eq!(payload_claim.schema.as_ref().unwrap().metadata, false);
+    assert_eq!(payload_claim.schema.as_ref().await.unwrap().metadata, false);
 
     let history = context
         .db
@@ -338,7 +338,10 @@ async fn test_issuance_accept_with_new_nested_optional_claims() {
         .find(|claim| claim.path == "address/city")
         .unwrap();
     assert_eq!(city_claim.value.as_ref().unwrap(), "Zurich");
-    assert_eq!(city_claim.schema.as_ref().unwrap().key, "address/city");
+    assert_eq!(
+        city_claim.schema.as_ref().await.unwrap().key,
+        "address/city"
+    );
     let updated_schema = context
         .db
         .credential_schemas

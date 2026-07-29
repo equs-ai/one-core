@@ -32,9 +32,7 @@ impl CredentialsDB {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {
-                        schema: Some(Default::default()),
-                    }),
+                    claims: Some(ClaimRelations {}),
                     schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
@@ -127,7 +125,7 @@ impl CredentialsDB {
                         value: new_claim.value,
                         path: new_claim.path,
                         selectively_disclosable: new_claim.selectively_disclosable,
-                        schema: Some(claim_schema.to_owned()),
+                        schema: claim_schema.to_owned().into(),
                     }
                 })
                 .collect()
@@ -150,7 +148,7 @@ impl CredentialsDB {
                                 value: schema_to_dummy_value(claim_schema, params.random_claims),
                                 path: format!("{path}/0"),
                                 selectively_disclosable: false,
-                                schema: Some(claim_schema.to_owned()),
+                                schema: claim_schema.to_owned().into(),
                             },
                             Claim {
                                 id: Uuid::new_v4().into(),
@@ -160,7 +158,7 @@ impl CredentialsDB {
                                 value: None,
                                 path,
                                 selectively_disclosable: false,
-                                schema: Some(claim_schema.to_owned()),
+                                schema: claim_schema.to_owned().into(),
                             },
                         ]
                     } else {
@@ -172,7 +170,7 @@ impl CredentialsDB {
                             value: schema_to_dummy_value(claim_schema, params.random_claims),
                             path,
                             selectively_disclosable: false,
-                            schema: Some(claim_schema.to_owned()),
+                            schema: claim_schema.to_owned().into(),
                         }]
                     }
                 })

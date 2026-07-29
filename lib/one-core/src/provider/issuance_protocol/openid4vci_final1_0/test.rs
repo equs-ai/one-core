@@ -351,7 +351,7 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
             value: Some("123".to_string()),
             path: claim_schema.key.to_owned(),
             selectively_disclosable: false,
-            schema: Some(claim_schema.clone()),
+            schema: claim_schema.clone().into(),
         }]),
         // Callers only pass did/key identifiers (no certificates).
         issuer_certificate: None,

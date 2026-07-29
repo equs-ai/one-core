@@ -68,7 +68,6 @@ use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::ClaimRelations;
-use crate::model::claim_schema::ClaimSchemaRelations;
 use crate::model::credential::{
     Credential, CredentialRelations, CredentialStateEnum, CredentialType,
 };
@@ -1978,9 +1977,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {
-                        schema: Some(ClaimSchemaRelations::default()),
-                    }),
+                    claims: Some(ClaimRelations {}),
                     schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(CertificateRelations::default()),
@@ -2011,9 +2008,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 .get_credential(
                     &parent_id,
                     &CredentialRelations {
-                        claims: Some(ClaimRelations {
-                            schema: Some(ClaimSchemaRelations::default()),
-                        }),
+                        claims: Some(ClaimRelations {}),
                         ..Default::default()
                     },
                 )

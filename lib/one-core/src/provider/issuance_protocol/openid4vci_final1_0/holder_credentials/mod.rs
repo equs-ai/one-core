@@ -875,7 +875,8 @@ async fn validate_existing_and_find_new_claim_schemas(
                 parsed_claim_schema.id,
                 known_claim_schema,
                 &mut claim_path_translations,
-            )?;
+            )
+            .await?;
         } else {
             if let Some((parent_key, new_child_key)) =
                 parsed_claim_schema.key.rsplit_once(NESTED_CLAIM_MARKER)
@@ -900,7 +901,8 @@ async fn validate_existing_and_find_new_claim_schemas(
                     parsed_claim_schema.id,
                     &parsed_claim_schema,
                     &mut claim_path_translations,
-                )?;
+                )
+                .await?;
             } else {
                 // This is a new root claim, no parent path translations / relinking. Store the key
                 // translation for potential child claims of this new root claim.
@@ -943,39 +945,37 @@ async fn validate_existing_and_find_new_claim_schemas(
 
 /// Link all claims currently linked to `claim_schema_id` to `new_claim_schema`, while rewriting
 /// the path to match the new key.
-fn relink_claims(
+async fn relink_claims(
     claims: &mut [Claim],
     claim_schema_id: ClaimSchemaId,
     new_claim_schema: &ClaimSchema,
     claim_path_translations: &mut HashMap<String, String>,
 ) -> Result<(), IssuanceProtocolError> {
-    for claim in claims.iter_mut().filter(|claim| {
-        claim
-            .schema
-            .as_ref()
-            .is_some_and(|schema| schema.id == claim_schema_id)
-    }) {
-        let cs = claim
-            .schema
-            .as_ref()
-            .ok_or(IssuanceProtocolError::Failed("Missing schema".to_string()))?;
-        if cs.data_type != new_claim_schema.data_type {
+    for claim in claims
+        .iter_mut()
+        .filter(|claim| claim.schema.id() == claim_schema_id)
+    {
+        let (data_type, key) = {
+            let cs = claim.schema.as_ref().await?;
+            (cs.data_type.to_owned(), cs.key.to_owned())
+        };
+        if data_type != new_claim_schema.data_type {
             // This is just a warning because the data type detection is just a heuristic
             tracing::warn!(
                 "detected data type mismatch on claim `{}`: expected `{}` but parsed `{}`",
                 claim.path,
                 new_claim_schema.data_type,
-                cs.data_type
+                data_type
             );
         }
         let mapped_path = remap_claim_path(
             claim.path.as_str(),
             claim_path_translations,
-            &cs.key,
+            &key,
             new_claim_schema,
         )?;
         claim.path = mapped_path;
-        claim.schema = Some(new_claim_schema.to_owned());
+        claim.schema = new_claim_schema.to_owned().into();
     }
     Ok(())
 }

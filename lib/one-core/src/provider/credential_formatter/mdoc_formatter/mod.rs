@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use coset::iana::{EnumI64, HeaderParameter};
 use coset::{HeaderBuilder, ProtectedHeader, SignatureContext};
 use ct_codecs::{Base64, Decoder, Encoder};
+use futures::future::BoxFuture;
 use indexmap::{IndexMap, IndexSet};
 use one_crypto::utilities::generate_random_bytes;
 use proc_macros::Provider;
@@ -497,7 +498,8 @@ impl CredentialFormatter for MdocFormatter {
             self.datatype_provider.as_ref(),
             credential_id,
             credential_format_id,
-        )?;
+        )
+        .await?;
         let doctype_schema_id = Uuid::new_v4().into();
         claims.push(Claim {
             id: Uuid::new_v4().into(),
@@ -507,7 +509,7 @@ impl CredentialFormatter for MdocFormatter {
             value: Some(doctype.to_owned()),
             path: "doctype".to_string(),
             selectively_disclosable: false,
-            schema: Some(ClaimSchema {
+            schema: ClaimSchema {
                 id: doctype_schema_id,
                 created_date: now,
                 last_modified: now,
@@ -517,7 +519,8 @@ impl CredentialFormatter for MdocFormatter {
                 metadata: true,
                 required: false,
                 translations: Default::default(),
-            }),
+            }
+            .into(),
         });
         let doctype_mapping = CredentialSchemaFormatClaimSchema {
             id: Uuid::new_v4().into(),
@@ -533,10 +536,9 @@ impl CredentialFormatter for MdocFormatter {
         // Collect unique claim schemas
         let mut claim_schemas: Vec<ClaimSchema> = vec![];
         for claim in &claims {
-            if let Some(schema) = &claim.schema
-                && !claim_schemas.iter().any(|s| s.key == schema.key)
-            {
-                claim_schemas.push(schema.clone());
+            let schema = claim.schema.as_ref().await?;
+            if !claim_schemas.iter().any(|s| s.key == schema.key) {
+                claim_schemas.push(schema.to_owned());
             }
         }
 
@@ -1198,7 +1200,7 @@ pub async fn try_extracting_mso_from_token(
     try_extract_mobile_security_object(&issuer_signed.issuer_auth)
 }
 
-fn parse_claims(
+async fn parse_claims(
     namespaces: Namespaces,
     datatype_provider: &dyn DataTypeProvider,
     credential_id: CredentialId,
@@ -1219,7 +1221,8 @@ fn parse_claims(
                 datatype_provider,
                 credential_id,
                 credential_schema_format_id,
-            )?;
+            )
+            .await?;
 
             claims_with_schemas.extend(claims);
             claim_mappings.extend(mappings);
@@ -1228,9 +1231,7 @@ fn parse_claims(
 
     let mut known_schemas: HashMap<String, ClaimSchema> = HashMap::new();
     for claim in claims_with_schemas.iter_mut() {
-        let Some(schema) = claim.schema.as_ref() else {
-            continue;
-        };
+        let schema: ClaimSchema = claim.schema.as_ref().await?.to_owned();
 
         match known_schemas.get(&schema.key) {
             Some(matching_schema) => {
@@ -1243,10 +1244,10 @@ fn parse_claims(
                 }
 
                 // reuse the already inserted schema here (to match ids) of array siblings
-                claim.schema = Some(matching_schema.to_owned());
+                claim.schema = matching_schema.to_owned().into();
             }
             None => {
-                known_schemas.insert(schema.key.to_owned(), schema.to_owned());
+                known_schemas.insert(schema.key.to_owned(), schema);
             }
         };
     }
@@ -1332,7 +1333,26 @@ impl Paths {
     }
 }
 
+type ParsedClaims = (Vec<Claim>, Vec<CredentialSchemaFormatClaimSchema>);
+
+// Boxed because the future is recursive.
 fn parse_claim(
+    paths: Paths,
+    value: ciborium::Value,
+    datatype_provider: &dyn DataTypeProvider,
+    credential_id: CredentialId,
+    credential_schema_format_id: CredentialSchemaFormatId,
+) -> BoxFuture<'_, Result<ParsedClaims, FormatterError>> {
+    Box::pin(parse_claim_inner(
+        paths,
+        value,
+        datatype_provider,
+        credential_id,
+        credential_schema_format_id,
+    ))
+}
+
+async fn parse_claim_inner(
     paths: Paths,
     value: ciborium::Value,
     datatype_provider: &dyn DataTypeProvider,
@@ -1347,7 +1367,7 @@ fn parse_claim(
             datatype_provider.extract_cbor_claim(&value)
     {
         let claim = claim_with_schema(&paths, credential_id, now, data_type, Some(value));
-        let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id)?;
+        let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id);
         return Ok((vec![claim], vec![mapping]));
     }
 
@@ -1374,26 +1394,21 @@ fn parse_claim(
                     datatype_provider,
                     credential_id,
                     credential_schema_format_id,
-                )?;
+                )
+                .await?;
                 claims.extend(child_claims);
                 mappings.extend(child_mappings);
             }
 
             // data type of the array elements based on first item data_type
-            let Some(first) = claims.first().and_then(|claim| claim.schema.as_ref()) else {
+            let Some(first) = claims.first() else {
                 return Ok((vec![], vec![]));
             };
+            let first_data_type = first.schema.as_ref().await?.data_type.to_owned();
 
-            let mut claim =
-                claim_with_schema(&paths, credential_id, now, first.data_type.to_owned(), None);
-            claim
-                .schema
-                .as_mut()
-                .ok_or(FormatterError::CouldNotExtractCredentials(
-                    "missing array claim schema".to_owned(),
-                ))?
-                .array = true;
-            let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id)?;
+            let mut claim = claim_with_schema(&paths, credential_id, now, first_data_type, None);
+            claim.schema.as_mut().await?.array = true;
+            let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id);
             // Insert parent claim & mapping _first_ so that it's schema (with the array flag set) will be used
             // as the main schema for all child claims.
             claims.insert(0, claim);
@@ -1414,13 +1429,14 @@ fn parse_claim(
                     datatype_provider,
                     credential_id,
                     credential_schema_format_id,
-                )?;
+                )
+                .await?;
                 claims.extend(child_claims);
                 mappings.extend(child_mappings);
             }
 
             let claim = claim_with_schema(&paths, credential_id, now, "OBJECT".to_owned(), None);
-            let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id)?;
+            let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id);
             claims.push(claim);
             mappings.push(mapping);
             (claims, mappings)
@@ -1431,7 +1447,7 @@ fn parse_claim(
                 .error_while("extracting CBOR claim")?;
 
             let claim = claim_with_schema(&paths, credential_id, now, data_type, Some(value));
-            let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id)?;
+            let mapping = mapping_for_claim(&claim, &paths, credential_schema_format_id);
             (vec![claim], vec![mapping])
         }
     })
@@ -1441,23 +1457,16 @@ fn mapping_for_claim(
     claim: &Claim,
     paths: &Paths,
     credential_schema_format_id: CredentialSchemaFormatId,
-) -> Result<CredentialSchemaFormatClaimSchema, FormatterError> {
-    let schema = claim
-        .schema
-        .as_ref()
-        .ok_or(FormatterError::CouldNotExtractCredentials(format!(
-            "missing claim schema on claim {}",
-            claim.id
-        )))?;
-    Ok(CredentialSchemaFormatClaimSchema {
+) -> CredentialSchemaFormatClaimSchema {
+    CredentialSchemaFormatClaimSchema {
         id: Uuid::new_v4().into(),
         created_date: claim.created_date,
         last_modified: claim.last_modified,
         credential_schema_format_id,
-        claim_schema_id: schema.id,
+        claim_schema_id: claim.schema.id(),
         technical_key: paths.technical_path(),
         namespace: paths.namespace(),
-    })
+    }
 }
 
 fn claim_with_schema(
@@ -1475,7 +1484,7 @@ fn claim_with_schema(
         value,
         path: paths.claim_path(),
         selectively_disclosable: paths.is_root_level(),
-        schema: Some(ClaimSchema {
+        schema: ClaimSchema {
             id: Uuid::new_v4().into(),
             created_date: now,
             last_modified: now,
@@ -1485,6 +1494,7 @@ fn claim_with_schema(
             metadata: false,
             required: false,
             translations: Default::default(),
-        }),
+        }
+        .into(),
     }
 }

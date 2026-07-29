@@ -1,7 +1,8 @@
 use shared_types::{ClaimId, CredentialId};
 use time::OffsetDateTime;
 
-use super::claim_schema::{ClaimSchema, ClaimSchemaRelations};
+use super::claim_schema::ClaimSchema;
+use super::relation::Related;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
@@ -15,10 +16,8 @@ pub struct Claim {
     pub selectively_disclosable: bool,
 
     // Relations
-    pub schema: Option<ClaimSchema>,
+    pub schema: Related<ClaimSchema>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ClaimRelations {
-    pub schema: Option<ClaimSchemaRelations>,
-}
+pub struct ClaimRelations {}

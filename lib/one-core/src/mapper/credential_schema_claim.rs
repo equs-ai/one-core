@@ -280,16 +280,14 @@ pub(crate) async fn presented_paths_to_disclosed_keys(
             .ok_or_else(|| {
                 ServiceError::MappingError(format!("no claim found for path `{}`", presented_path))
             })?;
-        let claim_schema = claim.schema.as_ref().ok_or_else(|| {
-            ServiceError::MappingError(format!("claim `{}` has no schema", claim.id))
-        })?;
+        let claim_schema = claim.schema.as_ref().await?;
         let mapping = mappings_by_schema_id.get(&claim_schema.id).ok_or_else(|| {
             ServiceError::MappingError(format!(
                 "claim schema `{}` has no mapping for schema format {}",
                 claim_schema.id, format.id
             ))
         })?;
-        let (mapped_path, _) = claim_path_to_formatted_path(claim, claim_schema, mapping)
+        let (mapped_path, _) = claim_path_to_formatted_path(claim, &claim_schema, mapping)
             .error_while("mapping claim path")?;
         disclosed_keys.push(mapped_path);
     }

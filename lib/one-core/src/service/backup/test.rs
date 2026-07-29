@@ -73,7 +73,7 @@ async fn dummy_unexportable_entities() -> UnexportableEntities {
                 value: Some("value".to_string()),
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(ClaimSchema {
+                schema: ClaimSchema {
                     id: claim_schema_id,
                     key: "key".into(),
                     data_type: "STRING".into(),
@@ -83,7 +83,8 @@ async fn dummy_unexportable_entities() -> UnexportableEntities {
                     metadata: false,
                     required: false,
                     translations: Default::default(),
-                }),
+                }
+                .into(),
             }]),
             issuer_identifier: None,
             issuer_certificate: None,

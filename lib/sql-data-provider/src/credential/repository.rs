@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use autometrics::autometrics;
 use futures::FutureExt;
-use one_core::model::claim::{Claim, ClaimRelations};
+use one_core::model::claim::Claim;
 use one_core::model::credential::{
     Credential, CredentialListIncludeEntityTypeEnum, CredentialListQuery, CredentialRelations,
     GetCredentialList, UpdateCredentialRequest,
@@ -58,7 +58,6 @@ async fn get_credential_schema(
 
 async fn get_claims(
     credential: &credential::Model,
-    relations: &ClaimRelations,
     db: &TransactionManagerImpl,
     claim_repository: Arc<dyn ClaimRepository>,
 ) -> Result<Vec<Claim>, DataLayerError> {
@@ -86,7 +85,7 @@ async fn get_claims(
         .map(|claim| Uuid::from_str(&claim.id).map(ClaimId::from))
         .collect::<Result<Vec<_>, _>>()?;
 
-    claim_repository.get_claim_list(ids, relations).await
+    claim_repository.get_claim_list(ids).await
 }
 
 impl CredentialProvider {
@@ -116,16 +115,8 @@ impl CredentialProvider {
         )
         .await?;
 
-        let claims = if let Some(claim_relations) = &relations.claims {
-            Some(
-                get_claims(
-                    &credential,
-                    claim_relations,
-                    &self.db,
-                    self.claim_repository.clone(),
-                )
-                .await?,
-            )
+        let claims = if relations.claims.is_some() {
+            Some(get_claims(&credential, &self.db, self.claim_repository.clone()).await?)
         } else {
             None
         };

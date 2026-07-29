@@ -24,7 +24,6 @@ use crate::config::validator::protocol::validate_protocol_did_compatibility;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::{CertificateRelations, CertificateRole};
 use crate::model::claim::ClaimRelations;
-use crate::model::claim_schema::ClaimSchemaRelations;
 use crate::model::credential::{
     Credential, CredentialFilterValue, CredentialListIncludeEntityTypeEnum, CredentialRelations,
     CredentialRole, CredentialStateEnum, CredentialType, SortableCredentialColumn,
@@ -288,9 +287,7 @@ impl CredentialService {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {
-                        schema: Some(ClaimSchemaRelations::default()),
-                    }),
+                    claims: Some(ClaimRelations {}),
                     schema: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(CertificateRelations::default()),
@@ -652,9 +649,7 @@ impl CredentialService {
             .get_credential(
                 id,
                 &CredentialRelations {
-                    claims: Some(ClaimRelations {
-                        schema: Some(ClaimSchemaRelations::default()),
-                    }),
+                    claims: Some(ClaimRelations {}),
                     schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     holder_identifier: Some(IdentifierRelations {}),

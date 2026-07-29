@@ -101,7 +101,7 @@ pub(crate) fn value_to_model_claims(
         value: None,
         path: claim_path.to_owned(),
         selectively_disclosable: claim_value.selectively_disclosable,
-        schema: Some(claim_schema.to_owned()),
+        schema: claim_schema.to_owned().into(),
     };
 
     match claim_value.value {
@@ -571,10 +571,12 @@ mod tests {
 
         let claims = credential.claims.unwrap();
         assert_eq!(claims.len(), 1);
-        assert!(claims.iter().any(
-            |claim| claim.schema.as_ref().unwrap() == &element_claim_schema
-                && claim.value == Some("Test".to_string())
-        ));
+        assert!(
+            claims
+                .iter()
+                .any(|claim| claim.schema.id() == element_claim_schema.id
+                    && claim.value == Some("Test".to_string()))
+        );
         assert_eq!(credential.issuance_date, Some(issuance_date));
     }
 }

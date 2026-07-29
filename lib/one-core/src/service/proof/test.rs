@@ -430,13 +430,9 @@ async fn test_get_proof_exists() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -556,7 +552,7 @@ async fn test_get_proof_with_array_holder() {
                 value: None,
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schema.clone()),
+                schema: claim_schema.clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -566,7 +562,7 @@ async fn test_get_proof_with_array_holder() {
                 value: Some("foo1".into()),
                 path: "key/0".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schema.clone()),
+                schema: claim_schema.clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -576,7 +572,7 @@ async fn test_get_proof_with_array_holder() {
                 value: Some("foo2".into()),
                 path: "key/1".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schema.clone()),
+                schema: claim_schema.clone().into(),
             },
         ]),
         issuer_identifier: None,
@@ -673,13 +669,9 @@ async fn test_get_proof_with_array_holder() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -826,7 +818,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 value: None,
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -836,7 +828,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 value: None,
                 path: "key/address".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -846,7 +838,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 value: Some("foo1".into()),
                 path: "key/address/0".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -856,7 +848,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 value: Some("foo2".into()),
                 path: "key/address/1".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
         ]),
         issuer_identifier: None,
@@ -953,13 +945,9 @@ async fn test_get_proof_with_array_in_object_holder() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1111,7 +1099,7 @@ async fn test_get_proof_with_object_array_holder() {
                 value: None,
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1121,7 +1109,7 @@ async fn test_get_proof_with_object_array_holder() {
                 value: None,
                 path: "key/0".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1131,7 +1119,7 @@ async fn test_get_proof_with_object_array_holder() {
                 value: None,
                 path: "key/1".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1141,7 +1129,7 @@ async fn test_get_proof_with_object_array_holder() {
                 value: Some("foo1".into()),
                 path: "key/0/address".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1151,7 +1139,7 @@ async fn test_get_proof_with_object_array_holder() {
                 value: Some("foo2".into()),
                 path: "key/1/address".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
         ]),
         issuer_identifier: None,
@@ -1248,13 +1236,9 @@ async fn test_get_proof_with_object_array_holder() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1401,7 +1385,7 @@ async fn test_get_proof_with_array() {
                 value: None,
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schema.clone()),
+                schema: claim_schema.clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1411,7 +1395,7 @@ async fn test_get_proof_with_array() {
                 value: Some("foo1".into()),
                 path: "key/0".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schema.clone()),
+                schema: claim_schema.clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1421,7 +1405,7 @@ async fn test_get_proof_with_array() {
                 value: Some("foo2".into()),
                 path: "key/1".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schema.clone()),
+                schema: claim_schema.clone().into(),
             },
         ]),
         issuer_identifier: None,
@@ -1525,13 +1509,9 @@ async fn test_get_proof_with_array() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1678,7 +1658,7 @@ async fn test_get_proof_with_array_in_object() {
                 value: None,
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1688,7 +1668,7 @@ async fn test_get_proof_with_array_in_object() {
                 value: None,
                 path: "key/address".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1698,7 +1678,7 @@ async fn test_get_proof_with_array_in_object() {
                 value: Some("foo1".into()),
                 path: "key/address/0".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1708,7 +1688,7 @@ async fn test_get_proof_with_array_in_object() {
                 value: Some("foo2".into()),
                 path: "key/address/1".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
         ]),
         issuer_identifier: None,
@@ -1812,13 +1792,9 @@ async fn test_get_proof_with_array_in_object() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
@@ -1971,7 +1947,7 @@ async fn test_get_proof_with_object_array() {
                 value: None,
                 path: "key".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1981,7 +1957,7 @@ async fn test_get_proof_with_object_array() {
                 value: None,
                 path: "key/0".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -1991,7 +1967,7 @@ async fn test_get_proof_with_object_array() {
                 value: None,
                 path: "key/1".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[0].clone()),
+                schema: claim_schemas[0].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -2001,7 +1977,7 @@ async fn test_get_proof_with_object_array() {
                 value: Some("foo1".into()),
                 path: "key/0/address".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
             Claim {
                 id: Uuid::new_v4().into(),
@@ -2011,7 +1987,7 @@ async fn test_get_proof_with_object_array() {
                 value: Some("foo2".into()),
                 path: "key/1/address".into(),
                 selectively_disclosable: false,
-                schema: Some(claim_schemas[1].clone()),
+                schema: claim_schemas[1].clone().into(),
             },
         ]),
         issuer_identifier: None,
@@ -2115,13 +2091,9 @@ async fn test_get_proof_with_object_array() {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),

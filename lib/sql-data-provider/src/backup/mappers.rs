@@ -11,15 +11,15 @@ use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::convert_inner;
 
 use super::models::{ClaimWithSchema, UnexportableCredentialModel};
+use crate::claim::mapper::claim_from_model;
 use crate::claim_schema::mapper::claim_schema_from_model;
 use crate::credential_schema::mapper::CredentialSchemaFormatsLoader;
 use crate::localized_text::LocalizedTextLoader;
 use crate::transaction_context::TransactionManagerImpl;
 
 fn claim_with_schema_to_claim(value: ClaimWithSchema, db: TransactionManagerImpl) -> Claim {
-    let mut claim: Claim = value.claim.into();
-    claim.schema = Some(claim_schema_from_model(value.claim_schema, db));
-    claim
+    let schema = Related::from(claim_schema_from_model(value.claim_schema, db));
+    claim_from_model(value.claim, schema)
 }
 
 pub(super) fn credential_from_unexportable_model(

@@ -1141,7 +1141,7 @@ async fn test_parse_credential() {
     // doctype meta claim
     let doctype_claim = claims.iter().find(|claim| claim.path == "doctype").unwrap();
     assert_eq!(doctype_claim.value.as_ref().unwrap(), "pavel.7545.strings");
-    assert!(doctype_claim.schema.as_ref().unwrap().metadata);
+    assert!(doctype_claim.schema.as_ref().await.unwrap().metadata);
 
     // check selectively disclosable flags
     assert_eq!(
@@ -1159,8 +1159,8 @@ async fn test_parse_credential() {
         .find(|claim| claim.path == "namespace2_arr/1")
         .unwrap();
     assert_eq!(
-        arr_0_claim.schema.as_ref().unwrap().id,
-        arr_1_claim.schema.as_ref().unwrap().id
+        arr_0_claim.schema.as_ref().await.unwrap().id,
+        arr_1_claim.schema.as_ref().await.unwrap().id
     );
 
     let schema = credential.schema.unwrap();

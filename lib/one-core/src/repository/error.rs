@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use shared_types::{ClaimId, ClaimSchemaId, ProofId};
+use shared_types::ProofId;
 use thiserror::Error;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
@@ -27,9 +27,6 @@ pub enum DataLayerError {
 
     #[error("Mismatch in size for claim schema list: expected {expected} claims, got {got}")]
     IncompleteClaimsSchemaList { expected: usize, got: usize },
-
-    #[error("Missing claim schema `{0}` for claim `{1}`")]
-    MissingClaimsSchemaForClaim(ClaimSchemaId, ClaimId),
 
     #[error("Missing proof state for proof: {proof}")]
     MissingProofState { proof: ProofId },
@@ -60,7 +57,6 @@ impl ErrorCodeMixin for DataLayerError {
             | Self::IncompleteClaimsSchemaList { .. }
             | Self::MissingProofState { .. }
             | Self::MissingRequiredRelation { .. }
-            | Self::MissingClaimsSchemaForClaim(_, _)
             | Self::TransactionError(_) => ErrorCode::BR_0000,
             Self::Nested(nested) => nested.error_code(),
         }

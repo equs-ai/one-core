@@ -32,21 +32,21 @@ pub(super) async fn credential_to_credential_detail_v2(
     let mut published_claims = Vec::with_capacity(claims.len());
     for claim in claims
         .iter()
-        // filter out metadata
-        .filter(|c| !c.schema.as_ref().is_some_and(|s| s.metadata))
         // filter out container claims
         .filter(|c| c.value.is_some())
     {
-        let claim_schema = claim.schema.as_ref().ok_or(IssuanceProtocolError::Failed(
-            "missing claim schema".to_string(),
-        ))?;
+        let claim_schema = claim.schema.as_ref().await?;
+        // filter out metadata
+        if claim_schema.metadata {
+            continue;
+        }
         let mapping = mappings
             .iter()
             .find(|mapping| mapping.claim_schema_id == claim_schema.id)
             .ok_or(IssuanceProtocolError::Failed(
                 "claim mapping not found".to_string(),
             ))?;
-        let published_claim = claim_to_published_claim(claim, claim_schema, mapping, config)?;
+        let published_claim = claim_to_published_claim(claim, &claim_schema, mapping, config)?;
         published_claims.push(published_claim);
     }
     let vcdm = vcdm_from_credential_and_published_claims(

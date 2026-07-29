@@ -1,14 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
 use autometrics::autometrics;
-use one_core::model::claim::{Claim, ClaimRelations};
+use one_core::model::claim::Claim;
+use one_core::model::relation::{BatchModelLoader, Related};
 use one_core::repository::claim_repository::ClaimRepository;
 use one_core::repository::error::DataLayerError;
-use one_dto_mapper::convert_inner;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use shared_types::{ClaimId, ClaimSchemaId, CredentialId};
+use shared_types::{ClaimId, CredentialId};
 
 use super::ClaimProvider;
+use crate::claim::mapper::claim_from_model;
 use crate::entity::claim;
 use crate::mapper::to_data_layer_error;
 
@@ -16,10 +17,7 @@ use crate::mapper::to_data_layer_error;
 #[async_trait::async_trait]
 impl ClaimRepository for ClaimProvider {
     async fn create_claim_list(&self, claims: Vec<Claim>) -> Result<(), DataLayerError> {
-        let models = claims
-            .into_iter()
-            .map(|item| item.try_into())
-            .collect::<Result<Vec<claim::ActiveModel>, _>>()?;
+        let models: Vec<claim::ActiveModel> = claims.into_iter().map(Into::into).collect();
 
         claim::Entity::insert_many(models)
             .exec(&self.db)
@@ -55,11 +53,7 @@ impl ClaimRepository for ClaimProvider {
         Ok(())
     }
 
-    async fn get_claim_list(
-        &self,
-        ids: Vec<ClaimId>,
-        relations: &ClaimRelations,
-    ) -> Result<Vec<Claim>, DataLayerError> {
+    async fn get_claim_list(&self, ids: Vec<ClaimId>) -> Result<Vec<Claim>, DataLayerError> {
         let claims_cnt = ids.len();
         let claim_id_to_index: HashMap<shared_types::ClaimId, usize> = ids
             .into_iter()
@@ -83,37 +77,19 @@ impl ClaimRepository for ClaimProvider {
         #[allow(clippy::indexing_slicing)]
         models.sort_by_key(|model| claim_id_to_index[&model.id]);
 
-        if let Some(_claim_schema_relations) = &relations.schema {
-            let claim_schema_ids = models
-                .iter()
-                .map(|model| model.claim_schema_id)
-                .collect::<Vec<ClaimSchemaId>>();
-            let claim_schemas = self
-                .claim_schema_repository
-                .get_claim_schema_list(claim_schema_ids)
-                .await?;
+        // A single loader shared by all returned claims: the claim schemas are fetched lazily, but
+        // when they are, it happens with one query for the whole batch.
+        let schema_loader = BatchModelLoader::new(
+            models.iter().map(|model| model.claim_schema_id),
+            self.claim_schema_repository.clone(),
+        );
 
-            let claims: Vec<Claim> = convert_inner(models.to_owned());
-            Ok(claims
-                .into_iter()
-                .zip(models)
-                .map(|(claim, model)| {
-                    let claim_schema = claim_schemas
-                        .iter()
-                        .find(|schema| schema.id == model.claim_schema_id)
-                        .ok_or(DataLayerError::MissingClaimsSchemaForClaim(
-                            model.claim_schema_id,
-                            model.id,
-                        ))?;
-
-                    Ok(Claim {
-                        schema: Some(claim_schema.to_owned()),
-                        ..claim
-                    })
-                })
-                .collect::<Result<Vec<_>, DataLayerError>>()?)
-        } else {
-            Ok(convert_inner(models))
-        }
+        Ok(models
+            .into_iter()
+            .map(|model| {
+                let schema = Related::new(model.claim_schema_id, schema_loader.clone());
+                claim_from_model(model, schema)
+            })
+            .collect())
     }
 }

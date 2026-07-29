@@ -64,7 +64,7 @@ async fn matches_existing_schema() {
     assert!(claim_schemas.is_empty());
     assert!(mappings.is_empty());
     let claims = credential.claims.as_ref().unwrap();
-    assert_eq!(claims[0].schema.as_ref().unwrap().id, stored_cs_id);
+    assert_eq!(claims[0].schema.as_ref().await.unwrap().id, stored_cs_id);
     assert_eq!(claims[0].path, "addr/city");
     assert_eq!(credential.schema.as_ref().unwrap().id, stored_id);
 }
@@ -131,11 +131,14 @@ async fn remaps_nested_and_array_claim_paths() {
     let claims = credential.claims.as_ref().unwrap();
     // claims keep their (original-path) sort order; only the path strings are rewritten
     assert_eq!(claims[0].path, "addr");
-    assert_eq!(claims[0].schema.as_ref().unwrap().id, stored_root_id);
+    assert_eq!(claims[0].schema.as_ref().await.unwrap().id, stored_root_id);
     assert_eq!(claims[1].path, "addr/0");
-    assert_eq!(claims[1].schema.as_ref().unwrap().id, stored_root_id);
+    assert_eq!(claims[1].schema.as_ref().await.unwrap().id, stored_root_id);
     assert_eq!(claims[2].path, "addr/0/street");
-    assert_eq!(claims[2].schema.as_ref().unwrap().id, stored_street_id);
+    assert_eq!(
+        claims[2].schema.as_ref().await.unwrap().id,
+        stored_street_id
+    );
 }
 
 #[tokio::test]
@@ -490,12 +493,15 @@ async fn remaps_new_nested_and_array_claim_paths() {
     assert_eq!(claims[0].path, "root");
     assert_eq!(claims[1].path, "root/nested2");
     assert_eq!(
-        claims[1].schema.as_ref().unwrap().id,
+        claims[1].schema.as_ref().await.unwrap().id,
         parsed_nested2_array.id
     );
     for (i, claim) in claims.iter().skip(2).enumerate() {
         assert_eq!(claim.path, format!("root/nested2/{i}"));
-        assert_eq!(claim.schema.as_ref().unwrap().id, parsed_nested2_array.id);
+        assert_eq!(
+            claim.schema.as_ref().await.unwrap().id,
+            parsed_nested2_array.id
+        );
     }
 }
 
@@ -542,7 +548,7 @@ fn claim(path: &str, schema: &ClaimSchema) -> Claim {
         value: Some("value".to_string()),
         path: path.to_string(),
         selectively_disclosable: false,
-        schema: Some(schema.clone()),
+        schema: schema.clone().into(),
     }
 }
 

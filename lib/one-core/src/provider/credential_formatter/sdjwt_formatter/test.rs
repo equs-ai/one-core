@@ -1238,10 +1238,12 @@ async fn test_parse_credential() {
     let name_claim = name_claim.unwrap();
     assert_eq!(name_claim.value.as_deref(), Some("Test Name"));
     assert_eq!(name_claim.selectively_disclosable, true);
-    assert!(name_claim.schema.is_some());
-    assert_eq!(name_claim.schema.as_ref().unwrap().key, "Name");
-    assert_eq!(name_claim.schema.as_ref().unwrap().data_type, "STRING");
-    assert_eq!(name_claim.schema.as_ref().unwrap().array, false);
+    assert_eq!(name_claim.schema.as_ref().await.unwrap().key, "Name");
+    assert_eq!(
+        name_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
+    assert_eq!(name_claim.schema.as_ref().await.unwrap().array, false);
 
     // Verify Address object claim
     let address_claim = claims.iter().find(|c| c.path == "Address");
@@ -1249,9 +1251,11 @@ async fn test_parse_credential() {
     let address_claim = address_claim.unwrap();
     assert_eq!(address_claim.value, None); // Object claims don't have values
     assert_eq!(address_claim.selectively_disclosable, true);
-    assert!(address_claim.schema.is_some());
-    assert_eq!(address_claim.schema.as_ref().unwrap().key, "Address");
-    assert_eq!(address_claim.schema.as_ref().unwrap().data_type, "OBJECT");
+    assert_eq!(address_claim.schema.as_ref().await.unwrap().key, "Address");
+    assert_eq!(
+        address_claim.schema.as_ref().await.unwrap().data_type,
+        "OBJECT"
+    );
 
     // Verify nested Address claims
     let house_claim = claims.iter().find(|c| c.path == "Address/house");
@@ -1259,14 +1263,20 @@ async fn test_parse_credential() {
     let house_claim = house_claim.unwrap();
     assert_eq!(house_claim.value.as_deref(), Some("test house"));
     assert_eq!(house_claim.selectively_disclosable, true); // nested claims can be individually disclosed
-    assert_eq!(house_claim.schema.as_ref().unwrap().key, "Address/house");
+    assert_eq!(
+        house_claim.schema.as_ref().await.unwrap().key,
+        "Address/house"
+    );
 
     let street_claim = claims.iter().find(|c| c.path == "Address/street");
     assert!(street_claim.is_some());
     let street_claim = street_claim.unwrap();
     assert_eq!(street_claim.value.as_deref(), Some("test street"));
     assert_eq!(street_claim.selectively_disclosable, true);
-    assert_eq!(street_claim.schema.as_ref().unwrap().key, "Address/street");
+    assert_eq!(
+        street_claim.schema.as_ref().await.unwrap().key,
+        "Address/street"
+    );
 
     // Verify Nationalities array
     let nationalities_array = claims.iter().find(|c| c.path == "Nationalities");
@@ -1274,19 +1284,21 @@ async fn test_parse_credential() {
     let nationalities_array = nationalities_array.unwrap();
     assert_eq!(nationalities_array.value, None); // Array claims don't have values
     assert_eq!(nationalities_array.selectively_disclosable, true);
-    assert!(nationalities_array.schema.is_some());
     assert_eq!(
-        nationalities_array.schema.as_ref().unwrap().key,
+        nationalities_array.schema.as_ref().await.unwrap().key,
         "Nationalities"
     );
-    assert_eq!(nationalities_array.schema.as_ref().unwrap().array, true);
+    assert_eq!(
+        nationalities_array.schema.as_ref().await.unwrap().array,
+        true
+    );
 
     // Verify array elements
     let ch_claim = claims.iter().find(|c| c.path == "Nationalities/0");
     assert!(ch_claim.is_some());
     let ch_claim = ch_claim.unwrap();
     assert_eq!(ch_claim.value.as_deref(), Some("CH"));
-    assert_eq!(ch_claim.schema.as_ref().unwrap().array, true);
+    assert_eq!(ch_claim.schema.as_ref().await.unwrap().array, true);
 
     let ut_claim = claims.iter().find(|c| c.path == "Nationalities/1");
     assert!(ut_claim.is_some());
@@ -1298,8 +1310,7 @@ async fn test_parse_credential() {
     assert!(vc_claim.is_some());
     let vc_claim = vc_claim.unwrap();
     assert_eq!(vc_claim.selectively_disclosable, false);
-    assert!(vc_claim.schema.is_some());
-    assert_eq!(vc_claim.schema.as_ref().unwrap().metadata, true);
+    assert_eq!(vc_claim.schema.as_ref().await.unwrap().metadata, true);
 
     // Verify claim schemas are deduplicated
     let claim_schemas = schema.claim_schemas.as_ref().await.unwrap();
@@ -1310,8 +1321,8 @@ async fn test_parse_credential() {
     assert_eq!(nationalities_schema.unwrap().array, true);
 
     // Individual claims should reuse schema IDs
-    let ch_schema_id = ch_claim.schema.as_ref().unwrap().id;
-    let ut_schema_id = ut_claim.schema.as_ref().unwrap().id;
+    let ch_schema_id = ch_claim.schema.as_ref().await.unwrap().id;
+    let ut_schema_id = ut_claim.schema.as_ref().await.unwrap().id;
     assert_eq!(ch_schema_id, ut_schema_id); // Both array elements share same schema ID
 
     // Verify revocation method

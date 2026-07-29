@@ -83,9 +83,7 @@ pub(crate) async fn credential_detail_response_from_model(
                 .get_credential(
                     &parent_id,
                     &CredentialRelations {
-                        claims: Some(ClaimRelations {
-                            schema: Some(Default::default()),
-                        }),
+                        claims: Some(ClaimRelations {}),
                         ..Default::default()
                     },
                 )
@@ -101,10 +99,13 @@ pub(crate) async fn credential_detail_response_from_model(
         }
     };
 
-    let claims = claims
-        .into_iter()
-        .filter(|claim| !claim.schema.as_ref().is_some_and(|s| s.metadata))
-        .collect();
+    let mut filtered_claims = Vec::with_capacity(claims.len());
+    for claim in claims {
+        if !claim.schema.as_ref().await?.metadata {
+            filtered_claims.push(claim);
+        }
+    }
+    let claims = filtered_claims;
     let state = value.state;
 
     let credential_format = schema_model.format().await?;
@@ -231,16 +232,18 @@ async fn from_vec_claim(
         );
     }
 
-    let mut claims = claims.into_iter().try_fold(vec![], |state, claim| {
-        insert_claim(state, claim, &claim_schema_dtos, config)
-    })?;
+    let mut result = vec![];
+    for claim in claims {
+        result = insert_claim(result, claim, &claim_schema_dtos, config).await?;
+    }
+    let mut claims = result;
 
     sort_claims(&mut claims);
 
     Ok(claims)
 }
 
-fn insert_claim(
+async fn insert_claim(
     mut root: Vec<DetailCredentialClaimResponseDTO>,
     claim: Claim,
     claim_schemas: &[CredentialClaimSchemaDTO],
@@ -248,14 +251,11 @@ fn insert_claim(
 ) -> Result<Vec<DetailCredentialClaimResponseDTO>, CredentialServiceError> {
     match (claim.path.rsplit_once(NESTED_CLAIM_MARKER), &claim.value) {
         (Some((head, _)), Some(_)) => {
+            let claim_schema = claim.schema.as_ref().await?;
             let parent_claim = get_or_insert(&mut root, head, claim_schemas)?;
 
             match &mut parent_claim.value {
                 DetailCredentialClaimValueResponseDTO::Nested(claims) => {
-                    let claim_schema = claim.schema.as_ref().ok_or_else(|| {
-                        CredentialServiceError::MappingError("claim.schema is missing".into())
-                    })?;
-
                     let mut credential_claim_schema = claim_schemas
                         .iter()
                         .find(|value| value.key == claim_schema.key)
@@ -278,9 +278,7 @@ fn insert_claim(
             }
         }
         (None, Some(_)) => {
-            let claim_schema = claim.schema.as_ref().ok_or_else(|| {
-                CredentialServiceError::MappingError("claim.schema is missing".into())
-            })?;
+            let claim_schema = claim.schema.as_ref().await?;
 
             let claim_schema = claim_schemas
                 .iter()
@@ -559,7 +557,7 @@ pub(super) fn claims_from_create_request(
             value: Some(claim_dto.value),
             path: claim_dto.path.clone(),
             selectively_disclosable: false,
-            schema: Some(schema.clone()),
+            schema: schema.clone().into(),
         };
         claims_map.insert(claim_dto.path.clone(), claim);
         let mut current_path = claim_dto.path;
@@ -596,7 +594,7 @@ pub(super) fn claims_from_create_request(
                 value: None,
                 path: current_path.clone(),
                 selectively_disclosable: false,
-                schema: Some(schema.clone()),
+                schema: schema.clone().into(),
             };
             claims_map.insert(current_path.clone(), parent_claim);
             current_path =
@@ -630,7 +628,7 @@ fn insert_array_parent(
                 value: None,
                 path: array_path.to_owned(),
                 selectively_disclosable: false,
-                schema: Some(schema.clone()),
+                schema: schema.clone().into(),
             };
             claims_map.insert(array_path.to_owned(), parent_claim);
         }

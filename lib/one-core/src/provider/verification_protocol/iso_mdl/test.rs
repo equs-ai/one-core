@@ -471,7 +471,7 @@ async fn test_get_presentation_definition_v2() {
             credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
-            schema: Some(claim_schemas["org.iso.18013.5.1.mDL_name"].clone()),
+            schema: claim_schemas["org.iso.18013.5.1.mDL_name"].clone().into(),
             path: "org.iso.18013.5.1.mDL_name".to_string(),
             value: Some("John".to_string()),
             selectively_disclosable: true,
@@ -481,7 +481,7 @@ async fn test_get_presentation_definition_v2() {
             credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
-            schema: Some(claim_schemas["org.iso.18013.5.1.mDL_age"].clone()),
+            schema: claim_schemas["org.iso.18013.5.1.mDL_age"].clone().into(),
             path: "org.iso.18013.5.1.mDL_age".to_string(),
             value: Some("55".to_string()),
             selectively_disclosable: true,
@@ -491,7 +491,9 @@ async fn test_get_presentation_definition_v2() {
             credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
-            schema: Some(claim_schemas["org.iso.18013.5.1.mDL_country"].clone()),
+            schema: claim_schemas["org.iso.18013.5.1.mDL_country"]
+                .clone()
+                .into(),
             path: "org.iso.18013.5.1.mDL_country".to_string(),
             value: Some("Germany".to_string()),
             selectively_disclosable: true,
@@ -501,7 +503,9 @@ async fn test_get_presentation_definition_v2() {
             credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
-            schema: Some(claim_schemas["org.iso.18013.5.1.mDL_country_code"].clone()),
+            schema: claim_schemas["org.iso.18013.5.1.mDL_country_code"]
+                .clone()
+                .into(),
             path: "org.iso.18013.5.1.mDL_country_code".to_string(),
             value: Some("DE".to_string()),
             selectively_disclosable: true,
@@ -511,7 +515,7 @@ async fn test_get_presentation_definition_v2() {
             credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
-            schema: Some(claim_schemas["org.iso.18013.5.1.mDL_info"].clone()),
+            schema: claim_schemas["org.iso.18013.5.1.mDL_info"].clone().into(),
             path: "org.iso.18013.5.1.mDL_info".to_string(),
             value: None,
             selectively_disclosable: true,
@@ -521,7 +525,9 @@ async fn test_get_presentation_definition_v2() {
             credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
-            schema: Some(claim_schemas["org.iso.18013.5.1.mDL_info/code"].clone()),
+            schema: claim_schemas["org.iso.18013.5.1.mDL_info/code"]
+                .clone()
+                .into(),
             path: "org.iso.18013.5.1.mDL_info/code".to_string(),
             value: Some("ABCDEFG".to_string()),
             selectively_disclosable: false,

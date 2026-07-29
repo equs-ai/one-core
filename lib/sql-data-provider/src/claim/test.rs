@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use one_core::model::claim::{Claim, ClaimRelations};
-use one_core::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
+use one_core::model::claim::Claim;
+use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::CredentialStateEnum;
 use one_core::repository::claim_repository::ClaimRepository;
 use one_core::repository::claim_schema_repository::{
@@ -158,7 +158,7 @@ async fn test_create_claim_list_success() {
                     last_modified: get_dummy_date(),
                     path: schema.key.to_owned(),
                     selectively_disclosable: false,
-                    schema: Some(schema),
+                    schema: schema.into(),
                 })
                 .collect(),
         )
@@ -196,7 +196,7 @@ async fn test_delete_claims_for_credential() {
                     created_date: get_dummy_date(),
                     last_modified: get_dummy_date(),
                     path: schema.key.to_owned(),
-                    schema: Some(schema),
+                    schema: schema.into(),
                     selectively_disclosable: false,
                 })
                 .collect(),
@@ -257,7 +257,7 @@ async fn test_delete_claims_for_credentials() {
                     created_date: get_dummy_date(),
                     last_modified: get_dummy_date(),
                     path: schema.key.to_owned(),
-                    schema: Some(schema.clone()),
+                    schema: schema.clone().into(),
                     selectively_disclosable: false,
                 })
                 .collect(),
@@ -276,7 +276,7 @@ async fn test_delete_claims_for_credentials() {
                     created_date: get_dummy_date(),
                     last_modified: get_dummy_date(),
                     path: schema.key.to_owned(),
-                    schema: Some(schema),
+                    schema: schema.into(),
                     selectively_disclosable: false,
                 })
                 .collect(),
@@ -300,29 +300,6 @@ async fn test_delete_claims_for_credentials() {
 }
 
 #[tokio::test]
-async fn test_create_claim_list_missing_schema() {
-    let TestSetup {
-        repository,
-        credential_id,
-        ..
-    } = setup(get_claim_schema_repository_mock()).await;
-
-    let result = repository
-        .create_claim_list(vec![Claim {
-            id: Uuid::new_v4().into(),
-            credential_id,
-            value: Some("value".to_string()),
-            created_date: get_dummy_date(),
-            last_modified: get_dummy_date(),
-            path: String::default(),
-            schema: None,
-            selectively_disclosable: false,
-        }])
-        .await;
-    assert!(matches!(result, Err(DataLayerError::IncorrectParameters)));
-}
-
-#[tokio::test]
 async fn test_get_claim_list() {
     let TestSetup {
         repository,
@@ -340,16 +317,14 @@ async fn test_get_claim_list() {
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
             path: schema.key.to_owned(),
-            schema: Some(schema.to_owned()),
+            schema: schema.to_owned().into(),
             selectively_disclosable: false,
         })
         .collect();
     repository.create_claim_list(claims.clone()).await.unwrap();
 
     // single item
-    let result = repository
-        .get_claim_list(vec![claims[0].id], &ClaimRelations::default())
-        .await;
+    let result = repository.get_claim_list(vec![claims[0].id]).await;
     assert!(result.is_ok());
     let result = result.unwrap();
     assert_eq!(result.len(), 1);
@@ -357,7 +332,7 @@ async fn test_get_claim_list() {
 
     // two items - different order
     let result = repository
-        .get_claim_list(vec![claims[3].id, claims[1].id], &ClaimRelations::default())
+        .get_claim_list(vec![claims[3].id, claims[1].id])
         .await;
     assert!(result.is_ok());
     let result = result.unwrap();
@@ -367,10 +342,7 @@ async fn test_get_claim_list() {
 
     // one item missing
     let result = repository
-        .get_claim_list(
-            vec![claims[0].id, Uuid::new_v4().into()],
-            &ClaimRelations::default(),
-        )
+        .get_claim_list(vec![claims[0].id, Uuid::new_v4().into()])
         .await;
     assert!(matches!(
         result,
@@ -381,8 +353,10 @@ async fn test_get_claim_list() {
     ));
 }
 
+/// The claim schemas are loaded lazily, but the whole batch of returned claims shares a single
+/// loader, so resolving any of them issues exactly one query for all of them.
 #[tokio::test]
-async fn test_get_claim_list_with_relation() {
+async fn test_get_claim_list_lazily_loads_schemas_as_a_single_batch() {
     let mut claim_schema_repository = MockClaimSchemaRepository::default();
     claim_schema_repository
         .expect_get_claim_schema_list()
@@ -421,19 +395,14 @@ async fn test_get_claim_list_with_relation() {
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
             path: schema.key.to_owned(),
-            schema: Some(schema.to_owned()),
+            schema: schema.to_owned().into(),
             selectively_disclosable: false,
         })
         .collect();
     repository.create_claim_list(claims.clone()).await.unwrap();
 
     let result = repository
-        .get_claim_list(
-            vec![claims[2].id, claims[1].id],
-            &ClaimRelations {
-                schema: Some(ClaimSchemaRelations::default()),
-            },
-        )
+        .get_claim_list(vec![claims[2].id, claims[1].id])
         .await;
     assert!(result.is_ok());
     let result = result.unwrap();
@@ -443,7 +412,17 @@ async fn test_get_claim_list_with_relation() {
 
     assert_eq!(result[1].value, claims[1].value);
 
-    assert!(result[1].schema.is_some());
-    let schema1 = result[1].schema.as_ref().unwrap();
-    assert_eq!(schema1.id, claim_schemas[1].id);
+    // the schema id is available without loading the relation
+    assert_eq!(result[0].schema.id(), claim_schemas[2].id);
+    assert_eq!(result[1].schema.id(), claim_schemas[1].id);
+
+    // resolving both relations only triggers the single batched query asserted on the mock above
+    assert_eq!(
+        result[0].schema.as_ref().await.unwrap().id,
+        claim_schemas[2].id
+    );
+    assert_eq!(
+        result[1].schema.as_ref().await.unwrap().id,
+        claim_schemas[1].id
+    );
 }

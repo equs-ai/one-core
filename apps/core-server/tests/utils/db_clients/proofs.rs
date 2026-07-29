@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use one_core::model::claim::{Claim, ClaimRelations};
-use one_core::model::claim_schema::ClaimSchemaRelations;
+use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential_schema::CredentialSchemaRelations;
 use one_core::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use one_core::model::interaction::Interaction;
@@ -109,7 +109,18 @@ impl ProofsDB {
                     value: Some("test".to_string()),
                     path: "test".to_string(),
                     selectively_disclosable: false,
-                    schema: None,
+                    schema: ClaimSchema {
+                        id: Uuid::default().into(),
+                        key: "test".to_string(),
+                        data_type: "STRING".to_string(),
+                        created_date: get_dummy_date(),
+                        last_modified: get_dummy_date(),
+                        array: false,
+                        metadata: false,
+                        required: true,
+                        translations: Default::default(),
+                    }
+                    .into(),
                 },
                 credential: None,
             }]),
@@ -146,9 +157,7 @@ impl ProofsDB {
                 proof_id,
                 &ProofRelations {
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(ClaimSchemaRelations::default()),
-                        },
+                        claim: ClaimRelations {},
                         ..Default::default()
                     }),
                     schema: Some(ProofSchemaRelations {

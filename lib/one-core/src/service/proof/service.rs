@@ -104,13 +104,9 @@ impl ProofService {
                         }),
                     }),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            claims: Some(ClaimRelations {
-                                schema: Some(Default::default()),
-                            }),
+                            claims: Some(ClaimRelations {}),
                             schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(Default::default()),
@@ -1154,9 +1150,7 @@ impl ProofService {
                     }),
                     interaction: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
-                        claim: ClaimRelations {
-                            schema: Some(Default::default()),
-                        },
+                        claim: ClaimRelations {},
                         ..Default::default()
                     }),
                     verifier_key: Some(Default::default()),

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use one_core::clock::now_utc;
 use one_core::model::claim::{Claim, ClaimRelations};
-use one_core::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
+use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
     Clearable, Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations,
     CredentialRole, CredentialStateEnum, CredentialType, UpdateCredentialRequest,
@@ -336,7 +336,7 @@ async fn test_create_credential_success() {
             last_modified: get_dummy_date(),
             value: Some("value1".to_string()),
             path: claim_schema.key.to_string(),
-            schema: Some(claim_schema.clone()),
+            schema: claim_schema.clone().into(),
             selectively_disclosable: false,
         },
         Claim {
@@ -346,7 +346,7 @@ async fn test_create_credential_success() {
             last_modified: get_dummy_date(),
             value: Some("value2".to_string()),
             path: claim_schema.key.to_string(),
-            schema: Some(claim_schema),
+            schema: claim_schema.into(),
             selectively_disclosable: false,
         },
     ];
@@ -473,7 +473,7 @@ async fn test_create_credential_already_exists() {
         last_modified: get_dummy_date(),
         value: Some("value1".to_string()),
         path: claim_schema.key.to_owned(),
-        schema: Some(claim_schema),
+        schema: claim_schema.into(),
         selectively_disclosable: false,
     }];
 
@@ -803,7 +803,7 @@ async fn test_get_credential_list_success_filter_claim_name_value() {
         last_modified: get_dummy_date(),
         value: Some("test_value".to_string()),
         path: claim_schema.key.to_owned(),
-        schema: Some(claim_schema),
+        schema: claim_schema.into(),
         selectively_disclosable: false,
     }];
 
@@ -813,7 +813,7 @@ async fn test_get_credential_list_success_filter_claim_name_value() {
             .map(|claim| claim::ActiveModel {
                 id: Set(claim.id),
                 credential_id: Set(credential_id),
-                claim_schema_id: Set(claim.schema.as_ref().unwrap().id),
+                claim_schema_id: Set(claim.schema.id()),
                 value: Set(convert_inner(claim.value.to_owned())),
                 created_date: Set(get_dummy_date()),
                 last_modified: Set(get_dummy_date()),
@@ -905,7 +905,7 @@ async fn test_get_credential_success() {
             last_modified: get_dummy_date(),
             value: Some("value1".to_string()),
             path: claim_schema1.key.to_owned(),
-            schema: Some(claim_schema1),
+            schema: claim_schema1.into(),
             selectively_disclosable: false,
         },
         Claim {
@@ -915,7 +915,7 @@ async fn test_get_credential_success() {
             last_modified: get_dummy_date(),
             value: Some("value2".to_string()),
             path: claim_schema2.key.to_owned(),
-            schema: Some(claim_schema2),
+            schema: claim_schema2.into(),
             selectively_disclosable: false,
         },
     ];
@@ -927,7 +927,7 @@ async fn test_get_credential_success() {
             .map(|claim| claim::ActiveModel {
                 id: Set(claim.id),
                 credential_id: Set(credential_id),
-                claim_schema_id: Set(claim.schema.as_ref().unwrap().id),
+                claim_schema_id: Set(claim.schema.id()),
                 value: Set(convert_inner(claim.value.to_owned())),
                 created_date: Set(get_dummy_date()),
                 last_modified: Set(get_dummy_date()),
@@ -949,9 +949,9 @@ async fn test_get_credential_success() {
     let claims_clone = claims.clone();
     claim_repository
         .expect_get_claim_list()
-        .withf(|ids, _| ids.len() == 2)
+        .withf(|ids| ids.len() == 2)
         .times(1)
-        .returning(move |ids, _| {
+        .returning(move |ids| {
             // order based on the requested ids
             Ok(ids
                 .into_iter()
@@ -978,9 +978,7 @@ async fn test_get_credential_success() {
         .get_credential(
             &credential_id,
             &CredentialRelations {
-                claims: Some(ClaimRelations {
-                    schema: Some(ClaimSchemaRelations::default()),
-                }),
+                claims: Some(ClaimRelations {}),
                 schema: Some(Default::default()),
                 interaction: Some(Default::default()),
                 ..Default::default()
@@ -1296,14 +1294,14 @@ async fn test_get_credential_by_claim_id_success() {
         last_modified: get_dummy_date(),
         value: Some("value1".to_string()),
         path: claim_schema.key.clone(),
-        schema: Some(claim_schema.clone()),
+        schema: claim_schema.clone().into(),
         selectively_disclosable: false,
     };
 
     claim::ActiveModel {
         id: Set(claim.id),
         credential_id: Set(credential.id),
-        claim_schema_id: Set(claim.schema.as_ref().unwrap().id),
+        claim_schema_id: Set(claim.schema.id()),
         value: Set(convert_inner(claim.value.to_owned())),
         created_date: Set(get_dummy_date()),
         last_modified: Set(get_dummy_date()),

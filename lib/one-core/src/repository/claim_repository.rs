@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use shared_types::ClaimId;
 
 use super::error::DataLayerError;
-use crate::model::claim::{Claim, ClaimRelations};
+use crate::model::claim::Claim;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
@@ -20,9 +20,5 @@ pub trait ClaimRepository: Send + Sync {
         request: HashSet<shared_types::CredentialId>,
     ) -> Result<(), DataLayerError>;
 
-    async fn get_claim_list(
-        &self,
-        id: Vec<ClaimId>,
-        relations: &ClaimRelations,
-    ) -> Result<Vec<Claim>, DataLayerError>;
+    async fn get_claim_list(&self, id: Vec<ClaimId>) -> Result<Vec<Claim>, DataLayerError>;
 }

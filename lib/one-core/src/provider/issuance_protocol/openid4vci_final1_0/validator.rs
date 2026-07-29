@@ -252,9 +252,9 @@ pub(super) async fn validate_batch_consistency(
         }
     }
 
-    let reference_claims = sorted_claim_entries(&reference.credential)?;
+    let reference_claims = sorted_claim_entries(&reference.credential).await?;
     for credential in credentials.iter().skip(1) {
-        if sorted_claim_entries(&credential.credential)? != reference_claims {
+        if sorted_claim_entries(&credential.credential).await? != reference_claims {
             return Err(IssuanceProtocolError::InvalidRequest(
                 "Batch credentials have inconsistent claims".to_string(),
             ));
@@ -300,10 +300,11 @@ async fn single_schema_format(
 struct ClaimWithType<'a> {
     key: &'a String,
     value: &'a Option<String>,
-    data_type: &'a String,
+    // owned, because it originates from a lazily loaded relation
+    data_type: String,
 }
 
-fn sorted_claim_entries(
+async fn sorted_claim_entries(
     credential: &Credential,
 ) -> Result<Vec<ClaimWithType<'_>>, IssuanceProtocolError> {
     let claims = credential
@@ -314,9 +315,7 @@ fn sorted_claim_entries(
         ))?;
     let mut claims_with_types = vec![];
     for claim in claims {
-        let claim_schema = claim.schema.as_ref().ok_or(IssuanceProtocolError::Failed(
-            "Invalid parsed schema: missing claim schema".to_string(),
-        ))?;
+        let claim_schema = claim.schema.as_ref().await?;
         if claim_schema.metadata {
             // Skip metadata claims, issuer is validated separately
             continue;
@@ -324,7 +323,7 @@ fn sorted_claim_entries(
         claims_with_types.push(ClaimWithType {
             key: &claim.path,
             value: &claim.value,
-            data_type: &claim_schema.data_type,
+            data_type: claim_schema.data_type.to_owned(),
         })
     }
     claims_with_types.sort_by(|a, b| a.key.cmp(b.key));

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use futures::future::BoxFuture;
 use uuid::Uuid;
 
 use super::error::FormatterError;
@@ -18,22 +19,20 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 
 /// Parse model claims/claimSchemas from a JSON-based credential
-pub fn parse_claims(
+pub async fn parse_claims(
     public_claims: HashMap<String, CredentialClaim>,
     datatype_provider: &dyn DataTypeProvider,
     credential_id: shared_types::CredentialId,
 ) -> Result<(Vec<Claim>, Vec<ClaimSchema>), FormatterError> {
     let mut result = vec![];
     for (key, claim_value) in public_claims {
-        let claims = parse_claim(&key, &key, claim_value, datatype_provider, credential_id)?;
+        let claims = parse_claim(&key, &key, claim_value, datatype_provider, credential_id).await?;
         result.extend(claims);
     }
 
     let mut schemas: HashMap<String, ClaimSchema> = HashMap::new();
     for claim in result.iter_mut() {
-        let Some(schema) = claim.schema.as_ref() else {
-            continue;
-        };
+        let schema: ClaimSchema = claim.schema.as_ref().await?.to_owned();
 
         match schemas.get(&schema.key) {
             Some(matching_schema) => {
@@ -46,10 +45,10 @@ pub fn parse_claims(
                 }
 
                 // reuse the already inserted schema here (to match ids) of array siblings
-                claim.schema = Some(matching_schema.to_owned());
+                claim.schema = matching_schema.to_owned().into();
             }
             None => {
-                schemas.insert(schema.key.to_owned(), schema.to_owned());
+                schemas.insert(schema.key.to_owned(), schema);
             }
         };
     }
@@ -60,7 +59,24 @@ pub fn parse_claims(
 }
 
 /// Recursively parse a claim and its nested values, creating Claim objects with ClaimSchema
-fn parse_claim(
+// Boxed because the future is recursive.
+fn parse_claim<'a>(
+    claim_path: &'a str,
+    claim_schema_path: &'a str,
+    claim_value: CredentialClaim,
+    datatype_provider: &'a dyn DataTypeProvider,
+    credential_id: shared_types::CredentialId,
+) -> BoxFuture<'a, Result<Vec<Claim>, FormatterError>> {
+    Box::pin(parse_claim_inner(
+        claim_path,
+        claim_schema_path,
+        claim_value,
+        datatype_provider,
+        credential_id,
+    ))
+}
+
+async fn parse_claim_inner(
     claim_path: &str,
     claim_schema_path: &str,
     claim_value: CredentialClaim,
@@ -93,7 +109,8 @@ fn parse_claim(
                     value,
                     datatype_provider,
                     credential_id,
-                )?;
+                )
+                .await?;
                 subclaims.extend(claims);
             }
 
@@ -101,10 +118,10 @@ fn parse_claim(
             let Some(first) = subclaims
                 .iter()
                 .find(|claim| claim.path == format!("{claim_path}/0"))
-                .and_then(|claim| claim.schema.as_ref())
             else {
                 return Ok(vec![]);
             };
+            let first_data_type = first.schema.as_ref().await?.data_type.to_owned();
 
             let mut result = vec![Claim {
                 id: Uuid::new_v4().into(),
@@ -114,17 +131,18 @@ fn parse_claim(
                 value: None,
                 path: claim_path.to_string(),
                 selectively_disclosable: claim_value.selectively_disclosable,
-                schema: Some(ClaimSchema {
+                schema: ClaimSchema {
                     id: Uuid::new_v4().into(),
                     created_date: now,
                     last_modified: now,
                     key: claim_schema_path.to_string(),
-                    data_type: first.data_type.to_owned(),
+                    data_type: first_data_type,
                     array: true,
                     metadata: claim_value.metadata,
                     required: false,
                     translations: Default::default(),
-                }),
+                }
+                .into(),
             }];
             result.extend(subclaims);
             result
@@ -140,7 +158,8 @@ fn parse_claim(
                     value,
                     datatype_provider,
                     credential_id,
-                )?;
+                )
+                .await?;
                 result.extend(claims);
             }
 
@@ -152,7 +171,7 @@ fn parse_claim(
                 value: None,
                 path: claim_path.to_string(),
                 selectively_disclosable: claim_value.selectively_disclosable,
-                schema: Some(ClaimSchema {
+                schema: ClaimSchema {
                     id: Uuid::new_v4().into(),
                     created_date: now,
                     last_modified: now,
@@ -162,7 +181,8 @@ fn parse_claim(
                     metadata: claim_value.metadata,
                     required: false,
                     translations: Default::default(),
-                }),
+                }
+                .into(),
             });
 
             result
@@ -182,7 +202,7 @@ fn parse_claim(
                 value: Some(extracted.value),
                 path: claim_path.to_string(),
                 selectively_disclosable: claim_value.selectively_disclosable,
-                schema: Some(ClaimSchema {
+                schema: ClaimSchema {
                     id: Uuid::new_v4().into(),
                     created_date: now,
                     last_modified: now,
@@ -192,7 +212,8 @@ fn parse_claim(
                     metadata: claim_value.metadata,
                     required: false,
                     translations: Default::default(),
-                }),
+                }
+                .into(),
             }]
         }
     })

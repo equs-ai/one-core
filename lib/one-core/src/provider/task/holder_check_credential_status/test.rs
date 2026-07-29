@@ -266,7 +266,7 @@ fn generic_credential() -> Credential {
             value: Some("123".to_string()),
             path: claim_schema.key.clone(),
             selectively_disclosable: false,
-            schema: Some(claim_schema.clone()),
+            schema: claim_schema.clone().into(),
         }]),
         issuer_identifier: Some(Identifier {
             id: Uuid::new_v4().into(),

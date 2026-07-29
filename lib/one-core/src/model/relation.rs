@@ -1,8 +1,10 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display};
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{OnceCell, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::error::{ContextWithErrorCode, NestedError};
 use crate::repository::error::DataLayerError;
@@ -383,6 +385,61 @@ impl<T: Debug> Debug for AsyncVecStore<T> {
     }
 }
 
+/// Loader shared by a batch of [`Related`] instances: the first `load` resolves every id of the
+/// batch with a single call to the underlying [`AsyncModelsLoader`], all further loads (of any
+/// member of the batch) are served from the cached result.
+pub struct BatchModelLoader<M: Model> {
+    ids: Vec<M::Id>,
+    loader: Box<dyn AsyncModelsLoader<M>>,
+    cache: OnceCell<HashMap<M::Id, M>>,
+}
+
+impl<M: Model> BatchModelLoader<M>
+where
+    M::Id: Eq + Hash,
+{
+    pub fn new(
+        ids: impl IntoIterator<Item = M::Id>,
+        loader: impl AsyncModelsLoader<M> + 'static,
+    ) -> Arc<Self> {
+        let deduplicated: HashSet<_> = HashSet::from_iter(ids);
+        Arc::new(Self {
+            ids: deduplicated.into_iter().collect(),
+            loader: Box::new(loader),
+            cache: OnceCell::new(),
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl<M: Model + Clone + Send + Sync> AsyncModelLoader<M> for Arc<BatchModelLoader<M>>
+where
+    M::Id: Eq + Hash + Send + Sync,
+{
+    async fn load(&self, id: &M::Id) -> Result<M, DataLayerError> {
+        let by_id = self
+            .cache
+            .get_or_try_init(|| async {
+                let models = self.loader.load(&self.ids).await?;
+                Ok::<_, DataLayerError>(
+                    models
+                        .into_iter()
+                        .map(|model| (model.id().to_owned(), model))
+                        .collect(),
+                )
+            })
+            .await?;
+
+        by_id
+            .get(id)
+            .cloned()
+            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
+                relation: std::any::type_name::<M>(),
+                id: id.to_string(),
+            })
+    }
+}
+
 // AsyncVecLoader wrapper
 struct ModelsLoaderWrapper<M: Model> {
     ids: Vec<M::Id>,
@@ -401,6 +458,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use shared_types::ClaimSchemaId;
     use similar_asserts::assert_eq;
     use uuid::Uuid;
 
@@ -440,6 +498,40 @@ mod tests {
         assert_eq!(related.id(), id);
         let organsation = related.as_ref().await.unwrap();
         assert_eq!(organsation.id, id);
+    }
+
+    #[tokio::test]
+    async fn test_batch_model_loader_loads_whole_batch_once() {
+        let ids: Vec<ClaimSchemaId> = (0..3).map(|_| Uuid::new_v4().into()).collect();
+
+        let mut repository = MockClaimSchemaRepository::new();
+        repository
+            .expect_get_claim_schema_list()
+            .once()
+            .returning(|ids| {
+                Ok(ids
+                    .into_iter()
+                    .map(|id| ClaimSchema {
+                        id,
+                        ..dummy_claim_schema()
+                    })
+                    .collect())
+            });
+        let repository: Arc<dyn ClaimSchemaRepository> = Arc::new(repository);
+
+        // the same id twice, to verify deduplication
+        let loader = BatchModelLoader::new([ids[0], ids[1], ids[2], ids[0]], repository);
+        let related: Vec<Related<ClaimSchema>> = ids
+            .iter()
+            .map(|id| Related::new(*id, loader.clone()))
+            .collect();
+
+        for (related, id) in related.iter().zip(&ids) {
+            // available without loading
+            assert_eq!(related.id(), *id);
+            // `once()` on the mock asserts that all three resolve from a single batched call
+            assert_eq!(related.as_ref().await.unwrap().id, *id);
+        }
     }
 
     #[tokio::test]

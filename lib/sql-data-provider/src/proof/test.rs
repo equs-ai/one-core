@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use mockall::predicate::eq;
-use one_core::model::claim::{Claim, ClaimRelations};
+use one_core::model::claim::Claim;
+use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
     Credential, CredentialRelations, CredentialRole, CredentialStateEnum, CredentialType,
 };
@@ -562,8 +563,8 @@ async fn test_get_proof_with_relations() {
     claim_repository
         .expect_get_claim_list()
         .once()
-        .with(eq(vec![claim_id]), eq(ClaimRelations::default()))
-        .returning(move |ids, _| {
+        .with(eq(vec![claim_id]))
+        .returning(move |ids| {
             Ok(vec![Claim {
                 id: ids[0],
                 credential_id,
@@ -571,7 +572,7 @@ async fn test_get_proof_with_relations() {
                 last_modified: get_dummy_date(),
                 value: Some("value".to_string()),
                 path: String::new(),
-                schema: None,
+                schema: dummy_claim_schema(Uuid::new_v4().into()).into(),
                 selectively_disclosable: false,
             }])
         });
@@ -911,7 +912,7 @@ async fn test_set_proof_claims_success() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         value: Some("value".to_string()),
-        schema: None,
+        schema: dummy_claim_schema(claim_schema_ids[0]).into(),
         path: "path".to_string(),
         selectively_disclosable: false,
     };
@@ -939,4 +940,18 @@ async fn test_set_proof_claims_success() {
         .await
         .unwrap();
     assert_eq!(db_proof_claims.len(), 1);
+}
+
+fn dummy_claim_schema(id: ClaimSchemaId) -> ClaimSchema {
+    ClaimSchema {
+        id,
+        key: "key".to_string(),
+        data_type: "STRING".to_string(),
+        created_date: get_dummy_date(),
+        last_modified: get_dummy_date(),
+        array: false,
+        metadata: false,
+        required: true,
+        translations: Default::default(),
+    }
 }

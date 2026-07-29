@@ -541,30 +541,19 @@ async fn select_claims(
             .iter()
             .chain(nonselectively_disclosable_children_of_root.iter());
 
-        selected.extend(
-            nonselectively_disclosable
-                .map(|claim| {
-                    Ok((
-                        claim.path.to_owned(),
-                        SelectedClaim {
-                            path: claim.path.to_owned(),
-                            selective_disclosure_supported: claim.selectively_disclosable,
-                            required_by_verifier: false,
-                            // non-selectively disclosable claims can never be de-selected by the user
-                            user_selection: false,
-                            metadata: claim
-                                .schema
-                                .as_ref()
-                                .ok_or(VerificationProtocolError::Failed(format!(
-                                    "missing claim schema for claim {}",
-                                    claim.id
-                                )))?
-                                .metadata,
-                        },
-                    ))
-                })
-                .collect::<Result<Vec<_>, VerificationProtocolError>>()?,
-        );
+        for claim in nonselectively_disclosable {
+            selected.insert(
+                claim.path.to_owned(),
+                SelectedClaim {
+                    path: claim.path.to_owned(),
+                    selective_disclosure_supported: claim.selectively_disclosable,
+                    required_by_verifier: false,
+                    // non-selectively disclosable claims can never be de-selected by the user
+                    user_selection: false,
+                    metadata: claim.schema.as_ref().await?.metadata,
+                },
+            );
+        }
     }
 
     let mut missing_claims = vec![];
@@ -601,40 +590,30 @@ async fn select_claims(
             &user_claim_path,
             select_children,
             &mappings_by_schema_id,
-        )?;
+        )
+        .await?;
         if !matching_claims.is_empty() {
-            matching_claims.into_iter().try_for_each(
-                |(ClaimMatchId { exact, .. }, matching_claim)| {
-                    // All optional claims that were explicitly requested by the verifier
-                    // should have a toggle.
-                    let user_selection = exact && !claim_filter.required;
-                    if let Some(claim) = selected.get_mut(&matching_claim.path) {
-                        claim.required_by_verifier =
-                            claim.required_by_verifier || claim_filter.required;
-                        claim.user_selection = claim.user_selection || user_selection
-                    } else {
-                        selected.insert(
-                            matching_claim.path.to_owned(),
-                            SelectedClaim {
-                                path: matching_claim.path.to_owned(),
-                                selective_disclosure_supported: matching_claim
-                                    .selectively_disclosable,
-                                required_by_verifier: claim_filter.required,
-                                user_selection,
-                                metadata: matching_claim
-                                    .schema
-                                    .as_ref()
-                                    .ok_or(VerificationProtocolError::Failed(format!(
-                                        "missing claim schema for claim {}",
-                                        matching_claim.id
-                                    )))?
-                                    .metadata,
-                            },
-                        );
-                    };
-                    Ok::<_, VerificationProtocolError>(())
-                },
-            )?;
+            for (ClaimMatchId { exact, .. }, matching_claim) in matching_claims {
+                // All optional claims that were explicitly requested by the verifier
+                // should have a toggle.
+                let user_selection = exact && !claim_filter.required;
+                if let Some(claim) = selected.get_mut(&matching_claim.path) {
+                    claim.required_by_verifier =
+                        claim.required_by_verifier || claim_filter.required;
+                    claim.user_selection = claim.user_selection || user_selection
+                } else {
+                    selected.insert(
+                        matching_claim.path.to_owned(),
+                        SelectedClaim {
+                            path: matching_claim.path.to_owned(),
+                            selective_disclosure_supported: matching_claim.selectively_disclosable,
+                            required_by_verifier: claim_filter.required,
+                            user_selection,
+                            metadata: matching_claim.schema.as_ref().await?.metadata,
+                        },
+                    );
+                };
+            }
         } else if claim_filter.required {
             // no match but claim is required --> add to missing claims (mark the credential as inapplicable)
             missing_claims.push(MatchedClaim::Missing {
@@ -664,7 +643,7 @@ struct ClaimMatchId {
     exact: bool,
 }
 
-fn get_matching_claims<'a>(
+async fn get_matching_claims<'a>(
     claims: &'a [Claim],
     claim_filter: &ClaimFilter,
     user_claim_path: &[String],
@@ -677,33 +656,26 @@ fn get_matching_claims<'a>(
         .map(stringify_value)
         .collect::<Vec<_>>();
 
-    let exactly_matching_claims: Vec<_> = claims
-        .iter()
-        // use filter_map to propagate errors of fallible predicate
-        .filter_map(|claim| {
-            dcql_path_exactly_matches_claim(
-                &claim_filter.path,
-                claim,
-                claims,
-                user_claim_path,
-                claim_mappings,
-            )
-            .map(|matches| {
-                if matches
-                    && (values_filter.is_empty()
-                        || claim
-                            .value
-                            .as_ref()
-                            .is_some_and(|value| values_filter.contains(value)))
-                {
-                    Some(claim)
-                } else {
-                    None
-                }
-            })
-            .transpose()
-        })
-        .collect::<Result<_, _>>()?;
+    let mut exactly_matching_claims: Vec<&Claim> = vec![];
+    for claim in claims {
+        let matches = dcql_path_exactly_matches_claim(
+            &claim_filter.path,
+            claim,
+            claims,
+            user_claim_path,
+            claim_mappings,
+        )
+        .await?;
+        if matches
+            && (values_filter.is_empty()
+                || claim
+                    .value
+                    .as_ref()
+                    .is_some_and(|value| values_filter.contains(value)))
+        {
+            exactly_matching_claims.push(claim);
+        }
+    }
 
     if exactly_matching_claims.is_empty() {
         // no matches found, return empty result
@@ -869,27 +841,21 @@ fn map_schema_id(filter: &CredentialFilter, schema_id: &str) -> String {
 
 /// Predicate that checks if the DCQL path matches the claim path exactly, as in
 /// it addresses the claim directly (and not a child claim).
-fn dcql_path_exactly_matches_claim(
+async fn dcql_path_exactly_matches_claim(
     dcql_path: &ClaimPath,
     claim: &Claim,
     all_claims: &[Claim],
     user_claim_path: &[String],
     claim_mappings: &HashMap<ClaimSchemaId, CredentialSchemaFormatClaimSchema>,
 ) -> Result<bool, VerificationProtocolError> {
-    let schema = claim
-        .schema
-        .as_ref()
-        .ok_or(VerificationProtocolError::Failed(format!(
-            "missing schema for claim '{}'",
-            claim.id
-        )))?;
+    let schema: ClaimSchema = claim.schema.as_ref().await?.to_owned();
     let dcql_segments = if !schema.metadata {
         adjust_dcql_path_for_user_claims(dcql_path, user_claim_path)?
     } else {
         dcql_path.segments.iter().collect()
     };
     let effective_path = if let Some(mapping) = claim_mappings.get(&schema.id) {
-        let (path, _) = claim_path_to_formatted_path(claim, schema, mapping)
+        let (path, _) = claim_path_to_formatted_path(claim, &schema, mapping)
             .error_while("mapping claim path")?;
         path
     } else {
@@ -901,8 +867,7 @@ fn dcql_path_exactly_matches_claim(
         // nesting depth mismatch -> no match
         return Ok(false);
     }
-    let mut claim_schemas = VecDeque::with_capacity(dcql_segments.len());
-    claim_schemas.push_front(schema);
+    let mut claim_schemas: VecDeque<ClaimSchema> = VecDeque::with_capacity(dcql_segments.len());
     if schema.array
         && dcql_segments
             .last()
@@ -910,38 +875,32 @@ fn dcql_path_exactly_matches_claim(
     {
         // Array claim schemas are shared between the elements and the container.
         // The leaf schema thus needs to be included twice if the last segment addresses elements and not the container.
-        claim_schemas.push_front(schema);
+        claim_schemas.push_front(schema.to_owned());
     }
-    while let Some((parent_key, _)) = claim_schemas
+    claim_schemas.push_front(schema);
+    while let Some(parent_key) = claim_schemas
         .front()
         .and_then(|schema| schema.key.rsplit_once(NESTED_CLAIM_MARKER))
+        .map(|(parent_key, _)| parent_key.to_owned())
     {
-        let parent_claim = all_claims
-            .iter()
-            .find(|claim| {
-                claim
-                    .schema
-                    .as_ref()
-                    .is_some_and(|claim_schema| claim_schema.key == parent_key)
-            })
-            .ok_or(VerificationProtocolError::Failed(format!(
-                "missing claim schema for claim '{}'",
-                claim.id
-            )))?;
-        let parent_schema =
-            parent_claim
-                .schema
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(format!(
-                    "missing schema for claim '{}'",
-                    parent_claim.id
-                )))?;
-        claim_schemas.push_front(parent_schema);
+        let mut parent_schema = None;
+        for candidate in all_claims {
+            let candidate_schema = candidate.schema.as_ref().await?;
+            if candidate_schema.key == parent_key {
+                parent_schema = Some(candidate_schema.to_owned());
+                break;
+            }
+        }
+        let parent_schema = parent_schema.ok_or(VerificationProtocolError::Failed(format!(
+            "missing claim schema for claim '{}'",
+            claim.id
+        )))?;
         if parent_schema.array {
             // Array claim schemas are shared between the elements and the container, thus need to be
             // included twice.
-            claim_schemas.push_front(parent_schema);
+            claim_schemas.push_front(parent_schema.to_owned());
         }
+        claim_schemas.push_front(parent_schema);
     }
 
     let mut array_flags = vec![];

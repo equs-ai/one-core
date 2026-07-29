@@ -423,10 +423,7 @@ impl ProofProvider {
         Ok(if claim_ids.is_empty() {
             vec![]
         } else {
-            let claims = self
-                .claim_repository
-                .get_claim_list(claim_ids, &relations.claim)
-                .await?;
+            let claims = self.claim_repository.get_claim_list(claim_ids).await?;
 
             let mut claims: Vec<_> = claims
                 .into_iter()

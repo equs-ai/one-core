@@ -373,6 +373,13 @@ async fn test_parse_credential() {
     let claims = credential.claims.as_ref().unwrap();
     assert_eq!(claims.len(), 4);
 
+    let mut metadata_paths: HashSet<&str> = HashSet::new();
+    for claim in claims {
+        if claim.schema.as_ref().await.unwrap().metadata {
+            metadata_paths.insert(claim.path.as_str());
+        }
+    }
+
     let get_claim_paths = |filter: &dyn Fn(&Claim) -> bool| {
         HashSet::from_iter(
             claims
@@ -384,18 +391,20 @@ async fn test_parse_credential() {
 
     // intermediary
     assert_eq!(
-        get_claim_paths(&|claim| claim.value.is_none() && !claim.schema.as_ref().unwrap().metadata),
+        get_claim_paths(
+            &|claim| claim.value.is_none() && !metadata_paths.contains(claim.path.as_str())
+        ),
         hashset! {}
     );
     // leaf
     assert_eq!(
         get_claim_paths(&|claim| claim.value == Some("value".to_string())
-            && !claim.schema.as_ref().unwrap().metadata),
+            && !metadata_paths.contains(claim.path.as_str())),
         hashset! { "value" }
     );
     // metadata
     assert_eq!(
-        get_claim_paths(&|claim| claim.schema.as_ref().unwrap().metadata),
+        get_claim_paths(&|claim| metadata_paths.contains(claim.path.as_str())),
         hashset! { "type", "type/0", "type/1" }
     );
 

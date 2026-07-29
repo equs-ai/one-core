@@ -1801,7 +1801,7 @@ async fn test_parse_credential_eudi() {
     let vct_claim = claims.iter().find(|c| c.path == "vct").unwrap();
     assert_eq!(vct_claim.value.as_deref(), Some("urn:eudi:pid:1"));
     assert_eq!(vct_claim.selectively_disclosable, false);
-    let vct_schema = vct_claim.schema.as_ref().unwrap();
+    let vct_schema = vct_claim.schema.as_ref().await.unwrap();
     assert_eq!(vct_schema.key, "vct");
     assert_eq!(vct_schema.data_type, "STRING");
     assert_eq!(vct_schema.array, false);
@@ -1815,11 +1815,16 @@ async fn test_parse_credential_eudi() {
     assert_eq!(issuing_authority_claim.value.as_deref(), Some("Test"));
     assert_eq!(issuing_authority_claim.selectively_disclosable, true);
     assert_eq!(
-        issuing_authority_claim.schema.as_ref().unwrap().key,
+        issuing_authority_claim.schema.as_ref().await.unwrap().key,
         "issuing_authority"
     );
     assert_eq!(
-        issuing_authority_claim.schema.as_ref().unwrap().data_type,
+        issuing_authority_claim
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .data_type,
         "STRING"
     );
 
@@ -1828,11 +1833,16 @@ async fn test_parse_credential_eudi() {
     assert_eq!(issuing_country_claim.value.as_deref(), Some("CH"));
     assert_eq!(issuing_country_claim.selectively_disclosable, true);
     assert_eq!(
-        issuing_country_claim.schema.as_ref().unwrap().key,
+        issuing_country_claim.schema.as_ref().await.unwrap().key,
         "issuing_country"
     );
     assert_eq!(
-        issuing_country_claim.schema.as_ref().unwrap().data_type,
+        issuing_country_claim
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .data_type,
         "STRING"
     );
 
@@ -1840,9 +1850,12 @@ async fn test_parse_credential_eudi() {
     let given_name_claim = claims.iter().find(|c| c.path == "given_name").unwrap();
     assert_eq!(given_name_claim.value.as_deref(), Some("Max"));
     assert_eq!(given_name_claim.selectively_disclosable, true);
-    assert_eq!(given_name_claim.schema.as_ref().unwrap().key, "given_name");
     assert_eq!(
-        given_name_claim.schema.as_ref().unwrap().data_type,
+        given_name_claim.schema.as_ref().await.unwrap().key,
+        "given_name"
+    );
+    assert_eq!(
+        given_name_claim.schema.as_ref().await.unwrap().data_type,
         "STRING"
     );
 
@@ -1851,11 +1864,11 @@ async fn test_parse_credential_eudi() {
     assert_eq!(family_name_claim.value.as_deref(), Some("Muster"));
     assert_eq!(family_name_claim.selectively_disclosable, true);
     assert_eq!(
-        family_name_claim.schema.as_ref().unwrap().key,
+        family_name_claim.schema.as_ref().await.unwrap().key,
         "family_name"
     );
     assert_eq!(
-        family_name_claim.schema.as_ref().unwrap().data_type,
+        family_name_claim.schema.as_ref().await.unwrap().data_type,
         "STRING"
     );
 
@@ -1863,14 +1876,20 @@ async fn test_parse_credential_eudi() {
     let birthdate_claim = claims.iter().find(|c| c.path == "birthdate").unwrap();
     assert_eq!(birthdate_claim.value.as_deref(), Some("1990-01-01"));
     assert_eq!(birthdate_claim.selectively_disclosable, true);
-    assert_eq!(birthdate_claim.schema.as_ref().unwrap().key, "birthdate");
-    assert_eq!(birthdate_claim.schema.as_ref().unwrap().data_type, "STRING");
+    assert_eq!(
+        birthdate_claim.schema.as_ref().await.unwrap().key,
+        "birthdate"
+    );
+    assert_eq!(
+        birthdate_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
 
     // Verify nationalities array claim
     let nationalities_claim = claims.iter().find(|c| c.path == "nationalities").unwrap();
     assert_eq!(nationalities_claim.value, None);
     assert_eq!(nationalities_claim.selectively_disclosable, true);
-    let nationalities_schema = nationalities_claim.schema.as_ref().unwrap();
+    let nationalities_schema = nationalities_claim.schema.as_ref().await.unwrap();
     assert_eq!(nationalities_schema.key, "nationalities");
     assert_eq!(nationalities_schema.data_type, "STRING");
     assert_eq!(nationalities_schema.array, true);
@@ -1893,7 +1912,7 @@ async fn test_parse_credential_eudi() {
     let place_of_birth_claim = claims.iter().find(|c| c.path == "place_of_birth").unwrap();
     assert_eq!(place_of_birth_claim.value, None);
     assert_eq!(place_of_birth_claim.selectively_disclosable, true);
-    let place_of_birth_schema = place_of_birth_claim.schema.as_ref().unwrap();
+    let place_of_birth_schema = place_of_birth_claim.schema.as_ref().await.unwrap();
     assert_eq!(place_of_birth_schema.key, "place_of_birth");
     assert_eq!(place_of_birth_schema.data_type, "OBJECT");
     assert_eq!(place_of_birth_schema.array, false);
@@ -1906,10 +1925,13 @@ async fn test_parse_credential_eudi() {
     assert_eq!(locality_claim.value.as_deref(), Some("CH"));
     assert_eq!(locality_claim.selectively_disclosable, true);
     assert_eq!(
-        locality_claim.schema.as_ref().unwrap().key,
+        locality_claim.schema.as_ref().await.unwrap().key,
         "place_of_birth/locality"
     );
-    assert_eq!(locality_claim.schema.as_ref().unwrap().data_type, "STRING");
+    assert_eq!(
+        locality_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
 
     // Verify claim_schemas were populated and deduplicated
     assert!(result.schema.is_some());
@@ -1954,6 +1976,7 @@ async fn test_parse_credential_eudi() {
         .unwrap()
         .schema
         .as_ref()
+        .await
         .unwrap()
         .id;
     assert_eq!(nat_array_schema_id, nat0_schema_id);
@@ -2092,7 +2115,7 @@ async fn test_parse_credential() {
         Some("https://credentials.example.com/identity_credential")
     );
     assert_eq!(vct_claim.selectively_disclosable, false);
-    let vct_schema = vct_claim.schema.as_ref().unwrap();
+    let vct_schema = vct_claim.schema.as_ref().await.unwrap();
     assert_eq!(vct_schema.key, "vct");
     assert_eq!(vct_schema.data_type, "STRING");
     assert_eq!(vct_schema.array, false);
@@ -2102,7 +2125,7 @@ async fn test_parse_credential() {
     let is_over_65_claim = claims.iter().find(|c| c.path == "is_over_65").unwrap();
     assert_eq!(is_over_65_claim.value.as_deref(), Some("true"));
     assert_eq!(is_over_65_claim.selectively_disclosable, true);
-    let is_over_65_schema = is_over_65_claim.schema.as_ref().unwrap();
+    let is_over_65_schema = is_over_65_claim.schema.as_ref().await.unwrap();
     assert_eq!(is_over_65_schema.key, "is_over_65");
     assert_eq!(is_over_65_schema.data_type, "BOOLEAN");
     assert_eq!(is_over_65_schema.array, false);
@@ -2112,7 +2135,7 @@ async fn test_parse_credential() {
     let address_claim = claims.iter().find(|c| c.path == "address").unwrap();
     assert_eq!(address_claim.value, None);
     assert_eq!(address_claim.selectively_disclosable, true);
-    let address_schema = address_claim.schema.as_ref().unwrap();
+    let address_schema = address_claim.schema.as_ref().await.unwrap();
     assert_eq!(address_schema.key, "address");
     assert_eq!(address_schema.data_type, "OBJECT");
     assert_eq!(address_schema.array, false);
@@ -2126,10 +2149,13 @@ async fn test_parse_credential() {
     assert_eq!(street_claim.value.as_deref(), Some("123 Main St"));
     assert_eq!(street_claim.selectively_disclosable, false);
     assert_eq!(
-        street_claim.schema.as_ref().unwrap().key,
+        street_claim.schema.as_ref().await.unwrap().key,
         "address/street_address"
     );
-    assert_eq!(street_claim.schema.as_ref().unwrap().data_type, "STRING");
+    assert_eq!(
+        street_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
 
     let locality_claim = claims
         .iter()
@@ -2138,25 +2164,37 @@ async fn test_parse_credential() {
     assert_eq!(locality_claim.value.as_deref(), Some("Anytown"));
     assert_eq!(locality_claim.selectively_disclosable, false);
     assert_eq!(
-        locality_claim.schema.as_ref().unwrap().key,
+        locality_claim.schema.as_ref().await.unwrap().key,
         "address/locality"
     );
-    assert_eq!(locality_claim.schema.as_ref().unwrap().data_type, "STRING");
+    assert_eq!(
+        locality_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
 
     let region_claim = claims.iter().find(|c| c.path == "address/region").unwrap();
     assert_eq!(region_claim.value.as_deref(), Some("Anystate"));
     assert_eq!(region_claim.selectively_disclosable, false);
-    assert_eq!(region_claim.schema.as_ref().unwrap().key, "address/region");
-    assert_eq!(region_claim.schema.as_ref().unwrap().data_type, "STRING");
+    assert_eq!(
+        region_claim.schema.as_ref().await.unwrap().key,
+        "address/region"
+    );
+    assert_eq!(
+        region_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
 
     let country_claim = claims.iter().find(|c| c.path == "address/country").unwrap();
     assert_eq!(country_claim.value.as_deref(), Some("US"));
     assert_eq!(country_claim.selectively_disclosable, false);
     assert_eq!(
-        country_claim.schema.as_ref().unwrap().key,
+        country_claim.schema.as_ref().await.unwrap().key,
         "address/country"
     );
-    assert_eq!(country_claim.schema.as_ref().unwrap().data_type, "STRING");
+    assert_eq!(
+        country_claim.schema.as_ref().await.unwrap().data_type,
+        "STRING"
+    );
 
     // Verify claim_schemas were populated
     assert!(result.schema.is_some());

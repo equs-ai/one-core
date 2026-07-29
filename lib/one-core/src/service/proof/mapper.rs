@@ -344,7 +344,8 @@ pub(super) async fn get_verifier_proof_detail(
             claims,
             &credential_claim_schemas,
             Some(&input_claim_schemas),
-        )?;
+        )
+        .await?;
 
         input_claim_schemas
             .iter()
@@ -476,22 +477,15 @@ pub(super) async fn get_verifier_proof_detail(
     })
 }
 
-fn nest_proof_claims(
+async fn nest_proof_claims(
     flat_claims: &[ProofClaim],
     credential_claim_schemas: &[ClaimSchema],
     input_claim_schemas: Option<&[ProofInputClaimSchema]>,
 ) -> Result<Vec<ProofClaimDTO>, ProofServiceError> {
     let mut proof_input_claims = vec![];
 
-    flat_claims.iter().try_for_each(|proof_claim| {
-        let claim_schema =
-            proof_claim
-                .claim
-                .schema
-                .as_ref()
-                .ok_or(ProofServiceError::MappingError(
-                    "Missing schema in proof_claim".to_string(),
-                ))?;
+    for proof_claim in flat_claims {
+        let claim_schema = proof_claim.claim.schema.as_ref().await?;
 
         let mut schema = if let Some(input_claim_schemas) = input_claim_schemas {
             let Some(input_claim_schema) = input_claim_schemas
@@ -499,7 +493,7 @@ fn nest_proof_claims(
                 .find(|input_claim_schema| input_claim_schema.schema.id == claim_schema.id)
                 .cloned()
             else {
-                return Ok(());
+                continue;
             };
             ProofClaimSchemaResponseDTO::from(input_claim_schema)
         } else {
@@ -566,9 +560,7 @@ fn nest_proof_claims(
                 )?;
             }
         };
-
-        Ok(())
-    })?;
+    }
     Ok(proof_input_claims)
 }
 
@@ -685,7 +677,7 @@ pub(super) async fn get_holder_proof_detail(
             .map_err(|e: NestedError| ProofServiceError::MappingError(e.to_string()))?;
 
         proof_inputs.push(ProofInputDTO {
-            claims: nest_proof_claims(&claims, &credential_claim_schemas, None)?,
+            claims: nest_proof_claims(&claims, &credential_claim_schemas, None).await?,
             credential: Some(credential),
             credential_schema: credential_schema_dto,
         });
