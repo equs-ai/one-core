@@ -206,6 +206,7 @@ impl TransactionData for QesApprovalTransactionData {
         TransactionDataCapabilities {
             transaction_data_types: vec![QES_APPROVAL_TRANSACTION_DATA_TYPE.to_string()],
             formats: vec![FormatType::SdJwtVc, FormatType::Mdoc],
+            features: vec![],
         }
     }
 

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dcql::{CredentialQueryId, DcqlQuery};
+use dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
 use indexmap::IndexMap;
 use mockall::predicate::{always, eq};
 use serde_json::json;
@@ -46,6 +46,9 @@ use crate::provider::key_storage::model::KeyStorageCapabilities;
 use crate::provider::key_storage::provider::MockKeyProvider;
 use crate::provider::presentation_formatter::provider::MockPresentationFormatterProvider;
 use crate::provider::transaction_data::provider::MockTransactionDataProvider;
+use crate::provider::transaction_data::{
+    Features, MockTransactionData, TransactionDataCapabilities,
+};
 use crate::provider::verification_protocol::dto::{FormattedCredentialPresentation, ShareResponse};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::model::{
@@ -692,12 +695,32 @@ async fn test_holder_submit_mdoc_direct_post() {
     assert!(result.is_ok(), "Expected Ok but got: {:?}", result);
 }
 
-fn interaction_with_validated_tx_data(
+/// Transaction data type whose entries clash when assigned to the same presentation
+const CONFLICTING_TX_TYPE: &str = "QES_APPROVAL";
+/// Second clashing type, to assert conflicts are detected per type
+const OTHER_CONFLICTING_TX_TYPE: &str = "OTHER_APPROVAL";
+/// Transaction data type declaring `SUPPORTS_MULTIPLE_TX_DATA_PER_PRESENTATION`
+const CONFLICT_FREE_TX_TYPE: &str = "MULTI_APPROVAL";
+
+fn interaction_with_tx_data(
     entries: Vec<(TransactionDataId, &str, Vec<&str>)>,
+) -> OpenID4VPHolderInteractionData {
+    interaction_with_typed_tx_data(
+        entries
+            .into_iter()
+            .map(|(id, raw, credential_query_ids)| {
+                (id, raw, credential_query_ids, CONFLICTING_TX_TYPE)
+            })
+            .collect(),
+    )
+}
+
+fn interaction_with_typed_tx_data(
+    entries: Vec<(TransactionDataId, &str, Vec<&str>, &str)>,
 ) -> OpenID4VPHolderInteractionData {
     let mut data = test_holder_interaction_data(Some(ResponseMode::DirectPost));
     let mut map = IndexMap::new();
-    for (id, raw, credential_query_ids) in entries {
+    for (id, raw, credential_query_ids, transaction_data_type) in entries {
         map.insert(
             id,
             ValidatedHolderTxData {
@@ -706,12 +729,87 @@ fn interaction_with_validated_tx_data(
                     .into_iter()
                     .map(CredentialQueryId::from)
                     .collect(),
-                transaction_data_type: "QES_APPROVAL".into(),
+                transaction_data_type: transaction_data_type.into(),
             },
         );
     }
     data.transaction_data = HolderTxData::Validated(map);
     data
+}
+
+/// One credential query per `(id, multiple)` entry
+fn dcql_query_with(queries: &[(&str, bool)]) -> DcqlQuery {
+    let mut query = dummy_dcql_query(true);
+    let template = query.credentials.remove(0);
+    query.credentials = queries
+        .iter()
+        .map(|(id, multiple)| CredentialQuery {
+            id: CredentialQueryId::from(*id),
+            multiple: *multiple,
+            ..template.clone()
+        })
+        .collect();
+    query
+}
+
+/// Resolves [`CONFLICT_FREE_TX_TYPE`] to a provider supporting multiple entries per
+/// presentation, any other type to one that does not.
+fn tx_data_provider() -> MockTransactionDataProvider {
+    let mut provider = MockTransactionDataProvider::new();
+    provider
+        .expect_get_transaction_data_by_name()
+        .returning(|name| {
+            let features = if name.to_string() == CONFLICT_FREE_TX_TYPE {
+                vec![Features::SupportsMultipleTxDataPerPresentation]
+            } else {
+                vec![]
+            };
+
+            let mut transaction_data = MockTransactionData::new();
+            transaction_data
+                .expect_get_capabilities()
+                .returning(move || TransactionDataCapabilities {
+                    transaction_data_types: vec![],
+                    formats: vec![FormatType::Mdoc],
+                    features: features.clone(),
+                });
+            Ok(Arc::new(transaction_data))
+        });
+    provider
+}
+
+/// Assigns the transaction data and reduces the result to `(credential query id, raw entries)`
+/// per (possibly duplicated) presentation.
+fn assign(
+    interaction_data: &OpenID4VPHolderInteractionData,
+    credential_presentations: Vec<FormattedCredentialPresentation>,
+) -> Result<Vec<(String, Vec<String>)>, VerificationProtocolError> {
+    let assignments = super::assign_transaction_data(
+        credential_presentations,
+        interaction_data,
+        &tx_data_provider(),
+    )?;
+
+    Ok(assignments
+        .into_iter()
+        .map(|assignment| {
+            (
+                assignment
+                    .credential_presentation
+                    .credential_query_id
+                    .to_string(),
+                assignment
+                    .transaction_data
+                    .into_iter()
+                    .map(|tx_data| tx_data.data)
+                    .collect(),
+            )
+        })
+        .collect())
+}
+
+fn tx_id() -> TransactionDataId {
+    TransactionDataId::from(Uuid::new_v4())
 }
 
 fn test_credential_presentation(
@@ -734,7 +832,7 @@ async fn test_holder_submit_transaction_data_unknown_selection_fails() {
     let protocol = setup_protocol(TestInputs::default());
 
     let tx_id = TransactionDataId::from(Uuid::new_v4());
-    let interaction = interaction_with_validated_tx_data(vec![(tx_id, "raw-tx", vec!["cred1"])]);
+    let interaction = interaction_with_tx_data(vec![(tx_id, "raw-tx", vec!["cred1"])]);
     let proof = test_holder_proof(interaction, "MDOC".into());
 
     // Select a transaction data id that does not exist in the interaction data.
@@ -759,7 +857,7 @@ async fn test_holder_submit_transaction_data_non_applicable_selection_fails() {
 
     // Transaction data applies only to `cred2`.
     let tx_id = TransactionDataId::from(Uuid::new_v4());
-    let interaction = interaction_with_validated_tx_data(vec![(tx_id, "raw-tx", vec!["cred2"])]);
+    let interaction = interaction_with_tx_data(vec![(tx_id, "raw-tx", vec!["cred2"])]);
     let proof = test_holder_proof(interaction, "MDOC".into());
 
     // `cred1` selects it even though it is not applicable to `cred1`.
@@ -779,10 +877,13 @@ async fn test_holder_submit_transaction_data_non_applicable_selection_fails() {
 
 #[tokio::test]
 async fn test_holder_submit_transaction_data_duplicate_selection_fails() {
-    let protocol = setup_protocol(TestInputs::default());
+    let protocol = setup_protocol(TestInputs {
+        transaction_data_provider: tx_data_provider(),
+        ..Default::default()
+    });
 
     let tx_id = TransactionDataId::from(Uuid::new_v4());
-    let interaction = interaction_with_validated_tx_data(vec![(tx_id, "raw-tx", vec!["cred1"])]);
+    let interaction = interaction_with_tx_data(vec![(tx_id, "raw-tx", vec!["cred1"])]);
     let proof = test_holder_proof(interaction, "MDOC".into());
 
     // The same transaction data id is selected twice.
@@ -798,4 +899,405 @@ async fn test_holder_submit_transaction_data_duplicate_selection_fails() {
             _
         ))
     ));
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assigns_entry_to_applicable_presentation() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred2"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false), ("cred2", false)]);
+
+    let result = assign(
+        &interaction,
+        vec![
+            test_credential_presentation("cred1", vec![]),
+            test_credential_presentation("cred2", vec![]),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![
+            ("cred1".to_string(), vec!["tx1".to_string()]),
+            ("cred2".to_string(), vec!["tx2".to_string()]),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assigns_conflict_free_entries_to_same_presentation() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_typed_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"], CONFLICT_FREE_TX_TYPE),
+        (tx2, "tx2", vec!["cred1"], CONFLICT_FREE_TX_TYPE),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![])],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![(
+            "cred1".to_string(),
+            vec!["tx1".to_string(), "tx2".to_string()]
+        )],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assigns_entries_of_different_types_to_same_presentation() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_typed_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"], CONFLICTING_TX_TYPE),
+        (tx2, "tx2", vec!["cred1"], OTHER_CONFLICTING_TX_TYPE),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![])],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![(
+            "cred1".to_string(),
+            vec!["tx1".to_string(), "tx2".to_string()]
+        )],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assign_conflicting_entries_fails_without_multiple() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![])],
+    );
+
+    assert!(matches!(
+        result,
+        Err(VerificationProtocolError::InvalidTransactionDataAssignment(
+            _
+        ))
+    ));
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assign_duplicates_presentation_for_conflicting_entries() {
+    let (tx1, tx2, tx3) = (tx_id(), tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1"]),
+        (tx3, "tx3", vec!["cred1"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", true)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![])],
+    )
+    .unwrap();
+
+    // one presentation per conflicting entry
+    assert_eq!(
+        vec![
+            ("cred1".to_string(), vec!["tx1".to_string()]),
+            ("cred1".to_string(), vec!["tx2".to_string()]),
+            ("cred1".to_string(), vec!["tx3".to_string()]),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assign_prefers_presentation_without_conflict() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", true)]);
+
+    // two credentials answering the same query, so no presentation needs to be duplicated
+    let result = assign(
+        &interaction,
+        vec![
+            test_credential_presentation("cred1", vec![]),
+            test_credential_presentation("cred1", vec![]),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![
+            ("cred1".to_string(), vec!["tx1".to_string()]),
+            ("cred1".to_string(), vec!["tx2".to_string()]),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assigns_to_duplicated_presentation() {
+    let (tx1, tx2, tx3, tx4) = (tx_id(), tx_id(), tx_id(), tx_id());
+    let mut interaction = interaction_with_typed_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"], CONFLICTING_TX_TYPE),
+        (tx2, "tx2", vec!["cred1"], CONFLICTING_TX_TYPE),
+        (tx3, "tx3", vec!["cred1"], OTHER_CONFLICTING_TX_TYPE),
+        (tx4, "tx4", vec!["cred1"], OTHER_CONFLICTING_TX_TYPE),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", true)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![])],
+    )
+    .unwrap();
+
+    // `tx2` duplicates the presentation, `tx4` is assigned to that duplicate instead of
+    // duplicating the presentation a second time
+    assert_eq!(
+        vec![
+            (
+                "cred1".to_string(),
+                vec!["tx1".to_string(), "tx3".to_string()]
+            ),
+            (
+                "cred1".to_string(),
+                vec!["tx2".to_string(), "tx4".to_string()]
+            ),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_reshuffles_existing_assignment() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1", "cred2"]),
+        (tx2, "tx2", vec!["cred1"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false), ("cred2", false)]);
+
+    let result = assign(
+        &interaction,
+        vec![
+            test_credential_presentation("cred1", vec![]),
+            test_credential_presentation("cred2", vec![]),
+        ],
+    )
+    .unwrap();
+
+    // `tx1` is initially assigned to `cred1` but moves to `cred2`, making room for `tx2`
+    assert_eq!(
+        vec![
+            ("cred1".to_string(), vec!["tx2".to_string()]),
+            ("cred2".to_string(), vec!["tx1".to_string()]),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_does_not_reshuffle_onto_missing_presentation() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1", "cred3"]),
+        (tx2, "tx2", vec!["cred1"]),
+    ]);
+    interaction.dcql_query =
+        dcql_query_with(&[("cred1", false), ("cred2", false), ("cred3", false)]);
+
+    // `cred3` is not submitted, so `tx1` cannot be moved out of the way for `tx2`
+    let result = assign(
+        &interaction,
+        vec![
+            test_credential_presentation("cred1", vec![]),
+            test_credential_presentation("cred2", vec![]),
+        ],
+    );
+
+    let Err(VerificationProtocolError::InvalidTransactionDataAssignment(message)) = result else {
+        panic!("Expected InvalidTransactionDataAssignment, got: {result:?}");
+    };
+    assert!(
+        message.contains(&tx2.to_string()),
+        "Expected the unassignable entry id in: {message}"
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_does_not_reshuffle_onto_pinned_entry() {
+    let (tx1, tx2, tx3) = (tx_id(), tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1", "cred2"]),
+        (tx3, "tx3", vec!["cred2"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false), ("cred2", true)]);
+
+    // `tx1` is explicitly selected for `cred1`, so `tx2` must not be moved there for `tx3`
+    let result = assign(
+        &interaction,
+        vec![
+            test_credential_presentation("cred1", vec![tx1]),
+            test_credential_presentation("cred2", vec![]),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![
+            ("cred1".to_string(), vec!["tx1".to_string()]),
+            ("cred2".to_string(), vec!["tx2".to_string()]),
+            ("cred2".to_string(), vec!["tx3".to_string()]),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_pinned_entry_blocks_reshuffling_without_multiple() {
+    let (tx1, tx2, tx3) = (tx_id(), tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1", "cred2"]),
+        (tx3, "tx3", vec!["cred2"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false), ("cred2", false)]);
+
+    // as above, but `cred2` cannot be duplicated either
+    let result = assign(
+        &interaction,
+        vec![
+            test_credential_presentation("cred1", vec![tx1]),
+            test_credential_presentation("cred2", vec![]),
+        ],
+    );
+
+    let Err(VerificationProtocolError::InvalidTransactionDataAssignment(message)) = result else {
+        panic!("Expected InvalidTransactionDataAssignment, got: {result:?}");
+    };
+    assert!(
+        message.contains(&tx3.to_string()),
+        "Expected the unassignable entry id in: {message}"
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_without_applicable_presentation_fails() {
+    let tx1 = tx_id();
+    let mut interaction = interaction_with_tx_data(vec![(tx1, "tx1", vec!["cred2"])]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false), ("cred2", false)]);
+
+    // no presentation for `cred2`, which the transaction data is bound to
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![])],
+    );
+
+    let Err(VerificationProtocolError::InvalidTransactionDataAssignment(message)) = result else {
+        panic!("Expected InvalidTransactionDataAssignment, got: {result:?}");
+    };
+    assert!(
+        message.contains(&tx1.to_string()),
+        "Expected the unassigned entry id in: {message}"
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_explicit_conflicting_selection_fails_without_multiple() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", false)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![tx1, tx2])],
+    );
+
+    assert!(matches!(
+        result,
+        Err(VerificationProtocolError::InvalidTransactionDataAssignment(
+            _
+        ))
+    ));
+}
+
+#[test]
+fn test_assign_transaction_data_explicit_conflicting_selection_duplicates_presentation() {
+    let (tx1, tx2) = (tx_id(), tx_id());
+    let mut interaction = interaction_with_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"]),
+        (tx2, "tx2", vec!["cred1"]),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", true)]);
+
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![tx1, tx2])],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![
+            ("cred1".to_string(), vec!["tx1".to_string()]),
+            ("cred1".to_string(), vec!["tx2".to_string()]),
+        ],
+        result
+    );
+}
+
+#[test]
+fn test_assign_transaction_data_auto_assigns_to_explicitly_created_duplicate() {
+    let (tx1, tx2, tx3, tx4) = (tx_id(), tx_id(), tx_id(), tx_id());
+    let mut interaction = interaction_with_typed_tx_data(vec![
+        (tx1, "tx1", vec!["cred1"], CONFLICTING_TX_TYPE),
+        (tx2, "tx2", vec!["cred1"], CONFLICTING_TX_TYPE),
+        (tx3, "tx3", vec!["cred1"], OTHER_CONFLICTING_TX_TYPE),
+        (tx4, "tx4", vec!["cred1"], OTHER_CONFLICTING_TX_TYPE),
+    ]);
+    interaction.dcql_query = dcql_query_with(&[("cred1", true)]);
+
+    // `tx1` and `tx2` are selected explicitly, `tx3` and `tx4` are auto-assigned to the
+    // presentation and the duplicate created by the explicit selection
+    let result = assign(
+        &interaction,
+        vec![test_credential_presentation("cred1", vec![tx1, tx2])],
+    )
+    .unwrap();
+
+    assert_eq!(
+        vec![
+            (
+                "cred1".to_string(),
+                vec!["tx1".to_string(), "tx3".to_string()]
+            ),
+            (
+                "cred1".to_string(),
+                vec!["tx2".to_string(), "tx4".to_string()]
+            ),
+        ],
+        result
+    );
 }

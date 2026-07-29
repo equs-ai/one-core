@@ -1,4 +1,6 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+use std::hash::Hash;
 
 use async_trait::async_trait;
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder};
@@ -43,9 +45,16 @@ pub enum TransactionDataAuthorization {
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionDataCapabilities {
-    transaction_data_types: Vec<String>,
+    pub transaction_data_types: Vec<String>,
     /// Credential formats the transaction data can be bound to
-    formats: Vec<FormatType>,
+    pub formats: Vec<FormatType>,
+    pub features: Vec<Features>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum Features {
+    SupportsMultipleTxDataPerPresentation,
 }
 
 // Private params
@@ -181,5 +190,127 @@ fn transaction_data_value_display(value: &serde_json::Value) -> Option<String> {
 impl Display for dyn TransactionData {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Transaction data type `{}`", self.config_name())
+    }
+}
+
+/// Gives each transaction data entry a credential of its own: a presentation
+/// can only carry a single processed transaction data value of a conflicting type
+/// (e.g. the `qesApproval` KB-JWT claim), so no credential may authorize two entries.
+///
+/// `applicable_credentials[i]` lists the credentials that may authorize entry `i`,
+/// identified by anything the caller uses to distinguish them (a credential query id
+/// or the index of a concrete presentation). Returns the chosen credential per entry,
+/// or `None` if there is no way to give every entry its own credential.
+pub(crate) fn assign_entries_to_distinct_credentials<Id: Clone + Eq + Hash>(
+    applicable_credentials: &[Vec<Id>],
+) -> Option<Vec<Id>> {
+    // Tries to place `entry` on one of its applicable credentials: a free one
+    // if available, otherwise a taken one whose current entry can itself be
+    // moved to another credential, applying the same rule.
+    // Returns true if successfully placed, false otherwise.
+    fn place<Id: Clone + Eq + Hash>(
+        entry: usize,
+        applicable_credentials: &[Vec<Id>],
+        authorized_entry: &mut HashMap<Id, usize>,
+        considered: &mut HashSet<Id>,
+    ) -> bool {
+        let Some(candidates) = applicable_credentials.get(entry) else {
+            return false;
+        };
+        for credential in candidates {
+            if !considered.insert(credential.clone()) {
+                continue;
+            }
+            let held_by = authorized_entry.get(credential).copied();
+            if held_by.is_none_or(|holder| {
+                place(holder, applicable_credentials, authorized_entry, considered)
+            }) {
+                authorized_entry.insert(credential.clone(), entry);
+                return true;
+            }
+        }
+        false
+    }
+
+    // per credential: the entry it ends up authorizing
+    let mut authorized_entry = HashMap::new();
+    for entry in 0..applicable_credentials.len() {
+        if !place(
+            entry,
+            applicable_credentials,
+            &mut authorized_entry,
+            &mut HashSet::new(),
+        ) {
+            return None;
+        }
+    }
+
+    let mut credential_per_entry: HashMap<usize, Id> = authorized_entry
+        .into_iter()
+        .map(|(credential, entry)| (entry, credential))
+        .collect();
+    (0..applicable_credentials.len())
+        .map(|entry| credential_per_entry.remove(&entry))
+        .collect()
+}
+
+#[cfg(test)]
+mod test {
+    use similar_asserts::assert_eq;
+
+    use super::*;
+
+    fn credentials(ids: &[&str]) -> Vec<CredentialQueryId> {
+        ids.iter().map(|&id| CredentialQueryId::from(id)).collect()
+    }
+
+    #[test]
+    fn test_assign_entries_disjoint_credentials() {
+        assert_eq!(
+            Some(credentials(&["a", "b"])),
+            assign_entries_to_distinct_credentials(&[credentials(&["a"]), credentials(&["b"])])
+        );
+    }
+
+    #[test]
+    fn test_assign_entries_moves_earlier_entry_to_make_room() {
+        // entry 0 initially takes credential `a`, but must move to credential
+        // `b` so that entry 1 (which only credential `a` can authorize) fits
+        assert_eq!(
+            Some(credentials(&["b", "a"])),
+            assign_entries_to_distinct_credentials(&[
+                credentials(&["a", "b"]),
+                credentials(&["a"])
+            ])
+        );
+    }
+
+    #[test]
+    fn test_assign_entries_resolves_chained_moves() {
+        assert_eq!(
+            Some(credentials(&["a", "c", "d", "b"])),
+            assign_entries_to_distinct_credentials(&[
+                credentials(&["b", "a"]),
+                credentials(&["b", "c"]),
+                credentials(&["c", "d"]),
+                credentials(&["b", "d"]),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_assign_entries_more_entries_than_credentials_fails() {
+        assert_eq!(
+            None,
+            assign_entries_to_distinct_credentials(&[credentials(&["a"]), credentials(&["a"])])
+        );
+    }
+
+    #[test]
+    fn test_assign_entries_entry_without_applicable_credential_fails() {
+        assert_eq!(
+            None,
+            assign_entries_to_distinct_credentials(&[credentials(&["a"]), credentials(&[])])
+        );
     }
 }

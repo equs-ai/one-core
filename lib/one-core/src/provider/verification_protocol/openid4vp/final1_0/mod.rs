@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use ::dcql::CredentialQueryId;
 use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
 use dcql::create_dcql_query;
 use futures::future::BoxFuture;
@@ -11,7 +12,7 @@ use one_crypto::utilities;
 use one_dto_mapper::convert_inner;
 use proc_macros::Provider;
 use serde_json::Value;
-use shared_types::TransactionDataId;
+use shared_types::{TransactionDataId, TransactionDataType};
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::PublicJwk;
 use standardized_types::openid4vp::ResponseMode;
@@ -49,6 +50,7 @@ use crate::provider::presentation_formatter::provider::PresentationFormatterProv
 use crate::provider::provider_directory::InitializationError;
 use crate::provider::transaction_data::processed_transaction_data::ProcessedTransactionData;
 use crate::provider::transaction_data::provider::TransactionDataProvider;
+use crate::provider::transaction_data::{Features, assign_entries_to_distinct_credentials};
 use crate::provider::verification_protocol::dto::{
     Feature, FormattedCredentialPresentation, InvitationResponseDTO,
     PresentationDefinitionV2ResponseDTO, PresentationDefinitionVersion, ShareResponse,
@@ -241,13 +243,20 @@ impl OpenID4VPFinal1_0 {
             ),
         };
 
-        // Ordering of assigned transaction data matches credential_presentations
-        let assigned_tx_data =
-            assign_transaction_data(&credential_presentations, interaction_data)?;
+        // May contain more entries than `credential_presentations`: presentations carrying
+        // conflicting transaction data are duplicated (and appended) if the verifier accepts
+        // multiple presentations for the given credential query.
+        let presentations_with_tx_data = assign_transaction_data(
+            credential_presentations,
+            interaction_data,
+            &*self.transaction_data_provider,
+        )?;
 
         // For DCQL each credential gets a presentation individually
-        for (credential_presentation, assigned_tx_data) in
-            credential_presentations.into_iter().zip(assigned_tx_data)
+        for PresentationWithTxData {
+            credential_presentation,
+            transaction_data,
+        } in presentations_with_tx_data
         {
             let credential_query_id = credential_presentation.credential_query_id.clone();
 
@@ -286,12 +295,12 @@ impl OpenID4VPFinal1_0 {
                     self.key_algorithm_provider.clone(),
                 )?;
                 let mut aggregated_tx_data = None;
-                for tx_data in assigned_tx_data {
-                    let (_, data) = self
+                for tx_data in transaction_data {
+                    let data = self
                         .transaction_data_provider
-                        .get_transaction_data(&tx_data)?;
+                        .get_transaction_data_by_name(&tx_data.r#type)?;
                     let processed = data
-                        .process_transaction_data(&tx_data, credential_format)
+                        .process_transaction_data(&tx_data.data, credential_format)
                         .await
                         .error_while("processing transaction data")?;
                     let Some(existing) = aggregated_tx_data.as_mut() else {
@@ -916,22 +925,77 @@ async fn create_and_store_interaction(
     Ok(interaction)
 }
 
+struct PresentationWithTxData {
+    credential_presentation: FormattedCredentialPresentation,
+    transaction_data: Vec<AssignedTransactionData>,
+}
+
+impl PresentationWithTxData {
+    fn duplicate(&self, transaction_data: AssignedTransactionData) -> PresentationWithTxData {
+        Self {
+            credential_presentation: self.credential_presentation.clone(),
+            transaction_data: vec![transaction_data],
+        }
+    }
+
+    fn has_tx_data_of_type(&self, r#type: &TransactionDataType) -> bool {
+        self.transaction_data.iter().any(|tx| &tx.r#type == r#type)
+    }
+
+    fn has_pinned_tx_data_of_type(&self, r#type: &TransactionDataType) -> bool {
+        self.transaction_data
+            .iter()
+            .any(|tx| &tx.r#type == r#type && tx.manually_assigned)
+    }
+}
+
+struct AssignedTransactionData {
+    data: String,
+    r#type: TransactionDataType,
+    query_ids: Vec<CredentialQueryId>,
+    manually_assigned: bool,
+}
+
+impl From<ValidatedHolderTxData> for AssignedTransactionData {
+    fn from(tx_data: ValidatedHolderTxData) -> Self {
+        Self {
+            data: tx_data.raw,
+            r#type: tx_data.transaction_data_type,
+            query_ids: tx_data.credential_query_ids,
+            manually_assigned: false,
+        }
+    }
+}
+
 fn assign_transaction_data(
-    credential_presentations: &[FormattedCredentialPresentation],
+    credential_presentations: Vec<FormattedCredentialPresentation>,
     interaction_data: &OpenID4VPHolderInteractionData,
-) -> Result<Vec<Vec<String>>, VerificationProtocolError> {
+    transaction_data_provider: &dyn TransactionDataProvider,
+) -> Result<Vec<PresentationWithTxData>, VerificationProtocolError> {
     let mut transaction_data = interaction_data.transaction_data.validated()?;
 
     // Assign transaction data entries to credential presentations. Explicit
     // client selections (across all credentials) are honored first, then any
     // remaining entries are auto-assigned to the first applicable credential.
-    let mut assignments: Vec<Vec<String>> = vec![Vec::new(); credential_presentations.len()];
+    // Entries whose evidence would clash with an already assigned entry of the
+    // same type are moved onto a duplicate of the presentation (only possible
+    // if DCQL multiple is true).
+    let mut assignments: Vec<_> = credential_presentations
+        .into_iter()
+        .map(|credential_presentation| PresentationWithTxData {
+            credential_presentation,
+            transaction_data: vec![],
+        })
+        .collect();
+    let mut presentation_duplicates = vec![];
 
     // explicit transaction data selections
-    for (credential_presentation, assignment) in
-        credential_presentations.iter().zip(assignments.iter_mut())
+    for credential_presentation in assignments
+        .iter_mut()
+        .filter(|p| !p.credential_presentation.transaction_data_ids.is_empty())
     {
-        for tx_id in &credential_presentation.transaction_data_ids {
+        let presentation = &credential_presentation.credential_presentation;
+        for tx_id in &presentation.transaction_data_ids {
             let Some(tx_data) = transaction_data.shift_remove(tx_id) else {
                 return Err(VerificationProtocolError::InvalidTransactionDataAssignment(
                     format!("unknown or already-selected transaction data id {tx_id}"),
@@ -939,7 +1003,7 @@ fn assign_transaction_data(
             };
             if !tx_data
                 .credential_query_ids
-                .contains(&credential_presentation.credential_query_id)
+                .contains(&presentation.credential_query_id)
             {
                 return Err(VerificationProtocolError::InvalidTransactionDataAssignment(
                     format!(
@@ -947,41 +1011,180 @@ fn assign_transaction_data(
                     ),
                 ));
             }
-            assignment.push(tx_data.raw);
-        }
-    }
 
-    // auto-assign remaining transaction data entries
-    for (credential_presentation, assignment) in
-        credential_presentations.iter().zip(assignments.iter_mut())
-    {
-        let applicable_keys: Vec<TransactionDataId> = transaction_data
-            .iter()
-            .filter(|(_, tx)| {
-                tx.credential_query_ids
-                    .contains(&credential_presentation.credential_query_id)
-            })
-            .map(|(id, _)| *id)
-            .collect();
-        for key in applicable_keys {
-            if let Some(tx_data) = transaction_data.shift_remove(&key) {
-                assignment.push(tx_data.raw);
+            let conflict_free = conflict_free_tx_data_type(transaction_data_provider, &tx_data)?;
+            let mut data: AssignedTransactionData = tx_data.into();
+            data.manually_assigned = true;
+            if conflict_free || !credential_presentation.has_tx_data_of_type(&data.r#type) {
+                // No conflict of transaction data evidence
+                credential_presentation.transaction_data.push(data);
+            } else if dcql_multiple(interaction_data, presentation) {
+                // There is a conflict, but verifiers allows multiple -> duplicate presentation
+                presentation_duplicates.push(credential_presentation.duplicate(data));
+            } else {
+                return Err(VerificationProtocolError::InvalidTransactionDataAssignment(
+                    format!(
+                        "only one transaction data entry of type {} can be assigned to credential query {}",
+                        data.r#type, presentation.credential_query_id
+                    ),
+                ));
             }
         }
     }
+    // append already, so that the duplicates can be used to auto assign other conflicting tx data
+    assignments.append(&mut presentation_duplicates);
 
-    if !transaction_data.is_empty() {
-        return Err(VerificationProtocolError::InvalidTransactionDataAssignment(
-            format!(
-                "Not all transaction data entries were assigned to a credential query id. Transaction data entries remaining: [{}]",
-                &transaction_data
-                    .keys()
-                    .map(|k| k.to_string())
-                    .collect::<Vec<String>>()
-                    .join(",")
-            ),
-        ));
+    // auto-assign remaining transaction data entries
+    for (id, tx_data) in transaction_data {
+        let conflict_free = conflict_free_tx_data_type(transaction_data_provider, &tx_data)?;
+
+        // Attaching to an existing presentation is preferred over duplicating one. It is
+        // possible, if the presentation is applicable to the transaction data and either
+        // * the transaction data does not clash with data of the same type (i.e. is conflict free)
+        // * or no transaction data of the given type is assigned to the presentation yet
+        if let Some(assignment) = assignments.iter_mut().find(|p| {
+            applicable(&tx_data, p)
+                && (conflict_free || !p.has_tx_data_of_type(&tx_data.transaction_data_type))
+        }) {
+            assignment.transaction_data.push(tx_data.into());
+        }
+        // Try to make room by moving other tx_data assignments around
+        else if let Some(slot) = reshuffle_existing_assignments(
+            &tx_data.credential_query_ids,
+            &tx_data.transaction_data_type,
+            &mut assignments,
+        ) && let Some(assignment) = assignments.get_mut(slot)
+        {
+            assignment.transaction_data.push(tx_data.into());
+        }
+        // Otherwise the transaction data conflicts with all applicable presentations and can
+        // only be assigned by duplicating one, which the verifier must accept via the DCQL
+        // `multiple` flag.
+        else if let Some(assignment) = assignments.iter().find(|p| {
+            applicable(&tx_data, p) && dcql_multiple(interaction_data, &p.credential_presentation)
+        }) {
+            assignments.push(assignment.duplicate(tx_data.into()));
+        } else {
+            return Err(VerificationProtocolError::InvalidTransactionDataAssignment(
+                format!(
+                    "no valid presentation to assign transaction data {id} of type `{}`",
+                    tx_data.transaction_data_type
+                ),
+            ));
+        }
+    }
+    Ok(assignments)
+}
+
+/// Reshuffle existing assignments to different presentations, so that an additional entry of
+/// `data_type`, applicable to the credential queries listed in `query_ids`, can be placed.
+///
+/// Reshuffling happens between presentations (identified by their index in `assignments`),
+/// not between credential queries: a query without a submitted credential is no place to put
+/// an entry, and several presentations may answer the same credential query. Presentations
+/// carrying a pinned entry of `data_type` are excluded entirely, as they can neither give up
+/// their entry nor take another one.
+///
+/// Returns the index of the presentation the new entry can be assigned to, or `None` if no
+/// arrangement gives every entry a presentation of its own (in which case `assignments`
+/// remains untouched).
+fn reshuffle_existing_assignments(
+    query_ids: &[CredentialQueryId],
+    data_type: &TransactionDataType,
+    assignments: &mut [PresentationWithTxData],
+) -> Option<usize> {
+    // presentations able to carry an entry of `data_type`, with their credential query id
+    let slots: Vec<(usize, CredentialQueryId)> = assignments
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| !p.has_pinned_tx_data_of_type(data_type))
+        .map(|(slot, p)| {
+            (
+                slot,
+                p.credential_presentation.credential_query_id.to_owned(),
+            )
+        })
+        .collect();
+    let applicable_slots = |query_ids: &[CredentialQueryId]| -> Vec<usize> {
+        slots
+            .iter()
+            .filter(|(_, query_id)| query_ids.contains(query_id))
+            .map(|(slot, _)| *slot)
+            .collect()
+    };
+
+    // The entries to be moved around, at most one per slot. All of them are auto-assigned,
+    // as presentations with a pinned entry of this type are not eligible slots.
+    let mut movable = Vec::with_capacity(slots.len());
+    let mut applicable_credentials = Vec::with_capacity(slots.len() + 1);
+    for (slot, _) in &slots {
+        if let Some(presentation) = assignments.get(*slot)
+            && let Some((entry, tx_data)) = presentation
+                .transaction_data
+                .iter()
+                .enumerate()
+                .find(|(_, tx)| &tx.r#type == data_type)
+        {
+            movable.push((*slot, entry));
+            applicable_credentials.push(applicable_slots(&tx_data.query_ids));
+        }
+    }
+    // last element is the new entry
+    applicable_credentials.push(applicable_slots(query_ids));
+
+    let new_assignments = assign_entries_to_distinct_credentials(&applicable_credentials)?;
+
+    // retrieve the slot of the new entry (which is the last one, see above)
+    let result = new_assignments.last().copied();
+
+    // Move the other ones, if necessary. Removing before inserting keeps the entry indices
+    // valid: each presentation gives up at most one entry, and received ones are appended.
+    let mut moved = Vec::with_capacity(movable.len());
+    for ((slot, entry), new_slot) in movable.into_iter().zip(new_assignments) {
+        if slot != new_slot
+            && let Some(presentation) = assignments.get_mut(slot)
+            && entry < presentation.transaction_data.len()
+        {
+            moved.push((new_slot, presentation.transaction_data.remove(entry)));
+        }
+    }
+    for (slot, tx_data) in moved {
+        if let Some(presentation) = assignments.get_mut(slot) {
+            presentation.transaction_data.push(tx_data);
+        }
     }
 
-    Ok(assignments)
+    result
+}
+
+fn applicable(tx_data: &ValidatedHolderTxData, presentation: &PresentationWithTxData) -> bool {
+    tx_data
+        .credential_query_ids
+        .contains(&presentation.credential_presentation.credential_query_id)
+}
+
+fn conflict_free_tx_data_type(
+    transaction_data_provider: &dyn TransactionDataProvider,
+    tx_data: &ValidatedHolderTxData,
+) -> Result<bool, VerificationProtocolError> {
+    let provider =
+        transaction_data_provider.get_transaction_data_by_name(&tx_data.transaction_data_type)?;
+    let conflict_free = provider
+        .get_capabilities()
+        .features
+        .contains(&Features::SupportsMultipleTxDataPerPresentation);
+    Ok(conflict_free)
+}
+
+/// Whether the relevant DCQL credential query has the `multiple` flag set to true.
+fn dcql_multiple(
+    interaction_data: &OpenID4VPHolderInteractionData,
+    presentation: &FormattedCredentialPresentation,
+) -> bool {
+    interaction_data
+        .dcql_query
+        .credentials
+        .iter()
+        .find(|cq| cq.id == presentation.credential_query_id)
+        .is_some_and(|cq| cq.multiple)
 }

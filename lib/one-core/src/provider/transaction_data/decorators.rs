@@ -194,6 +194,7 @@ mod test {
         TransactionDataCapabilities {
             transaction_data_types: vec!["https://example.com/type".to_string()],
             formats: vec![FormatType::SdJwtVc],
+            features: vec![],
         }
     }
 
