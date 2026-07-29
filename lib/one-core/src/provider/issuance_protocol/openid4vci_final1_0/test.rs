@@ -3376,7 +3376,7 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
                 status: InstanceStatus::Active,
                 organisation: dummy_organisation(None).into(),
                 authentication_key: None,
-                wallet_unit_attestations: None,
+                wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
             }))

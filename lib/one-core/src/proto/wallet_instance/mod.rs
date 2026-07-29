@@ -8,8 +8,8 @@ use time::Duration;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::mapper::x509::x5c_into_pem_chain;
-use crate::model::instance::{Instance, InstanceRelations};
-use crate::model::key::{Key, KeyRelations};
+use crate::model::instance::Instance;
+use crate::model::key::Key;
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CertificateValidator, ParsedCertificate,
 };
@@ -307,18 +307,16 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
                 "holder wallet unit authentication key not found".to_string(),
             ))?;
 
-        if let Some(wallet_unit_attestations) = &holder_wallet_unit.wallet_unit_attestations {
-            for wua in wallet_unit_attestations {
-                if let WalletUnitStatusCheckResponse::Revoked = self
-                    .check_wallet_unit_attestation_status(&wua.attestation.clone())
-                    .await?
-                {
-                    return Ok(WalletUnitStatusCheckResponse::Revoked);
-                }
+        for wua in &holder_wallet_unit.wallet_unit_attestations.as_ref().await? {
+            if let WalletUnitStatusCheckResponse::Revoked = self
+                .check_wallet_unit_attestation_status(&wua.attestation.clone())
+                .await?
+            {
+                return Ok(WalletUnitStatusCheckResponse::Revoked);
             }
         }
 
-        let (key_handle, key_algorithm) = self.get_key_handle(key)?;
+        let (key_handle, key_algorithm) = self.get_key_handle(key.as_ref().await?.as_ref())?;
         let bearer_token = self
             .create_proof_of_key_possesion(
                 &holder_wallet_unit.provider_url,
@@ -354,13 +352,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
     ) -> Result<IssuedWalletUnitAttestations, Error> {
         let holder_wallet_instance = self
             .holder_wallet_instance_repository
-            .get(
-                holder_wallet_unit_id,
-                &InstanceRelations {
-                    authentication_key: Some(KeyRelations::default()),
-                    ..Default::default()
-                },
-            )
+            .get(holder_wallet_unit_id)
             .await
             .error_while("getting holder wallet unit")?
             .ok_or(Error::MappingError(
@@ -435,7 +427,8 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
             _ => vec![],
         };
 
-        let (key_handle, key_algorithm) = self.get_key_handle(authentication_key)?;
+        let (key_handle, key_algorithm) =
+            self.get_key_handle(authentication_key.as_ref().await?.as_ref())?;
         let bearer_token = self
             .create_proof_of_key_possesion(
                 &holder_wallet_instance.provider_url,

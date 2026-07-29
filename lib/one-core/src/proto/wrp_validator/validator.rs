@@ -333,7 +333,7 @@ impl WRPValidator for WRPValidatorImpl {
 
         let holder_wallet_instance = self
             .holder_wallet_instance_repository
-            .get_by_role(InstanceRole::Wallet, organisation_id, &Default::default())
+            .get_by_role(InstanceRole::Wallet, organisation_id)
             .await
             .error_while("getting wallet instance")?;
         if let Some(holder_wallet_instance) = holder_wallet_instance {
@@ -371,7 +371,7 @@ impl WRPValidator for WRPValidatorImpl {
 
         let verifier_instance = self
             .holder_wallet_instance_repository
-            .get_by_role(InstanceRole::Verifier, organisation_id, &Default::default())
+            .get_by_role(InstanceRole::Verifier, organisation_id)
             .await
             .error_while("getting wallet instance")?;
         if let Some(verifier_instance) = verifier_instance {

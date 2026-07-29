@@ -136,7 +136,7 @@ async fn test_get_organisation_success() {
     instance_repository
         .expect_get_by_role()
         .times(2)
-        .returning(|_, _, _| Ok(None));
+        .returning(|_, _| Ok(None));
 
     let service = setup_service_with_mocks(organisation_repository, instance_repository);
     let result = service.get_organisation(&organisation.id).await;
@@ -239,7 +239,7 @@ fn dummy_instance(
         user_nonce: None,
         organisation: organisation.into(),
         authentication_key: None,
-        wallet_unit_attestations: None,
+        wallet_unit_attestations: Default::default(),
     }
 }
 
@@ -332,13 +332,13 @@ async fn test_get_trust_collections_from_verifier_provider_only() {
     let mut instance_repository = MockInstanceRepository::new();
     instance_repository
         .expect_get_by_role()
-        .with(eq(InstanceRole::Wallet), always(), always())
-        .returning(|_, _, _| Ok(None));
+        .with(eq(InstanceRole::Wallet), always())
+        .returning(|_, _| Ok(None));
     let instance_org = organisation.clone();
     instance_repository
         .expect_get_by_role()
-        .with(eq(InstanceRole::Verifier), eq(organisation_id), always())
-        .returning(move |_, _, _| {
+        .with(eq(InstanceRole::Verifier), eq(organisation_id))
+        .returning(move |_, _| {
             Ok(Some(dummy_instance(
                 verifier_instance_id,
                 instance_org.clone(),
@@ -440,17 +440,17 @@ async fn test_upsert_organisation_rejects_trust_collections_spanning_multiple_pr
     let mut instance_repository = MockInstanceRepository::new();
     instance_repository
         .expect_get_by_role()
-        .with(eq(InstanceRole::Wallet), eq(organisation_id), always())
+        .with(eq(InstanceRole::Wallet), eq(organisation_id))
         .returning({
             let wallet_instance = wallet_instance.clone();
-            move |_, _, _| Ok(Some(wallet_instance.clone()))
+            move |_, _| Ok(Some(wallet_instance.clone()))
         });
     instance_repository
         .expect_get_by_role()
-        .with(eq(InstanceRole::Verifier), eq(organisation_id), always())
+        .with(eq(InstanceRole::Verifier), eq(organisation_id))
         .returning({
             let verifier_instance = verifier_instance.clone();
-            move |_, _, _| Ok(Some(verifier_instance.clone()))
+            move |_, _| Ok(Some(verifier_instance.clone()))
         });
     instance_repository.expect_list().returning(move |_| {
         Ok(InstanceList {

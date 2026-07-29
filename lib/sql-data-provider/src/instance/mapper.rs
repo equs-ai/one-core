@@ -5,8 +5,11 @@ use one_core::model::instance::{
     Instance, InstanceFilterValue, SortableInstanceColumn, WalletProviderType,
 };
 use one_core::model::list_filter::ListFilterCondition;
-use one_core::model::relation::Related;
+use one_core::model::relation::{Related, RelatedVec};
+use one_core::repository::instance_repository::InstanceWalletInstanceAttestationsLoader;
+use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
+use one_core::repository::wallet_instance_attestation_repository::WalletInstanceAttestationRepository;
 use sea_orm::sea_query::{IntoCondition, SimpleExpr};
 use sea_orm::{ColumnTrait, Condition, Set};
 
@@ -17,6 +20,8 @@ use crate::list_query_generic::{IntoFilterCondition, IntoSortingColumn, get_equa
 pub(crate) fn instance_from_model(
     value: Model,
     organisation_repository: &Arc<dyn OrganisationRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
+    wallet_instance_attestation_repository: &Arc<dyn WalletInstanceAttestationRepository>,
 ) -> Instance {
     Instance {
         id: value.id,
@@ -31,8 +36,14 @@ pub(crate) fn instance_from_model(
         nonce: value.nonce,
         user_nonce: value.user_nonce,
         organisation: Related::new(value.organisation_id, organisation_repository.clone()),
-        authentication_key: None,
-        wallet_unit_attestations: None,
+        authentication_key: value
+            .authentication_key_id
+            .map(|key_id| Related::new(key_id, key_repository.to_owned())),
+        wallet_unit_attestations: RelatedVec::new(InstanceWalletInstanceAttestationsLoader {
+            id: value.id,
+            wallet_instance_attestation_repository: wallet_instance_attestation_repository
+                .to_owned(),
+        }),
     }
 }
 
@@ -49,7 +60,7 @@ impl From<Instance> for ActiveModel {
             provider_url: Set(value.provider_url),
             provider_instance_id: Set(value.provider_instance_id),
             organisation_id: Set(value.organisation.id()),
-            authentication_key_id: Set(value.authentication_key.map(|key| key.id)),
+            authentication_key_id: Set(value.authentication_key.map(|key| key.id())),
             nonce: Set(value.nonce),
             user_nonce: Set(value.user_nonce),
         }

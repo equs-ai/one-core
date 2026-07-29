@@ -238,7 +238,7 @@ fn dummy_wallet_unit() -> Instance {
         role: InstanceRole::Wallet,
         organisation: dummy_organisation(None).into(),
         authentication_key: None,
-        wallet_unit_attestations: None,
+        wallet_unit_attestations: Default::default(),
         nonce: None,
         user_nonce: None,
     }
@@ -258,7 +258,7 @@ fn dummy_verifier_instance() -> Instance {
         role: InstanceRole::Verifier,
         organisation: dummy_organisation(None).into(),
         authentication_key: None,
-        wallet_unit_attestations: None,
+        wallet_unit_attestations: Default::default(),
         nonce: None,
         user_nonce: None,
     }

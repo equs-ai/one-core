@@ -6,14 +6,12 @@ use time::OffsetDateTime;
 
 use crate::config;
 use crate::model::common::GetListResponse;
-use crate::model::key::{Key, KeyRelations};
+use crate::model::key::Key;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
 use crate::model::organisation::Organisation;
-use crate::model::relation::Related;
-use crate::model::wallet_instance_attestation::{
-    WalletInstanceAttestation, WalletInstanceAttestationRelations,
-};
+use crate::model::relation::{Related, RelatedVec};
+use crate::model::wallet_instance_attestation::WalletInstanceAttestation;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
@@ -34,8 +32,8 @@ pub struct Instance {
 
     // Relations:
     pub organisation: Related<Organisation>,
-    pub authentication_key: Option<Key>,
-    pub wallet_unit_attestations: Option<Vec<WalletInstanceAttestation>>,
+    pub authentication_key: Option<Related<Key>>,
+    pub wallet_unit_attestations: RelatedVec<WalletInstanceAttestation>,
 }
 
 #[derive(
@@ -65,12 +63,6 @@ pub enum InstanceStatus {
     Revoked,
     Unattested,
     Error,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct InstanceRelations {
-    pub wallet_unit_attestations: Option<WalletInstanceAttestationRelations>,
-    pub authentication_key: Option<KeyRelations>,
 }
 
 #[derive(Clone, Debug, Default)]

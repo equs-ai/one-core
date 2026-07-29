@@ -13,19 +13,17 @@ use super::dto::{
     HolderRegisterInstanceRequestDTO, HolderRegisterInstanceResponseDTO, NoncePayload,
 };
 use super::error::HolderInstanceError;
-use super::mapper::key_from_generated_key;
+use super::mapper::{instance_to_detail_dto, key_from_generated_key};
 use crate::config::core_config::{KeyAlgorithmType, KeyStorageType};
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::certificate::CertificateRole;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::instance::{
-    Instance, InstanceRelations, InstanceRole, InstanceStatus, UpdateInstanceRequest,
-    WalletProviderType,
+    Instance, InstanceRole, InstanceStatus, UpdateInstanceRequest, WalletProviderType,
 };
-use crate::model::key::{Key, KeyRelations};
+use crate::model::key::Key;
 use crate::model::managed_instance::ManagedInstanceOs;
 use crate::model::organisation::Organisation;
-use crate::model::wallet_instance_attestation::WalletInstanceAttestationRelations;
 use crate::proto::csr_creator::{CsrRequestProfile, CsrRequestSubject, GenerateCsrRequest};
 use crate::proto::identifier_creator::CreateLocalIdentifierRequest;
 use crate::proto::jwt::model::JWTPayload;
@@ -102,7 +100,7 @@ impl InstanceService {
 
         let existing_instance = self
             .holder_wallet_instance_repository
-            .get_by_role(request.role, organisation.id, &Default::default())
+            .get_by_role(request.role, organisation.id)
             .await
             .error_while("checking presence of instance")?;
         if let Some(existing_instance) = existing_instance {
@@ -252,7 +250,7 @@ impl InstanceService {
     ) -> Result<HolderActivateInstanceResponseDTO, HolderInstanceError> {
         let holder_wallet_instance = self
             .holder_wallet_instance_repository
-            .get(&id, &InstanceRelations::default())
+            .get(&id)
             .await
             .error_while("getting holder wallet instance")?
             .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?;
@@ -474,19 +472,15 @@ impl InstanceService {
         &self,
         id: InstanceId,
     ) -> Result<HolderInstanceResponseDTO, HolderInstanceError> {
-        Ok(self
-            .holder_wallet_instance_repository
-            .get(
-                &id,
-                &InstanceRelations {
-                    authentication_key: Some(KeyRelations::default()),
-                    ..Default::default()
-                },
-            )
-            .await
-            .error_while("getting holder wallet unit")?
-            .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?
-            .into())
+        Ok(instance_to_detail_dto(
+            self.holder_wallet_instance_repository
+                .get(&id)
+                .await
+                .error_while("getting holder wallet unit")?
+                .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?,
+        )
+        .await
+        .error_while("converting model")?)
     }
 
     async fn fetch_provider_metadata_for_url(
@@ -517,13 +511,7 @@ impl InstanceService {
     pub async fn holder_instance_status(&self, id: InstanceId) -> Result<(), HolderInstanceError> {
         let holder_wallet_unit = self
             .holder_wallet_instance_repository
-            .get(
-                &id,
-                &InstanceRelations {
-                    authentication_key: Some(KeyRelations::default()),
-                    wallet_unit_attestations: Some(WalletInstanceAttestationRelations::default()),
-                },
-            )
+            .get(&id)
             .await
             .error_while("getting holder wallet unit")?
             .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?;
@@ -1299,11 +1287,11 @@ impl RegistrationStatus {
             provider_type: request.provider.r#type,
             provider_name: metadata.name.clone(),
             organisation: organisation.clone().into(),
-            authentication_key,
+            authentication_key: authentication_key.map(Into::into),
             provider_instance_id,
             nonce,
             user_nonce,
-            wallet_unit_attestations: None,
+            wallet_unit_attestations: Default::default(),
         }
     }
 }

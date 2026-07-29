@@ -21,9 +21,6 @@ pub struct WalletInstanceAttestation {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct WalletInstanceAttestationRelations {}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct UpdateWalletInstanceAttestationRequest {
     pub expiration_date: Option<OffsetDateTime>,
     pub attestation: Option<String>,

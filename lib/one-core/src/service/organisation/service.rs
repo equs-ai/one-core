@@ -19,8 +19,7 @@ use super::validator::{
 };
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::identifier::{Identifier, IdentifierFilterValue, IdentifierListQuery};
-use crate::model::instance::{InstanceFilterValue, InstanceRelations, InstanceRole};
-use crate::model::key::KeyRelations;
+use crate::model::instance::{InstanceFilterValue, InstanceRole};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
 use crate::model::organisation::{
@@ -167,13 +166,9 @@ impl OrganisationService {
         role: InstanceRole,
         organisation_id: OrganisationId,
     ) -> Result<Option<InstanceDetailResponseDTO>, OrganisationServiceError> {
-        let relations = InstanceRelations {
-            authentication_key: Some(KeyRelations::default()),
-            ..Default::default()
-        };
         let Some(instance) = self
             .instance_repository
-            .get_by_role(role, organisation_id, &relations)
+            .get_by_role(role, organisation_id)
             .await
             .error_while("getting instance with authentication key")?
         else {
@@ -187,7 +182,7 @@ impl OrganisationService {
             id: instance.id,
             provider_url: instance.provider_url,
             provider_name: instance.provider_name,
-            authentication_key_type: authentication_key.key_type,
+            authentication_key_type: authentication_key.as_ref().await?.key_type.to_owned(),
         }))
     }
 
@@ -382,7 +377,7 @@ impl OrganisationService {
 
         let wallet_instance = self
             .instance_repository
-            .get_by_role(InstanceRole::Wallet, organisation.id, &Default::default())
+            .get_by_role(InstanceRole::Wallet, organisation.id)
             .await
             .error_while("getting wallet instance")?;
         if let Some(wallet_instance) = wallet_instance {
@@ -401,7 +396,7 @@ impl OrganisationService {
 
         let verifier_instance = self
             .instance_repository
-            .get_by_role(InstanceRole::Verifier, organisation.id, &Default::default())
+            .get_by_role(InstanceRole::Verifier, organisation.id)
             .await
             .error_while("getting wallet instance")?;
         if let Some(verifier_instance) = verifier_instance {

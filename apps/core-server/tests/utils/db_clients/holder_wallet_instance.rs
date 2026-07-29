@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use one_core::model::instance::{
-    Instance, InstanceRelations, InstanceRole, InstanceStatus, WalletProviderType,
-};
+use one_core::model::instance::{Instance, InstanceRole, InstanceStatus, WalletProviderType};
 use one_core::model::key::Key;
 use one_core::model::organisation::Organisation;
 use one_core::repository::instance_repository::InstanceRepository;
@@ -55,29 +53,21 @@ impl HolderWalletInstancesDB {
                 .provider_url
                 .unwrap_or("https://wallet.provider".to_string()),
             organisation: organisation.into(),
-            authentication_key,
+            authentication_key: authentication_key.map(|key| key.into()),
             provider_instance_id: test_holder_wallet_instance
                 .provider_wallet_unit_id
                 .unwrap_or(Uuid::new_v4().into()),
             nonce: None,
             user_nonce: None,
-            wallet_unit_attestations: None,
+            wallet_unit_attestations: Default::default(),
         };
 
         let id = self.repository.create(instance).await.unwrap();
 
-        self.repository
-            .get(&id, &InstanceRelations::default())
-            .await
-            .unwrap()
-            .unwrap()
+        self.repository.get(&id).await.unwrap().unwrap()
     }
 
-    pub async fn get(
-        &self,
-        id: impl Into<InstanceId>,
-        relations: &InstanceRelations,
-    ) -> Option<Instance> {
-        self.repository.get(&id.into(), relations).await.unwrap()
+    pub async fn get(&self, id: impl Into<InstanceId>) -> Option<Instance> {
+        self.repository.get(&id.into()).await.unwrap()
     }
 }

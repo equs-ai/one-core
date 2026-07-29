@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 use futures::FutureExt;
 use one_core::model::instance::{
-    Instance, InstanceList, InstanceListQuery, InstanceRelations, InstanceRole,
-    UpdateInstanceRequest,
+    Instance, InstanceList, InstanceListQuery, InstanceRole, UpdateInstanceRequest,
 };
 use one_core::repository::error::DataLayerError;
 use one_core::repository::instance_repository::InstanceRepository;
@@ -29,25 +28,25 @@ impl InstanceRepository for InstanceProvider {
         Ok(model.id)
     }
 
-    async fn get(
-        &self,
-        id: &InstanceId,
-        relations: &InstanceRelations,
-    ) -> Result<Option<Instance>, DataLayerError> {
+    async fn get(&self, id: &InstanceId) -> Result<Option<Instance>, DataLayerError> {
         let model = instance::Entity::find_by_id(id)
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?;
         let Some(model) = model else { return Ok(None) };
 
-        Ok(Some(self.fill_relations(model, relations).await?))
+        Ok(Some(instance_from_model(
+            model,
+            &self.organisation_repository,
+            &self.key_repository,
+            &self.wallet_unit_attestation_repository,
+        )))
     }
 
     async fn get_by_role(
         &self,
         role: InstanceRole,
         organisation_id: OrganisationId,
-        relations: &InstanceRelations,
     ) -> Result<Option<Instance>, DataLayerError> {
         let model = instance::Entity::find()
             .filter(instance::Column::Role.eq(instance::InstanceRole::from(role)))
@@ -57,7 +56,12 @@ impl InstanceRepository for InstanceProvider {
             .map_err(to_data_layer_error)?;
         let Some(model) = model else { return Ok(None) };
 
-        Ok(Some(self.fill_relations(model, relations).await?))
+        Ok(Some(instance_from_model(
+            model,
+            &self.organisation_repository,
+            &self.key_repository,
+            &self.wallet_unit_attestation_repository,
+        )))
     }
 
     async fn update(
@@ -118,7 +122,12 @@ impl InstanceRepository for InstanceProvider {
             .order_by_desc(instance::Column::Id);
 
         list_query_with_custom_model(query, query_params, &self.db, |m| {
-            Ok(instance_from_model(m, &self.organisation_repository))
+            Ok(instance_from_model(
+                m,
+                &self.organisation_repository,
+                &self.key_repository,
+                &self.wallet_unit_attestation_repository,
+            ))
         })
         .await
     }
@@ -130,38 +139,5 @@ impl InstanceRepository for InstanceProvider {
             .map_err(to_data_layer_error)?;
 
         Ok(())
-    }
-}
-
-impl InstanceProvider {
-    async fn fill_relations(
-        &self,
-        model: instance::Model,
-        relations: &InstanceRelations,
-    ) -> Result<Instance, DataLayerError> {
-        let id = model.id;
-        let auth_key_id = model.authentication_key_id;
-        let mut holder_wallet_unit = instance_from_model(model, &self.organisation_repository);
-        if let (Some(_key_relations), Some(auth_key_id)) =
-            (&relations.authentication_key, &auth_key_id)
-        {
-            let key = self.key_repository.get_key(auth_key_id).await?.ok_or(
-                DataLayerError::MissingRequiredRelation {
-                    relation: "holder_wallet_unit-authentication_key",
-                    id: auth_key_id.to_string(),
-                },
-            )?;
-            holder_wallet_unit.authentication_key = Some(key)
-        }
-
-        if let Some(_wallet_unit_attestation_relations) = &relations.wallet_unit_attestations {
-            let attestations = self
-                .wallet_unit_attestation_repository
-                .get_wallet_instance_attestations_by_holder_wallet_unit(&id)
-                .await?;
-            holder_wallet_unit.wallet_unit_attestations = Some(attestations)
-        }
-
-        Ok(holder_wallet_unit)
     }
 }

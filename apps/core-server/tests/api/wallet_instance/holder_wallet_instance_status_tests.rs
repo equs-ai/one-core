@@ -81,7 +81,7 @@ async fn test_holder_instance_status_already_revoked() {
     let updated_wallet_unit = context
         .db
         .holder_wallet_units
-        .get(wallet_unit.id, &Default::default())
+        .get(wallet_unit.id)
         .await
         .expect("wallet unit should exist");
 

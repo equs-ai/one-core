@@ -3,11 +3,13 @@ use shared_types::KeyId;
 
 use super::dto::HolderInstanceResponseDTO;
 use super::service::ProviderMetadata;
+use crate::error::NestedError;
 use crate::model::instance::{Instance, InstanceStatus};
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::proto::trust_collection::dto::RemoteTrustCollectionInfoDTO;
 use crate::provider::key_storage::model::StorageGeneratedKey;
+use crate::service::key::dto::KeyListItemResponseDTO;
 use crate::service::managed_instance::dto::{
     ProviderTrustCollectionDTO, WalletProviderMetadataResponseDTO,
 };
@@ -65,24 +67,28 @@ pub(super) fn key_from_generated_key(
     }
 }
 
-impl From<Instance> for HolderInstanceResponseDTO {
-    fn from(value: Instance) -> Self {
-        Self {
-            id: value.id,
-            created_date: value.created_date,
-            last_modified: value.last_modified,
-            role: value.role,
-            provider_instance_id: value.provider_instance_id,
-            provider_url: value.provider_url,
-            provider_type: value.provider_type,
-            provider_name: value.provider_name,
-            status: value.status,
-            authentication_key: convert_inner(value.authentication_key),
-            user_nonce: (value.status == InstanceStatus::Pending)
-                .then_some(value.user_nonce)
-                .flatten(),
-        }
-    }
+pub(super) async fn instance_to_detail_dto(
+    value: Instance,
+) -> Result<HolderInstanceResponseDTO, NestedError> {
+    let authentication_key = match value.authentication_key {
+        None => None,
+        Some(key) => Some(KeyListItemResponseDTO::from(key.as_ref().await?.to_owned())),
+    };
+    Ok(HolderInstanceResponseDTO {
+        id: value.id,
+        created_date: value.created_date,
+        last_modified: value.last_modified,
+        role: value.role,
+        provider_instance_id: value.provider_instance_id,
+        provider_url: value.provider_url,
+        provider_type: value.provider_type,
+        provider_name: value.provider_name,
+        status: value.status,
+        authentication_key,
+        user_nonce: (value.status == InstanceStatus::Pending)
+            .then_some(value.user_nonce)
+            .flatten(),
+    })
 }
 
 impl From<ProviderTrustCollectionDTO> for RemoteTrustCollectionInfoDTO {

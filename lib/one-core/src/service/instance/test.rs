@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use assert2::check;
-use mockall::predicate::{always, eq};
+use mockall::predicate::eq;
 use shared_types::{InstanceId, ManagedInstanceId, OrganisationId};
 use similar_asserts::assert_eq;
 use uuid::Uuid;
@@ -189,7 +189,7 @@ async fn holder_register_success() {
     holder_wallet_unit_repository
         .expect_get_by_role()
         .once()
-        .return_once(|_, _, _| Ok(None));
+        .return_once(|_, _| Ok(None));
     holder_wallet_unit_repository
         .expect_create()
         .once()
@@ -317,7 +317,7 @@ async fn holder_register_key_attestation_not_supported() {
     holder_wallet_unit_repository
         .expect_get_by_role()
         .once()
-        .return_once(|_, _, _| Ok(None));
+        .return_once(|_, _| Ok(None));
     holder_wallet_unit_repository
         .expect_create()
         .once()
@@ -377,7 +377,7 @@ async fn holder_instance_status_check_still_valid() {
     holder_wallet_unit_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             Ok(Some(crate::model::instance::Instance {
                 id: wallet_unit_id,
                 created_date: get_dummy_date(),
@@ -390,7 +390,7 @@ async fn holder_instance_status_check_still_valid() {
                 provider_instance_id: Uuid::new_v4().into(),
                 organisation: dummy_organisation(None).into(),
                 authentication_key: None,
-                wallet_unit_attestations: None,
+                wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
             }))
@@ -427,7 +427,7 @@ async fn holder_instance_status_check_revocation() {
     holder_wallet_unit_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             Ok(Some(Instance {
                 id: wallet_unit_id,
                 created_date: get_dummy_date(),
@@ -445,7 +445,7 @@ async fn holder_instance_status_check_revocation() {
                 }
                 .into(),
                 authentication_key: None,
-                wallet_unit_attestations: None,
+                wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
             }))
@@ -498,7 +498,7 @@ async fn holder_instance_status_check_not_found() {
     holder_wallet_unit_repository
         .expect_get()
         .once()
-        .return_once(|_, _| Ok(None));
+        .return_once(|_| Ok(None));
 
     let service = InstanceService {
         holder_wallet_instance_repository: Arc::new(holder_wallet_unit_repository),
@@ -521,7 +521,7 @@ async fn holder_instance_status_check_already_revoked() {
     holder_wallet_unit_repository
         .expect_get()
         .once()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             Ok(Some(crate::model::instance::Instance {
                 id: wallet_unit_id,
                 created_date: get_dummy_date(),
@@ -534,7 +534,7 @@ async fn holder_instance_status_check_already_revoked() {
                 provider_instance_id: Uuid::new_v4().into(),
                 organisation: dummy_organisation(None).into(),
                 authentication_key: None,
-                wallet_unit_attestations: None,
+                wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
             }))
@@ -583,8 +583,8 @@ async fn holder_register_already_exists() {
     holder_wallet_unit_repository
         .expect_get_by_role()
         .once()
-        .with(eq(InstanceRole::Wallet), eq(organisation_id), always())
-        .return_once(move |_, _, _| {
+        .with(eq(InstanceRole::Wallet), eq(organisation_id))
+        .return_once(move |_, _| {
             Ok(Some(Instance {
                 id: existing_instance_id,
                 created_date: get_dummy_date(),
@@ -597,7 +597,7 @@ async fn holder_register_already_exists() {
                 provider_instance_id: Uuid::new_v4().into(),
                 organisation: dummy_organisation(None).into(),
                 authentication_key: None,
-                wallet_unit_attestations: None,
+                wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
             }))

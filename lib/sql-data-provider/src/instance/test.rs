@@ -1,8 +1,7 @@
 use one_core::model::instance::{
-    Instance, InstanceRelations, InstanceRole, InstanceStatus, UpdateInstanceRequest,
-    WalletProviderType,
+    Instance, InstanceRole, InstanceStatus, UpdateInstanceRequest, WalletProviderType,
 };
-use one_core::model::key::{Key, KeyRelations};
+use one_core::model::key::Key;
 use one_core::model::organisation::Organisation;
 use one_core::model::wallet_instance_attestation::WalletInstanceAttestation;
 use one_core::repository::instance_repository::InstanceRepository;
@@ -54,19 +53,15 @@ async fn get_holder_wallet_instance_success() {
 
     let id = Uuid::new_v4().into();
     provider
-        .create(test_wallet_instance(id, organisation, key))
+        .create(test_wallet_instance(id, organisation.clone(), key.clone()))
         .await
         .unwrap();
 
-    let result = provider
-        .get(&id, &InstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let result = provider.get(&id).await.unwrap().unwrap();
 
-    // no relations
-    assert!(result.authentication_key.is_none());
     assert_eq!(result.id, id);
+    assert_eq!(result.organisation.id(), organisation.id);
+    assert_eq!(result.authentication_key.unwrap().id(), key.id);
 }
 
 #[tokio::test]
@@ -103,21 +98,18 @@ async fn update_holder_wallet_instance_success() {
 
     provider.update(&id, update_request).await.unwrap();
 
-    let reloaded = provider
-        .get(
-            &id,
-            &InstanceRelations {
-                wallet_unit_attestations: Some(Default::default()),
-                authentication_key: Some(KeyRelations::default()),
-            },
-        )
-        .await
-        .unwrap()
-        .unwrap();
-    assert!(reloaded.wallet_unit_attestations.is_some());
-    assert_eq!(reloaded.wallet_unit_attestations.unwrap().len(), 1);
+    let reloaded = provider.get(&id).await.unwrap().unwrap();
+    assert_eq!(
+        reloaded
+            .wallet_unit_attestations
+            .as_ref()
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
     assert_eq!(reloaded.organisation.id(), organisation.id);
-    assert_eq!(reloaded.authentication_key.unwrap().id, key.id);
+    assert_eq!(reloaded.authentication_key.unwrap().id(), key.id);
 }
 
 fn test_wallet_instance(id: InstanceId, organisation: Organisation, key: Key) -> Instance {
@@ -132,9 +124,9 @@ fn test_wallet_instance(id: InstanceId, organisation: Organisation, key: Key) ->
         provider_name: "test_name".to_string(),
         provider_url: "test_url".to_string(),
         organisation: organisation.into(),
-        authentication_key: Some(key),
+        authentication_key: Some(key.into()),
         provider_instance_id: Uuid::new_v4().into(),
-        wallet_unit_attestations: None,
+        wallet_unit_attestations: Default::default(),
         nonce: None,
         user_nonce: None,
     }
