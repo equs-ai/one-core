@@ -73,22 +73,6 @@ pub struct InstanceRelations {
     pub authentication_key: Option<KeyRelations>,
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
-pub struct CreateInstanceRequest {
-    pub id: InstanceId,
-    pub provider_type: WalletProviderType,
-    pub provider_name: String,
-    pub provider_url: String,
-    pub provider_instance_id: ManagedInstanceId,
-    pub status: InstanceStatus,
-    pub role: InstanceRole,
-    pub organisation: Organisation,
-    pub authentication_key: Option<Key>,
-    pub nonce: Option<String>,
-    pub user_nonce: Option<String>,
-}
-
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct UpdateInstanceRequest {

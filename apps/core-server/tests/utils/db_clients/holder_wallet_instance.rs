@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use one_core::model::instance::{
-    CreateInstanceRequest, Instance, InstanceRelations, InstanceRole, InstanceStatus,
-    WalletProviderType,
+    Instance, InstanceRelations, InstanceRole, InstanceStatus, WalletProviderType,
 };
 use one_core::model::key::Key;
 use one_core::model::organisation::Organisation;
@@ -35,8 +34,11 @@ impl HolderWalletInstancesDB {
         authentication_key: Option<Key>,
         test_holder_wallet_instance: TestHolderWalletInstanceParams,
     ) -> Instance {
-        let wallet_instance = CreateInstanceRequest {
+        let now = one_core::clock::now_utc();
+        let instance = Instance {
             id: Uuid::new_v4().into(),
+            created_date: now,
+            last_modified: now,
             status: test_holder_wallet_instance
                 .status
                 .unwrap_or(InstanceStatus::Active),
@@ -52,16 +54,17 @@ impl HolderWalletInstancesDB {
             provider_url: test_holder_wallet_instance
                 .provider_url
                 .unwrap_or("https://wallet.provider".to_string()),
-            organisation,
+            organisation: organisation.into(),
             authentication_key,
             provider_instance_id: test_holder_wallet_instance
                 .provider_wallet_unit_id
                 .unwrap_or(Uuid::new_v4().into()),
             nonce: None,
             user_nonce: None,
+            wallet_unit_attestations: None,
         };
 
-        let id = self.repository.create(wallet_instance).await.unwrap();
+        let id = self.repository.create(instance).await.unwrap();
 
         self.repository
             .get(&id, &InstanceRelations::default())

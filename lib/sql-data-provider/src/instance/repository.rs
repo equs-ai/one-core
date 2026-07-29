@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use futures::FutureExt;
 use one_core::model::instance::{
-    CreateInstanceRequest, Instance, InstanceList, InstanceListQuery, InstanceRelations,
-    InstanceRole, UpdateInstanceRequest,
+    Instance, InstanceList, InstanceListQuery, InstanceRelations, InstanceRole,
+    UpdateInstanceRequest,
 };
 use one_core::repository::error::DataLayerError;
 use one_core::repository::instance_repository::InstanceRepository;
@@ -20,7 +20,7 @@ use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
 
 #[async_trait]
 impl InstanceRepository for InstanceProvider {
-    async fn create(&self, request: CreateInstanceRequest) -> Result<InstanceId, DataLayerError> {
+    async fn create(&self, request: Instance) -> Result<InstanceId, DataLayerError> {
         let model = instance::ActiveModel::from(request)
             .insert(&self.db)
             .await

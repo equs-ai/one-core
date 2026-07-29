@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use entity::instance;
 use one_core::model::instance::{
-    CreateInstanceRequest, Instance, InstanceFilterValue, SortableInstanceColumn,
-    WalletProviderType,
+    Instance, InstanceFilterValue, SortableInstanceColumn, WalletProviderType,
 };
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::relation::Related;
@@ -37,20 +36,19 @@ pub(crate) fn instance_from_model(
     }
 }
 
-impl From<CreateInstanceRequest> for ActiveModel {
-    fn from(value: CreateInstanceRequest) -> Self {
-        let now = one_core::clock::now_utc();
+impl From<Instance> for ActiveModel {
+    fn from(value: Instance) -> Self {
         Self {
             id: Set(value.id),
-            created_date: Set(now),
-            last_modified: Set(now),
+            created_date: Set(value.created_date),
+            last_modified: Set(value.last_modified),
             status: Set(value.status.into()),
             role: Set(value.role.into()),
             provider_name: Set(value.provider_name),
             provider_type: Set(value.provider_type.into()),
             provider_url: Set(value.provider_url),
             provider_instance_id: Set(value.provider_instance_id),
-            organisation_id: Set(value.organisation.id),
+            organisation_id: Set(value.organisation.id()),
             authentication_key_id: Set(value.authentication_key.map(|key| key.id)),
             nonce: Set(value.nonce),
             user_nonce: Set(value.user_nonce),

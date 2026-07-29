@@ -10,9 +10,7 @@ use super::InstanceService;
 use super::dto::{HolderRegisterInstanceRequestDTO, InstanceProviderDTO};
 use super::error::HolderInstanceError;
 use crate::config::core_config::CoreConfig;
-use crate::model::instance::{
-    CreateInstanceRequest, Instance, InstanceRole, InstanceStatus, WalletProviderType,
-};
+use crate::model::instance::{Instance, InstanceRole, InstanceStatus, WalletProviderType};
 use crate::model::organisation::Organisation;
 use crate::proto::clock::DefaultClock;
 use crate::proto::credential_schema::importer::MockCredentialSchemaImporter;
@@ -195,7 +193,7 @@ async fn holder_register_success() {
     holder_wallet_unit_repository
         .expect_create()
         .once()
-        .return_once(move |att: CreateInstanceRequest| {
+        .return_once(move |att: Instance| {
             check!(att.status == InstanceStatus::Active);
             check!(att.provider_instance_id == wallet_unit_id);
             Ok(att.id)
@@ -323,7 +321,7 @@ async fn holder_register_key_attestation_not_supported() {
     holder_wallet_unit_repository
         .expect_create()
         .once()
-        .return_once(move |att: CreateInstanceRequest| {
+        .return_once(move |att: Instance| {
             check!(att.status == InstanceStatus::Unattested);
             check!(att.provider_instance_id == wallet_unit_id);
             Ok(att.id)

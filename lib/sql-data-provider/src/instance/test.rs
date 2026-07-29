@@ -1,6 +1,6 @@
 use one_core::model::instance::{
-    CreateInstanceRequest, Instance, InstanceRelations, InstanceRole, InstanceStatus,
-    UpdateInstanceRequest, WalletProviderType,
+    Instance, InstanceRelations, InstanceRole, InstanceStatus, UpdateInstanceRequest,
+    WalletProviderType,
 };
 use one_core::model::key::{Key, KeyRelations};
 use one_core::model::organisation::Organisation;
@@ -36,7 +36,7 @@ async fn create_holder_wallet_instance_success() {
 
     let id = Uuid::new_v4().into();
     let result = provider
-        .create(instance_to_create_request(test_wallet_instance(id, organisation, key)).await)
+        .create(test_wallet_instance(id, organisation, key))
         .await;
 
     assert!(result.is_ok());
@@ -56,7 +56,7 @@ async fn get_holder_wallet_instance_success() {
 
     let id = Uuid::new_v4().into();
     provider
-        .create(instance_to_create_request(test_wallet_instance(id, organisation, key)).await)
+        .create(test_wallet_instance(id, organisation, key))
         .await
         .unwrap();
 
@@ -82,10 +82,7 @@ async fn update_holder_wallet_instance_success() {
 
     let id = Uuid::new_v4().into();
     provider
-        .create(
-            instance_to_create_request(test_wallet_instance(id, organisation.clone(), key.clone()))
-                .await,
-        )
+        .create(test_wallet_instance(id, organisation.clone(), key.clone()))
         .await
         .unwrap();
 
@@ -144,22 +141,6 @@ fn test_wallet_instance(id: InstanceId, organisation: Organisation, key: Key) ->
         wallet_unit_attestations: None,
         nonce: None,
         user_nonce: None,
-    }
-}
-
-async fn instance_to_create_request(instance: Instance) -> CreateInstanceRequest {
-    CreateInstanceRequest {
-        id: instance.id,
-        role: instance.role,
-        provider_type: instance.provider_type,
-        provider_name: instance.provider_name,
-        provider_url: instance.provider_url,
-        provider_instance_id: instance.provider_instance_id,
-        status: instance.status,
-        organisation: instance.organisation.as_ref().await.unwrap().to_owned(),
-        authentication_key: instance.authentication_key,
-        nonce: instance.nonce,
-        user_nonce: instance.user_nonce,
     }
 }
 

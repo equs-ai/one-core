@@ -19,7 +19,7 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMix
 use crate::model::certificate::CertificateRole;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::instance::{
-    CreateInstanceRequest, InstanceRelations, InstanceRole, InstanceStatus, UpdateInstanceRequest,
+    Instance, InstanceRelations, InstanceRole, InstanceStatus, UpdateInstanceRequest,
     WalletProviderType,
 };
 use crate::model::key::{Key, KeyRelations};
@@ -1243,72 +1243,67 @@ impl RegistrationStatus {
         organisation: &Organisation,
         provider_url: String,
         metadata: &ProviderMetadata,
-    ) -> CreateInstanceRequest {
-        match self {
+    ) -> Instance {
+        let (status, provider_instance_id, user_nonce, nonce, authentication_key) = match self {
             RegistrationStatus::PendingNoIntegrityCheck {
                 wallet_instance_id,
                 user_nonce,
                 key,
-            } => CreateInstanceRequest {
-                id: Uuid::new_v4().into(),
-                status: InstanceStatus::Pending,
-                role: request.role,
-                provider_url,
-                provider_type: request.provider.r#type,
-                provider_name: metadata.name.clone(),
-                organisation: organisation.clone(),
-                authentication_key: Some(key),
-                provider_instance_id: wallet_instance_id,
-                nonce: None,
-                user_nonce: Some(user_nonce),
-            },
+            } => (
+                InstanceStatus::Pending,
+                wallet_instance_id,
+                Some(user_nonce),
+                None,
+                Some(key),
+            ),
+
             RegistrationStatus::PendingIntegrityCheck {
                 wallet_instance_id,
                 user_nonce,
                 nonce,
-            } => CreateInstanceRequest {
-                id: Uuid::new_v4().into(),
-                status: InstanceStatus::Pending,
-                role: request.role,
-                provider_url,
-                provider_type: request.provider.r#type,
-                provider_name: metadata.name.clone(),
-                organisation: organisation.clone(),
-                authentication_key: None,
-                provider_instance_id: wallet_instance_id,
-                nonce: Some(nonce),
-                user_nonce: Some(user_nonce),
-            },
+            } => (
+                InstanceStatus::Pending,
+                wallet_instance_id,
+                Some(user_nonce),
+                Some(nonce),
+                None,
+            ),
             RegistrationStatus::Active {
                 wallet_instance_id,
                 key,
                 ..
-            } => CreateInstanceRequest {
-                id: Uuid::new_v4().into(),
-                status: InstanceStatus::Active,
-                role: request.role,
-                provider_url,
-                provider_type: request.provider.r#type,
-                provider_name: metadata.name.clone(),
-                organisation: organisation.clone(),
-                authentication_key: Some(key),
-                provider_instance_id: wallet_instance_id,
-                nonce: None,
-                user_nonce: None,
-            },
-            RegistrationStatus::Unattested { wallet_instance_id } => CreateInstanceRequest {
-                id: Uuid::new_v4().into(),
-                status: InstanceStatus::Unattested,
-                role: request.role,
-                provider_url,
-                provider_type: request.provider.r#type,
-                provider_name: metadata.name.clone(),
-                organisation: organisation.clone(),
-                authentication_key: None,
-                provider_instance_id: wallet_instance_id,
-                nonce: None,
-                user_nonce: None,
-            },
+            } => (
+                InstanceStatus::Active,
+                wallet_instance_id,
+                None,
+                None,
+                Some(key),
+            ),
+            RegistrationStatus::Unattested { wallet_instance_id } => (
+                InstanceStatus::Unattested,
+                wallet_instance_id,
+                None,
+                None,
+                None,
+            ),
+        };
+
+        let now = crate::clock::now_utc();
+        Instance {
+            id: Uuid::new_v4().into(),
+            created_date: now,
+            last_modified: now,
+            status,
+            role: request.role,
+            provider_url,
+            provider_type: request.provider.r#type,
+            provider_name: metadata.name.clone(),
+            organisation: organisation.clone().into(),
+            authentication_key,
+            provider_instance_id,
+            nonce,
+            user_nonce,
+            wallet_unit_attestations: None,
         }
     }
 }
