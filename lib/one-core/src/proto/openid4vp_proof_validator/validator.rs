@@ -197,7 +197,12 @@ impl OpenId4VpProofValidatorProto {
                 CredentialFormat::MsoMdoc(_) => Some(FormatType::Mdoc),
                 _ => None,
             };
-            if let (Some(format), Some(presented)) = (format, presented_transaction_data) {
+            // formatters report `Some` even when the presentation carries no
+            // transaction data (e.g. an mdoc without device-signed elements);
+            // only non-empty values count as presented evidence
+            if let (Some(format), Some(presented)) = (format, presented_transaction_data)
+                && !presented.is_empty()
+            {
                 transaction_data_evidence.insert(credential_query.id.clone(), (format, presented));
             }
 
@@ -264,6 +269,16 @@ impl OpenId4VpProofValidatorProto {
                 )));
             };
             authorizing_credentials.insert((*authorizing_credential).clone());
+        }
+
+        // evidence is holder-signed data; reject any that matches no requested entry
+        if let Some(stray) = evidence
+            .keys()
+            .find(|credential_id| !authorizing_credentials.contains(*credential_id))
+        {
+            return Err(OpenID4VCError::ValidationError(format!(
+                "Credential {stray} presented transaction data evidence not matching any requested entry"
+            )));
         }
         Ok(())
     }

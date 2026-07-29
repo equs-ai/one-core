@@ -19,7 +19,7 @@ use crate::config::core_config::BlobStorageType;
 use crate::config::validator::transport::{
     SelectedTransportType, validate_and_select_transport_type,
 };
-use crate::error::{ContextWithErrorCode, ErrorCodeMixin};
+use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 use crate::mapper::credential_schema_claim::presented_paths_to_disclosed_keys;
 use crate::mapper::oidc::detect_format_with_crypto_suite;
 use crate::model::claim::{Claim, ClaimRelations};
@@ -130,6 +130,14 @@ impl SSIHolderService {
                 .error_while("updating proof")
                 .err(),
             Err(err) => Some(err),
+        };
+
+        // A rejected transaction data assignment is detected before anything is
+        // sent to the verifier; report it as a request error and keep the proof
+        // actionable instead of moving it to Error.
+        let submit_error = match submit_error {
+            Some(err) if err.error_code() == ErrorCode::BR_0459 => return Err(err.into()),
+            other => other,
         };
 
         let (state, error_metadata) = if let Some(ref err) = submit_error {

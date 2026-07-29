@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -53,7 +53,10 @@ use crate::proto::key_verification::KeyVerification;
 use crate::proto::nfc::static_handover_handler::NfcStaticHandoverHandler;
 use crate::provider::credential_formatter::mdoc_formatter::util::EmbeddedCbor;
 use crate::provider::credential_formatter::model::VerificationFn;
-use crate::provider::transaction_data::decode_transaction_data;
+use crate::provider::transaction_data::Features::SupportsMultipleTxDataPerPresentation;
+use crate::provider::transaction_data::{
+    assign_entries_to_distinct_credentials, decode_transaction_data,
+};
 use crate::provider::verification_protocol::dto::{
     PresentationDefinitionV2ResponseDTO, PresentationDefinitionVersion, ShareResponse,
 };
@@ -536,6 +539,9 @@ impl ProofService {
         if multiple_transports || !request.transaction_data.is_empty() {
             let mut transaction_data: Vec<TransactionDataRequest> =
                 Vec::with_capacity(request.transaction_data.len());
+            let mut potentially_conflicting_tx_data: HashMap<_, Vec<Vec<CredentialQueryId>>> =
+                HashMap::new();
+
             for tx_data in &request.transaction_data {
                 let provider = self
                     .transaction_data_provider
@@ -555,10 +561,32 @@ impl ProofService {
 
                 transaction_data.push(TransactionDataRequest {
                     r#type: tx_data.r#type.clone(),
-                    credential_ids,
+                    credential_ids: credential_ids.clone(),
                     data: tx_data.data.clone(),
                     encoded,
-                })
+                });
+
+                if !provider
+                    .get_capabilities()
+                    .features
+                    .contains(&SupportsMultipleTxDataPerPresentation)
+                {
+                    potentially_conflicting_tx_data
+                        .entry(&tx_data.r#type)
+                        .or_default()
+                        .push(credential_ids);
+                }
+            }
+
+            // Reject requests whose entries cannot each be authorized by a
+            // distinct credential (see `assign_entries_to_distinct_credentials`).
+            // Only entries of the same type compete; different types can share
+            // a credential as their evidence lives under different keys.
+            if potentially_conflicting_tx_data
+                .values()
+                .any(|entries| assign_entries_to_distinct_credentials(entries).is_none())
+            {
+                return Err(ProofServiceError::UnsatisfiableTransactionData);
             }
 
             let data = CreateProofInteractionData {

@@ -18,7 +18,8 @@ use super::dto::{
 };
 use super::error::ProofServiceError;
 use crate::config::core_config::{
-    CoreConfig, Fields, IdentifierType, KeyStorageType, TransportType, VerificationProtocolType,
+    CoreConfig, Fields, FormatType, IdentifierType, KeyStorageType, TransportType,
+    VerificationProtocolType,
 };
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::mapper::credential_schema_claim::backfill_default_translations;
@@ -72,8 +73,8 @@ use crate::provider::key_storage::MockKeyStorage;
 use crate::provider::key_storage::model::KeyStorageCapabilities;
 use crate::provider::key_storage::provider::MockKeyProvider;
 use crate::provider::presentation_formatter::provider::MockPresentationFormatterProvider;
-use crate::provider::transaction_data::MockTransactionData;
 use crate::provider::transaction_data::provider::MockTransactionDataProvider;
+use crate::provider::transaction_data::{MockTransactionData, TransactionDataCapabilities};
 use crate::provider::verification_protocol::MockVerificationProtocol;
 use crate::provider::verification_protocol::dto::{
     ShareResponse, VerificationProtocolCapabilities,
@@ -3127,6 +3128,13 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
             transaction_data
                 .expect_prepare_transaction_data()
                 .return_once(|_, _| Ok("encoded".to_string()));
+            transaction_data
+                .expect_get_capabilities()
+                .returning(|| TransactionDataCapabilities {
+                    transaction_data_types: vec!["transaction-type".into()],
+                    formats: vec![FormatType::Mdoc, FormatType::SdJwtVc],
+                    features: vec![],
+                });
             Ok(Arc::new(transaction_data))
         });
 

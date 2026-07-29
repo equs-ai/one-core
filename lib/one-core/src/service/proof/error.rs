@@ -67,6 +67,8 @@ pub enum ProofServiceError {
     TransactionDataUnknownCredentialSchema(CredentialSchemaId),
     #[error("Transaction data `{0}` not found")]
     TransactionDataNotFound(TransactionDataId),
+    #[error("Transaction data entries cannot each be authorized by a distinct credential")]
+    UnsatisfiableTransactionData,
 
     #[error("Proof error: `{0}`")]
     Other(String),
@@ -107,6 +109,7 @@ impl ErrorCodeMixin for ProofServiceError {
             Self::TransactionDataFormatUnsupported(_) => ErrorCode::BR_0460,
             Self::TransactionDataUnknownCredentialSchema(_) => ErrorCode::BR_0461,
             Self::TransactionDataNotFound(_) => ErrorCode::BR_0462,
+            Self::UnsatisfiableTransactionData => ErrorCode::BR_0463,
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::Other(_) => ErrorCode::BR_0000,
             Self::OpenID4VCError(_) => ErrorCode::BR_0048,

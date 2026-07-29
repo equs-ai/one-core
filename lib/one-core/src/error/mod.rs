@@ -971,6 +971,11 @@ pub enum ErrorCode {
     #[strum(message = "Transaction data not found")]
     BR_0462,
 
+    #[strum(
+        message = "Transaction data entries cannot each be authorized by a distinct credential"
+    )]
+    BR_0463,
+
     #[strum(message = "Verifier instance registration not yet supported")]
     BR_0464,
 

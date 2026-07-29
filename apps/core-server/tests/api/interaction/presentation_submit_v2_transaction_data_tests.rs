@@ -33,7 +33,7 @@ const MDOC_NAMESPACE: &str = "namespace";
 
 /// Base64URL-encoded QES approval transaction data applicable to credential
 /// query `input_0`.
-fn qes_approval_transaction_data() -> String {
+fn qes_approval_transaction_data(label: &str) -> String {
     let payload = json!({
         "type": QES_APPROVAL_TYPE,
         "credential_ids": ["input_0"],
@@ -41,7 +41,7 @@ fn qes_approval_transaction_data() -> String {
         "signatureQualifier": "eu_eidas_qes",
         "documentInfos": [
             {
-                "label": "Example Contract",
+                "label": label,
                 "hash": "sTOgwOm+474gFj0q0x1iSNspKqbcse4IeiqlDg/HWuI=",
                 "hashType": "sodr",
                 "access": { "type": "public" },
@@ -175,14 +175,15 @@ async fn create_mdoc_holder_credential(
         .await
 }
 
-/// Sets up a submittable mdoc presentation whose interaction carries a single
-/// already-validated QES approval transaction-data entry (keyed by the returned
-/// id) applicable to credential query `input_0`.
+/// Sets up a submittable mdoc presentation whose interaction carries the given
+/// number of already-validated QES approval transaction-data entries (keyed by
+/// the returned ids), all applicable to credential query `input_0`.
 async fn setup_submittable_mdoc_with_transaction_data(
     context: &TestContext,
     organisation: &Organisation,
     issuer_identifier: &Identifier,
-) -> (Credential, Interaction, Proof, Uuid) {
+    transaction_data_count: usize,
+) -> (Credential, Interaction, Proof, Vec<Uuid>) {
     let client_metadata = json!({
         "vp_formats_supported": {
             "mso_mdoc": { "alg": ["ES256"] }
@@ -232,7 +233,24 @@ async fn setup_submittable_mdoc_with_transaction_data(
 
     let credential = create_mdoc_holder_credential(context, organisation, issuer_identifier).await;
 
-    let transaction_data_id = Uuid::new_v4();
+    let transaction_data_ids: Vec<Uuid> = (0..transaction_data_count)
+        .map(|_| Uuid::new_v4())
+        .collect();
+    let validated_transaction_data: serde_json::Map<String, serde_json::Value> =
+        transaction_data_ids
+            .iter()
+            .enumerate()
+            .map(|(idx, id)| {
+                (
+                    id.to_string(),
+                    json!({
+                        "raw": qes_approval_transaction_data(&format!("Example Contract {idx}")),
+                        "credential_query_ids": ["input_0"],
+                        "transaction_data_type": "QES_APPROVAL"
+                    }),
+                )
+            })
+            .collect();
     let verifier_url = context.server_mock.uri();
     let interaction = fixtures::create_interaction(
         &context.db.db_conn,
@@ -256,13 +274,7 @@ async fn setup_submittable_mdoc_with_transaction_data(
                 ]
             },
             "transaction_data": {
-                "Validated": {
-                    transaction_data_id.to_string(): {
-                        "raw": qes_approval_transaction_data(),
-                        "credential_query_ids": ["input_0"],
-                        "transaction_data_type": "QES_APPROVAL"
-                    }
-                }
+                "Validated": validated_transaction_data
             }
         })
         .to_string()
@@ -288,7 +300,7 @@ async fn setup_submittable_mdoc_with_transaction_data(
         )
         .await;
 
-    (credential, interaction, proof, transaction_data_id)
+    (credential, interaction, proof, transaction_data_ids)
 }
 
 /// Asserts that the mdoc `vp_token` the holder posted to the verifier carries
@@ -387,7 +399,7 @@ async fn test_presentation_submit_v2_transaction_data_auto_assignment() {
     let (context, organisation, identifier, ..) =
         TestContext::new_with_certificate_identifier(None).await;
     let (credential, interaction, proof, _) =
-        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier).await;
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 1).await;
 
     context
         .server_mock
@@ -415,8 +427,8 @@ async fn test_presentation_submit_v2_transaction_data_auto_assignment() {
 async fn test_presentation_submit_v2_transaction_data_manual_assignment() {
     let (context, organisation, identifier, ..) =
         TestContext::new_with_certificate_identifier(None).await;
-    let (credential, interaction, proof, transaction_data_id) =
-        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier).await;
+    let (credential, interaction, proof, transaction_data_ids) =
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 1).await;
 
     context
         .server_mock
@@ -430,7 +442,7 @@ async fn test_presentation_submit_v2_transaction_data_manual_assignment() {
     let resp = context
         .api
         .interactions
-        .presentation_submit_v2(interaction.id, credential.id, &[], &[transaction_data_id])
+        .presentation_submit_v2(interaction.id, credential.id, &[], &transaction_data_ids)
         .await;
 
     // THEN
@@ -441,11 +453,57 @@ async fn test_presentation_submit_v2_transaction_data_manual_assignment() {
 }
 
 #[tokio::test]
+async fn test_presentation_submit_v2_two_transaction_data_pinned_to_one_credential_fails() {
+    let (context, organisation, identifier, ..) =
+        TestContext::new_with_certificate_identifier(None).await;
+    let (credential, interaction, proof, transaction_data_ids) =
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 2).await;
+
+    // Both QES approval entries are pinned to the same credential; a
+    // presentation can only carry a single qesApproval value.
+    let resp = context
+        .api
+        .interactions
+        .presentation_submit_v2(interaction.id, credential.id, &[], &transaction_data_ids)
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 400);
+    assert_eq!("BR_0459", resp.error_code().await);
+    // nothing was sent to the verifier, the proof remains actionable
+    let proof = fixtures::get_proof(&context.db.db_conn, &proof.id).await;
+    assert_eq!(proof.state, ProofStateEnum::Requested);
+}
+
+#[tokio::test]
+async fn test_presentation_submit_v2_two_transaction_data_auto_assignment_fails_for_one_credential()
+{
+    let (context, organisation, identifier, ..) =
+        TestContext::new_with_certificate_identifier(None).await;
+    let (credential, interaction, proof, _) =
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 2).await;
+
+    // No explicit selection: two entries cannot be distributed over the single
+    // presented credential.
+    let resp = context
+        .api
+        .interactions
+        .presentation_submit_v2(interaction.id, credential.id, &[], &[])
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 400);
+    assert_eq!("BR_0459", resp.error_code().await);
+    let proof = fixtures::get_proof(&context.db.db_conn, &proof.id).await;
+    assert_eq!(proof.state, ProofStateEnum::Requested);
+}
+
+#[tokio::test]
 async fn test_presentation_definition_v2_surfaces_transaction_data() {
     let (context, organisation, identifier, ..) =
         TestContext::new_with_certificate_identifier(None).await;
-    let (_credential, _interaction, proof, transaction_data_id) =
-        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier).await;
+    let (_credential, _interaction, proof, transaction_data_ids) =
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 1).await;
 
     // WHEN
     let resp = context
@@ -460,7 +518,7 @@ async fn test_presentation_definition_v2_surfaces_transaction_data() {
     let transaction_data = body["transactionData"].as_array().unwrap();
     assert_eq!(transaction_data.len(), 1);
     let entry = &transaction_data[0];
-    entry["id"].assert_eq(&transaction_data_id);
+    entry["id"].assert_eq(&transaction_data_ids[0]);
     assert_eq!(entry["type"], "QES_APPROVAL");
     assert_eq!(entry["credentialQueryIds"], json!(["input_0"]));
 }
@@ -469,27 +527,27 @@ async fn test_presentation_definition_v2_surfaces_transaction_data() {
 async fn test_get_proof_transaction_data() {
     let (context, organisation, identifier, ..) =
         TestContext::new_with_certificate_identifier(None).await;
-    let (_credential, _interaction, proof, transaction_data_id) =
-        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier).await;
+    let (_credential, _interaction, proof, transaction_data_ids) =
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 1).await;
 
     // WHEN
     let resp = context
         .api
         .proofs
-        .transaction_data(proof.id, transaction_data_id)
+        .transaction_data(proof.id, transaction_data_ids[0])
         .await;
 
     // THEN
     assert_eq!(resp.status(), 200);
     let body = resp.json_value().await;
-    body["id"].assert_eq(&transaction_data_id);
+    body["id"].assert_eq(&transaction_data_ids[0]);
     assert_eq!(body["type"], "QES_APPROVAL");
     assert_eq!(body["credentialQueryIds"], json!(["input_0"]));
 
     // display data assembled from the QES approval `documentInfos` group
     let display = body["transactionDataDisplay"].as_array().unwrap();
     assert_eq!(display.len(), 1);
-    assert_eq!(display[0]["title"], "Example Contract");
+    assert_eq!(display[0]["title"], "Example Contract 0");
     let attributes = display[0]["attributes"].as_array().unwrap();
     assert_eq!(attributes.len(), 2);
 
@@ -507,7 +565,7 @@ async fn test_get_proof_transaction_data_unknown_id_returns_404() {
     let (context, organisation, identifier, ..) =
         TestContext::new_with_certificate_identifier(None).await;
     let (_credential, _interaction, proof, _) =
-        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier).await;
+        setup_submittable_mdoc_with_transaction_data(&context, &organisation, &identifier, 1).await;
 
     // WHEN
     let resp = context

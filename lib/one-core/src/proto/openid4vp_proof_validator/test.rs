@@ -640,3 +640,83 @@ async fn test_validate_submission_transaction_data_duplicate_entries() {
         matches!(err, OpenID4VCError::ValidationError(e) if e.contains("Duplicate transaction data"))
     );
 }
+
+#[tokio::test]
+async fn test_validate_submission_transaction_data_unsolicited_evidence() {
+    let mut test_data = test_data(mdoc_dcql_query());
+    // No transaction data requested, but the presentation carries evidence.
+    test_data.interaction_data.common.transaction_data = vec![];
+    test_data
+        .mock_data
+        .presentation_extraction
+        .as_mut()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .transaction_data = Some(PresentedTransactionData::DeviceSignedElements(
+        qes_approval_evidence(),
+    ));
+
+    let mocks = mocks_with_test_data(test_data.mock_data);
+    let proto = setup_proto(mocks);
+
+    let submission_data = SubmissionRequestData {
+        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+            vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
+        }),
+        state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
+        mdoc_generated_nonce: None,
+        encryption_key: None,
+    };
+    let err = proto
+        .validate_submission(
+            submission_data,
+            test_data.proof,
+            test_data.interaction_data,
+            VerificationProtocolType::OpenId4VpFinal1_0,
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, OpenID4VCError::ValidationError(e) if e.contains("not matching any requested entry"))
+    );
+}
+
+#[tokio::test]
+async fn test_validate_submission_empty_transaction_data_evidence_is_ignored() {
+    let mut test_data = test_data(mdoc_dcql_query());
+    // No transaction data requested; the formatter reports empty device-signed
+    // elements for a plain mdoc presentation. This must not count as evidence.
+    test_data.interaction_data.common.transaction_data = vec![];
+    test_data
+        .mock_data
+        .presentation_extraction
+        .as_mut()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .transaction_data = Some(PresentedTransactionData::DeviceSignedElements(
+        IndexMap::new(),
+    ));
+
+    let mocks = mocks_with_test_data(test_data.mock_data);
+    let proto = setup_proto(mocks);
+
+    let submission_data = SubmissionRequestData {
+        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+            vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
+        }),
+        state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
+        mdoc_generated_nonce: None,
+        encryption_key: None,
+    };
+    proto
+        .validate_submission(
+            submission_data,
+            test_data.proof,
+            test_data.interaction_data,
+            VerificationProtocolType::OpenId4VpFinal1_0,
+        )
+        .await
+        .unwrap();
+}

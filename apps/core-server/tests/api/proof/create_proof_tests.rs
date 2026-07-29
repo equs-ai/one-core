@@ -1254,3 +1254,60 @@ async fn test_create_proof_with_transaction_data_format_unsupported() {
     assert_eq!(resp.status(), 400);
     assert_eq!("BR_0460", resp.error_code().await);
 }
+
+#[tokio::test]
+async fn test_create_proof_with_more_transaction_data_entries_than_credentials() {
+    // GIVEN
+    let (context, _organisation, did, credential_schema, proof_schema) =
+        tx_data_proof_schema_setup("SD_JWT_VC").await;
+
+    let document_info = |label: &str| {
+        json!({
+            "label": label,
+            "hash": "sTOgwOm+474gFj0q0x1iSNspKqbcse4IeiqlDg/HWuI=",
+            "hashType": "sodr",
+            "access": { "type": "public" },
+            "href": "https://public.rp-cdn.example/contract.pdf",
+            "checksum": "sha256-sTOgwOm+474gFj0q0x1iSNspKqbcse4IeiqlDg/HWuI="
+        })
+    };
+
+    // WHEN — two QES approval entries can only be authorized by the same
+    // single credential schema
+    let resp = context
+        .api
+        .proofs
+        .create(CreateProofTestParams {
+            proof_schema_id: proof_schema.id.to_string().into(),
+            protocol: "OPENID4VP_FINAL1".into(),
+            verifier_did: did.id.to_string().into(),
+            transaction_data: Some(json!([
+                {
+                    "type": "QES_APPROVAL",
+                    "credentialSchemaIds": [credential_schema.id.to_string()],
+                    "data": {
+                        "numSignatures": 1,
+                        "signatureQualifier": "eu_eidas_qes",
+                        "documentInfos": [document_info("Example Contract")],
+                        "hashAlgorithmOID": "2.16.840.1.101.3.4.2.1"
+                    }
+                },
+                {
+                    "type": "QES_APPROVAL",
+                    "credentialSchemaIds": [credential_schema.id.to_string()],
+                    "data": {
+                        "numSignatures": 1,
+                        "signatureQualifier": "eu_eidas_qes",
+                        "documentInfos": [document_info("Example Invoice")],
+                        "hashAlgorithmOID": "2.16.840.1.101.3.4.2.1"
+                    }
+                }
+            ])),
+            ..Default::default()
+        })
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 400);
+    assert_eq!("BR_0463", resp.error_code().await);
+}
