@@ -1533,12 +1533,7 @@ impl OpenID4VCIFinal1_0 {
         credential_status: Vec<CredentialStatus>,
         core_base_url: &str,
     ) -> Result<CredentialData, IssuanceProtocolError> {
-        let schema = credential
-            .schema
-            .as_ref()
-            .ok_or(IssuanceProtocolError::Failed(
-                "missing credential schema".to_string(),
-            ))?;
+        let schema = credential.schema.as_ref().await?;
         let schema_formats = schema.formats.as_ref().await?;
         let schema_format = schema_formats.iter().find(|f| f.id == format_id).ok_or(
             IssuanceProtocolError::Failed("missing credential schema format".to_string()),
@@ -1547,7 +1542,7 @@ impl OpenID4VCIFinal1_0 {
         if !mappings.is_empty() {
             return credential_to_credential_detail_v2(
                 credential,
-                schema,
+                &schema,
                 schema_format,
                 &self.config,
                 core_base_url,
@@ -1573,7 +1568,7 @@ impl OpenID4VCIFinal1_0 {
             core_base_url,
             credential_status,
             vcdm_v2_base_context(None),
-            schema,
+            &schema,
             schema_format,
             &self.config,
         )
@@ -1893,12 +1888,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         let mut url = Url::parse(&format!("{}://", self.params.url_scheme))
             .map_err(|e| IssuanceProtocolError::Failed(e.to_string()))?;
 
-        let credential_schema = credential
-            .schema
-            .as_ref()
-            .ok_or(IssuanceProtocolError::Failed(
-                "credential schema missing".to_string(),
-            ))?;
+        let credential_schema = credential.schema.as_ref().await?;
 
         let protocol_base_url = self
             .protocol_base_url
@@ -1918,7 +1908,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 protocol_base_url,
                 &credential.protocol,
                 &interaction_id.to_string(),
-                credential_schema,
+                &credential_schema,
                 identifier_id,
             )
             .await?;
@@ -1977,7 +1967,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(CertificateRelations::default()),
                     key: Some(KeyRelations::default()),
@@ -2008,13 +1997,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
 
         credential.holder_identifier = Some(holder_identifier.clone());
 
-        let credential_schema = credential
-            .schema
-            .as_ref()
-            .ok_or(IssuanceProtocolError::Failed(
-                "credential_schema is None".to_string(),
-            ))?
-            .clone();
+        let credential_schema = credential.schema.as_ref().await?.to_owned();
         let credential_state = credential.state;
 
         let formats = credential_schema.formats.as_ref().await?;
@@ -2260,7 +2243,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                     .get_credential(
                         &credential_id,
                         &CredentialRelations {
-                            schema: Some(Default::default()),
                             holder_identifier: Some(IdentifierRelations {}),
                             key: Some(Default::default()),
                             ..Default::default()

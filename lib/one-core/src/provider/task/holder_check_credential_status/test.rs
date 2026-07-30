@@ -283,7 +283,7 @@ fn generic_credential() -> Credential {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(CredentialSchema {
+        schema: CredentialSchema {
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -312,7 +312,8 @@ fn generic_credential() -> Credential {
             transaction_code: None,
             translations: Default::default(),
             embedded_disclosure_policy: None,
-        }),
+        }
+        .into(),
         interaction: None,
         key: None,
         profile: None,

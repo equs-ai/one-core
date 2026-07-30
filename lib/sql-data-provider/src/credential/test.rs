@@ -371,7 +371,7 @@ async fn test_create_credential_success() {
             issuer_identifier: Some(identifier),
             issuer_certificate: None,
             holder_identifier: None,
-            schema: Some(credential_schema),
+            schema: credential_schema.into(),
             interaction: None,
             key: None,
             profile: None,
@@ -428,7 +428,7 @@ async fn test_create_credential_empty_claims() {
             issuer_identifier: Some(identifier),
             issuer_certificate: None,
             holder_identifier: None,
-            schema: Some(credential_schema),
+            schema: credential_schema.into(),
             interaction: None,
             key: None,
             profile: None,
@@ -497,7 +497,7 @@ async fn test_create_credential_already_exists() {
             issuer_identifier: Some(identifier),
             issuer_certificate: None,
             holder_identifier: None,
-            schema: Some(credential_schema),
+            schema: credential_schema.into(),
             interaction: None,
             key: None,
             profile: None,
@@ -966,7 +966,6 @@ async fn test_get_credential_success() {
         .get_credential(
             &credential_id,
             &CredentialRelations {
-                schema: Some(Default::default()),
                 interaction: Some(Default::default()),
                 ..Default::default()
             },
@@ -976,7 +975,10 @@ async fn test_get_credential_success() {
     assert!(credential.is_ok());
     let credential = credential.unwrap().unwrap();
     assert_eq!(credential_id, credential.id);
-    assert_eq!(credential_schema, credential.schema.unwrap());
+    assert_eq!(
+        credential_schema,
+        *credential.schema.as_ref().await.unwrap()
+    );
     assert!(credential.interaction.is_none());
     let credential_claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(credential_claims.len(), 2);

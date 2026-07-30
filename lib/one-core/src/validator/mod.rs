@@ -85,16 +85,11 @@ pub(crate) async fn throw_if_org_id_not_matching_session_with_parent_check(
     Err(ValidationError::Forbidden.into())
 }
 
-pub(crate) fn throw_if_credential_schema_not_in_session_org(
+pub(crate) async fn throw_if_credential_schema_not_in_session_org(
     credential: &Credential,
     session_provider: &dyn SessionProvider,
 ) -> Result<(), ServiceError> {
-    let schema = credential
-        .schema
-        .as_ref()
-        .ok_or(ServiceError::MappingError(
-            "credential_schema is None".to_string(),
-        ))?;
+    let schema = credential.schema.as_ref().await?;
     throw_if_org_id_not_matching_session(schema.organisation.id_ref(), session_provider)
 }
 

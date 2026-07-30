@@ -3,11 +3,14 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::sync::Arc;
 
 use one_core::model::credential::{Credential, CredentialStateEnum};
 use one_core::model::organisation::Organisation;
+use one_core::model::relation::Related;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
+use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, Set};
 use shared_types::{
@@ -44,6 +47,19 @@ use crate::{DataLayer, db_conn};
 
 pub fn get_dummy_date() -> OffsetDateTime {
     datetime!(2005-04-02 21:37 UTC)
+}
+
+fn credential_schema_repository(db: &DatabaseConnection) -> Arc<dyn CredentialSchemaRepository> {
+    let transaction_manager = crate::transaction_context::TransactionManagerImpl::new(db.clone());
+    Arc::new(crate::credential_schema::CredentialSchemaProvider {
+        db: transaction_manager.clone(),
+        organisation_repository: Arc::new(crate::organisation::OrganisationProvider {
+            db: transaction_manager.clone(),
+        }),
+        localized_text_repository: Arc::new(crate::localized_text::LocalizedTextProvider {
+            db: transaction_manager,
+        }),
+    })
 }
 
 #[expect(clippy::too_many_arguments)]
@@ -119,7 +135,7 @@ pub async fn insert_credential(
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: None,
+        schema: Related::new(*credential_schema_id, credential_schema_repository(db)),
         interaction: None,
         key: None,
         credential_blob_id: credential.credential_blob_id,

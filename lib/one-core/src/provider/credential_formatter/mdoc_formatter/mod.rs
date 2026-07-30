@@ -609,7 +609,7 @@ impl CredentialFormatter for MdocFormatter {
             issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
             holder_identifier: Some(holder_identifier),
-            schema: Some(credential_schema),
+            schema: credential_schema.into(),
             interaction: None,
             key: None,
             claims: claims.into(),

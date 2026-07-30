@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use shared_types::{CredentialFormat, CredentialSchemaId, RevocationMethodId};
@@ -24,9 +25,10 @@ use crate::service::error::ServiceError;
 
 pub type CredentialSchemaName = String;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct CredentialSchema {
+    #[model(id)]
     pub id: CredentialSchemaId,
     pub deleted_at: Option<OffsetDateTime>,
     pub created_date: OffsetDateTime,

@@ -1093,7 +1093,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(crate::model::credential_schema::CredentialSchema {
+        schema: crate::model::credential_schema::CredentialSchema {
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -1131,7 +1131,8 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
             transaction_code: None,
             translations: Default::default(),
             embedded_disclosure_policy: None,
-        }),
+        }
+        .into(),
         interaction: Some(Interaction {
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),

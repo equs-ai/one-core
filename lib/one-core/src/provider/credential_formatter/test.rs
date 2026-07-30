@@ -158,7 +158,7 @@ fn generate_credential_matching_detail(
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: Default::default(),
         }),
-        schema: Some(CredentialSchema {
+        schema: CredentialSchema {
             batch_size: None,
             allow_revocation: detail.schema.revocation_method.is_some(),
             id: detail.schema.id,
@@ -187,7 +187,8 @@ fn generate_credential_matching_detail(
             transaction_code: None,
             translations: Default::default(),
             embedded_disclosure_policy: None,
-        }),
+        }
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -278,7 +279,7 @@ async fn test_from_credential_detail_response_nested_claim_mapping() {
         },
     ]);
     let credential = generate_credential_matching_detail(&credential_detail);
-    let schema = credential.schema.as_ref().unwrap();
+    let schema = credential.schema.as_ref().await.unwrap();
     let formats = schema.formats.as_ref().await.unwrap();
 
     let actual = credential_data_from_credential_detail_response(
@@ -287,7 +288,7 @@ async fn test_from_credential_detail_response_nested_claim_mapping() {
         "http://127.0.0.1",
         vec![],
         indexset![],
-        schema,
+        &schema,
         formats.first().unwrap(),
         &generic_config().core,
     )
@@ -412,7 +413,7 @@ async fn test_from_credential_detail_response_nested_claim_mapping_array() {
         },
     ]);
     let credential = generate_credential_matching_detail(&credential_detail);
-    let schema = credential.schema.as_ref().unwrap();
+    let schema = credential.schema.as_ref().await.unwrap();
     let formats = schema.formats.as_ref().await.unwrap();
 
     let actual = credential_data_from_credential_detail_response(
@@ -421,7 +422,7 @@ async fn test_from_credential_detail_response_nested_claim_mapping_array() {
         "http://127.0.0.1",
         vec![],
         indexset![],
-        schema,
+        &schema,
         formats.first().unwrap(),
         &generic_config().core,
     )

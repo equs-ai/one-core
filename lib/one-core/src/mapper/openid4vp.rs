@@ -56,10 +56,16 @@ pub(crate) async fn credential_from_proved(
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
         holder_identifier: Some(holder_identifier),
-        schema: proved_credential
-            .credential
-            .schema
-            .map(|schema| from_provider_schema(schema, organisation.to_owned())),
+        schema: from_provider_schema(
+            proved_credential
+                .credential
+                .schema
+                .as_ref()
+                .await?
+                .to_owned(),
+            organisation.to_owned(),
+        )
+        .into(),
         interaction: None,
         key: proved_credential.credential.key,
         suspend_end_date: convert_inner(proved_credential.credential.suspend_end_date),

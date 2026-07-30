@@ -147,12 +147,7 @@ impl RevocationMethod for BitstringStatusList {
                     "issuer identifier is None".to_string(),
                 ))?;
 
-        let credential_schema = credential
-            .schema
-            .as_ref()
-            .ok_or(RevocationError::MappingError(
-                "credential schema is None".to_string(),
-            ))?;
+        let credential_schema = credential.schema.as_ref().await?;
 
         let mut revocation_infos = vec![
             self.create_credential_entry(

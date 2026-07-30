@@ -32,7 +32,6 @@ impl CredentialsDB {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
                     key: Some(Default::default()),
@@ -205,7 +204,7 @@ impl CredentialsDB {
                 _ => None,
             }),
             holder_identifier: params.holder_identifier,
-            schema: Some(credential_schema.to_owned()),
+            schema: credential_schema.to_owned().into(),
             interaction: params.interaction,
             key: params.key,
             profile: params.profile,

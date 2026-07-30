@@ -884,7 +884,7 @@ async fn test_parse_credential() {
         "did:key:zDnaeokW7xJYWFLNk5yA8W9LVVq7Ee2tYTQwMK2dJyC4e3rCr"
     );
 
-    let schema = credential.schema.as_ref().unwrap();
+    let schema = credential.schema.as_ref().await.unwrap();
     assert_eq!(schema.allow_revocation, true);
     assert_eq!(schema.name, "7543Nested");
     assert_eq!(

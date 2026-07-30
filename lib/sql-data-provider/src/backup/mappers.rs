@@ -76,7 +76,7 @@ pub(super) fn credential_from_unexportable_model(
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(CredentialSchema {
+        schema: CredentialSchema {
             id: value.credential_schema_id,
             deleted_at: value.credential_schema_deleted_at,
             created_date: value.credential_schema_created_date,
@@ -100,7 +100,8 @@ pub(super) fn credential_from_unexportable_model(
                 db: db.to_owned(),
             }),
             embedded_disclosure_policy: value.credential_schema_embedded_disclosure_policy,
-        }),
+        }
+        .into(),
         interaction: None,
         key: None,
         credential_blob_id: value.credential_blob_id,

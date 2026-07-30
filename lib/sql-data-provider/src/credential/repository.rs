@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use autometrics::autometrics;
 use futures::FutureExt;
@@ -8,11 +7,9 @@ use one_core::model::credential::{
     Credential, CredentialListIncludeEntityTypeEnum, CredentialListQuery, CredentialRelations,
     GetCredentialList, UpdateCredentialRequest,
 };
-use one_core::model::credential_schema::{CredentialSchema, CredentialSchemaRelations};
 use one_core::model::identifier::{Identifier, IdentifierRelations};
 use one_core::proto::transaction_manager::IsolationLevel;
 use one_core::repository::credential_repository::CredentialRepository;
-use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::IdentifierRepository;
 use one_dto_mapper::convert_inner;
@@ -22,7 +19,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, Select, Set, SqlErr, Unchanged,
 };
-use shared_types::{ClaimId, CredentialId, CredentialSchemaId, IdentifierId, InteractionId};
+use shared_types::{ClaimId, CredentialId, IdentifierId, InteractionId};
 
 use super::CredentialProvider;
 use super::entity_model::CredentialListEntityModel;
@@ -33,24 +30,6 @@ use crate::common::calculate_pages_count;
 use crate::entity::{claim, claim_schema, credential, credential_schema, identifier};
 use crate::list_query_generic::{SelectWithFilterJoin, SelectWithListQuery};
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
-
-async fn get_credential_schema(
-    schema_id: &CredentialSchemaId,
-    relations: &Option<CredentialSchemaRelations>,
-    repository: Arc<dyn CredentialSchemaRepository>,
-) -> Result<Option<CredentialSchema>, DataLayerError> {
-    match relations {
-        None => Ok(None),
-        Some(_schema_relations) => Ok(Some(
-            repository.get_credential_schema(schema_id).await?.ok_or(
-                DataLayerError::MissingRequiredRelation {
-                    relation: "credential-credential_schema",
-                    id: schema_id.to_string(),
-                },
-            )?,
-        )),
-    }
-}
 
 impl CredentialProvider {
     async fn credential_model_to_repository_model(
@@ -69,13 +48,6 @@ impl CredentialProvider {
             self.identifier_repository.as_ref(),
             credential.holder_identifier_id.as_ref(),
             relations.holder_identifier.as_ref(),
-        )
-        .await?;
-
-        let schema = get_credential_schema(
-            &credential.credential_schema_id,
-            &relations.schema.to_owned(),
-            self.credential_schema_repository.clone(),
         )
         .await?;
 
@@ -137,11 +109,15 @@ impl CredentialProvider {
         Ok(Credential {
             issuer_identifier,
             holder_identifier,
-            schema,
             interaction,
             key,
             issuer_certificate,
-            ..model_to_credential(credential, &self.cloned(), &self.claim_repository)
+            ..model_to_credential(
+                credential,
+                &self.cloned(),
+                &self.claim_repository,
+                &self.credential_schema_repository,
+            )
         })
     }
 
@@ -335,10 +311,6 @@ impl CredentialRepository for CredentialProvider {
             .holder_identifier
             .as_ref()
             .map(|identifier| identifier.id);
-        let schema = request
-            .schema
-            .to_owned()
-            .ok_or(DataLayerError::MappingError)?;
 
         let claims = request.claims.as_ref().await?.to_owned();
 
@@ -356,7 +328,6 @@ impl CredentialRepository for CredentialProvider {
         let credential_id = request.id;
         let active_model = request_to_active_model(
             &request,
-            schema,
             issuer_identifier_id,
             issuer_certificate_id,
             holder_identifier_id,

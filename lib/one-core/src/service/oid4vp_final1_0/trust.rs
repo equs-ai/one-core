@@ -129,9 +129,7 @@ impl OID4VPFinal1_0Service {
         credential: &ProvedCredential,
         organisation_id: OrganisationId,
     ) -> Result<Option<TrustEntityResponse>, OID4VPFinal1_0ServiceError> {
-        let credential_schema = credential.credential.schema.as_ref().ok_or(
-            OID4VPFinal1_0ServiceError::MappingError("missing credential schema".to_string()),
-        )?;
+        let credential_schema = credential.credential.schema.as_ref().await?;
 
         let (issuer_certificate_pem_chain, issuer_x5_references) = match &credential.issuer_details
         {
@@ -158,7 +156,7 @@ impl OID4VPFinal1_0Service {
             .wrp_validator
             .validate_credential_issuer(
                 issuer_certificate_pem_chain,
-                credential_schema,
+                &credential_schema,
                 category,
                 issuer_x5_references,
                 organisation_id,

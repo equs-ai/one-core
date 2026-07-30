@@ -11,28 +11,15 @@ use crate::provider::issuance_protocol::HolderBindingInput;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::validator::throw_if_org_id_not_matching_session;
 
-pub(super) fn validate_credentials_match_session_organisation(
+pub(super) async fn validate_credentials_match_session_organisation(
     credentials: &[Credential],
     session_provider: &dyn SessionProvider,
 ) -> Result<(), HolderServiceError> {
-    credentials
-        .iter()
-        .map(|cred| {
-            throw_if_org_id_not_matching_session(
-                cred.schema
-                    .as_ref()
-                    .ok_or(HolderServiceError::MappingError(format!(
-                        "Credential schema is missing on credential `{}`",
-                        cred.id
-                    )))?
-                    .organisation
-                    .id_ref(),
-                session_provider,
-            )
+    for cred in credentials {
+        let schema = cred.schema.as_ref().await?;
+        throw_if_org_id_not_matching_session(schema.organisation.id_ref(), session_provider)
             .error_while("checking session")?;
-            Ok::<_, HolderServiceError>(())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    }
     Ok(())
 }
 

@@ -248,12 +248,7 @@ pub(crate) async fn presented_paths_to_disclosed_keys(
     presented_paths: &[String],
     credential: &Credential,
 ) -> Result<Vec<String>, ServiceError> {
-    let credential_schema = credential
-        .schema
-        .as_ref()
-        .ok_or(ServiceError::MappingError(
-            "credential_schema missing".to_string(),
-        ))?;
+    let credential_schema = credential.schema.as_ref().await?;
     let claims = credential.claims.as_ref().await?;
     let formats = credential_schema.formats.as_ref().await?;
     let format = formats

@@ -206,7 +206,6 @@ impl CredentialService {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -217,12 +216,7 @@ impl CredentialService {
             return Err(CredentialServiceError::NotFound(*credential_id));
         };
 
-        let schema = credential
-            .schema
-            .as_ref()
-            .ok_or(CredentialServiceError::MappingError(
-                "credential_schema is None".to_string(),
-            ))?;
+        let schema = credential.schema.as_ref().await?;
         throw_if_org_id_not_matching_session(schema.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -234,6 +228,7 @@ impl CredentialService {
         if is_issuer && schema.allow_revocation {
             throw_if_credential_state_eq(&credential, CredentialStateEnum::Accepted)?;
         }
+        drop(schema);
 
         self.tx_manager
             .tx(async {
@@ -286,7 +281,6 @@ impl CredentialService {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(CertificateRelations::default()),
                     holder_identifier: Some(Default::default()),
@@ -299,6 +293,7 @@ impl CredentialService {
 
         let credential = credential.ok_or(CredentialServiceError::NotFound(*credential_id))?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
+            .await
             .error_while("checking session")?;
 
         if credential.deleted_at.is_some() {
@@ -514,11 +509,11 @@ impl CredentialService {
         if credential.deleted_at.is_some() {
             return Err(CredentialServiceError::NotFound(*credential_id));
         }
-        let Some(credential_schema) = credential.schema.as_ref() else {
-            return Err(CredentialServiceError::MappingError(
-                "Missing credential schema".to_string(),
-            ));
-        };
+        let credential_schema = credential
+            .schema
+            .as_ref()
+            .await
+            .error_while("loading credential schema")?;
         throw_if_org_id_not_matching_session(
             credential_schema.organisation.id_ref(),
             &*self.session_provider,
@@ -606,7 +601,6 @@ impl CredentialService {
             .get_credential(
                 &id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -614,6 +608,7 @@ impl CredentialService {
             .error_while("getting credential")?;
         let credential = credential.ok_or(CredentialServiceError::NotFound(id))?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
+            .await
             .error_while("checking session")?;
         if credential.r#type == CredentialType::BatchItem {
             return Err(CredentialServiceError::InvalidType(credential.r#type));
@@ -647,7 +642,6 @@ impl CredentialService {
             .get_credential(
                 id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),

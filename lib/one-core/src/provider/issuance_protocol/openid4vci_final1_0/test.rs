@@ -358,7 +358,7 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
         issuer_certificate: None,
         issuer_identifier: Some(issuer_identifier),
         holder_identifier: None,
-        schema: Some(CredentialSchema {
+        schema: CredentialSchema {
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -387,7 +387,8 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
             transaction_code: None,
             translations: Default::default(),
             embedded_disclosure_policy: None,
-        }),
+        }
+        .into(),
         interaction: Some(Interaction {
             id: Uuid::from_str("c322aa7f-9803-410d-b891-939b279fb965")
                 .unwrap()
@@ -443,7 +444,7 @@ async fn test_generate_offer() {
         &protocol_base_url,
         &credential.protocol,
         &interaction_id.to_string(),
-        credential.schema.as_ref().unwrap(),
+        &credential.schema.as_ref().await.unwrap(),
         issuer_identifier_id,
     )
     .await
@@ -454,7 +455,7 @@ async fn test_generate_offer() {
         json!({
             "credential_issuer": format!("BASE_URL/ssi/openid4vci/final-1.0/{}/{issuer_identifier_id}/c322aa7f-9803-410d-b891-939b279fb965", credential.protocol),
             "credential_configuration_ids" : [
-                credential.schema.as_ref().unwrap().schema_id().await.unwrap(),
+                credential.schema.as_ref().await.unwrap().schema_id().await.unwrap(),
             ],
             "grants": {
                 "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "c322aa7f-9803-410d-b891-939b279fb965" }
@@ -534,6 +535,7 @@ async fn test_holder_accept_credential_success() {
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -562,7 +564,13 @@ async fn test_holder_accept_credential_success() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -636,7 +644,7 @@ async fn test_holder_accept_credential_success() {
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
         .once()
@@ -800,6 +808,7 @@ async fn test_holder_accept_credential_none_existing_issuer_key_id_success() {
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -828,7 +837,13 @@ async fn test_holder_accept_credential_none_existing_issuer_key_id_success() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -890,7 +905,7 @@ async fn test_holder_accept_credential_none_existing_issuer_key_id_success() {
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
         .once()
@@ -1076,6 +1091,7 @@ async fn test_holder_accept_credential_autogenerate_holder_binding() {
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -1104,7 +1120,13 @@ async fn test_holder_accept_credential_autogenerate_holder_binding() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -1178,7 +1200,7 @@ async fn test_holder_accept_credential_autogenerate_holder_binding() {
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
         .once()
@@ -1386,6 +1408,7 @@ async fn test_holder_accept_credential_batch_autogenerated_binding() {
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -1414,7 +1437,13 @@ async fn test_holder_accept_credential_batch_autogenerated_binding() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -1546,7 +1575,7 @@ async fn test_holder_accept_credential_batch_autogenerated_binding() {
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
         .once()
@@ -1723,6 +1752,7 @@ async fn test_holder_accept_credential_batch_manual_binding() {
     let credential_configuration_id = credential
         .schema
         .as_ref()
+        .await
         .unwrap()
         .schema_id()
         .await
@@ -1777,7 +1807,13 @@ async fn test_holder_accept_credential_batch_manual_binding() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -1872,7 +1908,7 @@ async fn test_holder_accept_credential_batch_manual_binding() {
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
         .once()
@@ -2079,6 +2115,7 @@ async fn test_holder_reject_credential() {
             credential_configuration_id: credential
                 .schema
                 .as_ref()
+                .await
                 .unwrap()
                 .schema_id()
                 .await
@@ -2243,7 +2280,7 @@ async fn inner_test_handle_invitation_credential_by_ref_success(
     let mock_server = MockServer::start().await;
     let issuer_url = Url::from_str(&mock_server.uri()).unwrap();
 
-    let credential_schema_id = credential.schema.clone().unwrap().id;
+    let credential_schema_id = credential.schema.id();
     let credential_issuer = format!("{issuer_url}ssi/openid4vci/final-1.0/{credential_schema_id}");
 
     let mut credential_offer = json!({
@@ -2826,7 +2863,7 @@ async fn test_continue_issuance_with_scope_and_credential_configuration_ids_succ
 async fn inner_continue_issuance_test(with_scope: bool, with_credential_configuration_ids: bool) {
     let credential = generic_credential_did();
 
-    let credential_schema_id = credential.schema.clone().unwrap().id;
+    let credential_schema_id = credential.schema.id();
     let credential_issuer =
         format!("http://issuer/ssi/openid4vci/final-1.0/{credential_schema_id}");
 
@@ -3043,6 +3080,7 @@ async fn test_holder_accept_credential_fails_without_wallet_unit_id_when_key_att
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -3071,7 +3109,13 @@ async fn test_holder_accept_credential_fails_without_wallet_unit_id_when_key_att
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -3190,6 +3234,7 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -3218,7 +3263,13 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -3292,7 +3343,7 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
         .once()
@@ -3513,7 +3564,13 @@ async fn interaction_with_metadata(
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -4256,7 +4313,13 @@ async fn test_holder_accept_credential_stores_disclosure_policy() {
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
@@ -4484,6 +4547,7 @@ async fn encryption_interaction_data(
         credential_configuration_id: credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .schema_id()
             .await
@@ -4517,14 +4581,20 @@ async fn interaction_for(
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         data: Some(serde_json::to_vec(interaction_data).unwrap()),
-        organisation: credential.schema.as_ref().unwrap().organisation.to_owned(),
+        organisation: credential
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .organisation
+            .to_owned(),
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
     }
 }
 
-fn provider_with_encryption(credential: &Credential) -> OpenID4VCIFinal1_0 {
+async fn provider_with_encryption(credential: &Credential) -> OpenID4VCIFinal1_0 {
     let mut formatter = MockCredentialFormatter::new();
     formatter
         .expect_get_leeway()
@@ -4544,7 +4614,7 @@ fn provider_with_encryption(credential: &Credential) -> OpenID4VCIFinal1_0 {
         .expect_get_formatter_by_type()
         .returning(move |_| Some(("JWT".into(), formatter.clone())));
 
-    let schema = credential.schema.as_ref().unwrap().to_owned();
+    let schema = credential.schema.as_ref().await.unwrap().to_owned();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
     credential_schema_repository
         .expect_get_by_schema_id_and_organisation()
@@ -4748,7 +4818,7 @@ async fn test_holder_accept_credential_request_encryption() {
         .mount(&mock_server)
         .await;
 
-    let openid_provider = provider_with_encryption(&credential);
+    let openid_provider = provider_with_encryption(&credential).await;
     let issuer_response = openid_provider
         .holder_accept_credential(interaction, Some(holder_binding_input(key)), None)
         .await
@@ -4842,7 +4912,7 @@ async fn test_holder_accept_credential_response_encryption() {
         .mount(&mock_server)
         .await;
 
-    let openid_provider = provider_with_encryption(&credential);
+    let openid_provider = provider_with_encryption(&credential).await;
     let issuer_response = openid_provider
         .holder_accept_credential(interaction, Some(holder_binding_input(key)), None)
         .await
@@ -4938,7 +5008,7 @@ async fn test_holder_accept_credential_request_and_response_encryption_with_comp
         .mount(&mock_server)
         .await;
 
-    let openid_provider = provider_with_encryption(&credential);
+    let openid_provider = provider_with_encryption(&credential).await;
     let issuer_response = openid_provider
         .holder_accept_credential(interaction, Some(holder_binding_input(key)), None)
         .await

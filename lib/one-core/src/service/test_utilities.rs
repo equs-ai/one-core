@@ -323,7 +323,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(CredentialSchema {
+        schema: CredentialSchema {
             batch_size: None,
             allow_revocation: true,
             id: credential_schema_id,
@@ -363,7 +363,8 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
             transaction_code: None,
             translations: Default::default(),
             embedded_disclosure_policy: None,
-        }),
+        }
+        .into(),
         interaction: Some(Interaction {
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),

@@ -231,7 +231,6 @@ impl OID4VCIFinal1_0Service {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
                     ..Default::default()
@@ -269,13 +268,7 @@ impl OID4VCIFinal1_0Service {
         if issuance_protocol_type != self.protocol_type {
             return Err(OpenID4VCIError::InvalidRequest.into());
         }
-        let credential_schema =
-            credential
-                .schema
-                .as_ref()
-                .ok_or(OID4VCIFinal1_0ServiceError::MappingError(
-                    "credential schema missing".to_string(),
-                ))?;
+        let credential_schema = credential.schema.as_ref().await?;
 
         if credential_schema.id != credential_schema_id {
             return Err(OpenID4VCIError::InvalidRequest.into());
@@ -308,7 +301,7 @@ impl OID4VCIFinal1_0Service {
             protocol_base_url,
             &credential.protocol,
             &interaction.id.to_string(),
-            credential_schema,
+            &credential_schema,
             identifier_id,
         )
         .await?)
@@ -354,7 +347,6 @@ impl OID4VCIFinal1_0Service {
                 &interaction.id,
                 &CredentialRelations {
                     interaction: Some(Default::default()),
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -363,10 +355,7 @@ impl OID4VCIFinal1_0Service {
 
         let Some(credential) = credentials.iter().find(|credential| {
             credential.r#type != CredentialType::BatchItem
-                && credential
-                    .schema
-                    .as_ref()
-                    .is_some_and(|schema| schema.id == *credential_schema_id)
+                && credential.schema.id() == *credential_schema_id
         }) else {
             return Err(
                 OID4VCIFinal1_0ServiceError::MissingCredentialsForInteraction { interaction_id },
@@ -928,7 +917,6 @@ impl OID4VCIFinal1_0Service {
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
                     interaction: Some(Default::default()),
-                    schema: Some(Default::default()),
                     key: Some(Default::default()),
                     ..Default::default()
                 },
@@ -938,12 +926,7 @@ impl OID4VCIFinal1_0Service {
 
         let credentials: Vec<_> = credentials
             .into_iter()
-            .filter(|credential| {
-                credential
-                    .schema
-                    .as_ref()
-                    .is_some_and(|schema| schema.id == credential_schema_id)
-            })
+            .filter(|credential| credential.schema.id() == credential_schema_id)
             .collect();
         if credentials.is_empty() {
             return Err(OpenID4VCIError::InvalidNotificationRequest.into());
@@ -1333,7 +1316,6 @@ impl OID4VCIFinal1_0Service {
             .get_credential(
                 &parent_credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
                     key: Some(Default::default()),
@@ -1408,13 +1390,7 @@ impl OID4VCIFinal1_0Service {
             return Ok(());
         }
 
-        let schema =
-            credential
-                .schema
-                .as_ref()
-                .ok_or(OID4VCIFinal1_0ServiceError::MappingError(
-                    "schema is None".to_string(),
-                ))?;
+        let schema = credential.schema.as_ref().await?;
 
         let format = schema.format().await?;
         let formatter = self.formatter_provider.get_credential_formatter(&format)?;

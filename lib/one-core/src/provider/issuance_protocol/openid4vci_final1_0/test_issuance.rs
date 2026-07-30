@@ -97,6 +97,10 @@ async fn test_issuer_submit_succeeds() {
     };
 
     let credential_copy = credential.clone();
+    let updated_schema = crate::model::credential_schema::CredentialSchema {
+        organisation: dummy_organisation(None).into(),
+        ..credential.schema.as_ref().await.unwrap().to_owned()
+    };
     let mut credential_repository = MockCredentialRepository::new();
     credential_repository
         .expect_get_credential()
@@ -107,10 +111,7 @@ async fn test_issuer_submit_succeeds() {
         .once()
         .return_once(move |_, _| {
             let mut credential = credential_copy;
-            credential.schema = Some(crate::model::credential_schema::CredentialSchema {
-                organisation: dummy_organisation(None).into(),
-                ..credential.schema.unwrap()
-            });
+            credential.schema = updated_schema.into();
             Ok(Some(credential))
         });
 
@@ -219,6 +220,8 @@ async fn test_issuer_submit_succeeds() {
 
     let format_id = credential
         .schema
+        .as_ref()
+        .await
         .unwrap()
         .formats
         .as_ref()
@@ -254,7 +257,13 @@ async fn generic_mdoc_credential(state: CredentialStateEnum) -> Credential {
         }]
         .into(),
         allow_revocation: false,
-        ..dummy_credential().await.schema.unwrap()
+        ..dummy_credential()
+            .await
+            .schema
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
     };
     let credential_schema = backfill_default_translations(credential_schema, "en")
         .await
@@ -282,7 +291,7 @@ async fn generic_mdoc_credential(state: CredentialStateEnum) -> Credential {
             ..dummy_identifier()
         }),
         key: Some(key),
-        schema: Some(credential_schema),
+        schema: credential_schema.into(),
         ..dummy_credential().await
     }
 }
@@ -295,6 +304,10 @@ async fn test_issue_credential_for_mdoc_succeeds() {
 
     let credential = generic_mdoc_credential(CredentialStateEnum::Offered).await;
     let credential_copy = credential.clone();
+    let updated_schema = CredentialSchema {
+        organisation: dummy_organisation(None).into(),
+        ..credential.schema.as_ref().await.unwrap().to_owned()
+    };
     credential_repository
         .expect_get_credential()
         .withf(move |_credential_id, _| {
@@ -304,10 +317,7 @@ async fn test_issue_credential_for_mdoc_succeeds() {
         .once()
         .return_once(move |_, _| {
             let mut credential = credential_copy;
-            credential.schema = Some(CredentialSchema {
-                organisation: dummy_organisation(None).into(),
-                ..credential.schema.unwrap()
-            });
+            credential.schema = updated_schema.into();
             Ok(Some(credential))
         });
 
@@ -390,6 +400,8 @@ async fn test_issue_credential_for_mdoc_succeeds() {
 
     let format_id = credential
         .schema
+        .as_ref()
+        .await
         .unwrap()
         .formats
         .as_ref()
@@ -420,6 +432,10 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
         ..generic_mdoc_credential(CredentialStateEnum::Accepted).await
     };
     let credential_copy = credential.clone();
+    let updated_schema = CredentialSchema {
+        organisation: dummy_organisation(None).into(),
+        ..credential.schema.as_ref().await.unwrap().to_owned()
+    };
     let mut credential_repository = MockCredentialRepository::new();
     credential_repository
         .expect_get_credential()
@@ -430,10 +446,7 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
         .times(2)
         .returning(move |_, _| {
             let mut credential = credential_copy.clone();
-            credential.schema = Some(CredentialSchema {
-                organisation: dummy_organisation(None).into(),
-                ..credential.schema.unwrap()
-            });
+            credential.schema = updated_schema.clone().into();
             Ok(Some(credential))
         });
     credential_repository
@@ -549,6 +562,8 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
 
     let format_id = credential
         .schema
+        .as_ref()
+        .await
         .unwrap()
         .formats
         .as_ref()
@@ -651,6 +666,8 @@ async fn test_issue_credential_for_existing_mdoc_with_expected_update_in_the_fut
 
     let format_id = credential
         .schema
+        .as_ref()
+        .await
         .unwrap()
         .formats
         .as_ref()
@@ -754,54 +771,53 @@ async fn dummy_credential() -> Credential {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: true,
-                    id: credential_schema_id,
-                    imported_source_url: "CORE_URL".to_string(),
-                    deleted_at: None,
+        schema: backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: true,
+                id: credential_schema_id,
+                imported_source_url: "CORE_URL".to_string(),
+                deleted_at: None,
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                key_storage_security: Some(KeyStorageSecurity::Basic),
+                name: "schema".to_string(),
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
                     created_date: crate::clock::now_utc(),
                     last_modified: crate::clock::now_utc(),
-                    key_storage_security: Some(KeyStorageSecurity::Basic),
-                    name: "schema".to_string(),
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "JWT".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                    claim_schemas: vec![ClaimSchema {
-                        id: claim_schema_id,
-                        key: "key".to_string(),
-                        data_type: "STRING".to_string(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        array: false,
-                        metadata: false,
-                        required: true,
-                        translations: Default::default(),
-                    }]
-                    .into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    organisation: dummy_organisation(None).into(),
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
+                    credential_schema_id,
+                    format: "JWT".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+                claim_schemas: vec![ClaimSchema {
+                    id: claim_schema_id,
+                    key: "key".to_string(),
+                    data_type: "STRING".to_string(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    array: false,
+                    metadata: false,
+                    required: true,
                     translations: Default::default(),
-                    embedded_disclosure_policy: None,
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+                }]
+                .into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                organisation: dummy_organisation(None).into(),
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
+            },
+            "en",
+        )
+        .await
+        .unwrap()
+        .into(),
         interaction: Some(Interaction {
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),

@@ -245,7 +245,7 @@ pub(crate) fn extracted_credential_to_model(
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
         holder_identifier,
-        schema: Some(credential_schema),
+        schema: credential_schema.into(),
         redirect_uri: None,
         interaction: None,
         key: None,

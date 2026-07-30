@@ -120,10 +120,9 @@ pub(crate) async fn get_presentation_definition_v2(
 
         let mut filtered_credential_candidates = vec![];
         for credential_candidate in credential_candidates.into_iter() {
-            let Some(schema) = &credential_candidate.schema else {
-                continue;
-            };
+            let schema = credential_candidate.schema.as_ref().await?;
             let format = schema.format().await?;
+            drop(schema);
             if format_matches(&query.format, &format, config) {
                 filtered_credential_candidates.push(credential_candidate);
             }
@@ -178,17 +177,16 @@ pub(crate) async fn get_presentation_definition_v2(
             .into_iter()
             .partition(|credential| credential.state == CredentialStateEnum::Accepted);
         if candidates.is_empty() {
-            let credential_schema = match invalid_credentials
-                .into_iter()
-                .next()
-                .and_then(|cred| cred.schema)
-            {
+            let credential_schema = match invalid_credentials.into_iter().next() {
                 None => None,
-                Some(schema) => Some(
-                    schema_to_detail_v1_response_dto(schema, config, formatter_provider)
-                        .await
-                        .error_while("converting credential schema")?,
-                ),
+                Some(cred) => {
+                    let schema = cred.schema.as_ref().await?.to_owned();
+                    Some(
+                        schema_to_detail_v1_response_dto(schema, config, formatter_provider)
+                            .await
+                            .error_while("converting credential schema")?,
+                    )
+                }
             };
 
             credential_queries.insert(
@@ -204,19 +202,13 @@ pub(crate) async fn get_presentation_definition_v2(
         }
 
         // if none of the candidates is applicable, use this schema for the failure hint.
-        let failure_hint_schema = candidates.first().and_then(|cred| cred.schema.clone());
+        let failure_hint_schema = match candidates.first() {
+            None => None,
+            Some(cred) => Some(cred.schema.as_ref().await?.to_owned()),
+        };
         let mut applicable_credentials = vec![];
         for candidate in candidates {
-            let format = candidate
-                .schema
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(format!(
-                    "missing schema for credential {}",
-                    candidate.id
-                )))?
-                .format()
-                .await
-                .map_err(|e| VerificationProtocolError::Failed(e.to_string()))?;
+            let format = candidate.schema.as_ref().await?.format().await?;
             let formatter = formatter_provider.get_credential_formatter(&format)?;
 
             let claims = first_matching_claims(&candidate, credential_filters, &*formatter).await?;
@@ -553,13 +545,7 @@ async fn select_claims(
 
     let mut missing_claims = vec![];
 
-    let credential_schema = credential
-        .schema
-        .as_ref()
-        .ok_or(VerificationProtocolError::Failed(format!(
-            "missing schema for credential {}",
-            credential.id
-        )))?;
+    let credential_schema = credential.schema.as_ref().await?;
     let formats = credential_schema.formats.as_ref().await?;
     let mappings = formats
         .first()

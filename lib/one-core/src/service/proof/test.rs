@@ -432,7 +432,6 @@ async fn test_get_proof_exists() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),
@@ -578,7 +577,7 @@ async fn test_get_proof_with_array_holder() {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(credential_schema.clone()),
+        schema: credential_schema.clone().into(),
         interaction: None,
         key: None,
         profile: None,
@@ -670,7 +669,6 @@ async fn test_get_proof_with_array_holder() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),
@@ -853,7 +851,7 @@ async fn test_get_proof_with_array_in_object_holder() {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(credential_schema.clone()),
+        schema: credential_schema.clone().into(),
         interaction: None,
         key: None,
         profile: None,
@@ -945,7 +943,6 @@ async fn test_get_proof_with_array_in_object_holder() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),
@@ -1143,7 +1140,7 @@ async fn test_get_proof_with_object_array_holder() {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(credential_schema.clone()),
+        schema: credential_schema.clone().into(),
         interaction: None,
         key: None,
         profile: None,
@@ -1235,7 +1232,6 @@ async fn test_get_proof_with_object_array_holder() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),
@@ -1408,7 +1404,7 @@ async fn test_get_proof_with_array() {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(credential_schema.clone()),
+        schema: credential_schema.clone().into(),
         interaction: None,
         key: None,
         profile: None,
@@ -1507,7 +1503,6 @@ async fn test_get_proof_with_array() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),
@@ -1690,7 +1685,7 @@ async fn test_get_proof_with_array_in_object() {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(credential_schema.clone()),
+        schema: credential_schema.clone().into(),
         interaction: None,
         key: None,
         profile: None,
@@ -1789,7 +1784,6 @@ async fn test_get_proof_with_array_in_object() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),
@@ -1988,7 +1982,7 @@ async fn test_get_proof_with_object_array() {
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(credential_schema.clone()),
+        schema: credential_schema.clone().into(),
         interaction: None,
         key: None,
         profile: None,
@@ -2087,7 +2081,6 @@ async fn test_get_proof_with_object_array() {
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
-                            schema: Some(Default::default()),
                             issuer_identifier: Some(IdentifierRelations {}),
                             issuer_certificate: Some(CertificateRelations::default()),
                             holder_identifier: Some(IdentifierRelations {}),

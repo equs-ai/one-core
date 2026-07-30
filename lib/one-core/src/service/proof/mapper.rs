@@ -227,15 +227,7 @@ pub(super) async fn get_verifier_proof_detail(
             }
         };
 
-        let credential_schema = match credential.schema.clone() {
-            Some(schema) => schema,
-            None => {
-                return Err(ProofServiceError::MappingError(format!(
-                    "Missing credential schema for credential {}",
-                    credential.id
-                )));
-            }
-        };
+        let credential_schema_id = credential.schema.id();
 
         let credential_trust_information = trust_information
             .iter()
@@ -253,7 +245,7 @@ pub(super) async fn get_verifier_proof_detail(
         .await
         .error_while("creating credential detail")?;
 
-        credential_for_credential_schema.insert(credential_schema.id, credential_detail);
+        credential_for_credential_schema.insert(credential_schema_id, credential_detail);
     }
 
     let proof_input_schemas = match schema.input_schemas.as_ref() {
@@ -631,14 +623,7 @@ pub(super) async fn get_holder_proof_detail(
                 proof_claim.claim.id
             )))?;
 
-        let credential_schema =
-            credential
-                .schema
-                .as_ref()
-                .ok_or(ProofServiceError::MappingError(format!(
-                    "Missing credential schema for credential: {}",
-                    credential.id
-                )))?;
+        let credential_schema = credential.schema.as_ref().await?.to_owned();
 
         match submitted_credentials.entry(credential.id) {
             Entry::Occupied(mut entry) => {

@@ -159,7 +159,6 @@ impl CredentialValidityManagerImpl {
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
-                    schema: Some(Default::default()),
                     key: Some(KeyRelations::default()),
                     ..Default::default()
                 },
@@ -409,7 +408,6 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
             .get_credential(
                 credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -430,10 +428,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
             });
         }
 
-        let credential_schema = credential
-            .schema
-            .as_ref()
-            .ok_or(Error::MappingError("credential schema is None".to_string()))?;
+        let credential_schema = credential.schema.as_ref().await?;
 
         throw_if_org_id_not_matching_session(
             credential_schema.organisation.id_ref(),
@@ -449,7 +444,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
         let revocation_method_id = credential_schema
             .revocation_method_id(formatter.as_ref())
             .ok_or(Error::NoRevocationMethod(credential_schema.id.to_owned()))?;
-        verify_suspension_support(credential_schema, revocation_method_id, &revocation_state)?;
+        verify_suspension_support(&credential_schema, revocation_method_id, &revocation_state)?;
 
         let revocation_method = self
             .revocation_method_provider
@@ -594,7 +589,6 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
@@ -608,6 +602,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 EntityNotFoundError::Credential(credential_id).error_while("getting credential"),
             )?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
+            .await
             .error_while("verifying credential schema organisation")?;
 
         if credential.deleted_at.is_some() {
@@ -626,21 +621,15 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
             return Ok(result);
         }
 
-        let credential_schema = credential
-            .schema
-            .as_ref()
-            .ok_or(Error::MappingError("schema is None".to_string()))?
-            .clone();
-
+        let credential_schema = credential.schema.as_ref().await?;
+        let format = credential_schema
+            .format()
+            .await
+            .error_while("getting format")?;
         let format_type = self
             .config
             .format
-            .get_fields(
-                &credential_schema
-                    .format()
-                    .await
-                    .error_while("getting format")?,
-            )
+            .get_fields(&format)
             .error_while("getting credential format type")?
             .r#type;
 

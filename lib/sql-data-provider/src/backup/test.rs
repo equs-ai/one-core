@@ -686,6 +686,7 @@ async fn test_fetch_unexportable_credentials_local() {
     let schema = unexportable.credentials[0]
         .schema
         .as_ref()
+        .await
         .expect("schema present");
     let format = schema.format().await.expect("format loadable");
     assert_eq!(format.as_ref(), "JWT");
@@ -843,6 +844,7 @@ async fn test_fetch_unexportable_credentials_dump() {
     let schema = unexportable.credentials[0]
         .schema
         .as_ref()
+        .await
         .expect("schema present");
     let format = schema.format().await.expect("format loadable from dump");
     assert_eq!(format.as_ref(), "JWT");

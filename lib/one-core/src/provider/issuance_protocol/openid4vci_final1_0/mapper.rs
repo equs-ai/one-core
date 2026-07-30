@@ -32,15 +32,10 @@ pub(crate) fn get_credential_offer_url(
     protocol_base_url: String,
     credential: &Credential,
 ) -> Result<String, IssuanceProtocolError> {
-    let credential_schema = credential
-        .schema
-        .as_ref()
-        .ok_or(IssuanceProtocolError::Failed(
-            "Missing credential schema".to_owned(),
-        ))?;
     Ok(format!(
         "{protocol_base_url}/{}/offer/{}",
-        credential_schema.id, credential.id
+        credential.schema.id(),
+        credential.id
     ))
 }
 

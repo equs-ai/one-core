@@ -31,7 +31,6 @@ impl CredentialNotificationDecorator {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -60,7 +59,7 @@ impl CredentialNotificationDecorator {
         let organisation_id = stored
             .schema
             .as_ref()
-            .ok_or(ServiceError::MappingError("missing schema".to_string()))
+            .await
             .error_while("getting organisation_id")?
             .organisation
             .id();

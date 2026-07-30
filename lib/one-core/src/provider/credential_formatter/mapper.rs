@@ -189,17 +189,10 @@ async fn issuer_for_credential(
         ))?
         .id;
 
-    let credential_schema_id = credential
-        .schema
-        .as_ref()
-        .ok_or(FormatterError::CouldNotFormat(
-            "missing credential schema".to_string(),
-        ))?
-        .id;
-
     let url: Url = format!(
-        "{core_base_url}/ssi/openid4vci/{}/{issuer_identifier_id}/{credential_schema_id}",
-        credential.protocol
+        "{core_base_url}/ssi/openid4vci/{}/{issuer_identifier_id}/{}",
+        credential.protocol,
+        credential.schema.id()
     )
     .parse()?;
     Ok(Issuer::Url(url))

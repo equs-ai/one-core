@@ -472,7 +472,6 @@ impl SSIHolderService {
                 &CredentialRelations {
                     key: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -555,15 +554,9 @@ impl SSIHolderService {
             .map_err(|e| HolderServiceError::MappingError(e.to_string()))?
             .into();
 
-        let credential_schema =
-            credential
-                .schema
-                .as_ref()
-                .ok_or(HolderServiceError::MappingError(
-                    "credential_schema missing".to_string(),
-                ))?;
+        let credential_schema = credential.schema.as_ref().await?;
         let formatter = self
-            .formatter_for_blob_and_schema(&credential_content, credential_schema)
+            .formatter_for_blob_and_schema(&credential_content, &credential_schema)
             .await?;
 
         let credential_presentation = CredentialPresentation {

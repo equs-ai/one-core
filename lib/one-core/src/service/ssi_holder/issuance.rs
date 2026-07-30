@@ -320,7 +320,6 @@ impl SSIHolderService {
                 &CredentialRelations {
                     interaction: Some(Default::default()),
                     key: Some(Default::default()),
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -332,7 +331,8 @@ impl SSIHolderService {
                 *interaction_id,
             ));
         }
-        validate_credentials_match_session_organisation(&credentials, &*self.session_provider)?;
+        validate_credentials_match_session_organisation(&credentials, &*self.session_provider)
+            .await?;
 
         let credential_protocol_pairs = credentials
             .into_iter()

@@ -977,7 +977,7 @@ pub async fn create_credential(
         issuer_identifier: Some(issuer_identifier.to_owned()),
         issuer_certificate: None,
         holder_identifier: params.holder_identifier,
-        schema: Some(credential_schema.to_owned()),
+        schema: credential_schema.to_owned().into(),
         interaction: params.interaction,
         key: params.key,
         profile: None,

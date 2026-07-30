@@ -54,12 +54,7 @@ pub(crate) async fn credential_detail_response_from_model(
     credential_repository: &dyn CredentialRepository,
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<CredentialDetailResponseDTO<DetailCredentialClaimResponseDTO>, CredentialServiceError> {
-    let schema_model = value
-        .schema
-        .as_ref()
-        .ok_or(CredentialServiceError::MappingError(
-            "credential_schema is None".to_string(),
-        ))?;
+    let schema_model = value.schema.as_ref().await?;
 
     let schema_dto: DetailCredentialSchemaResponseDTO =
         to_credential_schema_detail_response(schema_model.clone(), formatter_provider)
@@ -166,7 +161,7 @@ pub(crate) async fn credential_detail_response_from_model(
         consumed_at: value.consumed_at,
         state: state.into(),
         last_modified: value.last_modified,
-        claims: from_vec_claim(claims, schema_model, config).await?,
+        claims: from_vec_claim(claims, &schema_model, config).await?,
         schema: schema_dto,
         issuer: convert_inner(value.issuer_identifier),
         redirect_uri: value.redirect_uri,
@@ -430,11 +425,7 @@ pub(super) async fn to_credential_list_response(
     include_translations: bool,
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<CredentialListItemResponseDTO, CredentialServiceError> {
-    let schema = credential
-        .schema
-        .ok_or(CredentialServiceError::MappingError(
-            "credential_schema is None".to_string(),
-        ))?;
+    let schema = credential.schema.as_ref().await?.to_owned();
     Ok(CredentialListItemResponseDTO {
         id: credential.id,
         created_date: credential.created_date,
@@ -502,7 +493,7 @@ pub(super) fn from_create_request(
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
         holder_identifier: None,
-        schema: Some(schema),
+        schema: schema.into(),
         interaction: None,
         key: Some(key),
         redirect_uri: request.redirect_uri,

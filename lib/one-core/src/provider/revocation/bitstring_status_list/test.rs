@@ -102,7 +102,8 @@ async fn revocation_status(suspension: bool) -> Vec<CredentialRevocationInfo> {
         data: IdentifierData::Did((dummy_did()).into()),
         ..dummy_identifier()
     });
-    if let Some(ref mut schema) = credential.schema {
+    {
+        let mut schema = credential.schema.as_mut().await.unwrap();
         schema.allow_suspension = suspension;
     }
 

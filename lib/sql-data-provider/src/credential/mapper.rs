@@ -11,6 +11,7 @@ use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::certificate_repository::CertificateRepository;
 use one_core::repository::claim_repository::{ClaimRepository, CredentialClaimsLoader};
 use one_core::repository::credential_repository::CredentialRepository;
+use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
@@ -198,6 +199,7 @@ pub(crate) fn model_to_credential(
     credential: credential::Model,
     credential_repository: &Arc<dyn CredentialRepository>,
     claim_repository: &Arc<dyn ClaimRepository>,
+    credential_schema_repository: &Arc<dyn CredentialSchemaRepository>,
 ) -> Credential {
     Credential {
         claims: credential_claims(credential.id, claim_repository),
@@ -217,7 +219,10 @@ pub(crate) fn model_to_credential(
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: None,
+        schema: Related::new(
+            credential.credential_schema_id,
+            credential_schema_repository.clone(),
+        ),
         interaction: None,
         key: None,
         credential_blob_id: credential.credential_blob_id,
@@ -235,7 +240,6 @@ pub(crate) fn model_to_credential(
 #[expect(clippy::too_many_arguments)]
 pub(super) fn request_to_active_model(
     request: &Credential,
-    schema: CredentialSchema,
     issuer_identifier_id: Option<IdentifierId>,
     issuer_certificate_id: Option<CertificateId>,
     holder_identifier_id: Option<IdentifierId>,
@@ -247,7 +251,7 @@ pub(super) fn request_to_active_model(
 ) -> credential::ActiveModel {
     credential::ActiveModel {
         id: Set(request.id),
-        credential_schema_id: Set(schema.id),
+        credential_schema_id: Set(request.schema.id()),
         created_date: Set(request.created_date),
         last_modified: Set(request.last_modified),
         issuance_date: Set(request.issuance_date),
@@ -403,7 +407,7 @@ pub(super) fn credential_list_model_to_repository_model(
         issuer_identifier,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(schema),
+        schema: Related::from(schema),
         interaction: None,
         key: None,
         credential_blob_id: credential.credential_blob_id,

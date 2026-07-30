@@ -474,7 +474,7 @@ impl CredentialFormatter for JWTFormatter {
             issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
             holder_identifier,
-            schema: Some(schema),
+            schema: schema.into(),
             interaction: None,
             key: None,
             webhook_url: None,

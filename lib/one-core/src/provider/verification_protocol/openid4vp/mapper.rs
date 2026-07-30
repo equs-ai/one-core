@@ -119,7 +119,7 @@ pub(crate) fn extracted_credential_to_model(
             issuer_identifier: None,
             issuer_certificate: None,
             holder_identifier: None,
-            schema: Some(credential_schema),
+            schema: credential_schema.into(),
             redirect_uri: None,
             key: None,
             role: CredentialRole::Verifier,

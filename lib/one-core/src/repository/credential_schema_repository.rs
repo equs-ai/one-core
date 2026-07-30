@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use shared_types::{CredentialSchemaId, OrganisationId};
 
 use super::error::DataLayerError;
@@ -5,6 +7,7 @@ use crate::model::credential_schema::{
     CredentialSchema, CredentialSchemaListQuery, GetCredentialSchemaList,
     UpdateCredentialSchemaRequest,
 };
+use crate::model::relation::AsyncModelLoader;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
@@ -39,4 +42,16 @@ pub trait CredentialSchemaRepository: Send + Sync {
         schema_id: &str,
         organisation_id: OrganisationId,
     ) -> Result<Option<CredentialSchema>, DataLayerError>;
+}
+
+#[async_trait::async_trait]
+impl AsyncModelLoader<CredentialSchema> for Arc<dyn CredentialSchemaRepository> {
+    async fn load(&self, id: &CredentialSchemaId) -> Result<CredentialSchema, DataLayerError> {
+        self.get_credential_schema(id).await?.ok_or_else(|| {
+            DataLayerError::MissingRequiredRelation {
+                relation: "credential_schema",
+                id: id.to_string(),
+            }
+        })
+    }
 }

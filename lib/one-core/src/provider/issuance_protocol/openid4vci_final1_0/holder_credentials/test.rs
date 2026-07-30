@@ -66,7 +66,7 @@ async fn matches_existing_schema() {
     let claims = credential.claims.as_ref().await.unwrap();
     assert_eq!(claims[0].schema.as_ref().await.unwrap().id, stored_cs_id);
     assert_eq!(claims[0].path, "addr/city");
-    assert_eq!(credential.schema.as_ref().unwrap().id, stored_id);
+    assert_eq!(credential.schema.as_ref().await.unwrap().id, stored_id);
 }
 
 #[tokio::test]
@@ -193,7 +193,7 @@ async fn returns_new_claim_schemas_when_allowed() {
     let stored_claim_schemas = stored_schema.claim_schemas.as_ref().await.unwrap();
     assert_eq!(stored_claim_schemas.iter().count(), 2);
 
-    assert_eq!(credential.schema.as_ref().unwrap().id, stored_id);
+    assert_eq!(credential.schema.as_ref().await.unwrap().id, stored_id);
 }
 
 #[tokio::test]
@@ -222,41 +222,6 @@ async fn errors_on_new_claim_schema_when_disallowed() {
     );
 
     let mut credential = credential(parsed_schema, vec![claim("newClaim", &parsed_cs)]);
-
-    let result = validate_existing_and_find_new_claim_schemas(
-        &mut stored_schema,
-        &mut credential,
-        &format,
-        "en",
-        false,
-    )
-    .await;
-
-    assert!(result.is_err());
-}
-
-#[tokio::test]
-async fn errors_when_schema_missing() {
-    let format: CredentialFormat = "JWT".into();
-
-    let parsed_schema = credential_schema(
-        Uuid::new_v4().into(),
-        Uuid::new_v4().into(),
-        "JWT",
-        vec![],
-        vec![],
-    );
-
-    let mut stored_schema = credential_schema(
-        Uuid::new_v4().into(),
-        Uuid::new_v4().into(),
-        "JWT",
-        vec![],
-        vec![],
-    );
-
-    let mut credential = credential(parsed_schema, vec![]);
-    credential.schema = None;
 
     let result = validate_existing_and_find_new_claim_schemas(
         &mut stored_schema,
@@ -581,7 +546,7 @@ fn credential(parsed_schema: CredentialSchema, claims: Vec<Claim>) -> Credential
         issuer_identifier: None,
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(parsed_schema),
+        schema: parsed_schema.into(),
         interaction: None,
         key: None,
         parent: None,

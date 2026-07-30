@@ -62,7 +62,6 @@ impl Task for InteractionExpirationCheckProvider {
                 .get_credential(
                     credential_id,
                     &CredentialRelations {
-                        schema: Some(Default::default()),
                         issuer_identifier: Some(IdentifierRelations {}),
                         holder_identifier: Some(IdentifierRelations {}),
                         ..Default::default()
@@ -73,9 +72,7 @@ impl Task for InteractionExpirationCheckProvider {
                 .ok_or(EntityNotFoundError::Credential(*credential_id))?;
 
             let target = target_from_credential(&credential);
-            let schema = credential
-                .schema
-                .ok_or(ServiceError::MappingError("schema missing".to_string()))?;
+            let schema = credential.schema.as_ref().await?.to_owned();
 
             self.history_repository
                 .create_history(History {

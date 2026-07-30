@@ -540,7 +540,7 @@ async fn test_get_presentation_definition_v2() {
         issuance_date: None,
         last_modified: crate::clock::now_utc(),
         protocol: "ISO_MDL".to_string(),
-        schema: Some(credential_schema),
+        schema: credential_schema.into(),
         role: CredentialRole::Holder,
         deleted_at: None,
         redirect_uri: None,

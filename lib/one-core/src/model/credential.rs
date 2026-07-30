@@ -8,7 +8,7 @@ use time::OffsetDateTime;
 
 use super::claim::Claim;
 use super::common::GetListResponse;
-use super::credential_schema::{CredentialSchema, CredentialSchemaRelations};
+use super::credential_schema::CredentialSchema;
 use super::identifier::{Identifier, IdentifierRelations};
 use super::interaction::{Interaction, InteractionRelations};
 use super::key::Key;
@@ -47,7 +47,7 @@ pub struct Credential {
     pub issuer_identifier: Option<Identifier>,
     pub issuer_certificate: Option<Certificate>,
     pub holder_identifier: Option<Identifier>,
-    pub schema: Option<CredentialSchema>,
+    pub schema: Related<CredentialSchema>,
     pub interaction: Option<Interaction>,
     pub key: Option<Key>,
     pub parent: Option<Related<Credential>>,
@@ -58,7 +58,6 @@ pub struct CredentialRelations {
     pub issuer_identifier: Option<IdentifierRelations>,
     pub issuer_certificate: Option<CertificateRelations>,
     pub holder_identifier: Option<IdentifierRelations>,
-    pub schema: Option<CredentialSchemaRelations>,
     pub interaction: Option<InteractionRelations>,
     pub key: Option<KeyRelations>,
 }

@@ -362,7 +362,7 @@ async fn test_parse_credential() {
         "did:key:zDnaeQtSJWkb9qaCu3imWNh6HZqVdcDESDNGnZjMqFZykv3m5"
     );
 
-    let schema = credential.schema.as_ref().unwrap();
+    let schema = credential.schema.as_ref().await.unwrap();
     assert_eq!(schema.allow_revocation, true);
     assert_eq!(schema.name, "8761JsonLd");
     assert_eq!(

@@ -521,7 +521,7 @@ async fn test_issuance_accept_schema_name_already_exists() {
     assert_eq!(resp.status(), 200);
     let credential_id = resp.json::<serde_json::Value>().await["id"].parse();
     let credential = context.db.credentials.get(&credential_id).await;
-    let credential_schema = credential.schema.as_ref().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap();
 
     let history = context
         .db

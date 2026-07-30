@@ -276,12 +276,7 @@ pub(super) async fn validate_batch_consistency(
 async fn single_schema_format(
     credential: &Credential,
 ) -> Result<CredentialSchemaFormat, IssuanceProtocolError> {
-    let schema = credential
-        .schema
-        .as_ref()
-        .ok_or(IssuanceProtocolError::Failed(
-            "missing parsed credential schema".to_string(),
-        ))?;
+    let schema = credential.schema.as_ref().await?;
     let schema_format = schema.formats.as_ref().await?;
     if schema_format.len() > 1 {
         return Err(IssuanceProtocolError::Failed(

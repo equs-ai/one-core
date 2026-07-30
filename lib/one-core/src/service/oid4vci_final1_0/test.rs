@@ -313,7 +313,7 @@ fn dummy_credential(
     protocol: &str,
     state: CredentialStateEnum,
     pre_authorized_code: bool,
-    schema: Option<CredentialSchema>,
+    schema: CredentialSchema,
 ) -> Credential {
     Credential {
         id: Uuid::new_v4().into(),
@@ -332,7 +332,7 @@ fn dummy_credential(
         issuer_identifier: Some(dummy_identifier()),
         issuer_certificate: None,
         holder_identifier: None,
-        schema,
+        schema: schema.into(),
         interaction: Some(dummy_interaction(
             None,
             pre_authorized_code,
@@ -1132,7 +1132,7 @@ async fn test_create_token() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Pending,
         false,
-        Some(schema.clone()),
+        schema.clone(),
     );
     let interaction_id = credential.interaction.as_ref().unwrap().id;
     let interaction = credential.interaction.clone().unwrap();
@@ -1249,7 +1249,7 @@ async fn test_create_token_pre_authorized_code_used() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Pending,
         true,
-        Some(clone),
+        clone,
     );
     let interaction = credential.interaction.clone().unwrap();
     credential_repository
@@ -1310,7 +1310,7 @@ async fn test_create_token_wrong_credential_state() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Offered,
         false,
-        Some(clone),
+        clone,
     );
     let interaction = credential.interaction.clone().unwrap();
     credential_repository
@@ -1364,7 +1364,7 @@ async fn test_create_credential_success() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Offered,
         true,
-        Some(schema.clone()),
+        schema.clone(),
     );
     let holder_did_id: DidId = Uuid::new_v4().into();
     {
@@ -1551,7 +1551,7 @@ async fn test_create_credential_success_sd_jwt_vc() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Offered,
         true,
-        Some(schema.clone()),
+        schema.clone(),
     );
     let holder_did_id: DidId = Uuid::new_v4().into();
     {
@@ -1738,7 +1738,7 @@ async fn test_create_credential_success_mdoc() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Offered,
         true,
-        Some(schema.clone()),
+        schema.clone(),
     );
     let holder_identifier_id = Uuid::new_v4().into();
     let holder_did_id: DidId = Uuid::new_v4().into();
@@ -2196,7 +2196,7 @@ async fn test_create_credential_issuer_failed() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Offered,
         true,
-        Some(schema.clone()),
+        schema.clone(),
     );
     let holder_did_id: DidId = Uuid::new_v4().into();
     {
@@ -2363,7 +2363,7 @@ async fn test_create_credential_nonce_reused() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Offered,
         true,
-        Some(schema.clone()),
+        schema.clone(),
     );
 
     {
@@ -2534,7 +2534,7 @@ async fn test_for_mdoc_schema_pre_authorized_grant_type_creates_refresh_token() 
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Pending,
         false,
-        Some(schema.clone()),
+        schema.clone(),
     );
     let interaction_id = credential.interaction.as_ref().unwrap().id;
     let interaction = credential.interaction.clone().unwrap();
@@ -2632,7 +2632,7 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
             "OPENID4VCI_FINAL1",
             CredentialStateEnum::Accepted,
             false,
-            Some(schema.clone()),
+            schema.clone(),
         )
     };
 
@@ -2726,7 +2726,7 @@ async fn test_refresh_token_request_fails_if_refresh_token_is_expired() {
             "OPENID4VCI_FINAL1",
             CredentialStateEnum::Accepted,
             false,
-            Some(schema.clone()),
+            schema.clone(),
         )
     };
 
@@ -2785,7 +2785,7 @@ async fn test_create_token_eudi_compliant_without_attestation_fails() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Pending,
         false,
-        Some(schema.clone()),
+        schema.clone(),
     );
     credential_repository
         .expect_get_credentials_by_interaction_id()
@@ -2841,7 +2841,7 @@ async fn test_create_token_eudi_compliant_with_only_attestation_fails() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Pending,
         false,
-        Some(schema.clone()),
+        schema.clone(),
     );
     credential_repository
         .expect_get_credentials_by_interaction_id()
@@ -2896,7 +2896,7 @@ async fn test_create_token_non_eudi_with_attestation_fails() {
         "OPENID4VCI_FINAL1",
         CredentialStateEnum::Pending,
         false,
-        Some(schema.clone()),
+        schema.clone(),
     );
     credential_repository
         .expect_get_credentials_by_interaction_id()

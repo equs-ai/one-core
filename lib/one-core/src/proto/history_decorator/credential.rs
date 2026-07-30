@@ -44,7 +44,6 @@ impl CredentialHistoryDecorator {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     issuer_identifier: Some(IdentifierRelations {}),
                     holder_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
@@ -72,12 +71,15 @@ impl CredentialHistoryDecorator {
         credential: &Credential,
         action: HistoryAction,
     ) {
-        let Some(credential_schema) = &credential.schema else {
-            tracing::warn!(
-                "failed inserting {action:?} history event for credential: {}. missing credential schema",
-                credential.id
-            );
-            return;
+        let credential_schema = match credential.schema.as_ref().await {
+            Ok(schema) => schema,
+            Err(err) => {
+                tracing::warn!(
+                    "failed inserting {action:?} history event for credential: {}: {err}",
+                    credential.id
+                );
+                return;
+            }
         };
 
         let entry = History {

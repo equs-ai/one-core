@@ -250,7 +250,7 @@ impl OpenID4VCIFinal1_0 {
         parent_id: CredentialId,
         schema: &CredentialSchema,
     ) {
-        credential.schema = Some(schema.clone());
+        credential.schema = schema.clone().into();
         credential.r#type = CredentialType::BatchItem;
         credential.parent = Some(Related::new(parent_id, self.credential_repository.clone()));
         credential.claims = Default::default();
@@ -270,15 +270,8 @@ impl OpenID4VCIFinal1_0 {
 
         // Adjust format if it was replaced by a different one of the same type.
         if let Some(conflicting_format) = &conflicting_format {
-            let mut formats = credential
-                .schema
-                .as_mut()
-                .ok_or(IssuanceProtocolError::Failed(
-                    "missing parsed schema".to_string(),
-                ))?
-                .formats
-                .as_mut()
-                .await?;
+            let mut credential_schema = credential.schema.as_mut().await?;
+            let mut formats = credential_schema.formats.as_mut().await?;
             formats
                 .first_mut()
                 .ok_or(IssuanceProtocolError::Failed(
@@ -362,19 +355,14 @@ impl OpenID4VCIFinal1_0 {
                     "Missing credential schema".to_string(),
                 ))?;
 
-        let schema = credential
-            .schema
-            .as_ref()
-            .ok_or(IssuanceProtocolError::Failed(
-                "Missing credential schema".to_string(),
-            ))?;
+        let schema = credential.schema.as_ref().await?;
         let credential_schema_format = schema.format().await?;
         let formatter = self
             .formatter_provider
             .get_credential_formatter(&credential_schema_format)?;
 
         let extracted = formatter
-            .extract_credentials(&updated_credential, Some(schema), self.verification_fn())
+            .extract_credentials(&updated_credential, Some(&schema), self.verification_fn())
             .await
             .error_while("extracting credential")?;
 
@@ -391,7 +379,7 @@ impl OpenID4VCIFinal1_0 {
                     issuer_certificate
                         .as_ref()
                         .map(|certificate| certificate.chain.as_str()),
-                    schema,
+                    &schema,
                     None,
                     Default::default(),
                     organisation_id,
@@ -434,7 +422,6 @@ impl OpenID4VCIFinal1_0 {
             .get_credentials_by_interaction_id(
                 &interaction.id,
                 &CredentialRelations {
-                    schema: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -450,9 +437,7 @@ impl OpenID4VCIFinal1_0 {
                 batch_parent.r#type,
             ));
         }
-        let mut schema = batch_parent
-            .schema
-            .ok_or(IssuanceProtocolError::Failed("Missing schema".to_string()))?;
+        let mut schema = batch_parent.schema.as_ref().await?.to_owned();
 
         let format_type = map_from_oidc_format_to_core_detailed(
             &interaction_data.format,
@@ -689,11 +674,7 @@ impl OpenID4VCIFinal1_0 {
         parsed_credential: &Credential,
         organisation: &Organisation,
     ) -> Result<(CredentialSchema, Option<CredentialFormat>), IssuanceProtocolError> {
-        let mut schema = parsed_credential
-            .schema
-            .as_ref()
-            .ok_or(IssuanceProtocolError::Failed("Missing schema".to_string()))?
-            .to_owned();
+        let mut schema = parsed_credential.schema.as_ref().await?.to_owned();
 
         apply_issuer_metadata_to_schema(
             &mut schema,
@@ -818,10 +799,7 @@ async fn validate_existing_and_find_new_claim_schemas(
     let mut claims = credential.claims.as_mut().await?;
     claims.sort_by_key(|c| c.path.clone());
 
-    let parsed_schema = credential
-        .schema
-        .as_ref()
-        .ok_or(IssuanceProtocolError::Failed("Missing schema".to_string()))?;
+    let parsed_schema = credential.schema.as_ref().await?;
     let mut parsed_claim_schemas = parsed_schema.claim_schemas.as_ref().await?.to_owned();
     parsed_claim_schemas.sort_by_key(|s| s.key.clone());
 
@@ -836,6 +814,7 @@ async fn validate_existing_and_find_new_claim_schemas(
         .as_ref()
         .await?
         .to_owned();
+    drop(parsed_schema);
 
     let mut stored_formats = stored_schema.formats.as_mut().await?;
     let stored_format = stored_formats
@@ -944,7 +923,7 @@ async fn validate_existing_and_find_new_claim_schemas(
     drop(stored_claim_schemas);
     drop(stored_mappings);
     drop(stored_formats);
-    credential.schema = Some(stored_schema.to_owned());
+    credential.schema = stored_schema.to_owned().into();
     Ok((new_claim_schemas, new_mappings))
 }
 

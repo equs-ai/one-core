@@ -1163,7 +1163,7 @@ async fn test_parse_credential() {
         arr_1_claim.schema.as_ref().await.unwrap().id
     );
 
-    let schema = credential.schema.unwrap();
+    let schema = credential.schema.as_ref().await.unwrap();
     assert_eq!(schema.schema_id().await.unwrap(), "pavel.7545.strings");
     let claim_schemas = schema.claim_schemas.as_ref().await.unwrap();
     assert_eq!(claim_schemas.len(), 5);

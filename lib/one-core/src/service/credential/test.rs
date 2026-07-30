@@ -180,44 +180,43 @@ async fn generic_credential() -> Credential {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: false,
-                    id: credential_schema_id,
-                    deleted_at: None,
-                    imported_source_url: "CORE_URL".to_string(),
-                    created_date: now,
-                    last_modified: now,
-                    name: "schema".to_string(),
-                    key_storage_security: None,
-                    claim_schemas: vec![claim_schema].into(),
-                    organisation: organisation.into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
-                    translations: Default::default(),
-                    embedded_disclosure_policy: None,
+        schema: (backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: false,
+                id: credential_schema_id,
+                deleted_at: None,
+                imported_source_url: "CORE_URL".to_string(),
+                created_date: now,
+                last_modified: now,
+                name: "schema".to_string(),
+                key_storage_security: None,
+                claim_schemas: vec![claim_schema].into(),
+                organisation: organisation.into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
 
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "JWT".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    credential_schema_id,
+                    format: "JWT".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+            },
+            "en",
+        )
+        .await
+        .unwrap())
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -281,43 +280,42 @@ async fn generic_credential_list_entity() -> Credential {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: false,
-                    id: credential_schema_id,
-                    deleted_at: None,
-                    imported_source_url: "CORE_URL".to_string(),
-                    created_date: now,
-                    last_modified: now,
-                    name: "schema".to_string(),
-                    key_storage_security: None,
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "JWT".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                    claim_schemas: Default::default(),
-                    organisation: dummy_organisation(None).into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
-                    translations: Default::default(),
-                    embedded_disclosure_policy: None,
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+        schema: (backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: false,
+                id: credential_schema_id,
+                deleted_at: None,
+                imported_source_url: "CORE_URL".to_string(),
+                created_date: now,
+                last_modified: now,
+                name: "schema".to_string(),
+                key_storage_security: None,
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    credential_schema_id,
+                    format: "JWT".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+                claim_schemas: Default::default(),
+                organisation: dummy_organisation(None).into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
+            },
+            "en",
+        )
+        .await
+        .unwrap())
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -397,7 +395,7 @@ async fn test_delete_credential_incorrect_state() {
     let mut credential_repository = MockCredentialRepository::default();
 
     let mut credential = generic_credential().await;
-    credential.schema.as_mut().unwrap().allow_revocation = true;
+    credential.schema.as_mut().await.unwrap().allow_revocation = true;
     credential.state = CredentialStateEnum::Accepted;
     credential.role = CredentialRole::Issuer;
 
@@ -679,31 +677,6 @@ async fn test_get_revoked_credential_success() {
 }
 
 #[tokio::test]
-async fn test_get_credential_fail_credential_schema_is_none() {
-    let mut credential_repository = MockCredentialRepository::default();
-
-    let mut credential = generic_credential().await;
-    credential.schema = None;
-    {
-        let clone = credential.clone();
-        credential_repository
-            .expect_get_credential()
-            .times(1)
-            .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
-    }
-
-    let service = setup_service(Repositories {
-        credential_repository,
-        config: generic_config().core,
-        ..Default::default()
-    });
-
-    let result = service.get_credential(&credential.id).await;
-    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0047);
-}
-
-#[tokio::test]
 async fn test_share_credential_success() {
     let mut credential_repository = MockCredentialRepository::default();
 
@@ -867,7 +840,7 @@ async fn test_create_credential_based_on_issuer_did_success() {
     {
         let clone = credential.clone();
         let issuer_did = issuer_identifier_did.clone();
-        let credential_schema = credential.schema.clone().unwrap();
+        let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
         identifier_repository
             .expect_get_from_did_id()
@@ -902,6 +875,7 @@ async fn test_create_credential_based_on_issuer_did_success() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -931,7 +905,7 @@ async fn test_create_credential_based_on_issuer_did_success() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
@@ -971,7 +945,7 @@ async fn test_create_credential_based_on_issuer_identifier_success() {
     {
         let clone = credential.clone();
         let issuer_identifier = credential.issuer_identifier.clone().unwrap();
-        let credential_schema = credential.schema.clone().unwrap();
+        let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
         identifier_repository
             .expect_get()
@@ -1001,6 +975,7 @@ async fn test_create_credential_based_on_issuer_identifier_success() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -1030,7 +1005,7 @@ async fn test_create_credential_based_on_issuer_identifier_success() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: Some(credential.issuer_identifier.as_ref().unwrap().id),
             issuer_did: None,
             issuer_key: None,
@@ -1072,7 +1047,7 @@ async fn test_create_credential_failed_unsupported_wallet_storage_type() {
         ..
     } = generic_credential().await;
 
-    let mut schema = schema.unwrap();
+    let mut schema = schema.as_ref().await.unwrap().to_owned();
     let claims = claims.as_ref().await.unwrap().to_owned();
     let issuer_identifier = issuer_identifier.unwrap();
 
@@ -1135,7 +1110,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
     );
     {
         let issuer_did = issuer_identifier_did.clone();
-        let credential_schema = credential.schema.clone().unwrap();
+        let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
         credential_schema_repository
             .expect_get_credential_schema()
@@ -1168,6 +1143,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -1196,7 +1172,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
@@ -1243,7 +1219,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
     );
     {
         let issuer_did = issuer_identifier_did.clone();
-        let credential_schema = credential.schema.clone().unwrap();
+        let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
         credential_schema_repository
             .expect_get_credential_schema()
@@ -1276,6 +1252,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -1304,7 +1281,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
@@ -1368,7 +1345,7 @@ async fn test_create_credential_fails_if_did_is_deactivated() {
         });
 
     let credential = generic_credential().await;
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_credential_schema()
         .returning(move |_| Ok(Some(credential_schema.clone())));
@@ -1386,6 +1363,7 @@ async fn test_create_credential_fails_if_did_is_deactivated() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -1470,7 +1448,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
             },
         ]
         .into(),
-        ..credential.schema.clone().unwrap()
+        ..credential.schema.as_ref().await.unwrap().to_owned()
     };
 
     {
@@ -1531,7 +1509,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
 
     let required_claim_schema_id = credential_schema.claim_schemas.as_ref().await.unwrap()[0].id;
     let create_request_template = CreateCredentialRequestDTO {
-        credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+        credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
         issuer: None,
         issuer_did: Some(issuer_identifier_did.id()),
         issuer_key: None,
@@ -1598,7 +1576,7 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
             },
         ]
         .into(),
-        ..credential.schema.clone().unwrap()
+        ..credential.schema.as_ref().await.unwrap().to_owned()
     };
 
     {
@@ -1652,7 +1630,7 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
 
     let optional_claim_schema_id = credential_schema.claim_schemas.as_ref().await.unwrap()[1].id;
     let create_request_template = CreateCredentialRequestDTO {
-        credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+        credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
         issuer: None,
         issuer_did: Some(issuer_identifier_did.id()),
         issuer_key: None,
@@ -1700,7 +1678,7 @@ async fn test_create_credential_namespace_optional() {
 
     let claim_schema_id = Uuid::new_v4().into();
     let credential_schema = {
-        let schema = credential.schema.unwrap();
+        let schema = credential.schema.as_ref().await.unwrap().to_owned();
         let format_id = Uuid::new_v4().into();
         CredentialSchema {
             claim_schemas: vec![ClaimSchema {
@@ -1875,7 +1853,7 @@ async fn test_create_credential_schema_deleted() {
     );
     let credential_schema = CredentialSchema {
         deleted_at: Some(crate::clock::now_utc()),
-        ..credential.schema.clone().unwrap()
+        ..credential.schema.as_ref().await.unwrap().to_owned()
     };
 
     {
@@ -1931,7 +1909,7 @@ async fn test_create_credential_schema_deleted() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
@@ -1970,7 +1948,7 @@ async fn test_create_credential_key_with_issuer_key() {
         }) = credential.issuer_identifier.as_ref()
     );
     let issuer_did = issuer_identifier_did.clone();
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository.expect_get_from_did_id().return_once({
         let issuer_did = issuer_did.clone();
@@ -2008,6 +1986,7 @@ async fn test_create_credential_key_with_issuer_key() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2037,7 +2016,7 @@ async fn test_create_credential_key_with_issuer_key() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(
@@ -2128,7 +2107,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
         .into(),
         ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository
         .expect_get_from_did_id()
@@ -2165,6 +2144,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2194,7 +2174,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(key_id.into()),
@@ -2256,7 +2236,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
         ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
 
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository
         .expect_get_from_did_id()
@@ -2285,6 +2265,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2313,7 +2294,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
@@ -2356,7 +2337,7 @@ async fn test_fail_to_create_credential_unknown_key_id() {
         }) = credential.issuer_identifier.as_ref()
     );
     let issuer_did = issuer_identifier_did.clone();
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository
         .expect_get_from_did_id()
@@ -2385,6 +2366,7 @@ async fn test_fail_to_create_credential_unknown_key_id() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2413,7 +2395,7 @@ async fn test_fail_to_create_credential_unknown_key_id() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(Uuid::new_v4().into()),
@@ -2475,7 +2457,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
         .into(),
         ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository
         .expect_get_from_did_id()
@@ -2504,6 +2486,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2532,7 +2515,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(key_id.into()),
@@ -2594,7 +2577,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
         .into(),
         ..issuer_identifier_did.as_ref().await.unwrap().clone()
     };
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository
         .expect_get_from_did_id()
@@ -2623,6 +2606,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2651,7 +2635,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(key_id.into()),
@@ -2694,7 +2678,7 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
         }) = credential.issuer_identifier.as_ref()
     );
     {
-        let credential_schema = credential.schema.clone().unwrap();
+        let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
@@ -2727,6 +2711,7 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2755,7 +2740,7 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: None,
@@ -2801,7 +2786,7 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
         }) = credential.issuer_identifier.as_ref()
     );
     let issuer_did = issuer_identifier_did.clone();
-    let credential_schema = credential.schema.clone().unwrap();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
     identifier_repository.expect_get_from_did_id().return_once({
         let issuer_did = issuer_did.clone();
@@ -2831,6 +2816,7 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2859,7 +2845,7 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: None,
             issuer_did: Some(issuer_identifier_did.id()),
             issuer_key: Some(
@@ -2911,7 +2897,7 @@ async fn test_create_credential_fail_webhook_not_allowed() {
     let credential = generic_credential().await;
     {
         let issuer_identifier = credential.issuer_identifier.clone().unwrap();
-        let credential_schema = credential.schema.clone().unwrap();
+        let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
 
         identifier_repository
             .expect_get()
@@ -2936,6 +2922,7 @@ async fn test_create_credential_fail_webhook_not_allowed() {
         .with(eq(credential
             .schema
             .as_ref()
+            .await
             .unwrap()
             .format()
             .await
@@ -2964,7 +2951,7 @@ async fn test_create_credential_fail_webhook_not_allowed() {
 
     let result = service
         .create_credential(CreateCredentialRequestDTO {
-            credential_schema_id: credential.schema.as_ref().unwrap().id.to_owned(),
+            credential_schema_id: credential.schema.as_ref().await.unwrap().id.to_owned(),
             issuer: Some(credential.issuer_identifier.as_ref().unwrap().id),
             issuer_did: None,
             issuer_key: None,
@@ -3393,14 +3380,14 @@ async fn test_get_credential_success_with_non_required_nested_object() {
 
     let mut credential = generic_credential().await;
 
-    credential.schema.as_mut().unwrap().claim_schemas =
+    credential.schema.as_mut().await.unwrap().claim_schemas =
         vec![location_claim_schema, location_x_claim_schema.to_owned()].into();
 
-    credential.schema = Some(
-        backfill_default_translations(credential.schema.unwrap(), "en")
-            .await
-            .unwrap(),
-    );
+    let updated_schema = credential.schema.as_ref().await.unwrap().to_owned();
+    credential.schema = backfill_default_translations(updated_schema, "en")
+        .await
+        .unwrap()
+        .into();
     *credential.claims.as_mut().await.unwrap() = vec![Claim {
         id: Uuid::new_v4().into(),
         credential_id: credential.id,
@@ -3600,43 +3587,42 @@ async fn test_get_credential_success_array_complex_nested_all() {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: false,
-                    id: credential_schema_id,
-                    deleted_at: None,
-                    created_date: now,
-                    imported_source_url: "CORE_URL".to_string(),
-                    last_modified: now,
-                    name: "schema".to_string(),
-                    key_storage_security: None,
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "JWT".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                    claim_schemas: claim_schemas.into(),
-                    organisation: organisation.into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
-                    translations: Default::default(),
-                    embedded_disclosure_policy: None,
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+        schema: (backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: false,
+                id: credential_schema_id,
+                deleted_at: None,
+                created_date: now,
+                imported_source_url: "CORE_URL".to_string(),
+                last_modified: now,
+                name: "schema".to_string(),
+                key_storage_security: None,
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    credential_schema_id,
+                    format: "JWT".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+                claim_schemas: claim_schemas.into(),
+                organisation: organisation.into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
+            },
+            "en",
+        )
+        .await
+        .unwrap())
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -4381,43 +4367,42 @@ async fn test_get_credential_success_array_index_sorting() {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: false,
-                    id: credential_schema_id,
-                    imported_source_url: "CORE_URL".to_string(),
-                    deleted_at: None,
-                    created_date: now,
-                    last_modified: now,
-                    name: "schema".to_string(),
-                    key_storage_security: None,
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "JWT".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                    claim_schemas: claim_schemas.into(),
-                    organisation: organisation.into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
-                    translations: Default::default(),
-                    embedded_disclosure_policy: None,
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+        schema: (backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: false,
+                id: credential_schema_id,
+                imported_source_url: "CORE_URL".to_string(),
+                deleted_at: None,
+                created_date: now,
+                last_modified: now,
+                name: "schema".to_string(),
+                key_storage_security: None,
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    credential_schema_id,
+                    format: "JWT".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+                claim_schemas: claim_schemas.into(),
+                organisation: organisation.into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
+            },
+            "en",
+        )
+        .await
+        .unwrap())
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -4799,43 +4784,42 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: false,
-                    id: credential_schema_id,
-                    deleted_at: None,
-                    imported_source_url: "CORE_URL".to_string(),
-                    created_date: now,
-                    last_modified: now,
-                    name: "schema".to_string(),
-                    key_storage_security: None,
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "MDOC".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                    claim_schemas: claim_schemas.into(),
-                    organisation: organisation.into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
-                    translations: Default::default(),
-                    embedded_disclosure_policy: None,
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+        schema: (backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: false,
+                id: credential_schema_id,
+                deleted_at: None,
+                imported_source_url: "CORE_URL".to_string(),
+                created_date: now,
+                last_modified: now,
+                name: "schema".to_string(),
+                key_storage_security: None,
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    credential_schema_id,
+                    format: "MDOC".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+                claim_schemas: claim_schemas.into(),
+                organisation: organisation.into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
+            },
+            "en",
+        )
+        .await
+        .unwrap())
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -5072,43 +5056,42 @@ async fn test_get_credential_success_array_single_element() {
         }),
         issuer_certificate: None,
         holder_identifier: None,
-        schema: Some(
-            backfill_default_translations(
-                CredentialSchema {
-                    batch_size: None,
-                    allow_revocation: false,
-                    id: credential_schema_id,
-                    deleted_at: None,
-                    created_date: now,
-                    last_modified: now,
-                    imported_source_url: "CORE_URL".to_string(),
-                    name: "schema".to_string(),
-                    key_storage_security: None,
-                    formats: vec![CredentialSchemaFormat {
-                        id: Uuid::new_v4().into(),
-                        created_date: crate::clock::now_utc(),
-                        last_modified: crate::clock::now_utc(),
-                        credential_schema_id,
-                        format: "JWT".into(),
-                        schema_id: "CredentialSchemaId".to_owned(),
-                        claim_mappings: Default::default(),
-                    }]
-                    .into(),
-                    claim_schemas: claim_schemas.into(),
-                    organisation: organisation.into(),
-                    layout_type: LayoutType::Card,
-                    layout_properties: None,
-                    allow_suspension: true,
-                    requires_wallet_instance_attestation: false,
-                    transaction_code: None,
-                    translations: Default::default(),
-                    embedded_disclosure_policy: None,
-                },
-                "en",
-            )
-            .await
-            .unwrap(),
-        ),
+        schema: (backfill_default_translations(
+            CredentialSchema {
+                batch_size: None,
+                allow_revocation: false,
+                id: credential_schema_id,
+                deleted_at: None,
+                created_date: now,
+                last_modified: now,
+                imported_source_url: "CORE_URL".to_string(),
+                name: "schema".to_string(),
+                key_storage_security: None,
+                formats: vec![CredentialSchemaFormat {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    credential_schema_id,
+                    format: "JWT".into(),
+                    schema_id: "CredentialSchemaId".to_owned(),
+                    claim_mappings: Default::default(),
+                }]
+                .into(),
+                claim_schemas: claim_schemas.into(),
+                organisation: organisation.into(),
+                layout_type: LayoutType::Card,
+                layout_properties: None,
+                allow_suspension: true,
+                requires_wallet_instance_attestation: false,
+                transaction_code: None,
+                translations: Default::default(),
+                embedded_disclosure_policy: None,
+            },
+            "en",
+        )
+        .await
+        .unwrap())
+        .into(),
         interaction: None,
         key: None,
         profile: None,
@@ -5596,9 +5579,10 @@ async fn test_create_credential_session_org_mismatch() {
         .expect_get()
         .return_once(|_| Ok(Some(credential.issuer_identifier.unwrap())));
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
+    let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_credential_schema()
-        .return_once(|_| Ok(Some(credential.schema.unwrap())));
+        .return_once(move |_| Ok(Some(credential_schema)));
     let service = setup_service(Repositories {
         credential_schema_repository,
         config: generic_config().core,

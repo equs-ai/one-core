@@ -454,7 +454,7 @@ async fn setup_submittable_presentation_dcql(
                             "meta": {
                                 "type_values": [[
                                     "https://www.w3.org/2018/credentials#VerifiableCredential",
-                                    format!("{}#Schema1", credential.schema.as_ref().unwrap().schema_id().await.unwrap())
+                                    format!("{}#Schema1", credential.schema.as_ref().await.unwrap().schema_id().await.unwrap())
                                 ]]
                             },
                             "claims": [

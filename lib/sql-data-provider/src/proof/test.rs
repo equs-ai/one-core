@@ -36,6 +36,7 @@ use one_core::repository::proof_schema_repository::{
     MockProofSchemaRepository, ProofSchemaRepository,
 };
 use one_core::service::proof::dto::ProofFilterValue;
+use one_core::service::test_utilities::dummy_credential_schema;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use shared_types::{
     ClaimId, ClaimSchemaId, DidId, IdentifierId, InteractionId, KeyId, OrganisationId, ProofId,
@@ -600,7 +601,7 @@ async fn test_get_proof_with_relations() {
                 issuer_identifier: None,
                 issuer_certificate: None,
                 holder_identifier: None,
-                schema: None,
+                schema: dummy_credential_schema().into(),
                 interaction: None,
                 key: None,
                 profile: None,

@@ -88,10 +88,7 @@ impl CredentialValidityManagerImpl {
         &self,
         credential: &Credential,
     ) -> Result<DetailCredential, Error> {
-        let credential_schema = credential
-            .schema
-            .as_ref()
-            .ok_or(Error::MappingError("schema is None".to_string()))?;
+        let credential_schema = credential.schema.as_ref().await?;
 
         let credential_blob_id = if let Some(credential_blob_id) = credential.credential_blob_id {
             credential_blob_id
@@ -153,7 +150,7 @@ impl CredentialValidityManagerImpl {
             .get_credential_formatter(&credential_schema_format)?;
 
         let detail_credential = formatter
-            .extract_credentials_unverified(&credential_str, Some(credential_schema))
+            .extract_credentials_unverified(&credential_str, Some(&credential_schema))
             .await
             .error_while("extracting credential")?;
         Ok(detail_credential)
