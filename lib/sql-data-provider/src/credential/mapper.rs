@@ -200,6 +200,7 @@ pub(crate) fn model_to_credential(
     credential_repository: &Arc<dyn CredentialRepository>,
     claim_repository: &Arc<dyn ClaimRepository>,
     credential_schema_repository: &Arc<dyn CredentialSchemaRepository>,
+    key_repository: &Arc<dyn KeyRepository>,
 ) -> Credential {
     Credential {
         claims: credential_claims(credential.id, claim_repository),
@@ -224,7 +225,9 @@ pub(crate) fn model_to_credential(
             credential_schema_repository.clone(),
         ),
         interaction: None,
-        key: None,
+        key: credential
+            .key_id
+            .map(|id| Related::new(id, key_repository.clone())),
         credential_blob_id: credential.credential_blob_id,
         wallet_unit_attestation_blob_id: credential.wallet_unit_attestation_blob_id,
         wallet_instance_attestation_blob_id: credential.wallet_instance_attestation_blob_id,
@@ -409,7 +412,9 @@ pub(super) fn credential_list_model_to_repository_model(
         holder_identifier: None,
         schema: Related::from(schema),
         interaction: None,
-        key: None,
+        key: credential
+            .key_id
+            .map(|id| Related::new(id, key_repository.to_owned())),
         credential_blob_id: credential.credential_blob_id,
         wallet_unit_attestation_blob_id: credential.wallet_unit_attestation_blob_id,
         wallet_instance_attestation_blob_id: credential.wallet_instance_attestation_blob_id,

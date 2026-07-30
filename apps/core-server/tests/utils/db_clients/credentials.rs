@@ -34,7 +34,6 @@ impl CredentialsDB {
                 &CredentialRelations {
                     interaction: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
-                    key: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
                 },
@@ -206,7 +205,7 @@ impl CredentialsDB {
             holder_identifier: params.holder_identifier,
             schema: credential_schema.to_owned().into(),
             interaction: params.interaction,
-            key: params.key,
+            key: params.key.map(Into::into),
             profile: params.profile,
             credential_blob_id: params.credential_blob_id,
             wallet_unit_attestation_blob_id: params.wallet_unit_attestation_blob_id,
@@ -234,7 +233,7 @@ impl CredentialsDB {
         credential_schema
             .batch_size
             .expect("schema batch size is required to create credential batch");
-        let key = params.key.take();
+        let key = params.key.take().map(Into::into);
         let holder_identifier = params.holder_identifier.take();
         let mut credential = self
             .prepare_credential(

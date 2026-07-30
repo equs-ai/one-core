@@ -24,6 +24,7 @@ pub(super) struct CredentialListEntityModel {
     pub suspend_end_date: Option<OffsetDateTime>,
     pub profile: Option<String>,
     pub parent_id: Option<CredentialId>,
+    pub key_id: Option<KeyId>,
     pub credential_blob_id: Option<BlobId>,
     pub wallet_unit_attestation_blob_id: Option<BlobId>,
     pub wallet_instance_attestation_blob_id: Option<BlobId>,

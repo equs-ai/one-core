@@ -76,7 +76,7 @@ use crate::model::history::TrustResolutionResult;
 use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use crate::model::interaction::{Interaction, UpdateInteractionRequest};
-use crate::model::key::{Key, KeyRelations};
+use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::model::relation::Related;
 use crate::proto::certificate_validator::CertificateValidator;
@@ -1969,7 +1969,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(CertificateRelations::default()),
-                    key: Some(KeyRelations::default()),
                     ..Default::default()
                 },
             )
@@ -2047,7 +2046,9 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         let key = credential
             .key
             .as_ref()
-            .ok_or(IssuanceProtocolError::Failed("Missing key".to_string()))?;
+            .ok_or(IssuanceProtocolError::Failed("Missing key".to_string()))?
+            .as_ref()
+            .await?;
 
         let issuer_identifier =
             credential
@@ -2058,8 +2059,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 ))?;
 
         let auth_fn = self.key_provider.get_signature_provider(
-            key,
-            self.jwk_key_id_from_identifier(issuer_identifier, key)
+            &key,
+            self.jwk_key_id_from_identifier(issuer_identifier, &key)
                 .await?,
             self.key_algorithm_provider.clone(),
         )?;
@@ -2244,7 +2245,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                         &credential_id,
                         &CredentialRelations {
                             holder_identifier: Some(IdentifierRelations {}),
-                            key: Some(Default::default()),
                             ..Default::default()
                         },
                     )
@@ -2267,6 +2267,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                     .key
                     .as_ref()
                     .ok_or(IssuanceProtocolError::Failed("Missing key".to_string()))?
+                    .as_ref()
+                    .await?
                     .to_owned();
 
                 (

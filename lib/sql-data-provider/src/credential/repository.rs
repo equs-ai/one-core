@@ -68,24 +68,6 @@ impl CredentialProvider {
             None
         };
 
-        let key = if let Some(_key_relations) = &relations.key {
-            match &credential.key_id {
-                None => None,
-                Some(key_id) => {
-                    let key = self.key_repository.get_key(key_id).await?.ok_or(
-                        DataLayerError::MissingRequiredRelation {
-                            relation: "credential-key",
-                            id: key_id.to_string(),
-                        },
-                    )?;
-
-                    Some(key)
-                }
-            }
-        } else {
-            None
-        };
-
         let issuer_certificate = if let Some(_certificate_relations) = &relations.issuer_certificate
         {
             match &credential.issuer_certificate_id {
@@ -110,13 +92,13 @@ impl CredentialProvider {
             issuer_identifier,
             holder_identifier,
             interaction,
-            key,
             issuer_certificate,
             ..model_to_credential(
                 credential,
                 &self.cloned(),
                 &self.claim_repository,
                 &self.credential_schema_repository,
+                &self.key_repository,
             )
         })
     }
@@ -181,6 +163,7 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             credential::Column::Protocol,
             credential::Column::Profile,
             credential::Column::ParentId,
+            credential::Column::KeyId,
             credential::Column::CredentialBlobId,
             credential::Column::WalletUnitAttestationBlobId,
             credential::Column::WalletInstanceAttestationBlobId,
@@ -319,7 +302,7 @@ impl CredentialRepository for CredentialProvider {
             .as_ref()
             .map(|interaction| interaction.id);
 
-        let key_id = request.key.as_ref().map(|key| key.id);
+        let key_id = request.key.as_ref().map(|key| key.id());
 
         if claims.iter().any(|claim| claim.credential_id != request.id) {
             return Err(anyhow::anyhow!("Claim credential-id mismatch!").into());

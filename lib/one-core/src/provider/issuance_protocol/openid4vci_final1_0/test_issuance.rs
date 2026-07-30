@@ -92,7 +92,7 @@ async fn test_issuer_submit_succeeds() {
             ),
             ..dummy_identifier()
         }),
-        key: Some(key),
+        key: Some(key.into()),
         ..dummy_credential().await
     };
 
@@ -290,7 +290,7 @@ async fn generic_mdoc_credential(state: CredentialStateEnum) -> Credential {
             ),
             ..dummy_identifier()
         }),
-        key: Some(key),
+        key: Some(key.into()),
         schema: credential_schema.into(),
         ..dummy_credential().await
     }

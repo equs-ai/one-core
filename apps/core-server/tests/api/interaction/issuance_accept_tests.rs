@@ -806,7 +806,7 @@ async fn test_issuance_accept_openid4vc_with_key_id() {
         }) = credential.holder_identifier.as_ref()
     );
     assert_eq!(holder_did.id, credential_holder_did.id());
-    assert_eq!(key.id, credential.key.unwrap().id);
+    assert_eq!(key.id, credential.key.unwrap().id());
 
     assert_eq!(CredentialStateEnum::Accepted, credential.state);
 }

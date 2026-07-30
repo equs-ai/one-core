@@ -1171,7 +1171,7 @@ async fn attach_matching_holder_binding(
 
     let matching_holder_binding = holder_bindings.swap_remove(position);
     credential.holder_identifier = Some(matching_holder_binding.identifier);
-    credential.key = Some(matching_holder_binding.key);
+    credential.key = Some(matching_holder_binding.key.into());
 
     Ok(())
 }

@@ -2083,7 +2083,7 @@ async fn test_holder_reject_credential() {
     let credential = {
         let mut credential = generic_credential_did();
         credential.state = CredentialStateEnum::Accepted;
-        credential.key = Some(dummy_key());
+        credential.key = Some(dummy_key().into());
 
         let interaction_data = HolderInteractionData {
             issuer_url: mock_server.uri(),

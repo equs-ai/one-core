@@ -14,7 +14,6 @@ use super::interaction::{Interaction, InteractionRelations};
 use super::key::Key;
 use super::list_query::ListQuery;
 use crate::model::certificate::{Certificate, CertificateRelations};
-use crate::model::key::KeyRelations;
 use crate::model::list_filter::{ListFilterValue, StringMatch, ValueComparison};
 use crate::model::relation::{Related, RelatedVec};
 
@@ -49,7 +48,7 @@ pub struct Credential {
     pub holder_identifier: Option<Identifier>,
     pub schema: Related<CredentialSchema>,
     pub interaction: Option<Interaction>,
-    pub key: Option<Key>,
+    pub key: Option<Related<Key>>,
     pub parent: Option<Related<Credential>>,
 }
 
@@ -59,7 +58,6 @@ pub struct CredentialRelations {
     pub issuer_certificate: Option<CertificateRelations>,
     pub holder_identifier: Option<IdentifierRelations>,
     pub interaction: Option<InteractionRelations>,
-    pub key: Option<KeyRelations>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Display)]

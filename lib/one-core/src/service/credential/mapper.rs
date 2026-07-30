@@ -495,7 +495,7 @@ pub(super) fn from_create_request(
         holder_identifier: None,
         schema: schema.into(),
         interaction: None,
-        key: Some(key),
+        key: Some(key.into()),
         redirect_uri: request.redirect_uri,
         role: CredentialRole::Issuer,
         profile: request.profile,

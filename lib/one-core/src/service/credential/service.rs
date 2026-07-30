@@ -285,7 +285,6 @@ impl CredentialService {
                     issuer_certificate: Some(CertificateRelations::default()),
                     holder_identifier: Some(Default::default()),
                     interaction: Some(Default::default()),
-                    ..Default::default()
                 },
             )
             .await
@@ -646,7 +645,6 @@ impl CredentialService {
                     holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
-                    ..Default::default()
                 },
             )
             .await

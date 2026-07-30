@@ -31,7 +31,6 @@ use crate::model::credential::{
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::identifier::IdentifierRelations;
-use crate::model::key::KeyRelations;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::{ListPagination, ListSorting};
 use crate::model::organisation::Organisation;
@@ -470,7 +469,6 @@ impl SSIHolderService {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    key: Some(Default::default()),
                     holder_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
@@ -521,7 +519,6 @@ impl SSIHolderService {
                         &item.id,
                         &CredentialRelations {
                             holder_identifier: Some(IdentifierRelations {}),
-                            key: Some(KeyRelations::default()),
                             ..Default::default()
                         },
                     )

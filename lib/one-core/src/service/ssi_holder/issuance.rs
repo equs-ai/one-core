@@ -319,7 +319,6 @@ impl SSIHolderService {
                 interaction_id,
                 &CredentialRelations {
                     interaction: Some(Default::default()),
-                    key: Some(Default::default()),
                     ..Default::default()
                 },
             )

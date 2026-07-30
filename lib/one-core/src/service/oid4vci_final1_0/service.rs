@@ -917,7 +917,6 @@ impl OID4VCIFinal1_0Service {
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
                     interaction: Some(Default::default()),
-                    key: Some(Default::default()),
                     ..Default::default()
                 },
             )
@@ -1318,7 +1317,6 @@ impl OID4VCIFinal1_0Service {
                 &CredentialRelations {
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
-                    key: Some(Default::default()),
                     ..Default::default()
                 },
             )
