@@ -74,9 +74,6 @@ stages:
   - docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN
   - docker network inspect $NETWORK_NAME >/dev/null 2>&1 || docker network create -d bridge $NETWORK_NAME
 
-.delete_network: &delete_network
-  - docker network remove $NETWORK_NAME
-
 .setup_mariadb: &setup_mariadb
   - >
     docker run -d --name $DB_CONTAINER_NAME
@@ -139,6 +136,14 @@ stages:
   # Copy project files in (can't use volumes in dind)
   - docker cp . $RUST_CONTAINER_NAME:/project
 
+.clean_up: &clean_up
+  - docker stop $DB_CONTAINER_NAME || true
+  - docker rm $DB_CONTAINER_NAME || true
+  - docker volume rm ${DB_CONTAINER_NAME}_data || true
+  - docker stop $RUST_CONTAINER_NAME || true
+  - docker rm $RUST_CONTAINER_NAME || true
+  - docker network remove $NETWORK_NAME || true
+
 before_script:
   - *app_settings
 
@@ -195,15 +200,12 @@ tests:mariadb:
     MYSQL_ROOT_PASSWORD: root_password
     ONE_app__databaseUrl: "mysql://root:${MYSQL_ROOT_PASSWORD}@${DB_CONTAINER_NAME}:3306/${MYSQL_DATABASE}"
   before_script:
+    - *clean_up # in case gitlab didn't finish previous job gracefully
     - *setup_network
     - *setup_mariadb
     - *setup_rust_container
   after_script:
-    - docker stop $DB_CONTAINER_NAME
-    - docker rm $DB_CONTAINER_NAME
-    - docker stop $RUST_CONTAINER_NAME
-    - docker rm $RUST_CONTAINER_NAME
-    - *delete_network
+    - *clean_up
 
 tests:postgres:
   extends:
@@ -215,27 +217,22 @@ tests:postgres:
     POSTGRES_PASSWORD: password
     ONE_app__databaseUrl: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_CONTAINER_NAME}:5432/${POSTGRES_DB}"
   before_script:
+    - *clean_up # in case gitlab didn't finish previous job gracefully
     - *setup_network
     - *setup_postgres
     - *setup_rust_container
   after_script:
-    - docker stop $DB_CONTAINER_NAME
-    - docker rm $DB_CONTAINER_NAME
-    - docker volume rm ${DB_CONTAINER_NAME}_data || true
-    - docker stop $RUST_CONTAINER_NAME
-    - docker rm $RUST_CONTAINER_NAME
-    - *delete_network
+    - *clean_up
 
 tests:sqlite:
   extends:
     - .cargo_tests
   before_script:
+    - *clean_up # in case gitlab didn't finish previous job gracefully
     - *setup_network
     - *setup_rust_container
   after_script:
-    - docker stop $RUST_CONTAINER_NAME
-    - docker rm $RUST_CONTAINER_NAME
-    - *delete_network
+    - *clean_up
 
 linter:clippy:
   interruptible: true
