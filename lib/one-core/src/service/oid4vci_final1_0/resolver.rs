@@ -250,8 +250,8 @@ pub(crate) fn initialize_credential_issuer_metadata_cache_from_config(
         key_provider,
         key_algorithm_provider,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     );
 
     Ok(Arc::new(cache))

@@ -5,7 +5,7 @@ format:
     order: 300
     params:
       public:
-        leeway: 60
+        leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
   SD_JWT:
@@ -14,7 +14,7 @@ format:
     order: 310
     params:
       public:
-        leeway: 60
+        leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
   JSON_LD_CLASSIC:
@@ -23,7 +23,7 @@ format:
     order: 320
     params:
       public:
-        leeway: 60
+        leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
   JSON_LD_BBSPLUS:
@@ -32,7 +32,7 @@ format:
     order: 330
     params:
       public:
-        leeway: 60
+        leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
   MDOC:
@@ -42,10 +42,10 @@ format:
     priority: 100
     params:
       public:
-        msoExpiresIn: 259200 # 72h in seconds
-        msoExpectedUpdateIn: 86400 # 24h in seconds
-        msoMinimumRefreshTime: 300 # 5 min in seconds
-        leeway: 60
+        msoExpiresInSeconds: 259200 # 72h in seconds
+        msoExpectedUpdateInSeconds: 86400 # 24h in seconds
+        msoMinimumRefreshSeconds: 300 # 5 min in seconds
+        leewaySeconds: 60
         ecosystemSchemaIds:
           [
             "org.iso.18013.5.1.mDL",
@@ -70,7 +70,7 @@ format:
     priority: 100
     params:
       public:
-        leeway: 60
+        leewaySeconds: 60
         embedLayoutProperties: true
         ecosystemSchemaIds:
           [
@@ -94,7 +94,7 @@ format:
     order: 201
     params:
       public:
-        leeway: 60
+        leewaySeconds: 60
         embedLayoutProperties: true
         swiyuMode: true
         ecosystemSchemaIds: ["betaid-sdjwt"]
@@ -127,12 +127,12 @@ issuanceProtocol:
       public:
         webhookTask: "WEBHOOK_NOTIFY"
         urlScheme: swiyu
-        oauthAttestationLeeway: 60
-        keyAttestationLeeway: 60
-        trustEcosystemLeeway: 60
-        preAuthorizedCodeExpiresIn: 300
-        tokenExpiresIn: 86400
-        refreshExpiresIn: 7776000 # 90 days in seconds
+        oauthAttestationLeewaySeconds: 60
+        keyAttestationLeewaySeconds: 60
+        trustEcosystemLeewaySeconds: 60
+        preAuthorizedCodeExpiresInSeconds: 300
+        tokenExpiresInSeconds: 86400
+        refreshExpiresInSeconds: 7776000 # 90 days in seconds
         redirectUri:
           enabled: true
           allowedSchemes: ["https"]
@@ -144,12 +144,12 @@ issuanceProtocol:
       public:
         webhookTask: "WEBHOOK_NOTIFY"
         urlScheme: openid-credential-offer
-        oauthAttestationLeeway: 60
-        keyAttestationLeeway: 60
-        trustEcosystemLeeway: 60
-        preAuthorizedCodeExpiresIn: 300
-        tokenExpiresIn: 86400
-        refreshExpiresIn: 7776000 # 90 days in seconds
+        oauthAttestationLeewaySeconds: 60
+        keyAttestationLeewaySeconds: 60
+        trustEcosystemLeewaySeconds: 60
+        preAuthorizedCodeExpiresInSeconds: 300
+        tokenExpiresInSeconds: 86400
+        refreshExpiresInSeconds: 7776000 # 90 days in seconds
         redirectUri:
           enabled: true
           allowedSchemes: ["https"]
@@ -163,12 +163,12 @@ issuanceProtocol:
       public:
         webhookTask: "WEBHOOK_NOTIFY"
         urlScheme: haip-vci
-        oauthAttestationLeeway: 60
-        keyAttestationLeeway: 60
-        trustEcosystemLeeway: 60
-        preAuthorizedCodeExpiresIn: 300
-        tokenExpiresIn: 86400
-        refreshExpiresIn: 7776000 # 90 days in seconds
+        oauthAttestationLeewaySeconds: 60
+        keyAttestationLeewaySeconds: 60
+        trustEcosystemLeewaySeconds: 60
+        preAuthorizedCodeExpiresInSeconds: 300
+        tokenExpiresInSeconds: 86400
+        refreshExpiresInSeconds: 7776000 # 90 days in seconds
         redirectUri:
           enabled: true
           allowedSchemes: ["https"]
@@ -186,7 +186,7 @@ verificationProtocol:
           enabled: true
           allowedSchemes: ["https"]
         verifier:
-          interactionExpiresIn: 3600
+          interactionExpiresInSeconds: 3600
   OPENID4VP_FINAL1:
     display: "exchange.openid4vpFinal1"
     order: 20
@@ -197,7 +197,7 @@ verificationProtocol:
         useRequestUri: true
         urlScheme: openid4vp
         verifier:
-          interactionExpiresIn: 3600
+          interactionExpiresInSeconds: 3600
           supportedClientIdSchemes:
             [
               verifier_attestation,
@@ -230,7 +230,7 @@ verificationProtocol:
         useRequestUri: true
         urlScheme: haip-vp
         verifier:
-          interactionExpiresIn: 3600
+          interactionExpiresInSeconds: 3600
           supportedClientIdSchemes: [x509_hash]
         holder:
           supportedClientIdSchemes: [x509_hash]
@@ -273,7 +273,7 @@ revocation:
     type: "CRL"
     params:
       public:
-        refreshInterval: 86400
+        refreshIntervalSeconds: 86400
 did:
   KEY:
     display: "did.key"
@@ -343,7 +343,7 @@ did:
           capabilityDelegation:
             min: 0
             max: 1
-        leeway: 60
+        leewaySeconds: 60
       private:
         maxDidLogEntryCheck: 10
 datatype:
@@ -581,9 +581,9 @@ task:
     order: 5
     params:
       private:
-        requestTimeout: 30
+        requestTimeoutSeconds: 30
         retries:
-          interval: 1
+          intervalSeconds: 1
           maxAttempts: 5
           exponentialFactor: 2.5
   TRUST_LIST_SUBSCRIPTION_UPDATE:
@@ -597,60 +597,60 @@ task:
 cacheEntities:
   X509_CRL:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   STATUS_LIST_CREDENTIAL:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   DID_DOCUMENT:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   JSON_LD_CONTEXT:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   VCT_METADATA:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   JSON_SCHEMA:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   TRUST_LIST:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   OPENID_METADATA:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   CREDENTIAL_ISSUER_METADATA:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   # Caching of REMOTE_TRUST_COLLECTION and WALLET_PROVIDER_METADATA is done only for the trust collection sync task for
   # org wallets. Generally the information should be fresh, so cache refresh time is short.
   REMOTE_TRUST_COLLECTION:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   WALLET_PROVIDER_METADATA:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
 trustListPublisher:
   LOTE_PUBLISHER:
@@ -669,7 +669,7 @@ trustListSubscriber:
     params:
       private:
         accepts: "application/jwt"
-        leeway: 60
+        leewaySeconds: 60
         # Max depth to follow through chained PointersToOtherLoTE.
         maxPointerDepth: 5
   LOTL_SUBSCRIBER:
@@ -678,7 +678,7 @@ trustListSubscriber:
     display: "trustListSubscriber.etsiLotlList"
     params:
       private:
-        leeway: 60
+        leewaySeconds: 60
         # subscribers to delegate non-612 pointers to
         delegateSubscribers: ["LOTE_SUBSCRIBER"]
         # root LOTL signer cert(s), base64 DER; empty = trust-on-first-use
@@ -693,10 +693,10 @@ verificationEngagement:
     enabled: true
 globalSettings:
   certificateValidation:
-    leeway: 60
+    leewaySeconds: 60
   httpClient:
     insecureHttpTransportAllowed: false
-    timeout: 30 # 30secs
+    timeoutSeconds: 30 # 30secs
     maxRedirects: 3
     deniedHosts: []
     maxResponseSize: 10485760 # 10MiB

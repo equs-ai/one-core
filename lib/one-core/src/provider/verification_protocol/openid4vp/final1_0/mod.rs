@@ -751,7 +751,7 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
         let expires_at = self
             .params
             .verifier
-            .interaction_expires_in
+            .interaction_expires_in_seconds
             .map(|interaction_expires_in| crate::clock::now_utc() + interaction_expires_in);
 
         Ok(ShareResponse {

@@ -65,11 +65,11 @@ pub struct JWTFormatter {
 #[serde(rename_all = "camelCase")]
 struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    leeway: Duration,
+    leeway_seconds: Duration,
     embed_layout_properties: bool,
     #[serde_as(as = "DurationSeconds<i64>")]
     #[serde(default = "default_2_years")]
-    expiration_time: Duration,
+    expiration_seconds: Duration,
     revocation_method: Option<RevocationMethodId>,
 }
 
@@ -111,7 +111,7 @@ impl CredentialFormatter for JWTFormatter {
         let expires_at = vcdm
             .valid_until
             .or(vcdm.expiration_date)
-            .or(Some(now + self.params.expiration_time));
+            .or(Some(now + self.params.expiration_seconds));
         let credential_id = vcdm.id.clone().map(|id| id.to_string());
 
         let issuer = vcdm.issuer.as_url().to_string();
@@ -239,7 +239,7 @@ impl CredentialFormatter for JWTFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

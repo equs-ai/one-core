@@ -99,7 +99,7 @@ pub(super) struct WalletProviderParams {
     pub wallet_instance_attestation: WalletInstanceAttestationParams,
     pub wallet_unit_attestation: WalletUnitAttestationParams,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub device_auth_leeway: Duration,
+    pub device_auth_leeway_seconds: Duration,
     pub app_version: Option<AppVersionDTO>,
     pub eudi_wallet_info: Option<EudiWalletInfoConfig>,
     #[serde(default)]
@@ -159,7 +159,7 @@ pub(super) enum WalletRegistrationRequirement {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WalletInstanceAttestationParams {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub expiration_time: Duration,
+    pub expiration_seconds: Duration,
     #[serde(default)]
     pub integrity_check: IntegrityCheck,
 }
@@ -169,7 +169,7 @@ pub(crate) struct WalletInstanceAttestationParams {
 #[serde(rename_all = "camelCase")]
 pub(super) struct WalletUnitAttestationParams {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub expiration_time: Duration,
+    pub expiration_seconds: Duration,
     pub revocation_method: Option<RevocationMethodId>,
 }
 
@@ -238,7 +238,7 @@ pub(crate) struct IntegrityCheck {
     pub enabled: bool,
     #[serde(default = "default_attestation_timeout")]
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub timeout: Duration,
+    pub timeout_seconds: Duration,
 }
 
 impl Default for IntegrityCheck {
@@ -247,7 +247,7 @@ impl Default for IntegrityCheck {
             android: None,
             ios: None,
             enabled: true,
-            timeout: Duration::seconds(300),
+            timeout_seconds: Duration::seconds(300),
         }
     }
 }

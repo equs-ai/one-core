@@ -352,7 +352,7 @@ impl OpenID4VCIFinal1_0 {
             .config
             .format
             .get::<mdoc_formatter::Params, _>(format)
-            .map(|p| p.mso_minimum_refresh_time)
+            .map(|p| p.mso_minimum_refresh_seconds)
             .error_while("getting format params")?)
     }
 
@@ -1953,7 +1953,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             },
         )?);
 
-        let expires_at = Some(crate::clock::now_utc() + self.params.pre_authorized_code_expires_in);
+        let expires_at =
+            Some(crate::clock::now_utc() + self.params.pre_authorized_code_expires_in_seconds);
 
         Ok(ShareResponse {
             url,

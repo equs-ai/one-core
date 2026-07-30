@@ -4434,9 +4434,9 @@ async fn test_holder_accept_credential_stores_disclosure_policy() {
 
 fn test_params(issuance_url_scheme: &str) -> serde_json::Value {
     json!({
-        "preAuthorizedCodeExpiresIn": 10,
-        "tokenExpiresIn": 10,
-        "refreshExpiresIn": 1000,
+        "preAuthorizedCodeExpiresInSeconds": 10,
+        "tokenExpiresInSeconds": 10,
+        "refreshExpiresInSeconds": 1000,
         "credentialOfferByValue": true,
         "encryption": "0000000000000000000000000000000000000000000000000000000000000000",
         "redirectUri": {
@@ -4444,9 +4444,9 @@ fn test_params(issuance_url_scheme: &str) -> serde_json::Value {
             "allowedSchemes": ["https"]
         },
         "urlScheme": issuance_url_scheme,
-        "oauthAttestationLeeway": 60,
-        "keyAttestationLeeway": 60,
-        "trustEcosystemLeeway": 60
+        "oauthAttestationLeewaySeconds": 60,
+        "keyAttestationLeewaySeconds": 60,
+        "trustEcosystemLeewaySeconds": 60
     })
 }
 

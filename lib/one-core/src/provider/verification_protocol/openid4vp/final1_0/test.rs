@@ -117,10 +117,10 @@ fn generic_params() -> serde_json::Value {
                 ClientIdScheme::RedirectUri,
                 ClientIdScheme::VerifierAttestation
             ],
-            "trustEcosystemsLeeway": 45
+            "trustEcosystemsLeewaySeconds": 45
         },
         "verifier": {
-            "interactionExpiresIn": 1000,
+            "interactionExpiresInSeconds": 1000,
             "supportedClientIdSchemes": [
                 ClientIdScheme::RedirectUri,
                 ClientIdScheme::VerifierAttestation

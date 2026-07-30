@@ -41,7 +41,7 @@ use crate::util::vcdm_jsonld_contexts::is_context_list_valid;
 #[serde(rename_all = "camelCase")]
 pub struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
     allowed_contexts: Option<Vec<Url>>,
 }
 
@@ -61,7 +61,7 @@ impl LdpVpPresentationFormatter {
             crypto,
             caching_loader: ContextCache::new(caching_loader, client),
             params: Params {
-                leeway: Duration::seconds(60),
+                leeway_seconds: Duration::seconds(60),
                 allowed_contexts: None,
             },
         }
@@ -187,7 +187,7 @@ impl PresentationFormatter for LdpVpPresentationFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 }
 

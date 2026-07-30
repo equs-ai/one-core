@@ -56,19 +56,19 @@ struct OpenID4VpFinalSwiyuParams {
 struct OpenID4Vp20SwiyuPresentationVerifierParams {
     #[serde(default)]
     #[serde_as(as = "Option<DurationSeconds<i64>>")]
-    interaction_expires_in: Option<Duration>,
+    interaction_expires_in_seconds: Option<Duration>,
 }
 
 pub(crate) fn swiyu_to_final_params(mut params: Value) -> Result<Value, serde_json::Error> {
     let swiyu_params: OpenID4VpFinalSwiyuParams = serde_json::from_value(params.clone())?;
 
-    let verifier = if let Some(interaction_expires_in) = swiyu_params
+    let verifier = if let Some(interaction_expires_in_seconds) = swiyu_params
         .verifier
-        .and_then(|verifier| verifier.interaction_expires_in)
+        .and_then(|verifier| verifier.interaction_expires_in_seconds)
     {
         json!({
            "supportedClientIdSchemes": [ClientIdScheme::Did],
-           "interactionExpiresIn": interaction_expires_in.whole_seconds()
+           "interactionExpiresInSeconds": interaction_expires_in_seconds.whole_seconds()
         })
     } else {
         json!({ "supportedClientIdSchemes": [ClientIdScheme::Did] })

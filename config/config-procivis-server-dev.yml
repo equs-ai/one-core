@@ -43,7 +43,7 @@ walletProvider:
       public:
         walletName: "Procivis One Native Dev Wallet"
         walletInstanceAttestation:
-          expirationTime: 86400 # 24*60*60 seconds
+          expirationSeconds: 86400 # 24*60*60 seconds
           integrityCheck:
             android:
               bundleId: ch.procivis.one.wallet.android.dev
@@ -79,9 +79,9 @@ walletProvider:
         walletClientId: "eudiw-abca"
         walletRegistration: OPTIONAL
         walletUnitAttestation:
-          expirationTime: 2678400 # 31 days
+          expirationSeconds: 2678400 # 31 days
           revocationMethod: TOKENSTATUSLIST
-        deviceAuthLeeway: 60
+        deviceAuthLeewaySeconds: 60
 verifierProvider:
   PROCIVIS_ONE:
     params:
@@ -100,10 +100,10 @@ format:
     order: 101
     params:
       public:
-        msoExpiresIn: 60
-        msoExpectedUpdateIn: 60
-        msoMinimumRefreshTime: 10
-        leeway: 10
+        msoExpiresInSeconds: 60
+        msoExpectedUpdateInSeconds: 60
+        msoMinimumRefreshSeconds: 10
+        leewaySeconds: 10
         revocationMethod: "MDOC_MSO_UPDATE_SUSPENSION"
 transport:
   MQTT:
@@ -124,7 +124,7 @@ verificationProtocol:
     params:
       public:
         verifier:
-          interactionExpiresIn: 3600
+          interactionExpiresInSeconds: 3600
 signer:
   REGISTRATION_CERTIFICATE:
     params:

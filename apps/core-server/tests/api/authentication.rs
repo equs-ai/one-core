@@ -356,10 +356,10 @@ async fn test_sts_authentication_invalid_token(key: GeneratedKey, jwk: PublicJwk
             stsTokenValidation:
                 aud: 'core'
                 iss: 'bff'
-                jwksRefreshAfter: 600
-                jwksExpireAfter: 86400
+                jwksRefreshAfterSeconds: 600
+                jwksExpireAfterSeconds: 86400
                 jwksUri: {url}
-                leeway: 0
+                leewaySeconds: 0
     ",
     url = format!("{}/jwks.json", mock_server.uri())};
     let jwks = json!({

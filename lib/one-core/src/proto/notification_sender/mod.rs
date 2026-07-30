@@ -123,7 +123,7 @@ impl NotificationSenderImpl {
                     .post(url)
                     .header("Content-Type", "application/json")
                     .body(payload)
-                    .timeout(params.request_timeout)
+                    .timeout(params.request_timeout_seconds)
                     .send()
                     .await?
                     .status,
@@ -179,7 +179,7 @@ impl NotificationSenderImpl {
         let password = url.password().map(|p| p.to_string());
         let topic = url.path().trim_start_matches('/').to_string();
 
-        let timeout_secs = params.request_timeout.whole_seconds().max(1) as u64;
+        let timeout_secs = params.request_timeout_seconds.whole_seconds().max(1) as u64;
         let key = MqttConnectionKey {
             host,
             port,
@@ -320,7 +320,7 @@ fn calculate_next_try_date(
     params: &Retries,
 ) -> OffsetDateTime {
     let factor = pow(params.exponential_factor, already_tried_times);
-    let delay = params.interval.as_seconds_f32() * factor;
+    let delay = params.interval_seconds.as_seconds_f32() * factor;
     previous_scheduled_time + Duration::seconds_f32(delay)
 }
 
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn test_calculate_next_try_date() {
         let params = Retries {
-            interval: Duration::minutes(1),
+            interval_seconds: Duration::minutes(1),
             max_attempts: 10,
             exponential_factor: 2.0,
         };

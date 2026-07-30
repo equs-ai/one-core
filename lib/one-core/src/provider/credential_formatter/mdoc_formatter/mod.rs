@@ -96,13 +96,13 @@ pub struct MdocFormatter {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub mso_expires_in: Duration,
+    pub mso_expires_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub mso_expected_update_in: Duration,
+    pub mso_expected_update_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub mso_minimum_refresh_time: Duration,
+    pub mso_minimum_refresh_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
     #[serde(default)]
     pub ecosystem_schema_ids: Vec<String>,
     #[serde(default)]
@@ -223,9 +223,9 @@ impl CredentialFormatter for MdocFormatter {
         let validity_info = ValidityInfo {
             signed: DateTime(crate::clock::now_utc()),
             valid_from: DateTime(crate::clock::now_utc()),
-            valid_until: DateTime(crate::clock::now_utc() + self.params.mso_expires_in),
+            valid_until: DateTime(crate::clock::now_utc() + self.params.mso_expires_in_seconds),
             expected_update: Some(DateTime(
-                crate::clock::now_utc() + self.params.mso_expected_update_in,
+                crate::clock::now_utc() + self.params.mso_expected_update_in_seconds,
             )),
         };
 
@@ -387,7 +387,7 @@ impl CredentialFormatter for MdocFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

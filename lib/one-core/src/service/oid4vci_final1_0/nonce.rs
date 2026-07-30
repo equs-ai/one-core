@@ -34,7 +34,7 @@ pub(super) async fn generate_nonce(
     params: OpenID4VCNonceParams,
     base_url: Option<String>,
 ) -> Result<String, OID4VCIFinal1_0ServiceError> {
-    let expiration = params.expiration.unwrap_or(Duration::seconds(300));
+    let expiration = params.expiration_seconds.unwrap_or(Duration::seconds(300));
     let now = crate::clock::now_utc();
 
     let payload = JWTPayload::<NonceJwtPayload> {
@@ -81,8 +81,10 @@ pub(super) fn validate_nonce(
                 .into(),
         );
     };
-    validate_issuance_time(&Some(issued_at), params.leeway).error_while("checking validity")?;
-    validate_expiration_time(&Some(expires_at), params.leeway).error_while("checking validity")?;
+    validate_issuance_time(&Some(issued_at), params.leeway_seconds)
+        .error_while("checking validity")?;
+    validate_expiration_time(&Some(expires_at), params.leeway_seconds)
+        .error_while("checking validity")?;
     if Some(&issuer) != base_url.as_ref() {
         return Err(
             FormatterError::CouldNotVerify(format!("Invalid nonce issuer: {issuer}"))
@@ -147,8 +149,8 @@ mod test {
             )
             .unwrap()
             .into(),
-            expiration: Some(Duration::seconds(300)),
-            leeway: Default::default(),
+            expiration_seconds: Some(Duration::seconds(300)),
+            leeway_seconds: Default::default(),
         }
     }
 }

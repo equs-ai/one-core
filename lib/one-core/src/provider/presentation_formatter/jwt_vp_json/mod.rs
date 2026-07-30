@@ -34,7 +34,7 @@ mod test;
 #[serde(rename_all = "camelCase")]
 pub struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
 }
 
 pub struct JwtVpPresentationFormatter {
@@ -46,7 +46,7 @@ impl JwtVpPresentationFormatter {
     pub fn new(key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>) -> Self {
         Self {
             params: Params {
-                leeway: Duration::seconds(60),
+                leeway_seconds: Duration::seconds(60),
             },
             key_algorithm_provider,
         }
@@ -165,7 +165,7 @@ impl PresentationFormatter for JwtVpPresentationFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 }
 

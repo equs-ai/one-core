@@ -35,7 +35,7 @@ use crate::provider::signer::x509_utils::{
 pub struct Params {
     /// exposed publicly via `GET /api/config/v1`
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub max_validity_duration: Duration,
+    pub max_validity_duration_seconds: Duration,
     pub revocation_method: Option<RevocationMethodId>,
 }
 
@@ -150,7 +150,7 @@ impl Signer for AccessCertificateSigner {
         };
 
         let SignatureValidity { start, end } =
-            calculate_signature_validity(self.params.max_validity_duration, &request)?;
+            calculate_signature_validity(self.params.max_validity_duration_seconds, &request)?;
         let request_data: RequestData = serde_json::from_value(request.data)?;
         let pub_key = validated_pubkey_from_csr(&request_data.csr)?;
 

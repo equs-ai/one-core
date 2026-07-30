@@ -43,7 +43,7 @@ pub struct Params {
     pub payload: PayloadParams,
     /// exposed publicly via `GET /api/config/v1`
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub max_validity_duration: Duration,
+    pub max_validity_duration_seconds: Duration,
     pub revocation_method: RevocationMethodId,
 }
 
@@ -140,7 +140,7 @@ impl Signer for RegistrationCertificate {
     ) -> Result<CreateSignatureResponseDTO, SignerError> {
         let now = self.clock.now_utc();
         let SignatureValidity { start, end } =
-            calculate_signature_validity(self.params.max_validity_duration, &request)?;
+            calculate_signature_validity(self.params.max_validity_duration_seconds, &request)?;
         let payload: model::RequestData = serde_json::from_value(request.data.clone())?;
 
         let Issuer::Identifier {
@@ -239,7 +239,7 @@ impl TryFrom<Option<&crate::config::core_config::Params>> for Params {
 
         // GEN-5.2.4-08: The `exp` field in the WRPRC payload shall indicate a time not later than
         // 12 months after the issuance time specified in the `iat` field specified in GEN-5.2.4-01.
-        if result.max_validity_duration > Duration::days(365) {
+        if result.max_validity_duration_seconds > Duration::days(365) {
             return Err(Error::custom(
                 "expiry cannot occur later than 12 months after issuance (GEN-5.2.4-08)",
             ));

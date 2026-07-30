@@ -182,8 +182,8 @@ pub(crate) async fn initialize_vct_type_metadata_cache_from_config(
         Arc::new(VctTypeMetadataResolver::new(client)),
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     );
 
     cache.initialize_from_static_resources().await?;

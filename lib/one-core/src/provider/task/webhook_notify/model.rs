@@ -10,7 +10,7 @@ pub(crate) struct WebhookNotifyParams {
     #[serde(default)]
     pub allow_insecure_http_transport: bool,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub request_timeout: Duration,
+    pub request_timeout_seconds: Duration,
     pub retries: Option<Retries>,
 }
 
@@ -19,7 +19,7 @@ pub(crate) struct WebhookNotifyParams {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Retries {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub interval: Duration,
+    pub interval_seconds: Duration,
     pub max_attempts: u32,
     pub exponential_factor: f32,
 }

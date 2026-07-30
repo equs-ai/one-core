@@ -22,7 +22,7 @@ use crate::error::{ErrorCode, ErrorCodeMixin};
 pub struct HttpClientSecurityConfig {
     pub insecure_http_transport_allowed: bool,
     #[serde_as(as = "Option<DurationSeconds<i64>>")]
-    pub timeout: Option<Duration>,
+    pub timeout_seconds: Option<Duration>,
     pub max_redirects: usize,
     pub denied_hosts: Option<Vec<String>>,
     pub max_response_size: Option<u64>,
@@ -33,7 +33,7 @@ impl Default for HttpClientSecurityConfig {
     fn default() -> Self {
         Self {
             insecure_http_transport_allowed: false,
-            timeout: Some(Duration::seconds(30)),
+            timeout_seconds: Some(Duration::seconds(30)),
             max_redirects: 3,
             denied_hosts: None,
             max_response_size: Some(10485760), // 10MiB
@@ -46,7 +46,7 @@ impl Default for HttpClientSecurityConfig {
     fn default() -> Self {
         Self {
             insecure_http_transport_allowed: true,
-            timeout: None,
+            timeout_seconds: None,
             max_redirects: 10,
             denied_hosts: None,
             max_response_size: None,

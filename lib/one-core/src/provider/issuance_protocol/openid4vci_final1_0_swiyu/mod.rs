@@ -64,22 +64,22 @@ pub(crate) const OID4VCI_FINAL1_0_SWIYU_VERSION: &str = "final-1.0-swiyu";
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OpenID4VCISwiyuParams {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub pre_authorized_code_expires_in: Duration,
+    pub pre_authorized_code_expires_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub token_expires_in: Duration,
+    pub token_expires_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub refresh_expires_in: Duration,
+    pub refresh_expires_in_seconds: Duration,
     #[serde(deserialize_with = "deserialize_encryption_key")]
     pub encryption: SecretSlice<u8>,
     pub redirect_uri: OpenID4VCRedirectUriParams,
     pub nonce: Option<OpenID4VCNonceParams>,
 
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub oauth_attestation_leeway: Duration,
+    pub oauth_attestation_leeway_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub key_attestation_leeway: Duration,
+    pub key_attestation_leeway_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub trust_ecosystem_leeway: Duration,
+    pub trust_ecosystem_leeway_seconds: Duration,
 
     #[serde(flatten)]
     pub common: CommonParams,
@@ -88,17 +88,17 @@ pub(crate) struct OpenID4VCISwiyuParams {
 impl From<OpenID4VCISwiyuParams> for OpenID4VCIFinal1Params {
     fn from(value: OpenID4VCISwiyuParams) -> Self {
         Self {
-            pre_authorized_code_expires_in: value.pre_authorized_code_expires_in,
-            token_expires_in: value.token_expires_in,
-            refresh_expires_in: value.refresh_expires_in,
+            pre_authorized_code_expires_in_seconds: value.pre_authorized_code_expires_in_seconds,
+            token_expires_in_seconds: value.token_expires_in_seconds,
+            refresh_expires_in_seconds: value.refresh_expires_in_seconds,
             credential_offer_by_value: true,
             encryption: value.encryption,
             url_scheme: "swiyu".to_string(),
             redirect_uri: value.redirect_uri,
             nonce: value.nonce,
-            oauth_attestation_leeway: value.oauth_attestation_leeway,
-            key_attestation_leeway: value.key_attestation_leeway,
-            trust_ecosystem_leeway: value.trust_ecosystem_leeway,
+            oauth_attestation_leeway_seconds: value.oauth_attestation_leeway_seconds,
+            key_attestation_leeway_seconds: value.key_attestation_leeway_seconds,
+            trust_ecosystem_leeway_seconds: value.trust_ecosystem_leeway_seconds,
             common: value.common,
         }
     }

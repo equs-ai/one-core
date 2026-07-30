@@ -43,7 +43,7 @@ pub(crate) struct HolderParams {
 
     #[serde(default)]
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub trust_ecosystems_leeway: Duration,
+    pub trust_ecosystems_leeway_seconds: Duration,
 }
 
 #[serde_as]
@@ -53,7 +53,7 @@ pub(crate) struct PresentationVerifierParams {
     pub supported_client_id_schemes: Vec<ClientIdScheme>,
     #[serde(default)]
     #[serde_as(as = "Option<DurationSeconds<i64>>")]
-    pub interaction_expires_in: Option<Duration>,
+    pub interaction_expires_in_seconds: Option<Duration>,
 }
 
 #[skip_serializing_none]

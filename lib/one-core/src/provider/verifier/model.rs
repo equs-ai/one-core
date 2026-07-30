@@ -29,7 +29,7 @@ pub(crate) struct VerifierParams {
     // Defaulted so existing verifierProvider config entries without this key keep working.
     #[serde(default = "default_device_auth_leeway")]
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub device_auth_leeway: Duration,
+    pub device_auth_leeway_seconds: Duration,
 }
 
 fn default_device_auth_leeway() -> Duration {

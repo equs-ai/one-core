@@ -19,7 +19,7 @@ pub(crate) fn get_issuance_param_pre_authorization_expires_in(
                     key: exchange.to_string(),
                     source,
                 })?;
-            params.pre_authorized_code_expires_in
+            params.pre_authorized_code_expires_in_seconds
         }
         IssuanceProtocolType::OpenId4VciFinal1_0 => {
             let params = fields
@@ -28,7 +28,7 @@ pub(crate) fn get_issuance_param_pre_authorization_expires_in(
                     key: exchange.to_string(),
                     source,
                 })?;
-            params.pre_authorized_code_expires_in
+            params.pre_authorized_code_expires_in_seconds
         }
     })
 }
@@ -46,7 +46,7 @@ pub(crate) fn get_issuance_param_token_expires_in(
                     key: exchange.to_string(),
                     source,
                 })?;
-            params.token_expires_in
+            params.token_expires_in_seconds
         }
         IssuanceProtocolType::OpenId4VciFinal1_0 => {
             let params = fields
@@ -55,7 +55,7 @@ pub(crate) fn get_issuance_param_token_expires_in(
                     key: exchange.to_string(),
                     source,
                 })?;
-            params.token_expires_in
+            params.token_expires_in_seconds
         }
     })
 }
@@ -73,7 +73,7 @@ pub(crate) fn get_issuance_param_refresh_token_expires_in(
                     key: exchange.to_string(),
                     source,
                 })?;
-            params.refresh_expires_in
+            params.refresh_expires_in_seconds
         }
         IssuanceProtocolType::OpenId4VciFinal1_0 => {
             let params = fields
@@ -82,7 +82,7 @@ pub(crate) fn get_issuance_param_refresh_token_expires_in(
                     key: exchange.to_string(),
                     source,
                 })?;
-            params.refresh_expires_in
+            params.refresh_expires_in_seconds
         }
     })
 }

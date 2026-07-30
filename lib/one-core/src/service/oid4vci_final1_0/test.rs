@@ -164,17 +164,17 @@ fn setup_protocol(protocol_mocks: ProtocolMocks) -> OpenID4VCIFinal1_0 {
         Some("http://127.0.0.1:3000".to_string()),
         Arc::new(generic_config().core),
         json!({
-            "preAuthorizedCodeExpiresIn": 0,
-            "tokenExpiresIn": 0,
-            "refreshExpiresIn": 0,
+            "preAuthorizedCodeExpiresInSeconds": 0,
+            "tokenExpiresInSeconds": 0,
+            "refreshExpiresInSeconds": 0,
             "encryption": "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e",
             "redirectUri": {
                 "enabled": false,
                 "allowedSchemes": []
             },
-            "oauthAttestationLeeway": 0,
-            "keyAttestationLeeway": 0,
-            "trustEcosystemLeeway": 0,
+            "oauthAttestationLeewaySeconds": 0,
+            "keyAttestationLeewaySeconds": 0,
+            "trustEcosystemLeewaySeconds": 0,
         }),
         "configId".to_string(),
         Arc::new(protocol_mocks.holder_wallet_unit_proto),

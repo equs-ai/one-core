@@ -40,7 +40,7 @@ mod test;
 #[serde(rename_all = "camelCase")]
 pub struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
 }
 
 // TODO ONE-6774: Remove once productive holders have been updated to release v1.57+
@@ -62,7 +62,7 @@ impl SdjwtPresentationFormatter {
             crypto,
             key_algorithm_provider,
             params: Params {
-                leeway: Duration::seconds(60),
+                leeway_seconds: Duration::seconds(60),
             },
         }
     }
@@ -173,7 +173,7 @@ impl PresentationFormatter for SdjwtPresentationFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 }
 

@@ -70,7 +70,7 @@ pub(crate) fn trust_list_subscriber_provider_from_config(
                     certificate_validator.clone(),
                     xades_proto.clone(),
                     params.accepts,
-                    params.leeway,
+                    params.leeway_seconds,
                     params.max_pointer_depth,
                 );
                 let etsi_lote_cache = initialize_etsi_lote_cache(
@@ -128,7 +128,7 @@ pub(crate) fn trust_list_subscriber_provider_from_config(
             certificate_validator.clone(),
             xades_proto.clone(),
             params.trust_anchors.clone(),
-            params.leeway,
+            params.leeway_seconds,
         );
         let cache =
             initialize_etsi_lotl_cache(config, remote_entity_cache_repository.clone(), resolver);
@@ -171,8 +171,8 @@ fn initialize_etsi_lote_cache(
         Arc::new(resolver),
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     )
 }
 
@@ -196,8 +196,8 @@ fn initialize_etsi_lotl_cache(
         Arc::new(resolver),
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     )
 }
 

@@ -411,7 +411,7 @@ impl OpenID4VPFinal1_0 {
                 organisation_id,
                 &referenced_params.dcql_query,
                 &referenced_params.verifier_info,
-                self.params.holder.trust_ecosystems_leeway,
+                self.params.holder.trust_ecosystems_leeway_seconds,
             )
             .await
             .error_while("resolving trust")?;

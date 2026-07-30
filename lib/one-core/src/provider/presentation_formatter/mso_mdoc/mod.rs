@@ -48,7 +48,7 @@ pub(crate) mod session_transcript;
 #[serde(rename_all = "camelCase")]
 pub struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
 }
 
 pub struct MsoMdocPresentationFormatter {
@@ -68,7 +68,7 @@ impl MsoMdocPresentationFormatter {
             base_url,
             certificate_validator,
             params: Params {
-                leeway: Duration::seconds(60),
+                leeway_seconds: Duration::seconds(60),
             },
             client,
         }
@@ -285,7 +285,7 @@ impl PresentationFormatter for MsoMdocPresentationFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 }
 

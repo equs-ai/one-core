@@ -99,7 +99,7 @@ struct OpenID4VPProximityDraft00Params {
 pub(crate) struct OpenID4VPProximityDraft00PresentationVerifierParams {
     #[serde(default)]
     #[serde_as(as = "Option<DurationSeconds<i64>>")]
-    pub interaction_expires_in: Option<Duration>,
+    pub interaction_expires_in_seconds: Option<Duration>,
 }
 
 #[derive(Provider)]
@@ -420,7 +420,7 @@ impl VerificationProtocol for OpenID4VPProximityDraft00 {
 
         let expires_at = self.params.verifier.as_ref().and_then(|verifier| {
             verifier
-                .interaction_expires_in
+                .interaction_expires_in_seconds
                 .map(|interaction_expires_in| crate::clock::now_utc() + interaction_expires_in)
         });
 

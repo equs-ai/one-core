@@ -15,11 +15,11 @@ async fn test_signer_config_exposes_max_validity_duration() {
     let resp = resp.json_value().await;
 
     assert_eq!(
-        resp["signer"]["REGISTRATION_CERTIFICATE"]["params"]["maxValidityDuration"],
+        resp["signer"]["REGISTRATION_CERTIFICATE"]["params"]["maxValidityDurationSeconds"],
         2592000
     );
     assert_eq!(
-        resp["signer"]["ACCESS_CERTIFICATE"]["params"]["maxValidityDuration"],
+        resp["signer"]["ACCESS_CERTIFICATE"]["params"]["maxValidityDurationSeconds"],
         157680000
     );
 
@@ -46,7 +46,7 @@ async fn test_signer_config_max_validity_duration_reflects_override() {
         REGISTRATION_CERTIFICATE:
           params:
             public:
-              maxValidityDuration: 604800
+              maxValidityDurationSeconds: 604800
     "}
     .to_string();
     let context = TestContext::new(Some(config)).await;
@@ -59,7 +59,7 @@ async fn test_signer_config_max_validity_duration_reflects_override() {
     let resp = resp.json_value().await;
 
     assert_eq!(
-        resp["signer"]["REGISTRATION_CERTIFICATE"]["params"]["maxValidityDuration"],
+        resp["signer"]["REGISTRATION_CERTIFICATE"]["params"]["maxValidityDurationSeconds"],
         604800
     );
 }

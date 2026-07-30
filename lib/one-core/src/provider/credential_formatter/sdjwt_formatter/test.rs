@@ -116,7 +116,7 @@ async fn test_format_credential() {
         .expect_resolve()
         .return_once(move |_| Ok(did_document));
 
-    let expiration_time = Duration::days(1);
+    let expiration_seconds = Duration::days(1);
     let sd_formatter = SDJWTFormatter {
         base_url: Some("testUrl".into()),
         config_id: "SD_JWT".into(),
@@ -125,10 +125,10 @@ async fn test_format_credential() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway: Duration::seconds(45),
+            leeway_seconds: Duration::seconds(45),
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time,
+            expiration_seconds,
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -184,7 +184,7 @@ async fn test_format_credential() {
 
     assert_eq!(
         payload.expires_at,
-        Some(payload.issued_at.unwrap() + expiration_time),
+        Some(payload.issued_at.unwrap() + expiration_seconds),
     );
     assert_eq!(payload.invalid_before, Some(payload.issued_at.unwrap()),);
 
@@ -275,7 +275,7 @@ async fn test_format_credential_with_array() {
         .with(eq("sha-256"))
         .returning(move |_| Ok(hasher.clone()));
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let credential_data = get_credential_data_with_array(
         CredentialStatus {
@@ -309,10 +309,10 @@ async fn test_format_credential_with_array() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
             sd_array_elements: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -409,7 +409,7 @@ async fn test_format_credential_with_array_sd() {
         .with(eq("sha-256"))
         .returning(move |_| Ok(Arc::new(SHA256)));
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let credential_data = get_credential_data_with_array(
         CredentialStatus {
@@ -443,10 +443,10 @@ async fn test_format_credential_with_array_sd() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -566,7 +566,7 @@ async fn test_extract_credentials() {
         .with(eq("sha-256"))
         .returning(move |_| Ok(hasher.clone()));
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let sd_formatter = SDJWTFormatter {
         base_url: Some("testUrl".into()),
@@ -576,10 +576,10 @@ async fn test_extract_credentials() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -740,7 +740,7 @@ async fn test_extract_credentials_with_array() {
         .with(eq("sha-256"))
         .returning(move |_| Ok(hasher.clone()));
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let sd_formatter = SDJWTFormatter {
         base_url: Some("testUrl".into()),
@@ -750,10 +750,10 @@ async fn test_extract_credentials_with_array() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -863,7 +863,7 @@ async fn test_extract_credentials_with_array_stripped() {
         .with(eq("sha-256"))
         .returning(move |_| Ok(hasher.clone()));
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let sd_formatter = SDJWTFormatter {
         base_url: Some("testUrl".into()),
@@ -873,10 +873,10 @@ async fn test_extract_credentials_with_array_stripped() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -1015,10 +1015,10 @@ fn test_get_capabilities() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway: Duration::seconds(123),
+            leeway_seconds: Duration::seconds(123),
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -1111,10 +1111,10 @@ async fn test_parse_credential() {
     const CREDENTIAL: &str = "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDprZXk6ekRuYWVidnlWcHdHM1I3UWoxem5yVnk5cnRzaTZOOFRnaldQS1poeUJkYTJxdjU4dyN6RG5hZWJ2eVZwd0czUjdRajF6bnJWeTlydHNpNk44VGdqV1BLWmh5QmRhMnF2NTh3IiwidHlwIjoiU0RfSldUIn0.eyJpYXQiOjE3NjA1NDEyNzcsImV4cCI6MTgyMzYxMzI3NywibmJmIjoxNzYwNTQxMjc3LCJpc3MiOiJkaWQ6a2V5OnpEbmFlYnZ5VnB3RzNSN1FqMXpuclZ5OXJ0c2k2TjhUZ2pXUEtaaHlCZGEycXY1OHciLCJzdWIiOiJkaWQ6a2V5OnpEbmFla29NQzJzRmtnY0ZMcDNLNG5uR1VGVXFZbzhnb1dzanQzc0FmaE5BVjlFUzkiLCJ2YyI6eyJpc3N1ZXIiOiJkaWQ6a2V5OnpEbmFlYnZ5VnB3RzNSN1FqMXpuclZ5OXJ0c2k2TjhUZ2pXUEtaaHlCZGEycXY1OHciLCJ2YWxpZEZyb20iOiIyMDI1LTEwLTE1VDE1OjE0OjM3LjgyMTU4NzAxOFoiLCJ2YWxpZFVudGlsIjoiMjAyNy0xMC0xNVQxNToxNDozNy44MjE1ODcwMThaIiwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnL25zL2NyZWRlbnRpYWxzL3YyIiwiaHR0cHM6Ly9jb3JlLmRldi5wcm9jaXZpcy1vbmUuY29tL3NzaS9jb250ZXh0L3YxLzMwOTk0ODg5LTJkYzYtNGE4Mi1hYzQxLTc0ZWM1Y2MxODdiYSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQXJyYXlzQW5kT2JqZWN0cyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJfc2QiOlsiUFdxMVZFRVRuTDBsWWU0OG84QllrWnRzdzZFSGltZ1c5MmNHcXZ1REtmQSIsInA4b0t2YzEzeHJxYUdpeFVZbjdfU00wM2RjM2hkSG5uTmhVdjRyVy1yY0EiLCJ3WWRoOGZibW1kbThHREVCQ0xvaVZ5ZGEzRFZlUEFMX01vZW52NWRDRjdZIl19LCJjcmVkZW50aWFsU3RhdHVzIjp7ImlkIjoidXJuOnV1aWQ6ZjZkOWVmNDUtNWNlYy00ZTA2LWFlZjMtODExN2JjMmRlZTdhIiwidHlwZSI6IkJpdHN0cmluZ1N0YXR1c0xpc3RFbnRyeSIsInN0YXR1c1B1cnBvc2UiOiJyZXZvY2F0aW9uIiwic3RhdHVzTGlzdENyZWRlbnRpYWwiOiJodHRwczovL2NvcmUuZGV2LnByb2NpdmlzLW9uZS5jb20vc3NpL3Jldm9jYXRpb24vdjEvbGlzdC82NWZhOTUwNS0wNTVkLTRkNDAtODI2MC1jZGY2ODBmOWQ5YzciLCJzdGF0dXNMaXN0SW5kZXgiOiI3In0sImNyZWRlbnRpYWxTY2hlbWEiOnsiaWQiOiJodHRwczovL2NvcmUuZGV2LnByb2NpdmlzLW9uZS5jb20vc3NpL3NjaGVtYS92MS8zMDk5NDg4OS0yZGM2LTRhODItYWM0MS03NGVjNWNjMTg3YmEiLCJ0eXBlIjoiUHJvY2l2aXNPbmVTY2hlbWEyMDI0In19LCJfc2RfYWxnIjoic2hhLTI1NiJ9.aq6OyVAF39Zx6KZsUq6dBbfTR5uVofnf2mAkBZVglfc6Hdvf-PIlI161XXCn7hp4vw_Zi8e0bCDkW-93YgUpKg~WyJ5ZjJKSGktSzI2UFFDU0lnYllCamdRIiwiaG91c2UiLCJ0ZXN0IGhvdXNlIl0~WyI0Vm1KVHY1U2R3emNvV2gzRnhsYjBBIiwic3RyZWV0IiwidGVzdCBzdHJlZXQiXQ~WyJLNnNUaEJfcm02a1h4c0ZudXBSTGhnIiwiQWRkcmVzcyIseyJfc2QiOlsiS19pT1EybVFXSl9Zekt1VEhWSEdVZDVoUUVBTVVjakVmUFZFUlBDTk5LNCIsImVTTjVxemVuZXFaT2JpQXluQ1NrMWlZR3VDeUhNVm5MNXhXWWJpY2hYUzgiXX1d~WyJJZC13bDZPVjRwQVdrbUt1bkFWemRRIiwiTmFtZSIsIlRlc3QgTmFtZSJd~WyJ4MGp6dGhHNGplRFlBNnZHQjk5b09RIiwiQ0giXQ~WyJ2cFNBbnZ3R0hkUldoVXctNDZuVE5BIiwiVVQiXQ~WyJwUjdpa3RRaVVUeTRxMTFySGg4eURRIiwiTmF0aW9uYWxpdGllcyIsW3siLi4uIjoidDNGek1kTlFXbU5OLUNlSk1tdGx0T3lrd1MxeTdyLW5SeU5vd2tLU0hPOCJ9LHsiLi4uIjoiaWxDdWpaQWxZWlFuWWpsZTJfNmlELWFIdWc1NG1kWWFsMXdYOWkteXUtayJ9XV0~";
 
     let params = json!({
-        "leeway": 60,
+        "leewaySeconds": 60,
         "embedLayoutProperties": false,
         "sdArrayElements": true,
-        "expirationTime": 86_400
+        "expirationSeconds": 86_400
     });
 
     let hashers = hashmap! {
@@ -1332,10 +1332,10 @@ async fn test_parse_credential() {
 async fn test_parse_credential_cnf() {
     const CREDENTIAL: &str = "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDprZXk6ekRuYWVidnlWcHdHM1I3UWoxem5yVnk5cnRzaTZOOFRnaldQS1poeUJkYTJxdjU4dyN6RG5hZWJ2eVZwd0czUjdRajF6bnJWeTlydHNpNk44VGdqV1BLWmh5QmRhMnF2NTh3IiwidHlwIjoiU0RfSldUIn0.eyJpYXQiOjE3NjA1NDEyNzcsImV4cCI6MTgyMzYxMzI3NywibmJmIjoxNzYwNTQxMjc3LCJpc3MiOiJkaWQ6a2V5OnpEbmFlYnZ5VnB3RzNSN1FqMXpuclZ5OXJ0c2k2TjhUZ2pXUEtaaHlCZGEycXY1OHciLCJjbmYiOnsiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiTHFQNWlyNGFYRW5na3N3SnZIeEpoLVFDUmNLYjBDZzBiUkxCMXZydUVXWSIsInkiOiJXLVNfZUlPbHp1d1BGcVpaYzBkZFlSbDNOVzZNdlRTQUtXMkpKS3lkNjJVIn19LCJ2YyI6eyJpc3N1ZXIiOiJkaWQ6a2V5OnpEbmFlYnZ5VnB3RzNSN1FqMXpuclZ5OXJ0c2k2TjhUZ2pXUEtaaHlCZGEycXY1OHciLCJ2YWxpZEZyb20iOiIyMDI1LTEwLTE1VDE1OjE0OjM3LjgyMTU4NzAxOFoiLCJ2YWxpZFVudGlsIjoiMjAyNy0xMC0xNVQxNToxNDozNy44MjE1ODcwMThaIiwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnL25zL2NyZWRlbnRpYWxzL3YyIiwiaHR0cHM6Ly9jb3JlLmRldi5wcm9jaXZpcy1vbmUuY29tL3NzaS9jb250ZXh0L3YxLzMwOTk0ODg5LTJkYzYtNGE4Mi1hYzQxLTc0ZWM1Y2MxODdiYSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQXJyYXlzQW5kT2JqZWN0cyJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJfc2QiOlsiUFdxMVZFRVRuTDBsWWU0OG84QllrWnRzdzZFSGltZ1c5MmNHcXZ1REtmQSIsInA4b0t2YzEzeHJxYUdpeFVZbjdfU00wM2RjM2hkSG5uTmhVdjRyVy1yY0EiLCJ3WWRoOGZibW1kbThHREVCQ0xvaVZ5ZGEzRFZlUEFMX01vZW52NWRDRjdZIl19LCJjcmVkZW50aWFsU3RhdHVzIjp7ImlkIjoidXJuOnV1aWQ6ZjZkOWVmNDUtNWNlYy00ZTA2LWFlZjMtODExN2JjMmRlZTdhIiwidHlwZSI6IkJpdHN0cmluZ1N0YXR1c0xpc3RFbnRyeSIsInN0YXR1c1B1cnBvc2UiOiJyZXZvY2F0aW9uIiwic3RhdHVzTGlzdENyZWRlbnRpYWwiOiJodHRwczovL2NvcmUuZGV2LnByb2NpdmlzLW9uZS5jb20vc3NpL3Jldm9jYXRpb24vdjEvbGlzdC82NWZhOTUwNS0wNTVkLTRkNDAtODI2MC1jZGY2ODBmOWQ5YzciLCJzdGF0dXNMaXN0SW5kZXgiOiI3In0sImNyZWRlbnRpYWxTY2hlbWEiOnsiaWQiOiJodHRwczovL2NvcmUuZGV2LnByb2NpdmlzLW9uZS5jb20vc3NpL3NjaGVtYS92MS8zMDk5NDg4OS0yZGM2LTRhODItYWM0MS03NGVjNWNjMTg3YmEiLCJ0eXBlIjoiUHJvY2l2aXNPbmVTY2hlbWEyMDI0In19LCJfc2RfYWxnIjoic2hhLTI1NiJ9.aq6OyVAF39Zx6KZsUq6dBbfTR5uVofnf2mAkBZVglfc6Hdvf-PIlI161XXCn7hp4vw_Zi8e0bCDkW-93YgUpKg~WyJ5ZjJKSGktSzI2UFFDU0lnYllCamdRIiwiaG91c2UiLCJ0ZXN0IGhvdXNlIl0~WyI0Vm1KVHY1U2R3emNvV2gzRnhsYjBBIiwic3RyZWV0IiwidGVzdCBzdHJlZXQiXQ~WyJLNnNUaEJfcm02a1h4c0ZudXBSTGhnIiwiQWRkcmVzcyIseyJfc2QiOlsiS19pT1EybVFXSl9Zekt1VEhWSEdVZDVoUUVBTVVjakVmUFZFUlBDTk5LNCIsImVTTjVxemVuZXFaT2JpQXluQ1NrMWlZR3VDeUhNVm5MNXhXWWJpY2hYUzgiXX1d~WyJJZC13bDZPVjRwQVdrbUt1bkFWemRRIiwiTmFtZSIsIlRlc3QgTmFtZSJd~WyJ4MGp6dGhHNGplRFlBNnZHQjk5b09RIiwiQ0giXQ~WyJ2cFNBbnZ3R0hkUldoVXctNDZuVE5BIiwiVVQiXQ~WyJwUjdpa3RRaVVUeTRxMTFySGg4eURRIiwiTmF0aW9uYWxpdGllcyIsW3siLi4uIjoidDNGek1kTlFXbU5OLUNlSk1tdGx0T3lrd1MxeTdyLW5SeU5vd2tLU0hPOCJ9LHsiLi4uIjoiaWxDdWpaQWxZWlFuWWpsZTJfNmlELWFIdWc1NG1kWWFsMXdYOWkteXUtayJ9XV0~";
     let params = json!({
-        "leeway": 60,
+        "leewaySeconds": 60,
         "embedLayoutProperties": false,
         "sdArrayElements": true,
-        "expirationTime": 86_400
+        "expirationSeconds": 86_400
     });
 
     let hashers = hashmap! {
@@ -1526,10 +1526,10 @@ async fn test_format_credential_sets_x5c_and_x5u_headers() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway: Duration::seconds(45),
+            leeway_seconds: Duration::seconds(45),
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),
@@ -1605,10 +1605,10 @@ async fn test_format_credential_without_certificate_has_no_x5_headers() {
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
         data_type_provider: Arc::new(MockDataTypeProvider::new()),
         params: Params {
-            leeway: Duration::seconds(45),
+            leeway_seconds: Duration::seconds(45),
             embed_layout_properties: false,
             sd_array_elements: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         client: Arc::new(MockHttpClient::new()),

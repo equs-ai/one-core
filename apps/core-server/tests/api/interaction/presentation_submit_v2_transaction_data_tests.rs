@@ -125,10 +125,10 @@ async fn create_mdoc_holder_credential(
             issuer_certificate: None,
         },
         json!({
-            "msoExpiresIn": 86_400,
-            "msoExpectedUpdateIn": 300,
-            "msoMinimumRefreshTime": 300,
-            "leeway": 60
+            "msoExpiresInSeconds": 86_400,
+            "msoExpectedUpdateInSeconds": 300,
+            "msoMinimumRefreshSeconds": 300,
+            "leewaySeconds": 60
         }),
     )
     .await;

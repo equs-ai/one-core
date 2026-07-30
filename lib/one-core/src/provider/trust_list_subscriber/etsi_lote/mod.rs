@@ -35,7 +35,7 @@ mod test;
 pub(crate) struct EtsiLoteParams {
     pub accepts: LoteContentType,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: time::Duration,
+    pub leeway_seconds: time::Duration,
     /// Max depth to follow through chained `PointersToOtherLoTE`.
     #[serde(default = "default_max_pointer_depth")]
     pub max_pointer_depth: Option<usize>,

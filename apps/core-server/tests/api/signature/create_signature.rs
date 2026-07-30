@@ -341,7 +341,7 @@ async fn test_create_signature_x509_success_no_crl() {
             params:
               private:
                 payload:
-                  maxValidityDuration: 157680000 # 5 years
+                  maxValidityDurationSeconds: 157680000 # 5 years
                 # no revocationMethod
         "}
     .to_string();

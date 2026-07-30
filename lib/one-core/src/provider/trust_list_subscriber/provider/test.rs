@@ -45,14 +45,14 @@ LOTE_SUBSCRIBER:
   params:
     private:
       accepts: "application/jwt"
-      leeway: 60
+      leewaySeconds: 60
 LOTL_SUBSCRIBER:
   type: ETSI_LOTL
   order: 2
   display: "trustListSubscriber.etsiLotl"
   params:
     private:
-      leeway: 60
+      leewaySeconds: 60
       trustAnchors: []
       delegateSubscribers: ["LOTE_SUBSCRIBER"]
 "#,
@@ -79,7 +79,7 @@ LOTL_SUBSCRIBER:
   display: "trustListSubscriber.etsiLotl"
   params:
     private:
-      leeway: 60
+      leewaySeconds: 60
       trustAnchors: []
       delegateSubscribers: ["DOES_NOT_EXIST"]
 "#,

@@ -47,7 +47,7 @@ mod test;
 #[serde(rename_all = "camelCase")]
 struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub refresh_interval: time::Duration,
+    pub refresh_interval_seconds: time::Duration,
 }
 
 #[derive(Provider)]
@@ -303,7 +303,7 @@ impl RevocationMethod for CRLRevocation {
                 "Missing revocation list".to_string(),
             ))?;
 
-        if list.last_modified + self.params.refresh_interval > crate::clock::now_utc() {
+        if list.last_modified + self.params.refresh_interval_seconds > crate::clock::now_utc() {
             return Ok(list.formatted_list);
         }
 
@@ -448,7 +448,7 @@ impl CRLRevocation {
         let now = crate::clock::now_utc();
         let crl_params = rcgen::CertificateRevocationListParams {
             this_update: now,
-            next_update: now + self.params.refresh_interval,
+            next_update: now + self.params.refresh_interval_seconds,
             crl_number: crl_number.into(),
             issuing_distribution_point: None,
             revoked_certs: revoked_certificates

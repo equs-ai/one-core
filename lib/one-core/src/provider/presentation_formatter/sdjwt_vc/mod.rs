@@ -37,7 +37,7 @@ mod test;
 #[serde(rename_all = "camelCase")]
 pub struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
 
     // Toggles SWIYU quirks, specifically the malformed `cnf` claim
     #[serde(default)]
@@ -63,7 +63,7 @@ impl SdjwtVCPresentationFormatter {
             crypto,
             certificate_validator,
             params: Params {
-                leeway: Duration::seconds(60),
+                leeway_seconds: Duration::seconds(60),
                 swiyu_mode,
             },
         }
@@ -191,7 +191,7 @@ impl PresentationFormatter for SdjwtVCPresentationFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 }
 

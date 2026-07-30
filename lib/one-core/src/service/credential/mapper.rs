@@ -141,8 +141,8 @@ pub(crate) async fn credential_detail_response_from_model(
         };
 
         issuance_date.map(|issuance_date| MdocMsoValidityResponseDTO {
-            expiration: issuance_date + params.mso_expires_in,
-            next_update: issuance_date + params.mso_expected_update_in,
+            expiration: issuance_date + params.mso_expires_in_seconds,
+            next_update: issuance_date + params.mso_expected_update_in_seconds,
             last_update: issuance_date,
         })
     } else {

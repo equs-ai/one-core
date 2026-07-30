@@ -31,10 +31,10 @@ pub async fn setup_sts_with_payload<T: Serialize>(payload: JWTPayload<T>) -> Sts
             stsTokenValidation:
                 aud: 'core'
                 iss: 'bff'
-                jwksRefreshAfter: 600
-                jwksExpireAfter: 86400
+                jwksRefreshAfterSeconds: 600
+                jwksExpireAfterSeconds: 86400
                 jwksUri: {url}
-                leeway: 0
+                leewaySeconds: 0
     ",
     url = format!("{}/jwks.json", mock_server.uri())};
     let key = Eddsa.generate_key().unwrap();

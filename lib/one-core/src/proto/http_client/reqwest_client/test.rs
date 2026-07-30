@@ -191,7 +191,7 @@ async fn test_client_param_timeout() {
         .await;
 
     let restricting_client = ReqwestClient::new(HttpClientSecurityConfig {
-        timeout: Some(time::Duration::milliseconds(1)),
+        timeout_seconds: Some(time::Duration::milliseconds(1)),
         ..Default::default()
     })
     .unwrap();
@@ -204,7 +204,7 @@ async fn test_client_param_timeout() {
     assert_eq!(error.error_code(), ErrorCode::BR_0347);
 
     let benevolent_client = ReqwestClient::new(HttpClientSecurityConfig {
-        timeout: Some(time::Duration::seconds(10)),
+        timeout_seconds: Some(time::Duration::seconds(10)),
         ..Default::default()
     })
     .unwrap();
@@ -231,7 +231,7 @@ async fn test_client_param_timeout_and_max_response_size() {
         .await;
 
     let restricting_client = ReqwestClient::new(HttpClientSecurityConfig {
-        timeout: Some(time::Duration::milliseconds(1)),
+        timeout_seconds: Some(time::Duration::milliseconds(1)),
         max_response_size: Some(1),
         ..Default::default()
     })
@@ -245,7 +245,7 @@ async fn test_client_param_timeout_and_max_response_size() {
     assert_eq!(error.error_code(), ErrorCode::BR_0347);
 
     let benevolent_client = ReqwestClient::new(HttpClientSecurityConfig {
-        timeout: Some(time::Duration::seconds(10)),
+        timeout_seconds: Some(time::Duration::seconds(10)),
         max_response_size: Some(10),
         ..Default::default()
     })

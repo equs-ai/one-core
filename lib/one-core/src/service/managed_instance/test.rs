@@ -102,7 +102,7 @@ fn wallet_provider_config(
                 "walletLink": "https://procivis.ch",
                 "walletRegistration": "MANDATORY",
                 "walletInstanceAttestation": {
-                    "expirationTime": 60,
+                    "expirationSeconds": 60,
                     "integrityCheck": {
                         "enabled": integrity_check_enabled,
                         "android": {
@@ -118,9 +118,9 @@ fn wallet_provider_config(
                     },
                 },
                 "walletUnitAttestation": {
-                    "expirationTime": 60
+                    "expirationSeconds": 60
                 },
-                "deviceAuthLeeway": 60,
+                "deviceAuthLeewaySeconds": 60,
                 "appVersion": {
                     "minimum": "v1.50.0",
                 },
@@ -368,7 +368,7 @@ fn verifier_provider_params() -> VerifierParams {
         proof_schemas: vec![],
         credential_schemas: vec![],
         access_certificate_configuration: None,
-        device_auth_leeway: Duration::seconds(60),
+        device_auth_leeway_seconds: Duration::seconds(60),
     }
 }
 

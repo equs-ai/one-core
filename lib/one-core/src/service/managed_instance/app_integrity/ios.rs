@@ -425,7 +425,7 @@ Q3RkxoFO2GgviGuVD2ukPNuGJ7FHCvecJ8sNRqyqBrydvuQAO2zStDp3
                         "enforceProductionBuild": true
                     },
                     "lifetime": {
-                      "expirationTime": 60,
+                      "expirationSeconds": 60,
                       "minimumRefreshTime": 60
                     },
                     "issuerIdentifier": Uuid::new_v4(),

@@ -310,7 +310,7 @@ impl ManagedInstanceService {
                 ProviderRegistrationParams {
                     name_label: config.r#type.to_string(),
                     integrity_check: config_params.wallet_instance_attestation.integrity_check,
-                    device_auth_leeway: config_params.device_auth_leeway,
+                    device_auth_leeway: config_params.device_auth_leeway_seconds,
                     user_authentication: config_params.user_authentication,
                     access_certificate_configuration: None,
                 }
@@ -330,7 +330,7 @@ impl ManagedInstanceService {
                 ProviderRegistrationParams {
                     name_label: provider.to_string(),
                     integrity_check,
-                    device_auth_leeway: verifier_params.device_auth_leeway,
+                    device_auth_leeway: verifier_params.device_auth_leeway_seconds,
                     user_authentication: verifier_params.user_authentication,
                     access_certificate_configuration: verifier_params
                         .access_certificate_configuration,
@@ -520,7 +520,8 @@ impl ManagedInstanceService {
                 .as_deref()
                 .ok_or(ManagedInstanceError::MissingWalletUnitAttestation)?;
 
-            if wallet_unit.last_modified + reg_params.integrity_check.timeout < self.clock.now_utc()
+            if wallet_unit.last_modified + reg_params.integrity_check.timeout_seconds
+                < self.clock.now_utc()
             {
                 let error = ManagedInstanceError::InvalidWalletUnitAttestationNonce;
                 self.set_instance_to_error(
@@ -874,7 +875,7 @@ impl ManagedInstanceService {
         self.verify_device_signing_proof(
             &bearer_token,
             &key,
-            config_params.device_auth_leeway,
+            config_params.device_auth_leeway_seconds,
             None,
         )
         .await?;
@@ -885,7 +886,7 @@ impl ManagedInstanceService {
         let mut instance_attestations = vec![];
         for wia_request in request.wia {
             let holder_jwk = self
-                .verify_pop(&wia_request.proof, config_params.device_auth_leeway)
+                .verify_pop(&wia_request.proof, config_params.device_auth_leeway_seconds)
                 .await?;
             let attestation = self.create_wia(
                 &config_params,
@@ -911,10 +912,11 @@ impl ManagedInstanceService {
 
         let mut key_attestation_inputs = vec![];
         for wua_request in request.wua {
-            let wua_expiration_date = now + config_params.wallet_unit_attestation.expiration_time;
+            let wua_expiration_date =
+                now + config_params.wallet_unit_attestation.expiration_seconds;
 
             let holder_jwk = self
-                .verify_pop(&wua_request.proof, config_params.device_auth_leeway)
+                .verify_pop(&wua_request.proof, config_params.device_auth_leeway_seconds)
                 .await?;
             let attested_key_input = if let Some(attested_key) = attested_keys
                 .iter_mut()
@@ -1108,7 +1110,7 @@ impl ManagedInstanceService {
             JWTPayload {
                 issued_at: Some(now),
                 expires_at: Some(
-                    now.add(config_params.wallet_instance_attestation.expiration_time),
+                    now.add(config_params.wallet_instance_attestation.expiration_seconds),
                 ),
                 invalid_before: Some(now),
                 issuer: self.base_url.clone(),
@@ -1168,7 +1170,7 @@ impl ManagedInstanceService {
             Some(issuer_public_key_info),
             JWTPayload {
                 issued_at: Some(now),
-                expires_at: Some(now.add(config_params.wallet_unit_attestation.expiration_time)),
+                expires_at: Some(now.add(config_params.wallet_unit_attestation.expiration_seconds)),
                 invalid_before: Some(now),
                 issuer: config_params
                     .eudi_wallet_info

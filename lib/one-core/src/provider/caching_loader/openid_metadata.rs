@@ -163,7 +163,7 @@ pub(crate) fn openid_metadata_cache_from_config(
         Arc::new(OpenIDMetadataResolver::new(client)),
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     ))
 }

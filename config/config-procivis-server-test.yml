@@ -53,10 +53,10 @@ format:
     order: 101
     params:
       public:
-        msoExpiresIn: 60
-        msoExpectedUpdateIn: 60
-        msoMinimumRefreshTime: 10
-        leeway: 10
+        msoExpiresInSeconds: 60
+        msoExpectedUpdateInSeconds: 60
+        msoMinimumRefreshSeconds: 10
+        leewaySeconds: 10
         revocationMethod: "MDOC_MSO_UPDATE_SUSPENSION"
 transport:
   MQTT:
@@ -77,7 +77,7 @@ verificationProtocol:
     params:
       public:
         verifier:
-          interactionExpiresIn: 3600
+          interactionExpiresInSeconds: 3600
 signer:
   REGISTRATION_CERTIFICATE:
     params:

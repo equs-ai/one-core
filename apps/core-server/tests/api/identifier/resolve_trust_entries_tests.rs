@@ -72,7 +72,7 @@ trustListSubscriber:
     params:
       public:
         accepts: application/jwt
-        leeway: 0
+        leewaySeconds: 0
     "#;
     let context = TestContext::new(Some(additional_config.to_string())).await;
     let organisation = context.db.organisations.create().await;
@@ -354,7 +354,7 @@ trustListSubscriber:
     params:
       public:
         accepts: application/jwt
-        leeway: 0
+        leewaySeconds: 0
     "#;
     let context = TestContext::new(Some(additional_config.to_string())).await;
     let organisation = context.db.organisations.create().await;

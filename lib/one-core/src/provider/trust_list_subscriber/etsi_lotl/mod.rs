@@ -33,7 +33,7 @@ mod test;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EtsiLotlParams {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: time::Duration,
+    pub leeway_seconds: time::Duration,
     #[serde(default)]
     pub trust_anchors: Vec<String>,
     #[serde(default)]

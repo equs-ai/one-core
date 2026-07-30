@@ -287,7 +287,7 @@ fn initialize_did_caching_loader(
         RemoteEntityType::DidDocument,
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     )
 }

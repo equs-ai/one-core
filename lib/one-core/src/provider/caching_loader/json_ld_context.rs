@@ -189,8 +189,8 @@ pub(crate) fn initialize_jsonld_cache_from_config(
         RemoteEntityType::JsonLdContext,
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     )
 }
 
@@ -531,7 +531,7 @@ mod test {
         let loader = create_loader(storage, 1, refresh_timeout, Duration::seconds(300));
         let resolver = Arc::new(JsonLdResolver::new(Arc::new(
             ReqwestClient::new(HttpClientSecurityConfig {
-                timeout: Some(Duration::milliseconds(10)),
+                timeout_seconds: Some(Duration::milliseconds(10)),
                 ..Default::default()
             })
             .unwrap(),
@@ -569,7 +569,7 @@ mod test {
         );
         let resolver = Arc::new(JsonLdResolver::new(Arc::new(
             ReqwestClient::new(HttpClientSecurityConfig {
-                timeout: Some(Duration::milliseconds(10)),
+                timeout_seconds: Some(Duration::milliseconds(10)),
                 ..Default::default()
             })
             .unwrap(),

@@ -76,14 +76,14 @@ pub struct JsonLdBbsplus {
 #[serde(rename_all = "camelCase")]
 struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    leeway: Duration,
+    leeway_seconds: Duration,
     #[serde(default)]
     #[expect(unused)]
     embed_layout_properties: bool,
     allowed_contexts: Option<Vec<Url>>,
     #[serde_as(as = "DurationSeconds<i64>")]
     #[serde(default = "default_2_years")]
-    expiration_time: Duration,
+    expiration_seconds: Duration,
     revocation_method: Option<RevocationMethodId>,
 }
 
@@ -141,7 +141,7 @@ impl CredentialFormatter for JsonLdBbsplus {
             vcdm.valid_from = Some(now);
         }
         if vcdm.valid_until.is_none() {
-            vcdm.valid_until = Some(now + self.params.expiration_time);
+            vcdm.valid_until = Some(now + self.params.expiration_seconds);
         }
 
         let holder_did = match credential_data
@@ -320,7 +320,7 @@ impl CredentialFormatter for JsonLdBbsplus {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

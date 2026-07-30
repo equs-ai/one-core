@@ -24,7 +24,7 @@ pub struct Params {
 #[serde(rename_all = "camelCase")]
 pub struct PayloadParams {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub max_validity_duration: Duration,
+    pub max_validity_duration_seconds: Duration,
     #[serde(default)]
     pub allow_ca_signing: bool,
     pub path_len_constraint: Option<u8>,

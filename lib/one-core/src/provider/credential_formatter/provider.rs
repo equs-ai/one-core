@@ -251,7 +251,7 @@ mod test {
                 params: Some(Params {
                     private: None,
                     public: Some(json!({
-                        "leeway": 60,
+                        "leewaySeconds": 60,
                         "embedLayoutProperties": true,
                         "swiyuMode": false
                     })),
@@ -270,7 +270,7 @@ mod test {
                 params: Some(Params {
                     private: None,
                     public: Some(json!({
-                        "leeway": 60,
+                        "leewaySeconds": 60,
                         "embedLayoutProperties": true,
                         "swiyuMode": true
                     })),

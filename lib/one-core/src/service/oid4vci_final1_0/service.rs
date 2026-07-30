@@ -538,7 +538,7 @@ impl OID4VCIFinal1_0Service {
                 key_attestation_jwt,
                 &token_verifier,
                 key_storage_security.into(),
-                params.key_attestation_leeway,
+                params.key_attestation_leeway_seconds,
             )
             .await?;
 
@@ -1038,7 +1038,7 @@ impl OID4VCIFinal1_0Service {
                 &credential_schema,
                 &credential.protocol,
                 issuer_identifier_id,
-                params.oauth_attestation_leeway,
+                params.oauth_attestation_leeway_seconds,
                 credential.id,
             )
             .await?;

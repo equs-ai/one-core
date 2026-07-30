@@ -31,7 +31,7 @@ walletProvider:
         walletClientId: "eudiw-abca"
         walletRegistration: OPTIONAL
         walletInstanceAttestation:
-          expirationTime: 86400 # 24*60*60 seconds
+          expirationSeconds: 86400 # 24*60*60 seconds
           integrityCheck:
             android:
               bundleId: ch.procivis.one.wallet.dev
@@ -53,9 +53,9 @@ walletProvider:
                 ]
               enforceProductionBuild: false
         walletUnitAttestation:
-          expirationTime: 2678400 # 31 days
+          expirationSeconds: 2678400 # 31 days
           revocationMethod: TOKENSTATUSLIST
-        deviceAuthLeeway: 60
+        deviceAuthLeewaySeconds: 60
         appVersion:
           minimum: "v1.50.0"
         eudiWalletInfo:
@@ -78,10 +78,10 @@ format:
     order: 101
     params:
       public:
-        msoExpiresIn: 60
-        msoExpectedUpdateIn: 60
-        msoMinimumRefreshTime: 10
-        leeway: 10
+        msoExpiresInSeconds: 60
+        msoExpectedUpdateInSeconds: 60
+        msoMinimumRefreshSeconds: 10
+        leewaySeconds: 10
         revocationMethod: "MDOC_MSO_UPDATE_SUSPENSION"
 issuanceProtocol:
   OPENID4VCI_FINAL1_SWIYU:
@@ -93,8 +93,8 @@ issuanceProtocol:
         encryption: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
         nonce:
           signingKey: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
-          expiration: 300
-          leeway: 0
+          expirationSeconds: 300
+          leewaySeconds: 0
   OPENID4VCI_FINAL1:
     params:
       public:
@@ -105,8 +105,8 @@ issuanceProtocol:
         encryption: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
         nonce:
           signingKey: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
-          expiration: 300
-          leeway: 0
+          expirationSeconds: 300
+          leewaySeconds: 0
   OPENID4VCI_FINAL1_HAIP:
     params:
       public:
@@ -143,7 +143,7 @@ verificationProtocol:
     params:
       public:
         verifier:
-          interactionExpiresIn: 3600
+          interactionExpiresInSeconds: 3600
 keyStorage:
   INTERNAL:
     params:
@@ -171,18 +171,18 @@ did:
 cacheEntities:
   STATUS_LIST_CREDENTIAL:
     cacheType: DB
-    refreshAfter: 300
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 300
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   DID_DOCUMENT:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
   JSON_LD_CONTEXT:
     cacheType: DB
-    refreshAfter: 86400
-    cacheRefreshTimeout: 86400
+    refreshAfterSeconds: 86400
+    cacheRefreshTimeoutSeconds: 86400
     cacheSize: 1000
 keySecurityLevel:
   HIGH:
@@ -252,7 +252,7 @@ signer:
           audience: ["bli", "bla"]
         revocationMethod: TOKENSTATUSLIST
       public:
-        maxValidityDuration: 2592000 # 30 days
+        maxValidityDurationSeconds: 2592000 # 30 days
   ACCESS_CERTIFICATE:
     display:
       en: "Wallet Relying Party Access Certificate"
@@ -263,7 +263,7 @@ signer:
       private:
         revocationMethod: CRL
       public:
-        maxValidityDuration: 157680000 # 5 years
+        maxValidityDurationSeconds: 157680000 # 5 years
   X509_CERTIFICATE:
     display:
       en: "X.509 Certificate Issuer"
@@ -273,7 +273,7 @@ signer:
     params:
       private:
         payload:
-          maxValidityDuration: 157680000 # 5 years
+          maxValidityDurationSeconds: 157680000 # 5 years
           allowCaSigning: true
           pathLenConstraint: 0
           keyIdDerivation: "sha-1"

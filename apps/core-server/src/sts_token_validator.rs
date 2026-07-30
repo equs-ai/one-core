@@ -60,7 +60,7 @@ mod validator {
                 &self.config.aud,
                 &self.config.iss,
                 payload,
-                self.config.leeway,
+                self.config.leeway_seconds,
             )?;
             let jwks = self.get_jwks().await?;
             let matching_key = jwks.find_by_kid(kid);
@@ -78,8 +78,8 @@ mod validator {
             let jwks = self.jwks_store.read().await;
 
             let now = one_core::clock::now_utc();
-            let expired = jwks.fetched_at + self.config.jwks_expire_after < now;
-            let to_be_refreshed = jwks.fetched_at + self.config.jwks_refresh_after < now;
+            let expired = jwks.fetched_at + self.config.jwks_expire_after_seconds < now;
+            let to_be_refreshed = jwks.fetched_at + self.config.jwks_refresh_after_seconds < now;
 
             if to_be_refreshed {
                 let fetch_lock = self.fetch_lock.clone();

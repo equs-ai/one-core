@@ -105,9 +105,9 @@ pub struct StsTokenValidation {
     iss: String,
     jwks_uri: String,
     #[serde_as(as = "DurationSeconds<i64>")]
-    jwks_refresh_after: Duration,
+    jwks_refresh_after_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    jwks_expire_after: Duration,
+    jwks_expire_after_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    leeway: Duration,
+    leeway_seconds: Duration,
 }

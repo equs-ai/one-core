@@ -55,7 +55,7 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
                 order: 0
                 params:
                     public:
-                        leeway: 60
+                        leewaySeconds: 60
                         embedLayoutProperties: true
             SD_JWT:
                 type: 'SD_JWT'
@@ -63,7 +63,7 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
                 order: 1
                 params:
                     public:
-                        leeway: 60
+                        leewaySeconds: 60
                         embedLayoutProperties: true
             SD_JWT_VC:
                 type: 'SD_JWT_VC'
@@ -71,7 +71,7 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
                 order: 1
                 params:
                     public:
-                        leeway: 60
+                        leewaySeconds: 60
                         embedLayoutProperties: true
             JSON_LD_CLASSIC:
                 type: 'JSON_LD_CLASSIC'
@@ -79,17 +79,17 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
                 order: 2
                 params:
                     public:
-                        leeway: 60
+                        leewaySeconds: 60
             MDOC:
               type: 'MDOC'
               display: 'format.mdoc'
               order: 4
               params:
                 public:
-                  msoExpiresIn: 259200 # 72h in seconds
-                  msoExpectedUpdateIn: 86400 # 24h in seconds
-                  msoMinimumRefreshTime: 300 # 5min in seconds
-                  leeway: 60
+                  msoExpiresInSeconds: 259200 # 72h in seconds
+                  msoExpectedUpdateInSeconds: 86400 # 24h in seconds
+                  msoMinimumRefreshSeconds: 300 # 5min in seconds
+                  leewaySeconds: 60
         identifier:
           DID:
             display: 'identifier.did'
@@ -114,12 +114,12 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
                 type: 'OPENID4VCI_FINAL1'
                 params:
                     public:
-                        oauthAttestationLeeway: 60
-                        keyAttestationLeeway: 60
-                        trustEcosystemLeeway: 60
-                        preAuthorizedCodeExpiresIn: 300
-                        tokenExpiresIn: 86400
-                        refreshExpiresIn: 886400
+                        oauthAttestationLeewaySeconds: 60
+                        keyAttestationLeewaySeconds: 60
+                        trustEcosystemLeewaySeconds: 60
+                        preAuthorizedCodeExpiresInSeconds: 300
+                        tokenExpiresInSeconds: 86400
+                        refreshExpiresInSeconds: 886400
                         redirectUri:
                             enabled: true
                             allowedSchemes: [ https ]
@@ -127,8 +127,8 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
                         encryption: '93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e'
                         nonce:
                             signingKey: '93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e'
-                            expiration: 300
-                            leeway: 0
+                            expirationSeconds: 300
+                            leewaySeconds: 0
         verificationProtocol:
             OPENID4VP_FINAL1:
                 display: 'display'
@@ -259,7 +259,7 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
         trustListSubscriber: {}
         globalSettings:
             certificateValidation:
-                leeway: 60
+                leewaySeconds: 60
             httpClient:
                 insecureHttpTransportAllowed: true
                 maxRedirects: 3

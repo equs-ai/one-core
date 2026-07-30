@@ -33,7 +33,7 @@ rusty_fork_test! {
                     order: 0
                     params:
                         public:
-                            leeway: 60
+                            leewaySeconds: 60
         "};
 
         let config2 = indoc::indoc! {"
@@ -44,7 +44,7 @@ rusty_fork_test! {
                 JWT:
                     params:
                         public:
-                            leeway: 90
+                            leewaySeconds: 90
             transport:
                 HTTP:
                     type: 'HTTP'
@@ -64,8 +64,8 @@ rusty_fork_test! {
                     type: 'OPENID4VCI_FINAL1'
                     params:
                         public:
-                            preAuthorizedCodeExpiresIn: 300
-                            tokenExpiresIn: 86400
+                            preAuthorizedCodeExpiresInSeconds: 300
+                            tokenExpiresInSeconds: 86400
             verificationProtocol:
                 OPENID4VP_FINAL1:
                     display: 'display'
@@ -183,7 +183,7 @@ rusty_fork_test! {
 
         assert_eq!(
             jwt.params.as_ref().unwrap().public,
-            Some(json!({ "leeway": 90 })) // via config 2
+            Some(json!({ "leewaySeconds": 90 })) // via config 2
         );
 
         let eddsa = config
@@ -238,7 +238,7 @@ rusty_fork_test! {
                     order: 0
                     params:
                         public:
-                            leeway: 60
+                            leewaySeconds: 60
             identifier:
               DID:
                 enabled: true

@@ -71,8 +71,8 @@ pub fn remote_trust_collection_cache_from_config(
         RemoteEntityType::RemoteTrustCollection,
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     );
     RemoteTrustCollectionCacheImpl {
         inner,

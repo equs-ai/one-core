@@ -144,23 +144,23 @@ pub struct CacheEntityConfig {
     /// Duration after which an entry is tried to be refreshed
     /// (if refresh fails, the old cached value is still used)
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub refresh_after: time::Duration,
+    pub refresh_after_seconds: time::Duration,
 
     /// Duration for hard-refresh
     ///
     /// Duration after which an entry is expired and must be refreshed
     /// (if refresh fails, the cached value is ignored and fetching fails)
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub cache_refresh_timeout: time::Duration,
+    pub cache_refresh_timeout_seconds: time::Duration,
 }
 
 impl Default for CacheEntityConfig {
     fn default() -> Self {
         Self {
-            cache_refresh_timeout: Duration::days(1),
+            cache_refresh_timeout_seconds: Duration::days(1),
             cache_size: 100,
             cache_type: CacheEntityCacheType::Db,
-            refresh_after: Duration::minutes(5),
+            refresh_after_seconds: Duration::minutes(5),
         }
     }
 }
@@ -856,7 +856,7 @@ pub type VerificationEngagementConfig = Dict<VerificationEngagement, Verificatio
 pub struct CertificateValidationConfig {
     #[serde(default)]
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: time::Duration,
+    pub leeway_seconds: time::Duration,
 }
 
 pub type SignerConfig = ConfigBlock<SignerId, SignerType>;

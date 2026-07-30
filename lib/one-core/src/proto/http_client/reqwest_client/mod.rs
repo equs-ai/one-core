@@ -32,7 +32,7 @@ fn builder_from_params(params: &HttpClientSecurityConfig) -> Result<ClientBuilde
         .https_only(!params.insecure_http_transport_allowed)
         .redirect(redirect::Policy::limited(params.max_redirects));
 
-    if let Some(timeout) = params.timeout {
+    if let Some(timeout) = params.timeout_seconds {
         client_builder = client_builder.timeout(timeout.try_into()?);
     }
     Ok(client_builder)
@@ -46,7 +46,7 @@ impl ReqwestClient {
             client: client_builder.build()?,
             denied_hosts: params.denied_hosts.clone(),
             max_response_size: params.max_response_size,
-            timeout: params.timeout,
+            timeout: params.timeout_seconds,
             params,
         })
     }

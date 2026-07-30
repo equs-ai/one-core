@@ -51,7 +51,7 @@ struct Params {
     pub resolve_to_insecure_http: bool,
     #[serde(default)]
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
 }
 
 #[derive(Deserialize)]

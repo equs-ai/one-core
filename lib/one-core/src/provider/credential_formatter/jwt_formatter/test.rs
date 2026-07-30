@@ -189,13 +189,13 @@ fn get_credential_data_with_array(status: CredentialStatus, core_base_url: &str)
 
 #[tokio::test]
 async fn test_format_credential() {
-    let expiration_time = Duration::days(1);
+    let expiration_seconds = Duration::days(1);
     let formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway: Duration::seconds(45),
+            leeway_seconds: Duration::seconds(45),
             embed_layout_properties: false,
-            expiration_time,
+            expiration_seconds,
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -248,7 +248,7 @@ async fn test_format_credential() {
 
     assert_eq!(
         payload.expires_at,
-        Some(payload.issued_at.unwrap() + expiration_time),
+        Some(payload.issued_at.unwrap() + expiration_seconds),
     );
     assert_eq!(payload.invalid_before, None);
 
@@ -287,14 +287,14 @@ async fn test_format_credential() {
 
 #[tokio::test]
 async fn test_format_credential_with_layout_properties() {
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: true,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -383,14 +383,14 @@ async fn test_format_credential_with_layout_properties() {
 
 #[tokio::test]
 async fn test_format_credential_nested_array() {
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let sd_formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -469,14 +469,14 @@ async fn test_extract_credentials() {
 
     let token = format!("{jwt_token}.QUJD").into();
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let jwt_formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -580,14 +580,14 @@ async fn test_extract_credentials_nested_array() {
 
     let token = format!("{jwt_token}.QUJD").into();
 
-    let leeway = Duration::seconds(45);
+    let leeway_seconds = Duration::seconds(45);
 
     let jwt_formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway,
+            leeway_seconds,
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -691,9 +691,9 @@ async fn test_format_credential_presentation() {
     let jwt_formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway: Duration::seconds(45),
+            leeway_seconds: Duration::seconds(45),
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -733,9 +733,9 @@ fn test_get_capabilities() {
     let jwt_formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway: Duration::seconds(123),
+            leeway_seconds: Duration::seconds(123),
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -758,9 +758,9 @@ fn test_schema_id() {
     let formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway: Duration::seconds(123),
+            leeway_seconds: Duration::seconds(123),
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),
@@ -821,9 +821,9 @@ async fn test_parse_credential() {
     let jwt_formatter = JWTFormatter {
         config_id: "JWT".into(),
         params: Params {
-            leeway: Duration::seconds(45),
+            leeway_seconds: Duration::seconds(45),
             embed_layout_properties: false,
-            expiration_time: Duration::days(1),
+            expiration_seconds: Duration::days(1),
             revocation_method: None,
         },
         key_algorithm_provider: Arc::new(MockKeyAlgorithmProvider::new()),

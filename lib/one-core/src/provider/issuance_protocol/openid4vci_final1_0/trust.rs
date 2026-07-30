@@ -180,7 +180,7 @@ impl OpenID4VCIFinal1_0 {
                 relying_party_id,
                 registry_url,
                 Some(organisation_id),
-                self.params.trust_ecosystem_leeway,
+                self.params.trust_ecosystem_leeway_seconds,
             )
             .await
             .error_while("fetching from WRP registry")?;
@@ -244,7 +244,7 @@ impl OpenID4VCIFinal1_0 {
                 &issuer_info.data,
                 expected_relying_party_id,
                 Some(organisation_id),
-                self.params.trust_ecosystem_leeway,
+                self.params.trust_ecosystem_leeway_seconds,
             )
             .await
         else {
@@ -361,7 +361,7 @@ impl OpenID4VCIFinal1_0 {
                     reg_cert,
                     relying_party_id,
                     Some(organisation.id),
-                    self.params.trust_ecosystem_leeway,
+                    self.params.trust_ecosystem_leeway_seconds,
                 )
                 .await
         {
@@ -378,7 +378,7 @@ impl OpenID4VCIFinal1_0 {
                     relying_party_id,
                     registry_url,
                     Some(organisation.id),
-                    self.params.trust_ecosystem_leeway,
+                    self.params.trust_ecosystem_leeway_seconds,
                 )
                 .await;
             match result {

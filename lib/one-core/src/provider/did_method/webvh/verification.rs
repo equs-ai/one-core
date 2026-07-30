@@ -54,7 +54,7 @@ pub async fn verify_did_log(
         verify_proof(&active_parameters, entry, did_method_provider).await?;
         scid_or_version_id = &entry.version_id;
 
-        if entry.version_time > now.add(params.leeway) {
+        if entry.version_time > now.add(params.leeway_seconds) {
             return Err(ResolutionError(format!(
                 "Invalid log entry {}: version time {} is in the future",
                 entry.version_id, entry.version_time

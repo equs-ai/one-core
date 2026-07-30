@@ -259,7 +259,7 @@ pub(crate) fn certificate_validator_from_config(
             remote_entity_cache_repository,
         )?),
         Arc::new(DefaultClock),
-        global_settings.certificate_validation.leeway,
+        global_settings.certificate_validation.leeway_seconds,
         Arc::new(initialize_android_key_attestation_crl_cache(client)),
     )))
 }
@@ -304,7 +304,7 @@ fn initialize_x509_crl_cache(
         Arc::new(X509CrlResolver::new(Arc::new(client))),
         storage,
         config.cache_size as usize,
-        config.cache_refresh_timeout,
-        config.refresh_after,
+        config.cache_refresh_timeout_seconds,
+        config.refresh_after_seconds,
     ))
 }

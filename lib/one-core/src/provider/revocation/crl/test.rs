@@ -107,7 +107,7 @@ async fn test_add_signature_new_list() {
         Arc::new(revocation_list_repository),
         Arc::new(NoTransactionManager),
         Arc::new(key_provider),
-        json!({ "refreshInterval": refresh_interval.whole_seconds() }),
+        json!({ "refreshIntervalSeconds": refresh_interval.whole_seconds() }),
     )
     .unwrap();
 
@@ -234,7 +234,7 @@ async fn test_revoke_signature() {
         Arc::new(revocation_list_repository),
         Arc::new(NoTransactionManager),
         Arc::new(key_provider),
-        json!({ "refreshInterval": refresh_interval.whole_seconds() }),
+        json!({ "refreshIntervalSeconds": refresh_interval.whole_seconds() }),
     )
     .unwrap();
 
@@ -303,7 +303,7 @@ async fn test_get_updated_list_no_update() {
         Arc::new(revocation_list_repository),
         Arc::new(NoTransactionManager),
         Arc::new(MockKeyProvider::new()),
-        json!({ "refreshInterval": refresh_interval.whole_seconds() }),
+        json!({ "refreshIntervalSeconds": refresh_interval.whole_seconds() }),
     )
     .unwrap();
 
@@ -377,7 +377,7 @@ async fn test_get_updated_list_with_update() {
         Arc::new(revocation_list_repository),
         Arc::new(NoTransactionManager),
         Arc::new(key_provider),
-        json!({ "refreshInterval": refresh_interval.whole_seconds() }),
+        json!({ "refreshIntervalSeconds": refresh_interval.whole_seconds() }),
     )
     .unwrap();
 

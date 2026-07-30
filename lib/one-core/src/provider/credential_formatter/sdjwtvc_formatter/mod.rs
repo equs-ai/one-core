@@ -83,7 +83,7 @@ pub struct SDJWTVCFormatter {
 #[serde(rename_all = "camelCase")]
 struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    leeway: Duration,
+    leeway_seconds: Duration,
     #[expect(unused)]
     embed_layout_properties: bool,
     // Toggles SWIYU quirks, specifically the malformed `cnf` claim
@@ -97,7 +97,7 @@ struct Params {
     pid_schema_ids: Vec<String>,
     #[serde_as(as = "DurationSeconds<i64>")]
     #[serde(default = "default_2_years")]
-    expiration_time: Duration,
+    expiration_seconds: Duration,
     revocation_method: Option<RevocationMethodId>,
 }
 
@@ -254,7 +254,7 @@ impl CredentialFormatter for SDJWTVCFormatter {
             vcdm.valid_from = Some(now);
         }
         if vcdm.valid_until.is_none() {
-            vcdm.valid_until = Some(now + self.params.expiration_time);
+            vcdm.valid_until = Some(now + self.params.expiration_seconds);
         }
 
         let schema_id = vcdm
@@ -275,7 +275,7 @@ impl CredentialFormatter for SDJWTVCFormatter {
         let inputs = SdJwtFormattingInputs {
             holder_identifier: credential_data.holder_identifier,
             holder_key_id: credential_data.holder_key_id,
-            leeway: self.params.leeway,
+            leeway: self.params.leeway_seconds,
             token_type,
             issuer_certificate: credential_data.issuer_certificate,
         };
@@ -362,7 +362,7 @@ impl CredentialFormatter for SDJWTVCFormatter {
     }
 
     fn get_leeway(&self) -> Duration {
-        self.params.leeway
+        self.params.leeway_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

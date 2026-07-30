@@ -177,14 +177,14 @@ mod test {
     static PARAMS_ALLOW_ALL: WebhookNotifyParams = WebhookNotifyParams {
         allowed_hosts: None,
         allow_insecure_http_transport: true,
-        request_timeout: Duration::seconds(30),
+        request_timeout_seconds: Duration::seconds(30),
         retries: None,
     };
 
     static PARAMS_ALL_HTTPS: WebhookNotifyParams = WebhookNotifyParams {
         allowed_hosts: None,
         allow_insecure_http_transport: false,
-        request_timeout: Duration::seconds(30),
+        request_timeout_seconds: Duration::seconds(30),
         retries: None,
     };
 
@@ -237,7 +237,7 @@ mod test {
                 "11.22.33.44".to_string(),
             ]),
             allow_insecure_http_transport: true,
-            request_timeout: Duration::seconds(30),
+            request_timeout_seconds: Duration::seconds(30),
             retries: None,
         };
 

@@ -134,9 +134,9 @@ async fn create_token(include_layout: bool) -> Value {
     };
 
     let params = json!({
-        "leeway": 60,
+        "leewaySeconds": 60,
         "embedLayoutProperties": include_layout,
-        "expirationTime": 86_400,
+        "expirationSeconds": 86_400,
     });
     let key_algorithm = MockKeyAlgorithm::new();
     let mut key_algorithm_provider = MockKeyAlgorithmProvider::new();
@@ -312,9 +312,9 @@ async fn test_parse_credential() {
     let formatter = JsonLdClassic::new(
         "JSON_LD_CLASSIC".into(),
         json!({
-            "leeway": 60,
+            "leewaySeconds": 60,
             "embedLayoutProperties": false,
-            "expirationTime": 86_400,
+            "expirationSeconds": 86_400,
         }),
         Arc::new(crypto),
         prepare_caching_loader(None),

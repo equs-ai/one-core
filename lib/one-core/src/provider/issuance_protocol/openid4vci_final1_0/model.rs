@@ -34,11 +34,11 @@ use crate::provider::credential_formatter::vcdm::ContextType;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OpenID4VCIFinal1Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub pre_authorized_code_expires_in: Duration,
+    pub pre_authorized_code_expires_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub token_expires_in: Duration,
+    pub token_expires_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub refresh_expires_in: Duration,
+    pub refresh_expires_in_seconds: Duration,
     #[serde(default)]
     pub credential_offer_by_value: bool,
     #[serde(deserialize_with = "deserialize_encryption_key")]
@@ -52,11 +52,11 @@ pub(crate) struct OpenID4VCIFinal1Params {
     pub nonce: Option<OpenID4VCNonceParams>,
 
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub oauth_attestation_leeway: Duration,
+    pub oauth_attestation_leeway_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub key_attestation_leeway: Duration,
+    pub key_attestation_leeway_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub trust_ecosystem_leeway: Duration,
+    pub trust_ecosystem_leeway_seconds: Duration,
 
     #[serde(flatten)]
     pub common: CommonParams,
@@ -69,10 +69,10 @@ pub(crate) struct OpenID4VCNonceParams {
     #[serde(deserialize_with = "deserialize_encryption_key")]
     pub signing_key: SecretSlice<u8>,
     #[serde_as(as = "Option<DurationSeconds<i64>>")]
-    pub expiration: Option<Duration>,
+    pub expiration_seconds: Option<Duration>,
     #[serde(default)]
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: Duration,
+    pub leeway_seconds: Duration,
 }
 
 /// <https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata>
