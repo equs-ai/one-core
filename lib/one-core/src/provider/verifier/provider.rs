@@ -31,12 +31,17 @@ pub(crate) fn verifier_provider_from_config(
 ) -> Result<Arc<dyn VerifierProvider>, ConfigValidationError> {
     let mut verifiers = HashMap::new();
     for (name, fields) in config.verifier_provider.iter() {
-        let verifier: VerifierParams =
-            serde_json::from_value(fields.params.merge().unwrap_or(serde_json::Value::Null))
-                .map_err(|e| ConfigValidationError::FieldsDeserialization {
-                    key: name.clone(),
-                    source: e,
-                })?;
+        let verifier: VerifierParams = serde_json::from_value(
+            fields
+                .params
+                .as_ref()
+                .and_then(|params| params.merge())
+                .unwrap_or(serde_json::Value::Null),
+        )
+        .map_err(|e| ConfigValidationError::FieldsDeserialization {
+            key: name.clone(),
+            source: e,
+        })?;
         verifiers.insert(name.clone(), verifier);
     }
 

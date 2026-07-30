@@ -155,6 +155,7 @@ walletProvider:
           - SIGN8
 verifierProvider:
   PROCIVIS_ONE:
+    type: PROCIVIS_ONE
     display: verifierProvider.procivisOne
 signer:
   REGISTRATION_CERTIFICATE:

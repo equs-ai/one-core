@@ -164,7 +164,12 @@ impl ManagedInstanceService {
                 .get_type(&instance.provider)
                 .map(|r#type| r#type.to_string())
                 .unwrap_or_else(|_| instance.provider.clone()),
-            InstanceRole::Verifier => instance.provider.clone(),
+            InstanceRole::Verifier => self
+                .config
+                .verifier_provider
+                .get_type(&instance.provider)
+                .map(|r#type| r#type.to_string())
+                .unwrap_or_else(|_| instance.provider.clone()),
         }
     }
 

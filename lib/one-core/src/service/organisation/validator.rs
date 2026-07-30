@@ -107,10 +107,11 @@ pub(super) async fn validate_verifier_provider(
     config: &CoreConfig,
     organisation_repository: &dyn OrganisationRepository,
 ) -> Result<(), OrganisationServiceError> {
-    match config.verifier_provider.get(verifier_provider) {
-        Some(fields) if fields.enabled => {}
-        _ => return Err(OrganisationServiceError::VerifierProviderNotConfigured),
-    }
+    config
+        .verifier_provider
+        .get_if_enabled(verifier_provider)
+        .map_err(|_| OrganisationServiceError::VerifierProviderNotConfigured)
+        .error_while("checking config")?;
     if let Some(org) = organisation_repository
         .get_organisation_for_verifier_provider(verifier_provider)
         .await
