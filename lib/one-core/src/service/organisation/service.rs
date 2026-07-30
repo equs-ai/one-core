@@ -240,6 +240,7 @@ impl OrganisationService {
 
         if let Some(Some(wallet_provider)) = &request.wallet_provider {
             validate_wallet_provider(
+                request.id,
                 wallet_provider,
                 &self.core_config,
                 &*self.organisation_repository,
@@ -254,6 +255,7 @@ impl OrganisationService {
 
         if let Some(Some(verifier_provider)) = &request.verifier_provider {
             validate_verifier_provider(
+                request.id,
                 verifier_provider,
                 &self.core_config,
                 &*self.organisation_repository,

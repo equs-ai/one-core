@@ -580,3 +580,173 @@ async fn test_upsert_organisation_fail_non_existing_wallet_provider() {
     assert_eq!(resp.status(), 400);
     assert_eq!(resp.error_code().await, "BR_0284");
 }
+
+#[tokio::test]
+async fn test_upsert_organisation_success_wallet_provider_issuer_rotation() {
+    // GIVEN
+    let (context, org, _, identifier, _) = TestContext::new_with_did(None).await;
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+    assert_eq!(resp.status(), 204);
+
+    // WHEN - re-send the same provider name with a new issuer
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    issuer: Some(identifier.id),
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 204);
+    let org = context.db.organisations.get(&org.id).await;
+    assert_eq!(org.wallet_provider, Some("PROCIVIS_ONE".to_string()));
+    assert_eq!(org.wallet_provider_issuer, Some(identifier.id));
+}
+
+#[tokio::test]
+async fn test_upsert_organisation_fail_wallet_provider_already_associated() {
+    // GIVEN
+    let (context, org) = TestContext::new_with_organisation(None).await;
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+    assert_eq!(resp.status(), 204);
+    let other = context.db.organisations.create().await;
+
+    // WHEN
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &other.id,
+            UpsertParams {
+                wallet_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 400);
+    assert_eq!(resp.error_code().await, "BR_0283");
+}
+
+#[tokio::test]
+async fn test_upsert_organisation_success_verifier_provider_issuer_rotation() {
+    // GIVEN
+    let (context, org, _, identifier, _) = TestContext::new_with_did(None).await;
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                verifier_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+    assert_eq!(resp.status(), 204);
+
+    // WHEN - re-send the same provider name with a new issuer
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                verifier_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    issuer: Some(identifier.id),
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 204);
+    let org = context.db.organisations.get(&org.id).await;
+    assert_eq!(org.verifier_provider, Some("PROCIVIS_ONE".to_string()));
+    assert_eq!(org.verifier_provider_issuer, Some(identifier.id));
+}
+
+#[tokio::test]
+async fn test_upsert_organisation_fail_verifier_provider_already_associated() {
+    // GIVEN
+    let (context, org) = TestContext::new_with_organisation(None).await;
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &org.id,
+            UpsertParams {
+                verifier_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+    assert_eq!(resp.status(), 204);
+    let other = context.db.organisations.create().await;
+
+    // WHEN
+    let resp = context
+        .api
+        .organisations
+        .upsert(
+            &other.id,
+            UpsertParams {
+                verifier_provider: Some(Some(ProviderParams {
+                    name: Some("PROCIVIS_ONE".to_string()),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 400);
+    assert_eq!(resp.error_code().await, "BR_0465");
+}

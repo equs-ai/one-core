@@ -81,6 +81,7 @@ pub(super) async fn validate_parent_organisation(
 }
 
 pub(super) async fn validate_wallet_provider(
+    organisation_id: OrganisationId,
     wallet_provider: &str,
     config: &CoreConfig,
     organisation_repository: &dyn OrganisationRepository,
@@ -94,6 +95,7 @@ pub(super) async fn validate_wallet_provider(
         .get_organisation_for_wallet_provider(wallet_provider)
         .await
         .error_while("getting organisation")?
+        && org.id != organisation_id
     {
         return Err(OrganisationServiceError::WalletProviderAlreadyAssociated(
             org.id,
@@ -103,6 +105,7 @@ pub(super) async fn validate_wallet_provider(
 }
 
 pub(super) async fn validate_verifier_provider(
+    organisation_id: OrganisationId,
     verifier_provider: &str,
     config: &CoreConfig,
     organisation_repository: &dyn OrganisationRepository,
@@ -116,6 +119,7 @@ pub(super) async fn validate_verifier_provider(
         .get_organisation_for_verifier_provider(verifier_provider)
         .await
         .error_while("getting organisation")?
+        && org.id != organisation_id
     {
         return Err(OrganisationServiceError::VerifierProviderAlreadyAssociated(
             org.id,
