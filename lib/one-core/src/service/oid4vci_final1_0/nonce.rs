@@ -34,13 +34,13 @@ pub(super) async fn generate_nonce(
     params: OpenID4VCNonceParams,
     base_url: Option<String>,
 ) -> Result<String, OID4VCIFinal1_0ServiceError> {
-    let expiration = params.expiration.unwrap_or(300);
+    let expiration = params.expiration.unwrap_or(Duration::seconds(300));
     let now = crate::clock::now_utc();
 
     let payload = JWTPayload::<NonceJwtPayload> {
         jwt_id: Some(Uuid::new_v4().to_string()),
         issued_at: Some(now),
-        expires_at: Some(now + Duration::seconds(expiration as _)),
+        expires_at: Some(now + expiration),
         issuer: base_url,
         ..Default::default()
     };
@@ -147,7 +147,7 @@ mod test {
             )
             .unwrap()
             .into(),
-            expiration: Some(300),
+            expiration: Some(Duration::seconds(300)),
             leeway: Default::default(),
         }
     }

@@ -68,7 +68,8 @@ pub(crate) struct OpenID4VCIFinal1Params {
 pub(crate) struct OpenID4VCNonceParams {
     #[serde(deserialize_with = "deserialize_encryption_key")]
     pub signing_key: SecretSlice<u8>,
-    pub expiration: Option<u64>,
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    pub expiration: Option<Duration>,
     #[serde(default)]
     #[serde_as(as = "DurationSeconds<i64>")]
     pub leeway: Duration,

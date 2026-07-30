@@ -77,7 +77,7 @@ pub(super) fn validate_revocation_method(
                 revocation_method.to_string(),
             ));
         }
-    } else if params.wallet_unit_attestation.expiration_time > 86400 {
+    } else if params.wallet_unit_attestation.expiration_time > Duration::days(1) {
         tracing::warn!(
             "WUA without revocation but expiration longer than one day: {}",
             params.wallet_unit_attestation.expiration_time

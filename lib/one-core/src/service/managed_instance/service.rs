@@ -520,9 +520,7 @@ impl ManagedInstanceService {
                 .as_deref()
                 .ok_or(ManagedInstanceError::MissingWalletUnitAttestation)?;
 
-            if wallet_unit.last_modified
-                + Duration::seconds(reg_params.integrity_check.timeout as i64)
-                < self.clock.now_utc()
+            if wallet_unit.last_modified + reg_params.integrity_check.timeout < self.clock.now_utc()
             {
                 let error = ManagedInstanceError::InvalidWalletUnitAttestationNonce;
                 self.set_instance_to_error(
@@ -913,8 +911,7 @@ impl ManagedInstanceService {
 
         let mut key_attestation_inputs = vec![];
         for wua_request in request.wua {
-            let wua_expiration_date = now
-                + Duration::seconds(config_params.wallet_unit_attestation.expiration_time as i64);
+            let wua_expiration_date = now + config_params.wallet_unit_attestation.expiration_time;
 
             let holder_jwk = self
                 .verify_pop(&wua_request.proof, config_params.device_auth_leeway)
@@ -1110,9 +1107,9 @@ impl ManagedInstanceService {
             Some(issuer_public_key_info),
             JWTPayload {
                 issued_at: Some(now),
-                expires_at: Some(now.add(Duration::seconds(
-                    config_params.wallet_instance_attestation.expiration_time as i64,
-                ))),
+                expires_at: Some(
+                    now.add(config_params.wallet_instance_attestation.expiration_time),
+                ),
                 invalid_before: Some(now),
                 issuer: self.base_url.clone(),
                 // As per https://drafts.oauth.net/draft-ietf-oauth-attestation-based-client-auth/draft-ietf-oauth-attestation-based-client-auth.html#section-5.1
@@ -1171,9 +1168,7 @@ impl ManagedInstanceService {
             Some(issuer_public_key_info),
             JWTPayload {
                 issued_at: Some(now),
-                expires_at: Some(now.add(Duration::seconds(
-                    config_params.wallet_unit_attestation.expiration_time as i64,
-                ))),
+                expires_at: Some(now.add(config_params.wallet_unit_attestation.expiration_time)),
                 invalid_before: Some(now),
                 issuer: config_params
                     .eudi_wallet_info

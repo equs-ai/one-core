@@ -154,18 +154,22 @@ pub(super) enum WalletRegistrationRequirement {
     Disabled,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WalletInstanceAttestationParams {
-    pub expiration_time: u64,
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub expiration_time: Duration,
     #[serde(default)]
     pub integrity_check: IntegrityCheck,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct WalletUnitAttestationParams {
-    pub expiration_time: u64,
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub expiration_time: Duration,
     pub revocation_method: Option<RevocationMethodId>,
 }
 
@@ -224,6 +228,7 @@ where
         .collect())
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct IntegrityCheck {
@@ -232,7 +237,8 @@ pub(crate) struct IntegrityCheck {
     #[serde(default = "default_enabled")]
     pub enabled: bool,
     #[serde(default = "default_attestation_timeout")]
-    pub timeout: usize,
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub timeout: Duration,
 }
 
 impl Default for IntegrityCheck {
@@ -241,7 +247,7 @@ impl Default for IntegrityCheck {
             android: None,
             ios: None,
             enabled: true,
-            timeout: 300,
+            timeout: Duration::seconds(300),
         }
     }
 }
@@ -250,8 +256,8 @@ fn default_enabled() -> bool {
     true
 }
 
-fn default_attestation_timeout() -> usize {
-    300
+fn default_attestation_timeout() -> Duration {
+    Duration::seconds(300)
 }
 
 #[derive(Clone, Debug, Deserialize)]
