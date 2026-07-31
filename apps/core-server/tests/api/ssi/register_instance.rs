@@ -66,7 +66,14 @@ async fn test_register_instance_wallet_role_successfully() {
 #[tokio::test]
 async fn test_register_instance_verifier_role_successfully() {
     // given
-    let (context, org) = TestContext::new_with_organisation(None).await;
+    let config = indoc::indoc! {"
+      verifierProvider:
+        PROCIVIS_ONE:
+          params:
+            public:
+              verifierInstanceAttestation: null
+    "};
+    let (context, org) = TestContext::new_with_organisation(Some(config.to_string())).await;
     create_verifier_provider_issuer_identifier(&context, &org).await;
 
     let holder_key_pair = Ecdsa.generate_key().unwrap();
@@ -121,6 +128,7 @@ async fn test_register_instance_verifier_role_user_authentication_pending_then_a
                   aud: my-client
                   iss: https://idp.example.com
                   jwksUri: https://idp.example.com/.well-known/jwks.json
+              verifierInstanceAttestation: null
     "}
     .to_string();
     // given

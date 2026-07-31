@@ -1,5 +1,6 @@
 use one_core::model::history::{HistoryAction, HistoryEntityType};
 use one_core::model::instance::{InstanceRole, InstanceStatus};
+use one_core::model::managed_instance::ManagedInstanceOs;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use reqwest::header::AUTHORIZATION;
@@ -255,7 +256,14 @@ async fn activate_wallet_unit_missing_required_user_id_token() {
 async fn activate_instance_verifier_role_successfully() {
     // given: PROCIVIS_ONE verifierProvider config has no verifierInstanceAttestation, so
     // activation goes through the no-integrity-check, self-certifying proof path.
-    let (context, org) = TestContext::new_with_organisation(None).await;
+    let config = indoc::indoc! {"
+      verifierProvider:
+        PROCIVIS_ONE:
+          params:
+            public:
+              verifierInstanceAttestation: null
+    "};
+    let (context, org) = TestContext::new_with_organisation(Some(config.to_string())).await;
     create_verifier_provider_issuer_identifier(&context, &org).await;
 
     let device_key_pair = Ecdsa.generate_key().unwrap();
@@ -341,6 +349,7 @@ async fn activate_instance_verifier_role_provisions_access_certificate() {
             TestWalletInstance {
                 role: Some(InstanceRole::Verifier),
                 status: Some(InstanceStatus::Pending),
+                os: Some(ManagedInstanceOs::Web),
                 ..Default::default()
             },
         )

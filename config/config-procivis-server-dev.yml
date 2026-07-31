@@ -15,17 +15,6 @@ walletProvider:
             ios:
               bundleId: AGG3V6QN4G.ch.procivis.one.wallet.dev
               enforceProductionBuild: false
-        verifierInstanceAttestation:
-          integrityCheck:
-            android:
-              bundleId: ch.procivis.one.verifier.dev
-              signingCertificateFingerprints: [
-                "3C:54:08:A0:AB:59:9A:5B:51:72:3F:DA:58:8E:81:DB:4F:A0:65:41:0E:7D:C2:65:4D:F1:A5:67:5B:47:13:52", # bitrise
-                "E7:DA:A9:47:87:FD:E3:5A:88:F1:89:EC:6A:F9:09:DF:63:1A:E6:1E:EB:57:98:AA:69:E5:D5:CA:7D:7C:20:FB", # google-play
-              ]
-            ios:
-              bundleId: AGG3V6QN4G.ch.procivis.one.verifier.dev
-              enforceProductionBuild: false
         appVersion:
           minimum: "v1.0.0"
         eudiWalletInfo:
@@ -87,6 +76,17 @@ verifierProvider:
     params:
       public:
         verifierName: "Procivis One Dev Verifier"
+        verifierInstanceAttestation:
+          integrityCheck:
+            android:
+              bundleId: ch.procivis.one.verifier.dev
+              signingCertificateFingerprints: [
+                "3C:54:08:A0:AB:59:9A:5B:51:72:3F:DA:58:8E:81:DB:4F:A0:65:41:0E:7D:C2:65:4D:F1:A5:67:5B:47:13:52", # bitrise
+                "E7:DA:A9:47:87:FD:E3:5A:88:F1:89:EC:6A:F9:09:DF:63:1A:E6:1E:EB:57:98:AA:69:E5:D5:CA:7D:7C:20:FB", # google-play
+              ]
+            ios:
+              bundleId: AGG3V6QN4G.ch.procivis.one.verifier.dev
+              enforceProductionBuild: false
         appVersion:
           minimum: "v1.0.0"
         featureFlags:

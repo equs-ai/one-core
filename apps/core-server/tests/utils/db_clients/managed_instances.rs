@@ -32,6 +32,7 @@ pub struct TestWalletInstance {
     pub role: Option<InstanceRole>,
     pub provider: Option<String>,
     pub verifier_csr: Option<String>,
+    pub os: Option<ManagedInstanceOs>,
     pub verifier_signature_ids: Option<Vec<RevocationListEntryId>>,
 }
 
@@ -56,7 +57,9 @@ impl ManagedInstancesDB {
                 .unwrap_or("test_wallet".to_string()),
             created_date: six_hours_ago,
             last_modified: test_wallet_instance.last_modified.unwrap_or(six_hours_ago),
-            os: ManagedInstanceOs::Android,
+            os: test_wallet_instance
+                .os
+                .unwrap_or(ManagedInstanceOs::Android),
             status: test_wallet_instance
                 .status
                 .unwrap_or(InstanceStatus::Active),
