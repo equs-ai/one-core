@@ -34,9 +34,9 @@ pub(crate) fn wallet_unit_from_request(
     nonce: Option<String>,
     user_nonce: Option<String>,
 ) -> Result<ManagedInstance, ManagedInstanceError> {
-    let status = match &nonce {
-        None => InstanceStatus::Active,
-        Some(_) => InstanceStatus::Pending,
+    let status = match (&nonce, &user_nonce) {
+        (None, None) => InstanceStatus::Active,
+        _ => InstanceStatus::Pending,
     };
     Ok(ManagedInstance {
         id: Uuid::new_v4().into(),

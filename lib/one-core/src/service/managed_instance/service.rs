@@ -281,7 +281,7 @@ impl ManagedInstanceService {
         tracing::info!(
             "Created wallet unit {} (requires activation `{}`): provider `{provider}`",
             result.id,
-            result.nonce.is_some()
+            result.nonce.is_some() || result.user_nonce.is_some()
         );
         Ok(result)
     }

@@ -318,6 +318,7 @@ async fn test_register_wallet_unit_with_user_authentication_nonce_path_returns_u
         .await;
     assert_eq!(wallet_units.values.len(), 1);
     let wallet_unit = &wallet_units.values[0];
+    assert_eq!(wallet_unit.status, InstanceStatus::Pending);
     resp_json["nonce"].assert_eq(&wallet_unit.nonce);
     resp_json["userNonce"].assert_eq(&wallet_unit.user_nonce);
 }
@@ -379,6 +380,7 @@ async fn test_register_wallet_unit_with_user_authentication_auth_key_path_return
         .await;
     assert_eq!(wallet_units.values.len(), 1);
     let wallet_unit = &wallet_units.values[0];
+    assert_eq!(wallet_unit.status, InstanceStatus::Pending);
     resp_json["userNonce"].assert_eq(&wallet_unit.user_nonce);
 }
 
