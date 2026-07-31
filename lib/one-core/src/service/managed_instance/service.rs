@@ -205,6 +205,21 @@ impl ManagedInstanceService {
             .error_while("validating provider")?;
         let reg_params = self.get_provider_registration_params(request.role, &provider)?;
 
+        let is_web = request.os == ManagedInstanceOs::Web;
+        // Web instances cannot perform the user binding flow, so it is skipped for them. If the
+        // provider mandates user authentication, web instances cannot be registered at all.
+        if is_web
+            && reg_params
+                .user_authentication
+                .as_ref()
+                .is_some_and(|user_authentication| user_authentication.required)
+        {
+            return Err(ManagedInstanceError::UserAuthenticationNotSupported
+                .error_while("validating request")
+                .into());
+        }
+        let user_binding_required = reg_params.user_authentication.is_some() && !is_web;
+
         if !reg_params.integrity_check.enabled
             && request.proof.is_none()
             && request.public_key.is_none()
@@ -216,7 +231,7 @@ impl ManagedInstanceService {
                 .into());
         }
 
-        let result = if reg_params.integrity_check.enabled && request.os != ManagedInstanceOs::Web {
+        let result = if reg_params.integrity_check.enabled && !is_web {
             if request.public_key.is_some() || request.proof.is_some() {
                 return Err(ManagedInstanceError::AppIntegrityCheckRequired
                     .error_while("validating request")
@@ -226,7 +241,7 @@ impl ManagedInstanceService {
                 request,
                 organisation,
                 &reg_params.name_label,
-                reg_params.user_authentication.is_some(),
+                user_binding_required,
             )
             .await
         } else {
@@ -258,7 +273,7 @@ impl ManagedInstanceService {
                 organisation,
                 &reg_params.name_label,
                 public_key_jwk,
-                reg_params.user_authentication.is_some(),
+                user_binding_required,
             )
             .await
         }?;
@@ -344,11 +359,11 @@ impl ManagedInstanceService {
         request: RegisterWalletUnitRequestDTO,
         organisation: Organisation,
         provider_label: &str,
-        user_authentication_configured: bool,
+        user_binding_required: bool,
     ) -> Result<RegisterWalletUnitResponseDTO, ManagedInstanceError> {
         let now = self.clock.now_utc();
         let nonce = generate_alphanumeric(44).to_owned();
-        let user_nonce = user_authentication_configured.then(|| generate_alphanumeric(44));
+        let user_nonce = user_binding_required.then(|| generate_alphanumeric(44));
         let organisation_id = organisation.id;
         let wallet_unit = wallet_unit_from_request(
             request,
@@ -418,10 +433,10 @@ impl ManagedInstanceService {
         organisation: Organisation,
         provider_label: &str,
         public_key_jwk: PublicJwk,
-        user_authentication_configured: bool,
+        user_binding_required: bool,
     ) -> Result<RegisterWalletUnitResponseDTO, ManagedInstanceError> {
         let now = self.clock.now_utc();
-        let user_nonce = user_authentication_configured.then(|| generate_alphanumeric(44));
+        let user_nonce = user_binding_required.then(|| generate_alphanumeric(44));
         let organisation_id = organisation.id;
         let wallet_unit = wallet_unit_from_request(
             request,
@@ -496,17 +511,19 @@ impl ManagedInstanceService {
         let reg_params =
             self.get_provider_registration_params(wallet_unit.role, &wallet_unit.provider)?;
 
+        let is_web = wallet_unit.os == ManagedInstanceOs::Web;
+
+        // User binding is skipped for web instances, so no user ID token is expected either.
         let user_sub = self
             .validate_user_id_token(
                 request.user_id_token.as_deref(),
-                reg_params.user_authentication.as_ref(),
+                reg_params.user_authentication.as_ref().filter(|_| !is_web),
                 wallet_unit.user_nonce.as_deref(),
             )
             .await
             .error_while("validating user ID token")?;
 
-        let integrity_check_enabled =
-            reg_params.integrity_check.enabled && wallet_unit.os != ManagedInstanceOs::Web;
+        let integrity_check_enabled = reg_params.integrity_check.enabled && !is_web;
 
         let authentication_key_jwk = if integrity_check_enabled {
             let wallet_unit_nonce = wallet_unit

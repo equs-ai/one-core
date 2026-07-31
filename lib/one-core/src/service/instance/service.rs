@@ -138,9 +138,20 @@ impl InstanceService {
 
         self.import_schemas(&metadata, &organisation).await?;
 
+        let is_web = os == ManagedInstanceOs::Web;
         let is_integrity_check_required =
-            metadata.attestation.app_integrity_check_required && os != ManagedInstanceOs::Web;
-        let is_authentication_required = metadata.user_authentication.is_some();
+            metadata.attestation.app_integrity_check_required && !is_web;
+        // Web instances cannot perform the user binding flow, so it is skipped for them. If the
+        // provider mandates user authentication, web instances cannot be registered at all.
+        if is_web
+            && metadata
+                .user_authentication
+                .as_ref()
+                .is_some_and(|user_authentication| user_authentication.required)
+        {
+            return Err(HolderInstanceError::UserAuthenticationNotSupported);
+        }
+        let is_authentication_required = metadata.user_authentication.is_some() && !is_web;
 
         let registration_status = match (is_authentication_required, is_integrity_check_required) {
             (true, true) => {

@@ -1002,6 +1002,9 @@ pub enum ErrorCode {
 
     #[strum(message = "Trust collections must all belong to the same provider")]
     BR_0472,
+
+    #[strum(message = "User authentication mandated but not supported for instances with OS WEB")]
+    BR_0473,
 }
 
 pub trait ErrorCodeMixin: Error + Send + Sync + 'static {

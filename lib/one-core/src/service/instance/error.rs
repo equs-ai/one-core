@@ -47,6 +47,9 @@ pub enum HolderInstanceError {
     #[error("User authentication required")]
     UserAuthenticationRequired,
 
+    #[error("User authentication mandated but not supported for instances with OS WEB")]
+    UserAuthenticationNotSupported,
+
     #[error("Wallet unit is not in pending state")]
     WalletUnitNotPending,
 
@@ -77,6 +80,7 @@ impl ErrorCodeMixin for HolderInstanceError {
             Self::WalletUnitNotPending => ErrorCode::BR_0450,
             Self::UserAuthenticationNotRequired => ErrorCode::BR_0453,
             Self::UserAuthenticationRequired => ErrorCode::BR_0454,
+            Self::UserAuthenticationNotSupported => ErrorCode::BR_0473,
             Self::WalletUnitRegistrationExpired => ErrorCode::BR_0455,
             Self::Nested(nested) => nested.error_code(),
         }

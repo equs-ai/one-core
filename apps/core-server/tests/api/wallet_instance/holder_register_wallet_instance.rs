@@ -146,7 +146,7 @@ async fn holder_register_wallet_unit_successfully() {
 }
 
 #[tokio::test]
-async fn holder_register_wallet_unit_with_user_auth_sets_pending_status() {
+async fn holder_register_wallet_unit_with_optional_user_auth_is_active_on_web() {
     // GIVEN
     let (context, org) = TestContext::new_with_organisation(None).await;
 
@@ -154,62 +154,16 @@ async fn holder_register_wallet_unit_with_user_auth_sets_pending_status() {
 
     Mock::given(method(Method::GET))
         .and(path("/ssi/wallet-provider/v1/PROCIVIS_ONE"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(metadata_with_user_auth()))
+        .respond_with(ResponseTemplate::new(200).set_body_json(metadata_with_optional_user_auth()))
         .expect(1)
         .mount(&mock_server)
         .await;
 
+    // the wallet provider skips the user binding for web instances as well, so no user nonce
     Mock::given(method(Method::POST))
         .and(path("/ssi/instance/v1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "id": Uuid::new_v4(),
-            "userNonce": "user-nonce-abc123",
-        })))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
-
-    // WHEN
-    let resp = context
-        .api
-        .holder_wallet_instances
-        .holder_register(TestHolderRegisterRequest {
-            organization_id: Some(org.id),
-            wallet_provider_url: Some(format!(
-                "{}/ssi/wallet-provider/v1/PROCIVIS_ONE",
-                mock_server.uri()
-            )),
-            key_type: Some("ECDSA".to_string()),
-            ..Default::default()
-        })
-        .await;
-
-    // THEN
-    assert_eq!(resp.status(), 201);
-    let resp = resp.json_value().await;
-    assert_eq!(resp["status"], "PENDING");
-    assert_eq!(resp["userNonce"], "user-nonce-abc123");
-}
-
-#[tokio::test]
-async fn holder_register_wallet_unit_with_user_auth_skips_activation() {
-    // GIVEN
-    let (context, org) = TestContext::new_with_organisation(None).await;
-
-    let mock_server = MockServer::builder().start().await;
-
-    Mock::given(method(Method::GET))
-        .and(path("/ssi/wallet-provider/v1/PROCIVIS_ONE"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(metadata_with_user_auth()))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
-
-    Mock::given(method(Method::POST))
-        .and(path("/ssi/instance/v1"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "id": Uuid::new_v4(),
-            "userNonce": "user-nonce-abc123",
         })))
         .expect(1)
         .mount(&mock_server)
@@ -243,12 +197,69 @@ async fn holder_register_wallet_unit_with_user_auth_skips_activation() {
     // THEN
     assert_eq!(resp.status(), 201);
     let resp = resp.json_value().await;
-    assert_eq!(resp["status"], "PENDING");
+    assert_eq!(resp["status"], "ACTIVE");
+    assert!(resp["userNonce"].is_null());
+
+    let detail = context
+        .api
+        .holder_wallet_instances
+        .holder_get_wallet_instance_details(&resp["id"].parse())
+        .await;
+    assert_eq!(detail.status(), 200);
+    assert_eq!(detail.json_value().await["status"], "ACTIVE");
 }
 
-async fn register_with_user_auth(
+#[tokio::test]
+async fn holder_register_wallet_unit_with_required_user_auth_fails_on_web() {
+    // GIVEN
+    let (context, org) = TestContext::new_with_organisation(None).await;
+
+    let mock_server = MockServer::builder().start().await;
+
+    Mock::given(method(Method::GET))
+        .and(path("/ssi/wallet-provider/v1/PROCIVIS_ONE"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(metadata_with_user_auth()))
+        .expect(1)
+        .mount(&mock_server)
+        .await;
+
+    // registration must not even be attempted against the wallet provider
+    Mock::given(method(Method::POST))
+        .and(path("/ssi/instance/v1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "id": Uuid::new_v4(),
+            "userNonce": "user-nonce-abc123",
+        })))
+        .expect(0)
+        .mount(&mock_server)
+        .await;
+
+    // WHEN
+    let resp = context
+        .api
+        .holder_wallet_instances
+        .holder_register(TestHolderRegisterRequest {
+            organization_id: Some(org.id),
+            wallet_provider_url: Some(format!(
+                "{}/ssi/wallet-provider/v1/PROCIVIS_ONE",
+                mock_server.uri()
+            )),
+            key_type: Some("ECDSA".to_string()),
+            ..Default::default()
+        })
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 400);
+    assert_eq!(resp.json_value().await["code"], "BR_0473");
+}
+
+/// Creates a wallet instance that is pending user binding. Registration cannot produce such an
+/// instance in this test setup (the holder resolves to the WEB os, which skips user binding), so
+/// the state a mobile holder would be in is set up directly.
+async fn pending_wallet_instance_with_user_auth(
     context: &crate::utils::context::TestContext,
-    org_id: shared_types::OrganisationId,
+    org: &one_core::model::organisation::Organisation,
     mock_server: &wiremock::MockServer,
     metadata: serde_json::Value,
 ) -> shared_types::InstanceId {
@@ -258,30 +269,21 @@ async fn register_with_user_auth(
         .mount(mock_server)
         .await;
 
-    Mock::given(method(Method::POST))
-        .and(path("/ssi/instance/v1"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "id": Uuid::new_v4(),
-            "userNonce": "user-nonce-abc123",
-        })))
-        .mount(mock_server)
-        .await;
-
-    let resp = context
-        .api
-        .holder_wallet_instances
-        .holder_register(TestHolderRegisterRequest {
-            organization_id: Some(org_id),
-            wallet_provider_url: Some(format!(
-                "{}/ssi/wallet-provider/v1/PROCIVIS_ONE",
-                mock_server.uri()
-            )),
-            key_type: Some("ECDSA".to_string()),
-            ..Default::default()
-        })
-        .await;
-    assert_eq!(resp.status(), 201);
-    resp.json_value().await["id"].parse()
+    context
+        .db
+        .holder_wallet_units
+        .create(
+            org.clone(),
+            None,
+            TestHolderWalletInstanceParams {
+                status: Some(InstanceStatus::Pending),
+                provider_url: Some(mock_server.uri()),
+                user_nonce: Some("user-nonce-abc123".to_string()),
+                ..Default::default()
+            },
+        )
+        .await
+        .id
 }
 
 #[tokio::test]
@@ -290,8 +292,13 @@ async fn holder_activate_wallet_unit_successfully() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let mock_server = MockServer::builder().start().await;
 
-    let wallet_unit_id =
-        register_with_user_auth(&context, org.id, &mock_server, metadata_with_user_auth()).await;
+    let wallet_unit_id = pending_wallet_instance_with_user_auth(
+        &context,
+        &org,
+        &mock_server,
+        metadata_with_user_auth(),
+    )
+    .await;
 
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
@@ -403,8 +410,13 @@ async fn holder_activate_wallet_unit_passes_user_id_token_to_provider() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let mock_server = MockServer::builder().start().await;
 
-    let wallet_unit_id =
-        register_with_user_auth(&context, org.id, &mock_server, metadata_with_user_auth()).await;
+    let wallet_unit_id = pending_wallet_instance_with_user_auth(
+        &context,
+        &org,
+        &mock_server,
+        metadata_with_user_auth(),
+    )
+    .await;
 
     Mock::given(method(Method::POST))
         .and(wiremock::matchers::path_regex(
@@ -442,9 +454,9 @@ async fn holder_activate_wallet_unit_optional_auth_skips_sign_in() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let mock_server = MockServer::builder().start().await;
 
-    let wallet_unit_id = register_with_user_auth(
+    let wallet_unit_id = pending_wallet_instance_with_user_auth(
         &context,
-        org.id,
+        &org,
         &mock_server,
         metadata_with_optional_user_auth(),
     )
@@ -483,8 +495,13 @@ async fn holder_activate_wallet_unit_required_auth_missing_token_fails_early() {
     let (context, org) = TestContext::new_with_organisation(None).await;
     let mock_server = MockServer::builder().start().await;
 
-    let wallet_unit_id =
-        register_with_user_auth(&context, org.id, &mock_server, metadata_with_user_auth()).await;
+    let wallet_unit_id = pending_wallet_instance_with_user_auth(
+        &context,
+        &org,
+        &mock_server,
+        metadata_with_user_auth(),
+    )
+    .await;
 
     // activate endpoint must NOT be called when the required token is missing
     Mock::given(method(Method::POST))
@@ -521,8 +538,13 @@ async fn holder_activate_wallet_unit_expired_nonce_marks_error_and_signals_resta
     let (context, org) = TestContext::new_with_organisation(None).await;
     let mock_server = MockServer::builder().start().await;
 
-    let wallet_unit_id =
-        register_with_user_auth(&context, org.id, &mock_server, metadata_with_user_auth()).await;
+    let wallet_unit_id = pending_wallet_instance_with_user_auth(
+        &context,
+        &org,
+        &mock_server,
+        metadata_with_user_auth(),
+    )
+    .await;
 
     // The wallet provider rejects activation because the registration nonce has expired (BR_0153).
     Mock::given(method(Method::POST))

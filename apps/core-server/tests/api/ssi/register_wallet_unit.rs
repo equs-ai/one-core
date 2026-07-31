@@ -413,6 +413,109 @@ async fn test_register_wallet_unit_without_user_authentication_no_user_nonce() {
     assert!(wallet_unit.user_nonce.is_none());
 }
 
+fn user_authentication_config(required: bool) -> String {
+    format!(
+        indoc::indoc! {"
+      walletProvider:
+        PROCIVIS_ONE:
+            params:
+              public:
+                userAuthentication:
+                  required: {}
+                  identityProvider: https://idp.example.com
+                  clientId: my-client
+                  redirectUri: myapp://callback
+                  tokenValidation:
+                    aud: my-client
+                    iss: https://idp.example.com
+                    jwksUri: https://idp.example.com/.well-known/jwks.json
+    "},
+        required
+    )
+}
+
+// Web instances cannot run the user binding flow, so the user binding is skipped for them and the
+// instance is active right after registration.
+#[tokio::test]
+async fn test_register_wallet_unit_web_skips_optional_user_authentication() {
+    // given
+    let (context, org) =
+        TestContext::new_with_organisation(Some(user_authentication_config(false))).await;
+    create_wallet_unit_attestation_issuer_identifier(&context, &org).await;
+
+    let holder_key_pair = Ecdsa.generate_key().unwrap();
+    let holder_public_jwk = holder_key_pair.key.public_key_as_jwk().unwrap();
+    let proof =
+        create_key_possession_proof(&holder_key_pair, context.config.app.core_base_url.clone())
+            .await;
+
+    // when
+    let resp = context
+        .api
+        .wallet_provider
+        .register_wallet(
+            "PROCIVIS_ONE",
+            "WEB",
+            Some(&holder_public_jwk),
+            Some(&proof),
+        )
+        .await;
+
+    // then
+    assert_eq!(resp.status(), 201);
+    let resp_json = resp.json_value().await;
+    assert!(resp_json["id"].as_str().is_some());
+    assert_eq!(resp_json["nonce"], serde_json::Value::Null);
+    assert_eq!(resp_json["userNonce"], serde_json::Value::Null);
+
+    let wallet_units = context
+        .db
+        .managed_instances
+        .list(ManagedInstanceListQuery::default())
+        .await;
+    assert_eq!(wallet_units.values.len(), 1);
+    let wallet_unit = &wallet_units.values[0];
+    assert_eq!(wallet_unit.status, InstanceStatus::Active);
+    assert!(wallet_unit.user_nonce.is_none());
+}
+
+#[tokio::test]
+async fn test_register_wallet_unit_web_fails_when_user_authentication_required() {
+    // given
+    let (context, org) =
+        TestContext::new_with_organisation(Some(user_authentication_config(true))).await;
+    create_wallet_unit_attestation_issuer_identifier(&context, &org).await;
+
+    let holder_key_pair = Ecdsa.generate_key().unwrap();
+    let holder_public_jwk = holder_key_pair.key.public_key_as_jwk().unwrap();
+    let proof =
+        create_key_possession_proof(&holder_key_pair, context.config.app.core_base_url.clone())
+            .await;
+
+    // when
+    let resp = context
+        .api
+        .wallet_provider
+        .register_wallet(
+            "PROCIVIS_ONE",
+            "WEB",
+            Some(&holder_public_jwk),
+            Some(&proof),
+        )
+        .await;
+
+    // then
+    assert_eq!(resp.status(), 400);
+    assert_eq!(resp.error_code().await, "BR_0473");
+
+    let wallet_units = context
+        .db
+        .managed_instances
+        .list(ManagedInstanceListQuery::default())
+        .await;
+    assert!(wallet_units.values.is_empty());
+}
+
 #[tokio::test]
 async fn test_register_wallet_unit_provider_org_disabled() {
     // given

@@ -19,6 +19,7 @@ pub struct TestHolderWalletInstanceParams {
     pub provider_url: Option<String>,
     pub provider_wallet_unit_id: Option<ManagedInstanceId>,
     pub role: Option<InstanceRole>,
+    pub user_nonce: Option<String>,
 }
 
 impl HolderWalletInstancesDB {
@@ -58,7 +59,7 @@ impl HolderWalletInstancesDB {
                 .provider_wallet_unit_id
                 .unwrap_or(Uuid::new_v4().into()),
             nonce: None,
-            user_nonce: None,
+            user_nonce: test_holder_wallet_instance.user_nonce,
             wallet_unit_attestations: Default::default(),
         };
 

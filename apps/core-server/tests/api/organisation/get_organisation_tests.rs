@@ -76,6 +76,7 @@ async fn test_get_organisation_returns_wallet_instance() {
                 provider_url: Some("https://wallet.provider".to_string()),
                 provider_wallet_unit_id: Some(Uuid::new_v4().into()),
                 role: Some(InstanceRole::Wallet),
+                user_nonce: None,
             },
         )
         .await;
