@@ -1,5 +1,6 @@
 mod datatype;
 mod did;
+mod examples;
 mod exchange_protocol;
 mod formatter;
 mod global_settings;

@@ -1,0 +1,236 @@
+app:
+  coreBaseUrl: "http://localhost:3000"
+  databaseUrl: "sqlite::memory:"
+  traceLevel: "debug,hyper=error,sea_orm=info,sqlx::query=error,reqwest=error,one_core::proto::http_client=trace"
+  enableServerInfo: true
+  enableOpenApi: true
+  enableExternalEndpoints: true
+  enableManagementEndpoints: true
+  auth:
+    mode: UNSAFE_NONE
+format:
+  # JWT formatter required for token status list revocation
+  JWT:
+    type: "JWT"
+    display: "format.jwt"
+    order: 300
+    enabled: false
+    params:
+      public:
+        leewaySeconds: 60
+        embedLayoutProperties: true
+  SD_JWT_VC_SWIYU:
+    type: "SD_JWT_VC"
+    display:
+      en: "IETF SD-JWT VC (SWIYU)"
+      de: "IETF SD-JWT VC (SWIYU)"
+    order: 201
+    params:
+      public:
+        leewaySeconds: 60
+        embedLayoutProperties: true
+        swiyuMode: true
+identifier:
+  DID:
+    display: "identifier.did"
+    enabled: true
+    order: 0
+issuanceProtocol:
+  OPENID4VCI_FINAL1_SWIYU:
+    display:
+      en: "OpenID4VCI (SWIYU)"
+      de: "OpenID4VCI (SWIYU)"
+    order: 2
+    type: "OPENID4VCI_FINAL1_SWIYU"
+    params:
+      public:
+        oauthAttestationLeewaySeconds: 60
+        keyAttestationLeewaySeconds: 60
+        trustEcosystemLeewaySeconds: 60
+        preAuthorizedCodeExpiresInSeconds: 300
+        tokenExpiresInSeconds: 86400
+        refreshExpiresInSeconds: 7776000 # 90 days in seconds
+        redirectUri:
+          enabled: true
+          allowedSchemes: [ "https" ]
+      private:
+        # this is the SHA-256 of "my encryption key"
+        encryption: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
+verificationProtocol:
+  OPENID4VP_FINAL1_SWIYU:
+    display:
+      en: "OpenID4VP final 1.0 (SWIYU)"
+      de: "OpenID4VP final 1.0 (SWIYU)"
+    order: 9
+    type: "OPENID4VP_FINAL1_SWIYU"
+    params:
+      public:
+        redirectUri:
+          enabled: true
+          allowedSchemes: [ "https" ]
+      private:
+        # this is the SHA-256 of "my encryption key"
+        encryption: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
+revocation:
+  TOKENSTATUSLIST:
+    display: "revocation.tokenList"
+    order: 5
+    enabled: true
+    type: "TOKENSTATUSLIST"
+    params:
+      public:
+        format: "JWT"
+did:
+  KEY:
+    display: "did.key"
+    order: 0
+    type: "KEY"
+    params: null
+    enabled: false
+  JWK:
+    type: "JWK"
+    display: "did.jwk"
+    order: 2
+    params: null
+    enabled: false
+  WEBVH:
+    type: "WEBVH"
+    display: "did.webvh"
+    order: 21
+    params:
+      public:
+        keys:
+          min: 1
+          max: 5
+          authentication:
+            min: 1
+            max: 5
+          assertionMethod:
+            min: 1
+            max: 5
+          keyAgreement:
+            min: 0
+            max: 1
+          capabilityInvocation:
+            min: 0
+            max: 1
+          capabilityDelegation:
+            min: 0
+            max: 1
+      private:
+keyAlgorithm:
+  EDDSA:
+    display: "keyAlgorithm.eddsa"
+    order: 0
+    params: null
+    holderPriority: 50
+  ECDSA:
+    display: "keyAlgorithm.ecdsa"
+    order: 1
+    params: null
+    holderPriority: 100
+keyStorage:
+  INTERNAL:
+    display: "keyStorage.internal"
+    type: "INTERNAL"
+    order: 0
+    params:
+      private:
+        # this is the SHA-256 of "my encryption key"
+        encryption: "93d9182795f0d1bec61329fc2d18c4b4c1b7e65e69e20ec30a2101a9875fff7e"
+datatype:
+  STRING:
+    display: "datatype.string"
+    type: "STRING"
+    order: 100
+    params:
+      public:
+        supportedInputMode: TEXT
+      private:
+        holder:
+          valueExtraction: ENABLED_FALLBACK
+  SWIYU_PICTURE:
+    display:
+      en: "Picture (SWIYU)"
+      de: "Bild (SWIYU)"
+    type: "SWIYU_PICTURE"
+    order: 403
+    params:
+      public:
+        accept:
+          - image/jpeg
+        fileSize: 4194304
+        supportedInputMode: FILE_UPLOAD
+        showAs: IMAGE
+      private:
+        holder:
+          valueExtraction: ENABLED
+  NUMBER:
+    display: "datatype.number"
+    type: "NUMBER"
+    order: 200
+    params:
+      public:
+        supportedInputMode: NUMBER_INPUT
+      private:
+        holder:
+          valueExtraction: ENABLED_FALLBACK
+  DATE:
+    display: "datatype.date"
+    type: "DATE"
+    order: 300
+    params:
+      public:
+        formats: ["date", "datetime"]
+        supportedInputMode: DATE_PICKER
+      private:
+        holder:
+          valueExtraction: ENABLED
+  BIRTH_DATE:
+    display: "datatype.birth_date"
+    type: "DATE"
+    order: 310
+    params:
+      public:
+        formats: ["date", "datetime"]
+        preferredFormat: "date"
+        min: 1900-01-01
+        max: "NOW"
+        error:
+          de: "Bitte wählen Sie ein Datum zwischen 1900-1-1 und heute"
+          en: "Please choose a date between 1900-1-1 and today"
+        supportedInputMode: DATE_PICKER
+  BOOLEAN:
+    display: "datatype.boolean"
+    type: "BOOLEAN"
+    order: 301
+    params:
+      public:
+        supportedInputMode: CHECKBOX
+      private:
+        holder:
+          valueExtraction: ENABLED_FALLBACK
+transport:
+  HTTP:
+    type: "HTTP"
+    display: "transport.http"
+    enabled: true
+    order: 0
+    params: {}
+keySecurityLevel:
+  BASIC:
+    display: keySecurityLevel.basic
+    order: 10
+    params:
+      public:
+        holder:
+          priority: 40
+          keyStorages: [ "INTERNAL" ]
+blobStorage:
+  DB:
+    enabled: true
+task: {}
+cacheEntities: {}
+walletProvider: {}
+credentialIssuer: {}
+verificationEngagement: {}

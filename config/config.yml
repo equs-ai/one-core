@@ -10,7 +10,6 @@ datatype: {}
 task: {}
 transport: {}
 cacheEntities: {}
-holderKeyStorage: {}
 blobStorage: {}
 walletProvider: {}
 credentialIssuer: {}
@@ -21,4 +20,5 @@ keySecurityLevel: {}
 trustListPublisher: {}
 trustListSubscriber: {}
 documentSignerProvider: {}
+transactionDataProvider: {}
 globalSettings: {}
