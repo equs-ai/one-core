@@ -469,7 +469,6 @@ impl SSIHolderService {
             .get_credential(
                 &credential_id,
                 &CredentialRelations {
-                    holder_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
             )
@@ -518,7 +517,6 @@ impl SSIHolderService {
                     .get_credential(
                         &item.id,
                         &CredentialRelations {
-                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         },
                     )

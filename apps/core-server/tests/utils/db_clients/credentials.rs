@@ -7,7 +7,7 @@ use one_core::model::credential::{
     CredentialStateEnum, CredentialType, UpdateCredentialRequest,
 };
 use one_core::model::credential_schema::CredentialSchema;
-use one_core::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
+use one_core::model::identifier::{Identifier, IdentifierData};
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::relation::Related;
 use one_core::repository::credential_repository::CredentialRepository;
@@ -33,7 +33,6 @@ impl CredentialsDB {
                 credential_id,
                 &CredentialRelations {
                     interaction: Some(Default::default()),
-                    holder_identifier: Some(IdentifierRelations {}),
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
                 },
@@ -202,7 +201,7 @@ impl CredentialsDB {
                 }
                 _ => None,
             }),
-            holder_identifier: params.holder_identifier,
+            holder_identifier: params.holder_identifier.map(Into::into),
             schema: credential_schema.to_owned().into(),
             interaction: params.interaction,
             key: params.key.map(Into::into),
@@ -234,7 +233,7 @@ impl CredentialsDB {
             .batch_size
             .expect("schema batch size is required to create credential batch");
         let key = params.key.take().map(Into::into);
-        let holder_identifier = params.holder_identifier.take();
+        let holder_identifier = params.holder_identifier.take().map(Into::into);
         let mut credential = self
             .prepare_credential(
                 credential_schema,

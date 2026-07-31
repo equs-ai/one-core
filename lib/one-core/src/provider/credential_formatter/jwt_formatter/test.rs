@@ -873,12 +873,14 @@ async fn test_parse_credential() {
         "did:web:core.dev.procivis-one.com:ssi:did-web:v1:f6283305-667a-474b-a7e3-02c4ba998796"
     );
 
-    let_assert!(
-        Some(Identifier {
-            data: IdentifierData::Did(holder_did),
-            ..
-        }) = credential.holder_identifier.as_ref()
-    );
+    let holder_identifier = credential
+        .holder_identifier
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap();
+    let_assert!(IdentifierData::Did(holder_did) = &holder_identifier.data);
     assert_eq!(
         holder_did.as_ref().await.unwrap().did.to_string(),
         "did:key:zDnaeokW7xJYWFLNk5yA8W9LVVq7Ee2tYTQwMK2dJyC4e3rCr"

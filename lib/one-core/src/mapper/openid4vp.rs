@@ -55,7 +55,7 @@ pub(crate) async fn credential_from_proved(
         claims: proved_credential.credential.claims,
         issuer_identifier: Some(issuer_identifier),
         issuer_certificate,
-        holder_identifier: Some(holder_identifier),
+        holder_identifier: Some(holder_identifier.into()),
         schema: from_provider_schema(
             proved_credential
                 .credential

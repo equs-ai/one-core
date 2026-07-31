@@ -73,10 +73,13 @@ async fn test_issuer_submit_succeeds() {
     let credential = Credential {
         state: CredentialStateEnum::Offered,
         suspend_end_date: None,
-        holder_identifier: Some(Identifier {
-            data: IdentifierData::Did((dummy_did()).into()),
-            ..dummy_identifier()
-        }),
+        holder_identifier: Some(
+            Identifier {
+                data: IdentifierData::Did((dummy_did()).into()),
+                ..dummy_identifier()
+            }
+            .into(),
+        ),
         issuer_identifier: Some(Identifier {
             data: IdentifierData::Did(
                 (Did {
@@ -271,10 +274,13 @@ async fn generic_mdoc_credential(state: CredentialStateEnum) -> Credential {
     Credential {
         state,
         suspend_end_date: None,
-        holder_identifier: Some(Identifier {
-            data: IdentifierData::Did((dummy_did()).into()),
-            ..dummy_identifier()
-        }),
+        holder_identifier: Some(
+            Identifier {
+                data: IdentifierData::Did((dummy_did()).into()),
+                ..dummy_identifier()
+            }
+            .into(),
+        ),
         issuer_identifier: Some(Identifier {
             data: IdentifierData::Did(
                 (Did {

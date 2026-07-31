@@ -45,7 +45,7 @@ pub struct Credential {
     pub claims: RelatedVec<Claim>,
     pub issuer_identifier: Option<Identifier>,
     pub issuer_certificate: Option<Certificate>,
-    pub holder_identifier: Option<Identifier>,
+    pub holder_identifier: Option<Related<Identifier>>,
     pub schema: Related<CredentialSchema>,
     pub interaction: Option<Interaction>,
     pub key: Option<Related<Key>>,
@@ -56,7 +56,6 @@ pub struct Credential {
 pub struct CredentialRelations {
     pub issuer_identifier: Option<IdentifierRelations>,
     pub issuer_certificate: Option<CertificateRelations>,
-    pub holder_identifier: Option<IdentifierRelations>,
     pub interaction: Option<InteractionRelations>,
 }
 

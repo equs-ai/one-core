@@ -153,6 +153,11 @@ pub(crate) async fn credential_detail_response_from_model(
         ),
     };
 
+    let holder = match &value.holder_identifier {
+        None => None,
+        Some(holder_identifier) => Some(holder_identifier.as_ref().await?.to_owned().into()),
+    };
+
     Ok(CredentialDetailResponseDTO {
         id: value.id,
         created_date: value.created_date,
@@ -170,7 +175,7 @@ pub(crate) async fn credential_detail_response_from_model(
         interaction_id: value.interaction.map(|i| i.id),
         suspend_end_date: value.suspend_end_date,
         mdoc_mso_validity,
-        holder: convert_inner(value.holder_identifier),
+        holder,
         protocol: value.protocol,
         issuer_certificate,
         profile: value.profile,

@@ -13,7 +13,7 @@ use crate::model::identifier::{
 use crate::model::identifier_trust_information::IdentifierTrustInformation;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListSorting;
-use crate::model::relation::AsyncVecLoader;
+use crate::model::relation::{AsyncModelLoader, AsyncVecLoader};
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::error::DataLayerError;
 use crate::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
@@ -34,6 +34,18 @@ pub trait IdentifierRepository: Send + Sync {
         &self,
         query_params: IdentifierListQuery,
     ) -> Result<GetIdentifierList, DataLayerError>;
+}
+
+#[async_trait]
+impl AsyncModelLoader<Identifier> for Arc<dyn IdentifierRepository> {
+    async fn load(&self, id: &IdentifierId) -> Result<Identifier, DataLayerError> {
+        self.get(*id)
+            .await?
+            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
+                relation: "identifier",
+                id: id.to_string(),
+            })
+    }
 }
 
 pub struct IdentifierCertificatesLoader {

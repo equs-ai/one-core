@@ -44,13 +44,6 @@ impl CredentialProvider {
         )
         .await?;
 
-        let holder_identifier = get_related_identifier(
-            self.identifier_repository.as_ref(),
-            credential.holder_identifier_id.as_ref(),
-            relations.holder_identifier.as_ref(),
-        )
-        .await?;
-
         let interaction = if let Some(_interaction_relations) = &relations.interaction {
             match &credential.interaction_id {
                 None => None,
@@ -90,7 +83,6 @@ impl CredentialProvider {
 
         Ok(Credential {
             issuer_identifier,
-            holder_identifier,
             interaction,
             issuer_certificate,
             ..model_to_credential(
@@ -99,6 +91,7 @@ impl CredentialProvider {
                 &self.claim_repository,
                 &self.credential_schema_repository,
                 &self.key_repository,
+                &self.identifier_repository,
             )
         })
     }
@@ -164,6 +157,7 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             credential::Column::Profile,
             credential::Column::ParentId,
             credential::Column::KeyId,
+            credential::Column::HolderIdentifierId,
             credential::Column::CredentialBlobId,
             credential::Column::WalletUnitAttestationBlobId,
             credential::Column::WalletInstanceAttestationBlobId,
@@ -293,7 +287,7 @@ impl CredentialRepository for CredentialProvider {
         let holder_identifier_id = request
             .holder_identifier
             .as_ref()
-            .map(|identifier| identifier.id);
+            .map(|identifier| identifier.id());
 
         let claims = request.claims.as_ref().await?.to_owned();
 
@@ -432,6 +426,7 @@ impl CredentialRepository for CredentialProvider {
                 &self.did_repository,
                 &self.key_repository,
                 &self.certificate_repository,
+                &self.identifier_repository,
                 &self.trust_information_repository,
                 &self.db,
             )?,

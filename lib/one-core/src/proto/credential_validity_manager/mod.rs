@@ -157,7 +157,6 @@ impl CredentialValidityManagerImpl {
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
-                    holder_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
             )
@@ -588,7 +587,6 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 &credential_id,
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
-                    holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
                     ..Default::default()
                 },

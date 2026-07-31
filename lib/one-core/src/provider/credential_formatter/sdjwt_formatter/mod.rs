@@ -414,7 +414,7 @@ impl CredentialFormatter for SDJWTFormatter {
             claims: claims.into(),
             issuer_certificate: first_certificate(&issuer_identifier).await?,
             issuer_identifier: Some(issuer_identifier),
-            holder_identifier,
+            holder_identifier: holder_identifier.map(Into::into),
             schema: schema.into(),
             interaction: None,
             key: None,

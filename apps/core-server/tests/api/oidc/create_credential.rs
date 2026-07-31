@@ -730,7 +730,7 @@ async fn test_post_issuer_credential_with(
                 .target
                 .as_ref()
                 .unwrap(),
-            &credential.holder_identifier.unwrap().id.to_string()
+            &credential.holder_identifier.unwrap().id().to_string()
         );
     }
 

@@ -1211,12 +1211,14 @@ async fn test_parse_credential() {
     );
 
     // Verify holder identifier
-    let_assert!(
-        Some(Identifier {
-            data: IdentifierData::Did(holder_did),
-            ..
-        }) = result.holder_identifier.as_ref()
-    );
+    let holder_identifier = result
+        .holder_identifier
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap();
+    let_assert!(IdentifierData::Did(holder_did) = &holder_identifier.data);
     assert_eq!(
         holder_did.as_ref().await.unwrap().did.to_string(),
         "did:key:zDnaekoMC2sFkgcFLp3K4nnGUFUqYo8goWsjt3sAfhNAV9ES9"
@@ -1423,12 +1425,14 @@ async fn test_parse_credential_cnf() {
         .unwrap();
 
     // Verify holder identifier
-    let_assert!(
-        Some(Identifier {
-            data: IdentifierData::Key(holder_key),
-            ..
-        }) = result.holder_identifier.as_ref()
-    );
+    let holder_identifier = result
+        .holder_identifier
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap();
+    let_assert!(IdentifierData::Key(holder_key) = &holder_identifier.data);
     assert_eq!(
         holder_key.as_ref().await.unwrap().public_key,
         vec![0x0, 0x1]

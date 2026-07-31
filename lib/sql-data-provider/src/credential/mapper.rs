@@ -14,6 +14,7 @@ use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
 use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::identifier_repository::IdentifierRepository;
 use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
@@ -201,6 +202,7 @@ pub(crate) fn model_to_credential(
     claim_repository: &Arc<dyn ClaimRepository>,
     credential_schema_repository: &Arc<dyn CredentialSchemaRepository>,
     key_repository: &Arc<dyn KeyRepository>,
+    identifier_repository: &Arc<dyn IdentifierRepository>,
 ) -> Credential {
     Credential {
         claims: credential_claims(credential.id, claim_repository),
@@ -219,7 +221,9 @@ pub(crate) fn model_to_credential(
         profile: credential.profile,
         issuer_identifier: None,
         issuer_certificate: None,
-        holder_identifier: None,
+        holder_identifier: credential
+            .holder_identifier_id
+            .map(|id| Related::new(id, identifier_repository.clone())),
         schema: Related::new(
             credential.credential_schema_id,
             credential_schema_repository.clone(),
@@ -291,6 +295,7 @@ pub(super) fn credential_list_model_to_repository_model(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    identifier_repository: &Arc<dyn IdentifierRepository>,
     trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Credential, DataLayerError> {
@@ -409,7 +414,9 @@ pub(super) fn credential_list_model_to_repository_model(
         claims: credential_claims(credential.id, claim_repository),
         issuer_identifier,
         issuer_certificate: None,
-        holder_identifier: None,
+        holder_identifier: credential
+            .holder_identifier_id
+            .map(|id| Related::new(id, identifier_repository.to_owned())),
         schema: Related::from(schema),
         interaction: None,
         key: credential
@@ -436,6 +443,7 @@ pub(super) fn credentials_to_repository(
     did_repository: &Arc<dyn DidRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    identifier_repository: &Arc<dyn IdentifierRepository>,
     trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Vec<Credential>, DataLayerError> {
@@ -449,6 +457,7 @@ pub(super) fn credentials_to_repository(
             did_repository,
             key_repository,
             certificate_repository,
+            identifier_repository,
             trust_information_repository,
             db,
         )?);

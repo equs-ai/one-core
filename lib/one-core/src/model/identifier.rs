@@ -1,4 +1,5 @@
 use one_dto_mapper::Into;
+use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use shared_types::{DidMethodId, IdentifierId, KeyId, OrganisationId};
 use strum::{AsRefStr, Display};
@@ -17,9 +18,10 @@ use crate::error::NestedError;
 use crate::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use crate::model::list_filter::ValueComparison;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct Identifier {
+    #[model(id)]
     pub id: IdentifierId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,

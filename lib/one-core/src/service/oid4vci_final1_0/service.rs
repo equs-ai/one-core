@@ -917,7 +917,6 @@ impl OID4VCIFinal1_0Service {
                     issuer_identifier: Some(IdentifierRelations {}),
                     issuer_certificate: Some(Default::default()),
                     interaction: Some(Default::default()),
-                    ..Default::default()
                 },
             )
             .await

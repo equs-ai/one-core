@@ -1156,6 +1156,8 @@ async fn attach_matching_holder_binding(
                 "No parsed holder identifier".to_string(),
             ))?;
 
+    let parsed_identifier = parsed_identifier.as_ref().await?;
+
     let mut position = None;
     for (index, holder_binding) in holder_bindings.iter().enumerate() {
         if holder_binding_matching_parsed_identifier(holder_binding, &parsed_identifier).await? {
@@ -1170,7 +1172,7 @@ async fn attach_matching_holder_binding(
     };
 
     let matching_holder_binding = holder_bindings.swap_remove(position);
-    credential.holder_identifier = Some(matching_holder_binding.identifier);
+    credential.holder_identifier = Some(matching_holder_binding.identifier.into());
     credential.key = Some(matching_holder_binding.key.into());
 
     Ok(())

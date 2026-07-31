@@ -1994,7 +1994,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             credential.claims = parent_claims.into();
         }
 
-        credential.holder_identifier = Some(holder_identifier.clone());
+        credential.holder_identifier = Some(holder_identifier.clone().into());
 
         let credential_schema = credential.schema.as_ref().await?.to_owned();
         let credential_state = credential.state;
@@ -2244,7 +2244,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                     .get_credential(
                         &credential_id,
                         &CredentialRelations {
-                            holder_identifier: Some(IdentifierRelations {}),
                             ..Default::default()
                         },
                     )
@@ -2261,6 +2260,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                     .ok_or(IssuanceProtocolError::Failed(
                         "Missing holder_identifier".to_string(),
                     ))?
+                    .as_ref()
+                    .await?
                     .to_owned();
 
                 let key = credential

@@ -283,7 +283,6 @@ impl CredentialService {
                 &CredentialRelations {
                     issuer_identifier: Some(Default::default()),
                     issuer_certificate: Some(CertificateRelations::default()),
-                    holder_identifier: Some(Default::default()),
                     interaction: Some(Default::default()),
                 },
             )
@@ -642,7 +641,6 @@ impl CredentialService {
                 id,
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
-                    holder_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
                     issuer_certificate: Some(Default::default()),
                 },

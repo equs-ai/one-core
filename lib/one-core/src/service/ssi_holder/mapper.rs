@@ -21,13 +21,14 @@ pub(super) async fn holder_did_key_jwk_from_credential(
         .await?
         .to_owned();
 
-    let holder_identifier =
-        credential
-            .holder_identifier
-            .as_ref()
-            .ok_or(HolderServiceError::MappingError(
-                "missing holder identifier".to_string(),
-            ))?;
+    let holder_identifier = credential
+        .holder_identifier
+        .as_ref()
+        .ok_or(HolderServiceError::MappingError(
+            "missing holder identifier".to_string(),
+        ))?
+        .as_ref()
+        .await?;
 
     let (holder_did, holder_jwk_key_id) =
         if let IdentifierData::Did(holder_did) = &holder_identifier.data {

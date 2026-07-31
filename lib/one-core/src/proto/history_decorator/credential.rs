@@ -45,7 +45,6 @@ impl CredentialHistoryDecorator {
                 &credential_id,
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
-                    holder_identifier: Some(IdentifierRelations {}),
                     ..Default::default()
                 },
             )
@@ -252,7 +251,7 @@ fn target_from_credential(credential: &Credential) -> Option<String> {
         CredentialRole::Issuer => credential
             .holder_identifier
             .as_ref()
-            .map(|identifier| identifier.id.to_string()),
+            .map(|identifier| identifier.id().to_string()),
         CredentialRole::Verifier => None,
     }
 }
