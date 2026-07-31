@@ -226,7 +226,7 @@ pub(crate) fn extracted_credential_to_model(
     }
 
     let issuer_certificate = match issuer_identifier_relation {
-        RemoteIdentifierRelation::Certificate(certificate) => Some(certificate),
+        RemoteIdentifierRelation::Certificate(certificate) => Some(certificate.into()),
         _ => None,
     };
 

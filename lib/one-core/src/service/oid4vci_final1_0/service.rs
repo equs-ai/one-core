@@ -233,7 +233,6 @@ impl OID4VCIFinal1_0Service {
                 &CredentialRelations {
                     interaction: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
-                    ..Default::default()
                 },
             )
             .await
@@ -915,7 +914,6 @@ impl OID4VCIFinal1_0Service {
                 &interaction.id,
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
-                    issuer_certificate: Some(Default::default()),
                     interaction: Some(Default::default()),
                 },
             )
@@ -1315,7 +1313,6 @@ impl OID4VCIFinal1_0Service {
                 &parent_credential_id,
                 &CredentialRelations {
                     issuer_identifier: Some(Default::default()),
-                    issuer_certificate: Some(Default::default()),
                     ..Default::default()
                 },
             )

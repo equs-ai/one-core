@@ -340,8 +340,11 @@ impl OpenID4VCIFinal1_0 {
             return Ok(());
         }
 
-        let issuer_certificate_chain = credential
-            .issuer_certificate
+        let issuer_certificate = match credential.issuer_certificate.as_ref() {
+            Some(certificate) => Some(certificate.as_ref().await?.to_owned()),
+            None => None,
+        };
+        let issuer_certificate_chain = issuer_certificate
             .as_ref()
             .map(|certificate| certificate.chain.as_str());
         let mut trust_resolution = TrustResolutionResult::Trusted;

@@ -203,6 +203,7 @@ pub(crate) fn model_to_credential(
     credential_schema_repository: &Arc<dyn CredentialSchemaRepository>,
     key_repository: &Arc<dyn KeyRepository>,
     identifier_repository: &Arc<dyn IdentifierRepository>,
+    certificate_repository: &Arc<dyn CertificateRepository>,
 ) -> Credential {
     Credential {
         claims: credential_claims(credential.id, claim_repository),
@@ -220,7 +221,9 @@ pub(crate) fn model_to_credential(
         suspend_end_date: credential.suspend_end_date,
         profile: credential.profile,
         issuer_identifier: None,
-        issuer_certificate: None,
+        issuer_certificate: credential
+            .issuer_certificate_id
+            .map(|id| Related::new(id, certificate_repository.clone())),
         holder_identifier: credential
             .holder_identifier_id
             .map(|id| Related::new(id, identifier_repository.clone())),
@@ -413,7 +416,9 @@ pub(super) fn credential_list_model_to_repository_model(
         profile: credential.profile,
         claims: credential_claims(credential.id, claim_repository),
         issuer_identifier,
-        issuer_certificate: None,
+        issuer_certificate: credential
+            .issuer_certificate_id
+            .map(|id| Related::new(id, certificate_repository.to_owned())),
         holder_identifier: credential
             .holder_identifier_id
             .map(|id| Related::new(id, identifier_repository.to_owned())),

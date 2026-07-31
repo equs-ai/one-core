@@ -66,7 +66,6 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMix
 use crate::mapper::openid4vp::format_type_to_dcql_format;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
-use crate::model::certificate::CertificateRelations;
 use crate::model::credential::{
     Credential, CredentialRelations, CredentialStateEnum, CredentialType,
 };
@@ -1968,7 +1967,6 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 credential_id,
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
-                    issuer_certificate: Some(CertificateRelations::default()),
                     ..Default::default()
                 },
             )
@@ -2076,8 +2074,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         credential_data.holder_identifier = Some(holder_identifier);
         credential_data.holder_key_id = Some(holder_key_id);
         credential_data.issuer_certificate =
-            if let Some(cert) = credential.issuer_certificate.clone() {
-                Some(cert)
+            if let Some(cert) = credential.issuer_certificate.as_ref() {
+                Some(cert.as_ref().await?.to_owned())
             } else if let Some(
                 IdentifierData::Certificate(certificates)
                 | IdentifierData::CertificateAuthority(certificates),

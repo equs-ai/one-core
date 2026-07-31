@@ -26,7 +26,7 @@ pub(crate) async fn credential_from_proved(
 
     let issuer_certificate =
         if let RemoteIdentifierRelation::Certificate(certificate) = issuer_relation {
-            Some(certificate)
+            Some(certificate.into())
         } else {
             None
         };

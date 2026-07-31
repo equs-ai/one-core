@@ -412,7 +412,7 @@ impl CredentialFormatter for SDJWTFormatter {
             wallet_unit_attestation_blob_id: None,
             wallet_instance_attestation_blob_id: None,
             claims: claims.into(),
-            issuer_certificate: first_certificate(&issuer_identifier).await?,
+            issuer_certificate: first_certificate(&issuer_identifier).await?.map(Into::into),
             issuer_identifier: Some(issuer_identifier),
             holder_identifier: holder_identifier.map(Into::into),
             schema: schema.into(),

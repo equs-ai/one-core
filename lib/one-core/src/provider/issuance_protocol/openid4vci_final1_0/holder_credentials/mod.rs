@@ -124,7 +124,10 @@ impl OpenID4VCIFinal1_0 {
                 ..batch_item.credential.clone()
             };
             remap_claim_credential_ids(&mut credential).await?;
-            let issuer_cert = batch_item.credential.issuer_certificate.clone();
+            let issuer_cert = match &batch_item.credential.issuer_certificate {
+                Some(certificate) => Some(certificate.as_ref().await?.to_owned()),
+                None => None,
+            };
             let issuer_serialized = batch_item.serialized.clone();
             let batch_parent = CredentialWithBlob {
                 credential,
@@ -136,7 +139,10 @@ impl OpenID4VCIFinal1_0 {
             let result = credentials.pop().ok_or(IssuanceProtocolError::Failed(
                 "No credentials received".to_string(),
             ))?;
-            let cert = result.credential.issuer_certificate.clone();
+            let cert = match &result.credential.issuer_certificate {
+                Some(certificate) => Some(certificate.as_ref().await?.to_owned()),
+                None => None,
+            };
             let serialized = result.serialized.clone();
             (result, cert, serialized)
         };
@@ -659,7 +665,7 @@ impl OpenID4VCIFinal1_0 {
         };
 
         credential.issuer_identifier = Some(issuer_identifier);
-        credential.issuer_certificate = issuer_certificate;
+        credential.issuer_certificate = issuer_certificate.map(Into::into);
         credential.redirect_uri = redirect_uri.cloned();
         credential.state = CredentialStateEnum::Accepted;
         credential.protocol = self.config_id.to_owned();

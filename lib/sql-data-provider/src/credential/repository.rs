@@ -61,30 +61,9 @@ impl CredentialProvider {
             None
         };
 
-        let issuer_certificate = if let Some(_certificate_relations) = &relations.issuer_certificate
-        {
-            match &credential.issuer_certificate_id {
-                None => None,
-                Some(certificate_id) => {
-                    let certificate = self
-                        .certificate_repository
-                        .get(*certificate_id)
-                        .await?
-                        .ok_or(DataLayerError::MissingRequiredRelation {
-                            relation: "credential-certificate",
-                            id: certificate_id.to_string(),
-                        })?;
-                    Some(certificate)
-                }
-            }
-        } else {
-            None
-        };
-
         Ok(Credential {
             issuer_identifier,
             interaction,
-            issuer_certificate,
             ..model_to_credential(
                 credential,
                 &self.cloned(),
@@ -92,6 +71,7 @@ impl CredentialProvider {
                 &self.credential_schema_repository,
                 &self.key_repository,
                 &self.identifier_repository,
+                &self.certificate_repository,
             )
         })
     }
@@ -158,6 +138,7 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             credential::Column::ParentId,
             credential::Column::KeyId,
             credential::Column::HolderIdentifierId,
+            credential::Column::IssuerCertificateId,
             credential::Column::CredentialBlobId,
             credential::Column::WalletUnitAttestationBlobId,
             credential::Column::WalletInstanceAttestationBlobId,
@@ -282,7 +263,7 @@ impl CredentialRepository for CredentialProvider {
             .as_ref()
             .map(|identifier| identifier.id);
 
-        let issuer_certificate_id = request.issuer_certificate.as_ref().map(|cert| cert.id);
+        let issuer_certificate_id = request.issuer_certificate.as_ref().map(|cert| cert.id());
 
         let holder_identifier_id = request
             .holder_identifier

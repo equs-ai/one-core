@@ -321,15 +321,15 @@ async fn sorted_claim_entries(
 }
 
 #[derive(Eq, PartialEq)]
-enum ComparableIssuer<'a> {
+enum ComparableIssuer {
     Did { did: DidValue },
-    Certificate { fingerprint: &'a String },
+    Certificate { fingerprint: String },
     Key { public_key: Vec<u8> },
 }
 
 async fn comparable_issuer(
     credential: &Credential,
-) -> Result<ComparableIssuer<'_>, IssuanceProtocolError> {
+) -> Result<ComparableIssuer, IssuanceProtocolError> {
     let issuer = credential
         .issuer_identifier
         .as_ref()
@@ -353,7 +353,7 @@ async fn comparable_issuer(
                         "missing parsed credential issuer certificate".to_string(),
                     ))?;
             Ok(ComparableIssuer::Certificate {
-                fingerprint: &certificate.fingerprint,
+                fingerprint: certificate.as_ref().await?.fingerprint.to_owned(),
             })
         }
     }

@@ -107,7 +107,6 @@ impl ProofService {
                         claim: ClaimRelations {},
                         credential: Some(CredentialRelations {
                             issuer_identifier: Some(IdentifierRelations {}),
-                            issuer_certificate: Some(Default::default()),
                             ..Default::default()
                         }),
                     }),

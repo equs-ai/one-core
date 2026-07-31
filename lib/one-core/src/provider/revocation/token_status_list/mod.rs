@@ -167,20 +167,25 @@ impl RevocationMethod for TokenStatusList {
                     "issuer identifier is None".to_string(),
                 ))?;
 
-        let issuer_certificate =
-            if matches!(issuer_identifier.data, IdentifierData::Certificate(_)) {
-                Some(credential.issuer_certificate.as_ref().ok_or(
-                    RevocationError::MappingError("issuer certificate is None".to_string()),
-                )?)
-            } else {
-                None
-            };
+        let issuer_certificate = if matches!(issuer_identifier.data, IdentifierData::Certificate(_))
+        {
+            let certificate =
+                credential
+                    .issuer_certificate
+                    .as_ref()
+                    .ok_or(RevocationError::MappingError(
+                        "issuer certificate is None".to_string(),
+                    ))?;
+            Some(certificate.as_ref().await?.to_owned())
+        } else {
+            None
+        };
 
         let entry = self
             .create_entry(
                 RevocationListEntityId::Credential(credential.id),
                 issuer_identifier,
-                issuer_certificate,
+                issuer_certificate.as_ref(),
             )
             .await?;
 
@@ -200,20 +205,25 @@ impl RevocationMethod for TokenStatusList {
                     "issuer identifier is None".to_string(),
                 ))?;
 
-        let issuer_certificate =
-            if matches!(issuer_identifier.data, IdentifierData::Certificate(_)) {
-                Some(credential.issuer_certificate.as_ref().ok_or(
-                    RevocationError::MappingError("issuer certificate is None".to_string()),
-                )?)
-            } else {
-                None
-            };
+        let issuer_certificate = if matches!(issuer_identifier.data, IdentifierData::Certificate(_))
+        {
+            let certificate =
+                credential
+                    .issuer_certificate
+                    .as_ref()
+                    .ok_or(RevocationError::MappingError(
+                        "issuer certificate is None".to_string(),
+                    ))?;
+            Some(certificate.as_ref().await?.to_owned())
+        } else {
+            None
+        };
 
         let current_list = self
             .revocation_list_repository
             .get_revocation_by_issuer_identifier_id(
                 issuer_identifier.id,
-                issuer_certificate.map(|c| c.id),
+                issuer_certificate.as_ref().map(|c| c.id),
                 RevocationListPurpose::RevocationAndSuspension,
                 &self.config_id,
                 &Default::default(),
@@ -246,7 +256,7 @@ impl RevocationMethod for TokenStatusList {
         let list_credential = format_status_list_credential(
             &current_list.id,
             issuer_identifier,
-            issuer_certificate,
+            issuer_certificate.as_ref(),
             encoded_list,
             &*self.key_provider,
             &self.key_algorithm_provider,

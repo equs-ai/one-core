@@ -22,7 +22,7 @@ use super::validator::{
 use crate::config::core_config::BlobStorageType;
 use crate::config::validator::protocol::validate_protocol_did_compatibility;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
-use crate::model::certificate::{CertificateRelations, CertificateRole};
+use crate::model::certificate::CertificateRole;
 use crate::model::credential::{
     Credential, CredentialFilterValue, CredentialListIncludeEntityTypeEnum, CredentialRelations,
     CredentialRole, CredentialStateEnum, CredentialType, SortableCredentialColumn,
@@ -282,7 +282,6 @@ impl CredentialService {
                 credential_id,
                 &CredentialRelations {
                     issuer_identifier: Some(Default::default()),
-                    issuer_certificate: Some(CertificateRelations::default()),
                     interaction: Some(Default::default()),
                 },
             )
@@ -642,7 +641,6 @@ impl CredentialService {
                 &CredentialRelations {
                     issuer_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),
-                    issuer_certificate: Some(Default::default()),
                 },
             )
             .await

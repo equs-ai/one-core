@@ -196,7 +196,7 @@ impl RevocationMethod for BitstringStatusList {
             .revocation_list_repository
             .get_revocation_by_issuer_identifier_id(
                 issuer_identifier.id,
-                credential.issuer_certificate.as_ref().map(|c| c.id),
+                credential.issuer_certificate.as_ref().map(|c| c.id()),
                 purpose,
                 &self.config_id,
                 &Default::default(),

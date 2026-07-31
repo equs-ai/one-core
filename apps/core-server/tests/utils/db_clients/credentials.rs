@@ -34,7 +34,6 @@ impl CredentialsDB {
                 &CredentialRelations {
                     interaction: Some(Default::default()),
                     issuer_identifier: Some(Default::default()),
-                    issuer_certificate: Some(Default::default()),
                 },
             )
             .await
@@ -194,13 +193,16 @@ impl CredentialsDB {
             suspend_end_date: params.suspend_end_date,
             claims: claims.into(),
             issuer_identifier: Some(issuer_identifier.to_owned()),
-            issuer_certificate: params.issuer_certificate.or(match &issuer_identifier.data {
-                IdentifierData::Certificate(certs)
-                | IdentifierData::CertificateAuthority(certs) => {
-                    certs.as_ref().await.unwrap().first().cloned()
-                }
-                _ => None,
-            }),
+            issuer_certificate: params
+                .issuer_certificate
+                .or(match &issuer_identifier.data {
+                    IdentifierData::Certificate(certs)
+                    | IdentifierData::CertificateAuthority(certs) => {
+                        certs.as_ref().await.unwrap().first().cloned()
+                    }
+                    _ => None,
+                })
+                .map(Into::into),
             holder_identifier: params.holder_identifier.map(Into::into),
             schema: credential_schema.to_owned().into(),
             interaction: params.interaction,

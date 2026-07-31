@@ -1,3 +1,4 @@
+use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use shared_types::{CertificateId, IdentifierId, OrganisationId};
 use strum::{Display, EnumString};
@@ -10,9 +11,10 @@ use super::list_query::ListQuery;
 use super::organisation::Organisation;
 use super::relation::Related;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct Certificate {
+    #[model(id)]
     pub id: CertificateId,
     pub identifier_id: IdentifierId,
     pub created_date: OffsetDateTime,

@@ -114,7 +114,6 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
                     &credential.id,
                     &CredentialRelations {
                         issuer_identifier: Some(IdentifierRelations {}),
-                        issuer_certificate: Some(Default::default()),
                         ..Default::default()
                     },
                 )

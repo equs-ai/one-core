@@ -298,11 +298,21 @@ async fn filter_credentials_by_trusted_authorities(
     }
 
     let trusted_akis = get_trusted_akis(authorities);
-    credentials.retain(|cred| credential_issuer_in_aki_list(cred, trusted_akis.as_slice()));
+    let mut retained = Vec::with_capacity(credentials.len());
+    for credential in std::mem::take(credentials) {
+        if credential_issuer_in_aki_list(&credential, trusted_akis.as_slice()).await {
+            retained.push(credential);
+        }
+    }
+    *credentials = retained;
 }
 
-fn credential_issuer_in_aki_list(credential: &Credential, list: &[KeyIdentifier]) -> bool {
+async fn credential_issuer_in_aki_list(credential: &Credential, list: &[KeyIdentifier]) -> bool {
     let Some(issuer_cert) = credential.issuer_certificate.as_ref() else {
+        return false;
+    };
+
+    let Ok(issuer_cert) = issuer_cert.as_ref().await else {
         return false;
     };
 

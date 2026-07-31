@@ -144,10 +144,10 @@ pub(crate) async fn credential_detail_response_from_model(
         None
     };
 
-    let issuer_certificate = match value.issuer_certificate {
+    let issuer_certificate = match &value.issuer_certificate {
         None => None,
         Some(certificate) => Some(
-            certificate_to_response_dto(certificate)
+            certificate_to_response_dto(certificate.as_ref().await?.to_owned())
                 .await
                 .error_while("converting certificate")?,
         ),
@@ -496,7 +496,7 @@ pub(super) fn from_create_request(
         protocol: request.protocol,
         claims: claims.into(),
         issuer_identifier: Some(issuer_identifier),
-        issuer_certificate,
+        issuer_certificate: issuer_certificate.map(Into::into),
         holder_identifier: None,
         schema: schema.into(),
         interaction: None,
