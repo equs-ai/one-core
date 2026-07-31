@@ -246,9 +246,6 @@ fn get_tags(config: Arc<ServerConfig>) -> Vec<Tag> {
                 to submit history entries to Core's centralized history service; all
                 consumers use it to list or retrieve recorded events."}
             ),
-            create_tag("wallet_instance", "Wallet Instances (Provider)",
-                "For Wallet Providers, manage wallet instances and attestations issued by the system."
-            ),
             create_tag("instance", "Instances (Holder)",
                 "For wallet and verifier instances, register with the provider and check status."
             ),
