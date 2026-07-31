@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use dcql::DcqlQuery;
 use serde::{Deserialize, Serialize};
 use serde_with::{DurationSeconds, VecSkipError, serde_as, skip_serializing_none};
-use standardized_types::openid4vp::{ClientMetadata, ResponseMode};
+use standardized_types::openid4vp::{ClientMetadata, PresentationFormat, ResponseMode};
 use time::Duration;
 use url::Url;
 
@@ -27,9 +29,11 @@ pub(crate) struct Params {
     pub holder: HolderParams,
     pub verifier: PresentationVerifierParams,
     pub redirect_uri: OpenID4VCRedirectUriParams,
-    // Required to handle SWIYU verification requests that have invalid client_metadata.
-    // Remove when the SWIYU provider is removed.
-    pub predefined_client_metadata: Option<ClientMetadata>,
+    /// According to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-new-parameters
+    /// `vp_formats_supported` can be omitted if known to the wallet by other means.
+    /// One option for other means is to statically define it for an ecosystem (i.e. swiyu), which
+    /// is why this option is supported here.
+    pub predefined_vp_formats_supported: Option<HashMap<String, PresentationFormat>>,
 
     #[serde(flatten)]
     pub common: CommonParams,

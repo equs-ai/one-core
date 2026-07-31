@@ -78,14 +78,11 @@ pub(crate) fn swiyu_to_final_params(mut params: Value) -> Result<Value, serde_js
         "useRequestUri": true,
         "useLegacyDidClientIdScheme": true,
         "urlScheme": "swiyu-verify",
-        "predefinedClientMetadata": {
-            "vp_formats_supported": {
-                "dc+sd-jwt": {
-                    "sd-jwt_alg_values": ["ES256"],
-                    "kb-jwt_alg_values": ["ES256"],
-                }
-            },
-            "encrypted_response_enc_values_supported": ["A128GCM"],
+        "predefinedVpFormatsSupported": {
+            "dc+sd-jwt": {
+                "sd-jwt_alg_values": ["ES256"],
+                "kb-jwt_alg_values": ["ES256"],
+            }
         },
         "holder": {
             "supportedClientIdSchemes": [ClientIdScheme::Did]

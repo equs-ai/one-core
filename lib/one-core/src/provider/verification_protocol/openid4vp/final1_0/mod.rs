@@ -369,8 +369,10 @@ impl OpenID4VPFinal1_0 {
             let mut interaction_data: OpenID4VPHolderInteractionData =
                 authorization_request.try_into()?;
             interaction_data.verifier_details = verifier_details;
-            if let Some(predefined_metadata) = &self.params.predefined_client_metadata {
-                interaction_data.client_metadata = Some(predefined_metadata.clone());
+            if let Some(predefined_metadata) = &self.params.predefined_vp_formats_supported
+                && let Some(metadata) = interaction_data.client_metadata.as_mut()
+            {
+                metadata.vp_formats_supported = predefined_metadata.clone();
             }
             interaction_data
         };

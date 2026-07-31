@@ -18,6 +18,11 @@ pub struct ClientMetadata {
     pub jwks: Option<Jwks>,
     #[serde(default)]
     pub jwks_uri: Option<String>,
+    // As per https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-new-parameters:
+    // REQUIRED when not available to the Wallet via another mechanism.
+    //
+    // -> For the DTO this is optional
+    #[serde(default)]
     pub vp_formats_supported: HashMap<String, PresentationFormat>,
     #[serde_as(as = "Option<VecSkipError<_>>")]
     #[serde(default)]
