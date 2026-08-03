@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
+use super::{
     ClaimPath, ClaimQuery, ClaimQueryId, ClaimValue, CredentialFormat, CredentialQueryId,
     DcqlError, DcqlQuery,
 };

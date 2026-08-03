@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dcql::DcqlQuery;
 use one_dto_mapper::convert_inner;
 use shared_types::{OrganisationId, ProofId};
 use standardized_types::etsi_119_602::MultiLangString;
+use standardized_types::openid4vp::dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
 use time::Duration;
 use url::Url;
 use uuid::Uuid;
@@ -218,7 +218,7 @@ impl HolderTrustResolverProto {
         }
 
         let mut allowed_credentials: HashMap<
-            Option<dcql::CredentialQueryId>,
+            Option<CredentialQueryId>,
             Vec<RefCertCredentialInfo>,
         > = HashMap::new();
         let mut last_reg_cert_jwt: Option<registration_certificate::model::Payload> = None;
@@ -287,7 +287,7 @@ impl HolderTrustResolverProto {
 
         struct RegCertInfo {
             relying_party_name: String,
-            purpose: HashMap<dcql::CredentialQueryId, Vec<MultiLangString>>,
+            purpose: HashMap<CredentialQueryId, Vec<MultiLangString>>,
         }
         let mut used_reg_certs: HashMap<String, RegCertInfo> = HashMap::new();
         for credential_query in &dcql_query.credentials {
@@ -377,8 +377,7 @@ impl HolderTrustResolverProto {
             .await
             .error_while("fetching from WRP registry")?;
 
-        let mut purpose: HashMap<dcql::CredentialQueryId, Vec<MultiLangString>> =
-            Default::default();
+        let mut purpose: HashMap<CredentialQueryId, Vec<MultiLangString>> = Default::default();
         for credential_query in &dcql_query.credentials {
             let Some(applied_purpose) = find_matching_intended_use(
                 credential_query,
@@ -458,7 +457,7 @@ impl HolderTrustResolverProto {
 }
 
 fn find_matching_intended_use(
-    credential_query: &dcql::CredentialQuery,
+    credential_query: &CredentialQuery,
     among_uses: &[IntendedUse],
 ) -> Option<Vec<MultiLangString>> {
     for intended_use in among_uses {

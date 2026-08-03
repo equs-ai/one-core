@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use dcql::DcqlQuery;
 use shared_types::InteractionId;
 use standardized_types::jwk::{JwkUse, PublicJwk};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use standardized_types::openid4vp::{
     ClientMetadata, MdocAlgs, PresentationFormat, ResponseMode, SdJwtVcAlgs, W3CJwtAlgs, W3CLdpAlgs,
 };

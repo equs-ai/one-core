@@ -1,4 +1,4 @@
-use dcql::DcqlError;
+use standardized_types::openid4vp::dcql::DcqlError;
 use thiserror::Error;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};

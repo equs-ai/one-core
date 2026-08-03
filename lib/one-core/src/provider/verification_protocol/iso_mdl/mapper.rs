@@ -1,4 +1,4 @@
-use dcql::{
+use standardized_types::openid4vp::dcql::{
     ClaimPath, ClaimQuery, CredentialFormat, CredentialQuery, DcqlQuery, MsoMdocMeta, PathSegment,
 };
 

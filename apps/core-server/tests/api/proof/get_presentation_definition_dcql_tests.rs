@@ -1,6 +1,3 @@
-use dcql::{
-    ClaimQuery, ClaimQueryId, ClaimValue, CredentialQuery, DcqlQuery, PathSegment, TrustedAuthority,
-};
 use one_core::model::certificate::CertificateState;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{CredentialRole, CredentialStateEnum};
@@ -9,6 +6,9 @@ use rcgen::{CertificateParams, KeyUsagePurpose};
 use serde_json::json;
 use similar_asserts::assert_eq;
 use sql_data_provider::test_utilities::get_dummy_date;
+use standardized_types::openid4vp::dcql::{
+    ClaimQuery, ClaimQueryId, ClaimValue, CredentialQuery, DcqlQuery, PathSegment, TrustedAuthority,
+};
 use uuid::Uuid;
 
 use crate::fixtures::dcql::proof_for_dcql_query;

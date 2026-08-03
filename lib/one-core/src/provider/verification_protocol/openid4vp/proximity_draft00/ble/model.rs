@@ -1,5 +1,5 @@
-use dcql::DcqlQuery;
 use serde::{Deserialize, Serialize};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use uuid::Uuid;
 
 use super::BLEPeer;

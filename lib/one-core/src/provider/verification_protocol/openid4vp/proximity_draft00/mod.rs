@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dcql::DcqlQuery;
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use key_agreement_key::KeyAgreementKey;
@@ -11,6 +10,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use serde_with::{DurationSeconds, serde_as};
 use shared_types::{InteractionId, KeyId, ProofId};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use time::Duration;
 use url::Url;
 use uuid::Uuid;

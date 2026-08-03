@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use dcql::CredentialFormat;
 use one_dto_mapper::Into;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use standardized_types::openid4vp::dcql;
+use standardized_types::openid4vp::dcql::CredentialFormat;
 use url::Url;
 
 use crate::proto::jwt::Jwt;

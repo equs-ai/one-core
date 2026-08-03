@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use dcql::CredentialQueryId;
 use serde::Serialize;
 use shared_types::i18n::I18nString;
 use shared_types::{InteractionId, TransactionDataId, TransactionDataType};
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use strum::{AsRefStr, Display, EnumString};
 use time::OffsetDateTime;
 

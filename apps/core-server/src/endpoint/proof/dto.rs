@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use dcql::CredentialQueryId;
 use one_core::model::proof::{
     ExactProofFilterColumn, ProofRole, ProofStateEnum, SortableProofColumn,
 };
@@ -30,6 +29,7 @@ use shared_types::{
     CertificateId, CredentialSchemaId, DidId, IdentifierId, KeyId, OrganisationId, ProofId,
     ProofSchemaId, TransactionDataId,
 };
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::OffsetDateTime;
 use utoipa::{IntoParams, ToSchema};
 

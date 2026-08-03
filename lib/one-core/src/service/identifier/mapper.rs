@@ -1,5 +1,6 @@
 use one_dto_mapper::{convert_inner, try_convert_inner};
 use shared_types::{CredentialSchemaId, OrganisationId, ProofSchemaId};
+use standardized_types::openid4vp::dcql;
 
 use super::dto::{
     CertificateRolesMatchMode, CreateIdentifierDidRequestDTO, GetIdentifierListItemResponseDTO,

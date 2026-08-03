@@ -3,9 +3,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use dcql::{CredentialFormat, CredentialQuery, CredentialQueryId, TrustedAuthority};
 use shared_types::{DidValue, SerializedCredential};
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vp::dcql::{
+    CredentialFormat, CredentialQuery, CredentialQueryId, TrustedAuthority,
+};
 use standardized_types::x509::KeyIdentifier;
 
 use crate::config::core_config::{DidType, FormatType, VerificationProtocolType};

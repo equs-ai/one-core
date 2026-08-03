@@ -7,7 +7,6 @@ version      = "0.1.0"
 
 [workspace]
 members = [
-  "lib/dcql",
   "lib/migration",
   "lib/one-core",
   "lib/one-crypto",

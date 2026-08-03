@@ -8,6 +8,7 @@ version.workspace      = true
 
 [dependencies]
 anyhow.workspace         = true
+bon.workspace            = true
 ct-codecs.workspace      = true
 one-dto-mapper.workspace = true
 proc-macros.workspace    = true
@@ -18,6 +19,7 @@ serde_json.workspace     = true
 serde_with.workspace     = true
 strum.workspace          = true
 time.workspace           = true
+thiserror.workspace      = true
 utoipa                   = { workspace = true, optional = true }
 uuid.workspace           = true
 

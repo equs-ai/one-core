@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use convert_case::{Case, Casing};
-use dcql::{ClaimQuery, ClaimQueryId, CredentialQuery, DcqlQuery};
+use standardized_types::openid4vp::dcql::{ClaimQuery, ClaimQueryId, CredentialQuery, DcqlQuery};
 
 use crate::config::core_config::FormatType;
 use crate::mapper::NESTED_CLAIM_MARKER;

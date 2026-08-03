@@ -4,7 +4,6 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder};
-use dcql::CredentialQueryId;
 use error::TransactionDataError;
 use proc_macros::provider_mock;
 use processed_transaction_data::ProcessedTransactionData;
@@ -12,6 +11,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json_path::JsonPath;
 use shared_types::TransactionDataType;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 
 use crate::config::core_config::FormatType;
 use crate::provider::Provider;

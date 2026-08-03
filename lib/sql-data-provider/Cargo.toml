@@ -18,7 +18,6 @@ strict = []
 anyhow.workspace             = true
 async-trait.workspace        = true
 autometrics.workspace        = true
-dcql.workspace               = true
 futures                      = { version = "0.3" }
 hex.workspace                = true
 itertools.workspace          = true

@@ -1,11 +1,13 @@
 #![allow(clippy::unwrap_used)]
 
 use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
-use dcql::{CredentialFormat, CredentialQuery, DcqlQuery, W3cVcMeta};
 use indoc::indoc;
 use serde::{Deserialize, Serialize};
 use shared_types::{DidValue, IdentifierId, OrganisationId};
 use standardized_types::jwk::{PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::dcql::{
+    CredentialFormat, CredentialQuery, DcqlQuery, W3cVcMeta,
+};
 use time::OffsetDateTime;
 use time::macros::datetime;
 use uuid::Uuid;

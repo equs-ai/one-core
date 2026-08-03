@@ -1,5 +1,7 @@
 //! Spec https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
 
+pub mod dcql;
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};

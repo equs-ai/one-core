@@ -6,6 +6,7 @@ use shared_types::{
     ProofId, ProofSchemaId, TrustCollectionId,
 };
 use standardized_types::etsi_119_602::MultiLangString;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use strum::IntoStaticStr;
 use time::OffsetDateTime;
 
@@ -35,7 +36,7 @@ pub struct HistoryErrorMetadata {
 pub struct WalletRelyingPartyMetadata {
     pub name: String,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub purpose: HashMap<dcql::CredentialQueryId, Vec<MultiLangString>>,
+    pub purpose: HashMap<CredentialQueryId, Vec<MultiLangString>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

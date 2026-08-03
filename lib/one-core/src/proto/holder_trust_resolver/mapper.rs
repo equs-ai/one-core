@@ -1,5 +1,6 @@
 use dcql::{CredentialFormat, CredentialQuery, MsoMdocMeta, PathSegment, SdJwtVcMeta, W3cVcMeta};
 use one_dto_mapper::convert_inner_of_inner;
+use standardized_types::openid4vp::dcql;
 
 use crate::proto::wrp_validator;
 use crate::provider::signer::registration_certificate::model::{Claim, Credential};

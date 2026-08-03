@@ -1,13 +1,13 @@
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-use dcql::DcqlQuery;
 use futures::FutureExt;
 use mockall::predicate::{always, eq};
 use serde_json::json;
 use shared_types::DidValue;
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 

@@ -2,11 +2,11 @@ use std::ops::Add;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use dcql::DcqlQuery;
 use futures::future::{BoxFuture, Shared};
 use one_crypto::utilities;
 use serde::Serialize;
 use shared_types::{DidValue, InteractionId, ProofId};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use time::Duration;
 use tokio::select;
 use tokio_util::sync::CancellationToken;

@@ -1,14 +1,14 @@
 use std::collections::{HashMap, VecDeque};
 
-use dcql::matching::{ClaimFilter, CredentialFilter};
-use dcql::{
-    ClaimPath, ClaimValue, CredentialFormat, CredentialQuery, CredentialQueryId, DcqlQuery,
-    PathSegment, TrustedAuthority,
-};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use one_dto_mapper::convert_inner;
 use shared_types::{ClaimId, ClaimSchemaId, OrganisationId, TransactionDataId};
+use standardized_types::openid4vp::dcql::matching::{ClaimFilter, CredentialFilter};
+use standardized_types::openid4vp::dcql::{
+    ClaimPath, ClaimValue, CredentialFormat, CredentialQuery, CredentialQueryId, DcqlQuery,
+    PathSegment, TrustedAuthority,
+};
 use standardized_types::x509::KeyIdentifier;
 
 use super::disclosure_policy::{

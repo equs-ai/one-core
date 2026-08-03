@@ -21,7 +21,6 @@ axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12", features = ["typed-header", "with-rejection"] }
 clap.workspace = true
 ct-codecs.workspace = true
-dcql = { workspace = true, features = ["utoipa"] }
 futures.workspace = true
 headers = { version = "0.4" }
 http-body-util = "0.1.2"
@@ -81,7 +80,6 @@ asn1-rs.workspace          = true
 assert2.workspace          = true
 async-trait.workspace      = true
 ciborium.workspace         = true
-dcql.workspace             = true
 hex.workspace              = true
 hex-literal.workspace      = true
 maplit.workspace           = true

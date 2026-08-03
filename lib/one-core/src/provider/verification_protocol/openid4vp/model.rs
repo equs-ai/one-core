@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use dcql::{CredentialQueryId, DcqlQuery};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as, skip_serializing_none};
 use shared_types::{ClaimSchemaId, InteractionId, KeyId, TransactionDataId, TransactionDataType};
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vp::dcql::{CredentialQueryId, DcqlQuery};
 use standardized_types::openid4vp::{ClientMetadata, PresentationFormat, ResponseMode};
 use strum::{Display, EnumString};
 use time::OffsetDateTime;

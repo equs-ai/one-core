@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
 use indexmap::IndexMap;
 use mockall::predicate::{always, eq};
 use serde_json::json;
@@ -10,6 +9,7 @@ use shared_types::{CredentialFormat, TransactionDataId};
 use similar_asserts::assert_eq;
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
 use standardized_types::openid4vp::{ClientMetadata, MdocAlgs, PresentationFormat, ResponseMode};
 use url::Url;
 use uuid::Uuid;

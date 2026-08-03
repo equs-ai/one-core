@@ -1,5 +1,5 @@
-use crate::credential_query_builder::{self, IsUnset, SetFormat, SetMultiple, State};
-use crate::{
+use super::credential_query_builder::{self, IsUnset, SetFormat, SetMultiple, State};
+use super::{
     CredentialFormat, CredentialQuery, CredentialQueryBuilder, MsoMdocMeta, SdJwtVcMeta, W3cVcMeta,
 };
 
@@ -38,9 +38,9 @@ where
     }
 }
 
-impl<S: credential_query_builder::State> CredentialQueryBuilder<S>
+impl<S: State> CredentialQueryBuilder<S>
 where
-    S::RequireCryptographicHolderBinding: credential_query_builder::IsUnset,
+    S::RequireCryptographicHolderBinding: IsUnset,
 {
     pub fn without_holder_binding(
         self,
@@ -53,11 +53,9 @@ where
 #[cfg(test)]
 mod tests {
     use similar_asserts::assert_eq;
-    use standardized_types::x509::KeyIdentifier;
 
-    use crate::{
-        ClaimQuery, ClaimQueryId, CredentialFormat, CredentialQuery, CredentialQueryId, DcqlQuery,
-    };
+    use super::super::*;
+    use crate::x509::KeyIdentifier;
 
     #[test]
     fn test_mso_mdoc_credential_builder() {
@@ -267,8 +265,6 @@ mod tests {
 
     #[test]
     fn test_trusted_authorities_builder() {
-        use crate::TrustedAuthority;
-
         let credential = CredentialQuery::jwt_vc(vec![vec!["IDCredential".to_string()]])
             .id("with_ta")
             .trusted_authorities(vec![

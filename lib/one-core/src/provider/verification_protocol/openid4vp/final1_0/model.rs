@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use dcql::DcqlQuery;
 use serde::{Deserialize, Serialize};
 use serde_with::{DurationSeconds, VecSkipError, serde_as, skip_serializing_none};
+use standardized_types::openid4vp::dcql::{CredentialQueryId, DcqlQuery};
 use standardized_types::openid4vp::{ClientMetadata, PresentationFormat, ResponseMode};
 use time::Duration;
 use url::Url;
@@ -122,7 +122,7 @@ pub(crate) struct VerifierInfoAttestation {
     pub format: VerifierInfoAttestationFormat,
     pub data: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub credential_ids: Vec<dcql::CredentialQueryId>,
+    pub credential_ids: Vec<CredentialQueryId>,
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]

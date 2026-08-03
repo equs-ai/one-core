@@ -2,8 +2,8 @@ use std::fmt::Display;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use dcql::CredentialQueryId;
 use shared_types::TransactionDataType;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 
 use crate::config::core_config::FormatType;
 use crate::provider::Provider;

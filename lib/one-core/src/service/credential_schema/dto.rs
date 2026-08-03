@@ -6,6 +6,7 @@ use shared_types::{
     ClaimSchemaId, CredentialFormat, CredentialSchemaId, OrganisationId, RevocationMethodId,
 };
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
+use standardized_types::openid4vp::dcql;
 use strum::{Display, EnumString};
 use time::OffsetDateTime;
 use uuid::Uuid;

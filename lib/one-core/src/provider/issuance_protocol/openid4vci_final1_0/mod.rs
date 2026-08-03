@@ -40,6 +40,7 @@ use shared_types::{
     InteractionId, OrganisationId, SerializedCredential,
 };
 use standardized_types::jwk::JwkUse;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::{Duration, OffsetDateTime};
 use url::Url;
 use uuid::Uuid;
@@ -1430,7 +1431,7 @@ impl OpenID4VCIFinal1_0 {
                     credential_ids: trust_information
                         .allowed_issuance_types
                         .iter()
-                        .map(|ti| dcql::CredentialQueryId::from(ti.schema_id.as_str()))
+                        .map(|ti| CredentialQueryId::from(ti.schema_id.as_str()))
                         .collect(),
                 })
             }

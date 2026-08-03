@@ -1,5 +1,5 @@
-use dcql::CredentialQueryId;
 use shared_types::{EntityId, HistoryId};
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::history::{HistoryAction, HistoryEntityType};

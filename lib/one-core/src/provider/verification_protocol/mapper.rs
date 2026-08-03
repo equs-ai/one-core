@@ -1,7 +1,7 @@
-use dcql::CredentialSet;
 use futures::future::join_all;
 use one_dto_mapper::convert_inner_of_inner;
 use shared_types::{OrganisationId, ProofId};
+use standardized_types::openid4vp::dcql::CredentialSet;
 use time::OffsetDateTime;
 use uuid::Uuid;
 

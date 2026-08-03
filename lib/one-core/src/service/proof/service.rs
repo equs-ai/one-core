@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
-use dcql::CredentialQueryId;
 use shared_types::{CredentialFormat, CredentialId, ProofId, TransactionDataId};
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use uuid::Uuid;
 
 use super::ProofService;

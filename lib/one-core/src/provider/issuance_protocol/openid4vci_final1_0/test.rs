@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 
 use assert2::let_assert;
 use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
-use dcql::MsoMdocMeta;
 use indexmap::IndexMap;
 use mockall::predicate::{always, eq};
 use one_crypto::encryption::encrypt_data;
@@ -17,6 +16,8 @@ use standardized_types::etsi_119_472::disclosure_policy::{DisclosurePolicy, Poli
 use standardized_types::iana::{EncryptionAlgorithm, EncryptionKeyManagementAlgorithm};
 use standardized_types::jwe::CompressionAlgorithm;
 use standardized_types::jwk::{Jwks, PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::dcql;
+use standardized_types::openid4vp::dcql::MsoMdocMeta;
 use time::Duration;
 use url::Url;
 use uuid::Uuid;

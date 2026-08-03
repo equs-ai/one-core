@@ -13,6 +13,7 @@ use standardized_types::jwe::CompressionAlgorithm;
 use standardized_types::jwk::{Jwks, PublicJwk};
 use standardized_types::oauth2::TokenType;
 use standardized_types::oauth2::dynamic_client_registration::TokenEndpointAuthMethod;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use strum::Display;
 use time::{Duration, OffsetDateTime};
 use url::Url;
@@ -260,7 +261,7 @@ pub struct EtsiIssuerInfoResponseDTO {
     pub format: EtsiIssuerInfoAttestationFormat,
     pub data: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub credential_ids: Vec<dcql::CredentialQueryId>,
+    pub credential_ids: Vec<CredentialQueryId>,
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, Debug)]

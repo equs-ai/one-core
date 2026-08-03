@@ -1,4 +1,5 @@
 use shared_types::{CredentialId, OrganisationId, SerializedCredential};
+use standardized_types::openid4vp::dcql;
 use url::Url;
 use uuid::Uuid;
 

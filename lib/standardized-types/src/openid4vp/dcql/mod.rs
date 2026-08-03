@@ -9,8 +9,9 @@ use std::fmt::Debug;
 
 use bon::Builder;
 use serde::{Deserialize, Serialize};
-use standardized_types::x509::KeyIdentifier;
 use thiserror::Error;
+
+use crate::x509::KeyIdentifier;
 
 pub mod builder;
 mod display;
@@ -213,7 +214,7 @@ mod tests {
     use serde_json::{Value, json};
     use similar_asserts::assert_eq;
 
-    use crate::*;
+    use super::*;
 
     #[test]
     fn test_claim_path() {

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use dcql::DcqlQuery;
 use shared_types::DidValue;
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use url::Url;
 
 use crate::config::core_config::{TransportType, VerificationProtocolType};

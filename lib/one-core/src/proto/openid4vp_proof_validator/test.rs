@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dcql::{CredentialFormat, CredentialQuery, DcqlQuery, MsoMdocMeta};
 use indexmap::IndexMap;
 use maplit::hashmap;
 use one_dto_mapper::try_convert_inner;
 use serde_json::json;
 use shared_types::{DidValue, ProofId};
 use similar_asserts::assert_eq;
+use standardized_types::openid4vp::dcql::{
+    CredentialFormat, CredentialQuery, DcqlQuery, MsoMdocMeta,
+};
 use time::Duration;
 use uuid::Uuid;
 

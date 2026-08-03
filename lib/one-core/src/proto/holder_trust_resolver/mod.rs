@@ -1,5 +1,5 @@
-use dcql::{CredentialQueryId, DcqlQuery};
 use shared_types::{OrganisationId, ProofId};
+use standardized_types::openid4vp::dcql::{CredentialQueryId, DcqlQuery};
 use thiserror::Error;
 use time::Duration;
 

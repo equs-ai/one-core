@@ -1,9 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use ::dcql::CredentialQueryId;
 use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
-use dcql::create_dcql_query;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
 use mappers::{create_openid4vp_final1_0_authorization_request, encode_client_id_with_scheme};
@@ -16,6 +14,7 @@ use shared_types::{TransactionDataId, TransactionDataType};
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::PublicJwk;
 use standardized_types::openid4vp::ResponseMode;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::Duration;
 use url::Url;
 use utils::validate_interaction_data;
@@ -60,6 +59,7 @@ use crate::provider::verification_protocol::mapper::{
     interaction_from_handle_invitation, proof_from_handle_invitation,
 };
 use crate::provider::verification_protocol::openid4vp::dcql::get_presentation_definition_v2;
+use crate::provider::verification_protocol::openid4vp::final1_0::dcql::create_dcql_query;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::{
     create_open_id_for_vp_client_metadata_final1_0, transaction_data_from_interaction,
 };

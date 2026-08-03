@@ -1,4 +1,3 @@
-use dcql::{ClaimQuery, CredentialQuery, DcqlQuery, PathSegment};
 use one_core::clock::now_utc;
 use one_core::model::credential::{
     Clearable, Credential, CredentialFilterValue, CredentialRole, CredentialStateEnum,
@@ -11,6 +10,9 @@ use one_core::model::organisation::Organisation;
 use one_core::provider::credential_formatter::model::{CertificateDetails, IdentifierDetails};
 use serde_json::json;
 use similar_asserts::assert_eq;
+use standardized_types::openid4vp::dcql::{
+    ClaimQuery, CredentialQuery, CredentialQueryId, DcqlQuery, PathSegment,
+};
 use uuid::Uuid;
 
 use crate::fixtures::dcql::proof_for_dcql_query;
@@ -84,7 +86,7 @@ async fn test_get_presentation_definition_2_trust_purpose_success() {
     // GIVEN
     let (context, org, _, identifier, key) = TestContext::new_with_did(None).await;
     let schema = complex_sd_jwt_vc_credential_schema(&context, &org).await;
-    let query_id: dcql::CredentialQueryId = "test_query_id".into();
+    let query_id: CredentialQueryId = "test_query_id".into();
     let claims = vec![
         claim_data(
             "required_claim",

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder, Encoder};
-use dcql::CredentialQueryId;
 use indexmap::IndexMap;
 use one_crypto::{CryptoProvider, Hasher};
 use proc_macros::Provider;
@@ -12,6 +11,7 @@ use standardized_types::csc::transaction_data::{
     QES_APPROVAL_TRANSACTION_DATA_TYPE, QesApprovalRequest,
 };
 use standardized_types::iana;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 
 use crate::config::core_config::FormatType;
 use crate::provider::presentation_formatter::model::PresentedTransactionData;

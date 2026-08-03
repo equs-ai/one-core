@@ -1,4 +1,3 @@
-use dcql::DcqlQuery;
 use one_core::model::identifier::Identifier;
 use one_core::model::interaction::InteractionType;
 use one_core::model::key::Key;
@@ -6,6 +5,7 @@ use one_core::model::organisation::Organisation;
 use one_core::model::proof::{Proof, ProofStateEnum};
 use one_core::provider::credential_formatter::model::IdentifierDetails;
 use serde_json::json;
+use standardized_types::openid4vp::dcql::DcqlQuery;
 
 use crate::utils::context::TestContext;
 

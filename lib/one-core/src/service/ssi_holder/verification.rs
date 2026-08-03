@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use dcql::CredentialQueryId;
 use futures_util::FutureExt;
 use itertools::Itertools;
 use shared_types::{CredentialId, InteractionId, ProofId, SerializedCredential, TransactionDataId};
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use url::Url;
 
 use super::SSIHolderService;

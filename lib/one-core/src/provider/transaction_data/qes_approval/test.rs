@@ -69,7 +69,7 @@ fn test_validate_transaction_data_csc_example() {
 
     assert_eq!(
         metadata.credential_ids,
-        vec![dcql::CredentialQueryId::from("xyz123")]
+        vec![CredentialQueryId::from("xyz123")]
     );
 }
 

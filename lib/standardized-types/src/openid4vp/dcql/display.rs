@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{
+use super::{
     ClaimPath, ClaimQueryId, ClaimValue, CredentialFormat, CredentialQueryId, PathSegment,
 };
 

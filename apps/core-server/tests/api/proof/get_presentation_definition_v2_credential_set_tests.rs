@@ -1,10 +1,10 @@
-use dcql::{ClaimQuery, CredentialQuery, CredentialSet, DcqlQuery};
 use one_core::model::credential::{Credential, CredentialRole, CredentialStateEnum};
 use one_core::model::credential_schema::CredentialSchema;
 use one_core::model::identifier::Identifier;
 use one_core::model::organisation::Organisation;
 use serde_json::json;
 use similar_asserts::assert_eq;
+use standardized_types::openid4vp::dcql::{ClaimQuery, CredentialQuery, CredentialSet, DcqlQuery};
 
 use crate::fixtures::TestingCredentialParams;
 use crate::fixtures::dcql::proof_for_dcql_query;

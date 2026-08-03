@@ -1,6 +1,6 @@
-use dcql::DcqlQuery;
 use secrecy::SecretSlice;
 use serde::{Deserialize, Serialize};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use uuid::Uuid;
 
 use crate::mapper::secret_slice;

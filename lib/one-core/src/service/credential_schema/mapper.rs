@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use dcql::{MsoMdocMeta, SdJwtVcMeta, W3cVcMeta};
 use indexmap::IndexMap;
 use one_dto_mapper::convert_inner;
 use shared_types::{CredentialFormat, CredentialSchemaId, OrganisationId};
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
+use standardized_types::openid4vp::dcql;
+use standardized_types::openid4vp::dcql::{MsoMdocMeta, SdJwtVcMeta, W3cVcMeta};
 use url::Url;
 use uuid::Uuid;
 

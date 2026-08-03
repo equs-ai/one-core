@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use similar_asserts::assert_eq;
 use standardized_types::etsi_119_602::MultiLangString;
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::macros::datetime;
 use uuid::Uuid;
 
@@ -34,7 +35,7 @@ fn dummy_history(action: HistoryAction, metadata: Option<HistoryMetadata>) -> Hi
 
 fn wrp_metadata(
     name: &str,
-    purpose: HashMap<dcql::CredentialQueryId, Vec<MultiLangString>>,
+    purpose: HashMap<CredentialQueryId, Vec<MultiLangString>>,
 ) -> HistoryMetadata {
     HistoryMetadata::WalletRelyingParty(WalletRelyingPartyMetadata {
         name: name.to_string(),
@@ -222,7 +223,7 @@ async fn test_get_trust_purpose_success() {
     // given
     let mut history_repository = MockHistoryRepository::new();
     let credential_id = Uuid::new_v4().into();
-    let query_id: dcql::CredentialQueryId = "query-1".into();
+    let query_id: CredentialQueryId = "query-1".into();
     let purpose = vec![MultiLangString {
         lang: "en".to_string(),
         value: "Test purpose".to_string(),
@@ -264,8 +265,8 @@ async fn test_get_trust_purpose_none_when_query_id_missing() {
     // given
     let mut history_repository = MockHistoryRepository::new();
     let credential_id = Uuid::new_v4().into();
-    let query_id: dcql::CredentialQueryId = "query-1".into();
-    let other_query_id: dcql::CredentialQueryId = "query-2".into();
+    let query_id: CredentialQueryId = "query-1".into();
+    let other_query_id: CredentialQueryId = "query-2".into();
     let purpose = vec![MultiLangString {
         lang: "en".to_string(),
         value: "Test purpose".to_string(),
@@ -305,7 +306,7 @@ async fn test_get_trust_purpose_none_when_empty() {
     // given
     let mut history_repository = MockHistoryRepository::new();
     let credential_id = Uuid::new_v4().into();
-    let query_id: dcql::CredentialQueryId = "query-1".into();
+    let query_id: CredentialQueryId = "query-1".into();
 
     history_repository
         .expect_get_history_list()
@@ -335,7 +336,7 @@ async fn test_get_trust_purpose_error_missing_metadata() {
     // given
     let mut history_repository = MockHistoryRepository::new();
     let credential_id = Uuid::new_v4().into();
-    let query_id: dcql::CredentialQueryId = "query-1".into();
+    let query_id: CredentialQueryId = "query-1".into();
 
     history_repository
         .expect_get_history_list()
@@ -362,7 +363,7 @@ async fn test_get_trust_purpose_error_invalid_metadata_type() {
     // given
     let mut history_repository = MockHistoryRepository::new();
     let credential_id = Uuid::new_v4().into();
-    let query_id: dcql::CredentialQueryId = "query-1".into();
+    let query_id: CredentialQueryId = "query-1".into();
 
     history_repository
         .expect_get_history_list()

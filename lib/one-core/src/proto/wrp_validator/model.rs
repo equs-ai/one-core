@@ -2,6 +2,7 @@ use one_dto_mapper::Into;
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vp::dcql;
 use time::OffsetDateTime;
 use url::Url;
 

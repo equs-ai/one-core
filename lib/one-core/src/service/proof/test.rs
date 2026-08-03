@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use assert2::let_assert;
-use dcql::DcqlQuery;
 use mockall::Sequence;
 use mockall::predicate::*;
 use rstest::rstest;
@@ -9,6 +8,7 @@ use secrecy::SecretSlice;
 use shared_types::{EntityId, InteractionId, ProofId, TransactionDataType};
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::dcql::DcqlQuery;
 use uuid::Uuid;
 
 use super::ProofService;

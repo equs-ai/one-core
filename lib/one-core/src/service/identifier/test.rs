@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dcql::{CredentialFormat, SdJwtVcMeta};
 use shared_types::TrustCollectionId;
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::dcql::{CredentialFormat, SdJwtVcMeta};
 use url::Url;
 use uuid::Uuid;
 

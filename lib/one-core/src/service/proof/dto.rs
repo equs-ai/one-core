@@ -1,9 +1,9 @@
-use dcql::CredentialQueryId;
 use serde::{Deserialize, Serialize};
 use shared_types::{
     CertificateId, CredentialSchemaId, DidId, IdentifierId, InteractionId, KeyId, OrganisationId,
     ProofId, ProofSchemaId, TransactionDataId, TransactionDataType,
 };
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::OffsetDateTime;
 
 use crate::model::common::GetListResponse;

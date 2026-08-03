@@ -2,9 +2,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use HistoryAction::WrpAcReceived;
-use dcql::CredentialQueryId;
 use shared_types::i18n::I18nString;
 use shared_types::{CredentialId, EntityId};
+use standardized_types::openid4vp::dcql::CredentialQueryId;
 
 use crate::config::core_config::BlobStorageType;
 use crate::error::ContextWithErrorCode;

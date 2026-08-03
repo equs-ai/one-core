@@ -1,5 +1,5 @@
-use crate::matching::ClaimFilter;
-use crate::{ClaimPath, ClaimQuery, ClaimQueryId, ClaimValue, CredentialQueryId, PathSegment};
+use super::matching::ClaimFilter;
+use super::{ClaimPath, ClaimQuery, ClaimQueryId, ClaimValue, CredentialQueryId, PathSegment};
 
 impl From<String> for CredentialQueryId {
     fn from(value: String) -> Self {
