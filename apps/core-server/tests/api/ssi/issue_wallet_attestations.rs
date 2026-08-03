@@ -1,9 +1,7 @@
 use one_core::model::history::HistoryAction;
 use one_core::model::instance::InstanceStatus;
-use one_core::model::managed_instance::{ManagedInstanceRelations, UpdateManagedInstanceRequest};
-use one_core::model::managed_instance_attested_key::{
-    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
-};
+use one_core::model::managed_instance::UpdateManagedInstanceRequest;
+use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::proto::jwt::Jwt;
 use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use one_core::provider::key_algorithm::KeyAlgorithm;
@@ -272,16 +270,10 @@ async fn test_issue_wua_only_success() {
     let wallet_unit = context
         .db
         .managed_instances
-        .get(
-            wallet_unit.id,
-            &ManagedInstanceRelations {
-                attested_keys: Some(ManagedInstanceAttestedKeyRelations::default()),
-                ..Default::default()
-            },
-        )
+        .get(wallet_unit.id)
         .await
         .unwrap();
-    assert_eq!(wallet_unit.attested_keys.unwrap().len(), 1);
+    assert_eq!(wallet_unit.attested_keys.as_ref().await.unwrap().len(), 1);
 }
 
 #[tokio::test]
@@ -363,14 +355,8 @@ async fn test_issue_wia_only_with_existing_attested_keys_success() {
     let wallet_unit = context
         .db
         .managed_instances
-        .get(
-            wallet_unit.id,
-            &ManagedInstanceRelations {
-                attested_keys: Some(ManagedInstanceAttestedKeyRelations::default()),
-                ..Default::default()
-            },
-        )
+        .get(wallet_unit.id)
         .await
         .unwrap();
-    assert_eq!(wallet_unit.attested_keys.unwrap().len(), 1);
+    assert_eq!(wallet_unit.attested_keys.as_ref().await.unwrap().len(), 1);
 }

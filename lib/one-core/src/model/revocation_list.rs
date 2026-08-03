@@ -1,3 +1,4 @@
+use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use shared_types::{
     CredentialId, ManagedInstanceAttestedKeyId, RevocationListEntryId, RevocationListId,
@@ -7,12 +8,14 @@ use standardized_types::x509::CertificateSerial;
 use strum::Display;
 use time::OffsetDateTime;
 
-use crate::model::certificate::{Certificate, CertificateRelations};
-use crate::model::identifier::{Identifier, IdentifierRelations};
+use crate::model::certificate::Certificate;
+use crate::model::identifier::Identifier;
+use crate::model::relation::Related;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct RevocationList {
+    #[model(id)]
     pub id: RevocationListId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
@@ -22,14 +25,8 @@ pub struct RevocationList {
     pub purpose: RevocationListPurpose,
 
     // Relations:
-    pub issuer_identifier: Option<Identifier>,
-    pub issuer_certificate: Option<Certificate>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct RevocationListRelations {
-    pub issuer_identifier: Option<IdentifierRelations>,
-    pub issuer_certificate: Option<CertificateRelations>,
+    pub issuer_identifier: Related<Identifier>,
+    pub issuer_certificate: Option<Related<Certificate>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Display, Serialize)]

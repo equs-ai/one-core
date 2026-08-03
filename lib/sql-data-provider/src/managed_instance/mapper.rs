@@ -1,10 +1,16 @@
-use anyhow::anyhow;
+use std::sync::Arc;
+
 use one_core::model::history::HistoryMetadata;
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::managed_instance::{
     ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceOs, SortableManagedInstanceColumn,
 };
+use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::error::DataLayerError;
+use one_core::repository::managed_instance_attested_key_repository::{
+    ManagedInstanceAttestedKeyRepository, ManagedInstanceAttestedKeysLoader,
+};
+use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::convert_inner;
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::query::IntoCondition;
@@ -19,34 +25,37 @@ use crate::list_query_generic::{
     get_comparison_condition, get_equals_condition, get_string_match_condition,
 };
 
-impl TryFrom<managed_instance::Model> for ManagedInstance {
-    type Error = DataLayerError;
-
-    fn try_from(value: managed_instance::Model) -> Result<Self, DataLayerError> {
-        Ok(Self {
+pub(super) fn managed_instance_from_model(
+    value: managed_instance::Model,
+    organisation_repository: &Arc<dyn OrganisationRepository>,
+    managed_instance_repository: &Arc<dyn ManagedInstanceAttestedKeyRepository>,
+) -> Result<ManagedInstance, DataLayerError> {
+    Ok(ManagedInstance {
+        id: value.id,
+        created_date: value.created_date,
+        last_modified: value.last_modified,
+        os: ManagedInstanceOs::from(value.os),
+        status: value.status.into(),
+        provider: value.provider,
+        role: value.role.into(),
+        authentication_key_jwk: value
+            .authentication_key_jwk
+            .map(|jwk| serde_json::from_str(&jwk))
+            .transpose()
+            .map_err(|_| DataLayerError::MappingError)?,
+        last_issuance: value.last_issuance,
+        name: value.name,
+        organisation: Related::new(value.organisation_id, organisation_repository.clone()),
+        nonce: value.nonce,
+        user_nonce: value.user_nonce,
+        user_sub: value.user_sub,
+        verifier_csr: value.verifier_csr,
+        verifier_signature_ids: convert_inner(value.verifier_signature_ids),
+        attested_keys: RelatedVec::new(ManagedInstanceAttestedKeysLoader {
             id: value.id,
-            created_date: value.created_date,
-            last_modified: value.last_modified,
-            os: ManagedInstanceOs::from(value.os),
-            status: value.status.into(),
-            provider: value.provider,
-            role: value.role.into(),
-            authentication_key_jwk: value
-                .authentication_key_jwk
-                .map(|jwk| serde_json::from_str(&jwk))
-                .transpose()
-                .map_err(|_| DataLayerError::MappingError)?,
-            last_issuance: value.last_issuance,
-            name: value.name,
-            organisation: None,
-            nonce: value.nonce,
-            user_nonce: value.user_nonce,
-            user_sub: value.user_sub,
-            verifier_csr: value.verifier_csr,
-            verifier_signature_ids: convert_inner(value.verifier_signature_ids),
-            attested_keys: None,
-        })
-    }
+            managed_instance_repository: managed_instance_repository.clone(),
+        }),
+    })
 }
 
 impl From<VerifierSignatures> for Vec<RevocationListEntryId> {
@@ -83,14 +92,7 @@ impl TryFrom<ManagedInstance> for managed_instance::ActiveModel {
             nonce: Set(wallet_unit.nonce),
             user_nonce: Set(wallet_unit.user_nonce),
             user_sub: Set(wallet_unit.user_sub),
-            organisation_id: Set(wallet_unit
-                .organisation
-                .as_ref()
-                .ok_or(DataLayerError::Db(anyhow!(
-                    "Missing organisation for wallet unit {}",
-                    wallet_unit.id
-                )))?
-                .id),
+            organisation_id: Set(wallet_unit.organisation.id()),
             role: Set(wallet_unit.role.into()),
             verifier_csr: Set(wallet_unit.verifier_csr),
             verifier_signature_ids: Set(convert_inner(wallet_unit.verifier_signature_ids)),

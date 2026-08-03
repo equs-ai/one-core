@@ -58,21 +58,28 @@ async fn revocation_status(suspension: bool) -> Vec<CredentialRevocationInfo> {
     );
     let formatter_provider = MockCredentialFormatterProvider::default();
 
+    let issuer_identifier = Identifier {
+        data: IdentifierData::Did((dummy_did()).into()),
+        ..dummy_identifier()
+    };
     let mut revocation_list_repository = MockRevocationListRepository::new();
     revocation_list_repository
         .expect_get_revocation_by_issuer_identifier_id()
-        .returning(|_, _, purpose, r#type, _| {
-            Ok(Some(RevocationList {
-                id: Uuid::new_v4().into(),
-                created_date: crate::clock::now_utc(),
-                last_modified: crate::clock::now_utc(),
-                formatted_list: vec![],
-                format: StatusListCredentialFormat::Jwt,
-                r#type: r#type.to_owned(),
-                purpose,
-                issuer_identifier: None,
-                issuer_certificate: None,
-            }))
+        .returning({
+            let issuer_identifier = issuer_identifier.clone();
+            move |_, _, purpose, r#type| {
+                Ok(Some(RevocationList {
+                    id: Uuid::new_v4().into(),
+                    created_date: crate::clock::now_utc(),
+                    last_modified: crate::clock::now_utc(),
+                    formatted_list: vec![],
+                    format: StatusListCredentialFormat::Jwt,
+                    r#type: r#type.to_owned(),
+                    purpose,
+                    issuer_identifier: issuer_identifier.clone().into(),
+                    issuer_certificate: None,
+                }))
+            }
         });
     revocation_list_repository
         .expect_next_free_index()
@@ -98,10 +105,7 @@ async fn revocation_status(suspension: bool) -> Vec<CredentialRevocationInfo> {
     .unwrap();
 
     let mut credential = dummy_credential();
-    credential.issuer_identifier = Some(Identifier {
-        data: IdentifierData::Did((dummy_did()).into()),
-        ..dummy_identifier()
-    });
+    credential.issuer_identifier = Some(issuer_identifier);
     {
         let mut schema = credential.schema.as_mut().await.unwrap();
         schema.allow_suspension = suspension;

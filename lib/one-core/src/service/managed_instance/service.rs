@@ -41,20 +41,18 @@ use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::history::{
     History, HistoryAction, HistoryEntityType, HistoryErrorMetadata, HistoryMetadata, HistorySource,
 };
-use crate::model::identifier::{IdentifierData, IdentifierRelations};
+use crate::model::identifier::IdentifierData;
 use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::{ListPagination, ListSorting};
 use crate::model::managed_instance::{
-    ManagedInstance, ManagedInstanceListQuery, ManagedInstanceOs, ManagedInstanceRelations,
-    SortableManagedInstanceColumn, UpdateManagedInstanceRequest,
+    ManagedInstance, ManagedInstanceListQuery, ManagedInstanceOs, SortableManagedInstanceColumn,
+    UpdateManagedInstanceRequest,
 };
 use crate::model::managed_instance_attested_key::{
-    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
-    ManagedInstanceAttestedKeyRevocationInfo,
+    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
 };
-use crate::model::organisation::{Organisation, OrganisationRelations};
-use crate::model::revocation_list::RevocationListRelations;
+use crate::model::organisation::Organisation;
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::proto::jwt::model::{
     DecomposedJwt, JWTPayload, ProofOfPossessionJwk, ProofOfPossessionKey,
@@ -71,7 +69,7 @@ use crate::provider::revocation::model::{CredentialRevocationInfo, RevocationSta
 use crate::provider::verifier::model::AccessCertificateConfiguration;
 use crate::service::common_dto::ListQueryDTO;
 use crate::util::key_selection::KeyFilter;
-use crate::validator::{throw_if_org_id_not_matching_session, throw_if_org_not_matching_session};
+use crate::validator::throw_if_org_id_not_matching_session;
 
 const WIA_JWT_TYPE: &str = "oauth-client-attestation+jwt";
 const WUA_JWT_TYPE: &str = "key-attestation+jwt";
@@ -88,17 +86,11 @@ impl ManagedInstanceService {
     ) -> Result<GetManagedInstanceResponseDTO, ManagedInstanceError> {
         let result = self
             .wallet_instance_repository
-            .get(
-                id,
-                &ManagedInstanceRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    ..Default::default()
-                },
-            )
+            .get(id)
             .await
             .error_while("getting wallet unit")?
             .ok_or(ManagedInstanceError::MissingWalletUnit(*id))?;
-        throw_if_org_not_matching_session(result.organisation.as_ref(), &*self.session_provider)
+        throw_if_org_id_not_matching_session(result.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
         Ok(self.build_instance_response(result))
@@ -476,13 +468,7 @@ impl ManagedInstanceService {
     ) -> Result<WalletUnitActivationResponseDTO, ManagedInstanceError> {
         let wallet_unit = self
             .wallet_instance_repository
-            .get(
-                &wallet_unit_id,
-                &ManagedInstanceRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    ..Default::default()
-                },
-            )
+            .get(&wallet_unit_id)
             .await
             .error_while("getting wallet unit")?
             .ok_or(ManagedInstanceError::MissingWalletUnit(wallet_unit_id))?;
@@ -501,13 +487,13 @@ impl ManagedInstanceService {
             }
         }
 
-        let Some(organisation) = &wallet_unit.organisation else {
-            return Err(ManagedInstanceError::MappingError(format!(
-                "Missing organisation on wallet unit `{wallet_unit_id}`"
-            )));
-        };
-        validate_org_for_role(organisation, wallet_unit.role, &wallet_unit.provider)
-            .error_while("validating provider")?;
+        let organisation = &wallet_unit.organisation.as_ref().await?;
+        validate_org_for_role(
+            organisation.as_ref(),
+            wallet_unit.role,
+            &wallet_unit.provider,
+        )
+        .error_while("validating provider")?;
         let reg_params =
             self.get_provider_registration_params(wallet_unit.role, &wallet_unit.provider)?;
 
@@ -822,18 +808,12 @@ impl ManagedInstanceService {
             .await
             .error_while("updating wallet unit")?;
 
-        let Some(organisation) = &wallet_unit.organisation else {
-            return Err(ManagedInstanceError::MappingError(format!(
-                "Missing organisation on wallet unit `{}`",
-                wallet_unit.id
-            )));
-        };
         self.create_instance_history(
             &wallet_unit.id,
             wallet_unit.name.clone(),
             HistoryAction::Errored,
             Some(HistoryMetadata::ErrorMetadata(error_metadata)),
-            organisation.id,
+            wallet_unit.organisation.id(),
         )
         .await;
         Ok(())
@@ -847,15 +827,7 @@ impl ManagedInstanceService {
     ) -> Result<IssueWalletUnitAttestationResponseDTO, ManagedInstanceError> {
         let wallet_unit = self
             .wallet_instance_repository
-            .get(
-                &wallet_unit_id,
-                &ManagedInstanceRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    attested_keys: Some(ManagedInstanceAttestedKeyRelations {
-                        revocation: Some(Default::default()),
-                    }),
-                },
-            )
+            .get(&wallet_unit_id)
             .await
             .error_while("getting wallet unit")?
             .ok_or(ManagedInstanceError::MissingWalletUnit(wallet_unit_id))?;
@@ -866,15 +838,11 @@ impl ManagedInstanceService {
                 .into());
         }
 
-        let Some(organisation) = &wallet_unit.organisation else {
-            return Err(ManagedInstanceError::MappingError(format!(
-                "Missing organisation on wallet unit `{}`",
-                wallet_unit.id
-            )));
-        };
+        let organisation = &wallet_unit.organisation.as_ref().await?;
         let (_, config_params) = self.get_wallet_provider_config_params(&wallet_unit.provider)?;
-        let issuer_identifier = validate_org_wallet_provider(organisation, &wallet_unit.provider)
-            .error_while("validating provider")?;
+        let issuer_identifier =
+            validate_org_wallet_provider(organisation.as_ref(), &wallet_unit.provider)
+                .error_while("validating provider")?;
 
         let revocation_method = config_params
             .wallet_unit_attestation
@@ -918,14 +886,7 @@ impl ManagedInstanceService {
             instance_attestations.push(signed_attestation);
         }
 
-        let mut attested_keys =
-            wallet_unit
-                .attested_keys
-                .to_owned()
-                .ok_or(ManagedInstanceError::MappingError(format!(
-                    "Missing attested keys on wallet unit `{}`",
-                    wallet_unit.id
-                )))?;
+        let mut attested_keys = wallet_unit.attested_keys.as_ref().await?.to_owned();
 
         let mut key_attestation_inputs = vec![];
         for wua_request in request.wua {
@@ -941,7 +902,11 @@ impl ManagedInstanceService {
             {
                 attested_key.last_modified = now;
                 attested_key.expiration_date = wua_expiration_date;
-                AttestedKeyInput::Reused(attested_key.revocation.to_owned())
+                let revocation_info = match attested_key.revocation.as_ref() {
+                    None => None,
+                    Some(revocation) => Some(revocation.as_ref().await?.to_owned()),
+                };
+                AttestedKeyInput::Reused(revocation_info)
             } else {
                 let key = ManagedInstanceAttestedKey {
                     id: Uuid::new_v4().into(),
@@ -1375,18 +1340,7 @@ impl ManagedInstanceService {
     ) -> Result<(), ManagedInstanceError> {
         let wallet_unit = self
             .wallet_instance_repository
-            .get(
-                id,
-                &ManagedInstanceRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    attested_keys: Some(ManagedInstanceAttestedKeyRelations {
-                        revocation: Some(RevocationListRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            issuer_certificate: Some(Default::default()),
-                        }),
-                    }),
-                },
-            )
+            .get(id)
             .await
             .error_while("getting wallet unit")?
             .ok_or(ManagedInstanceError::MissingWalletUnit(*id))?;
@@ -1396,14 +1350,6 @@ impl ManagedInstanceService {
                 .error_while("checking status")
                 .into());
         }
-
-        let Some(organisation) = &wallet_unit.organisation else {
-            return Err(ManagedInstanceError::MappingError(format!(
-                "Missing organisation on wallet unit `{}`",
-                wallet_unit.id
-            )));
-        };
-        let organisation_id = organisation.id;
 
         // Resolve/perform fallible role-specific work before persisting the Revoked status,
         // so a config lookup or certificate revocation failure doesn't leave the instance
@@ -1435,7 +1381,7 @@ impl ManagedInstanceService {
             wallet_unit.name.clone(),
             HistoryAction::Revoked,
             None,
-            organisation_id,
+            wallet_unit.organisation.id(),
         )
         .await;
 
@@ -1445,15 +1391,16 @@ impl ManagedInstanceService {
                 return Ok(());
             };
 
-            let keys = wallet_unit
+            let mut keys = vec![];
+            for key in wallet_unit
                 .attested_keys
-                .ok_or(ManagedInstanceError::MappingError(format!(
-                    "Missing attested_keys on wallet unit `{}`",
-                    wallet_unit.id
-                )))?
+                .as_ref()
+                .await?
                 .into_iter()
-                .filter_map(|key| key.revocation)
-                .collect::<Vec<_>>();
+                .filter_map(|key| key.revocation.as_ref())
+            {
+                keys.push(key.as_ref().await?.to_owned());
+            }
 
             if !keys.is_empty() {
                 let revocation_method = self
@@ -1507,7 +1454,7 @@ impl ManagedInstanceService {
     ) -> Result<(), ManagedInstanceError> {
         let wallet_unit = self
             .wallet_instance_repository
-            .get(id, &ManagedInstanceRelations::default())
+            .get(id)
             .await
             .error_while("getting wallet unit")?
             .ok_or(ManagedInstanceError::MissingWalletUnit(*id))?;

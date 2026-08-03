@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use shared_types::{
     CertificateId, IdentifierId, RevocationListEntryId, RevocationListId, RevocationMethodId,
 };
 
 use super::error::DataLayerError;
 use crate::model::common::LockType;
+use crate::model::relation::AsyncModelLoader;
 use crate::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntry, RevocationListPurpose,
-    RevocationListRelations, UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
+    UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
 };
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -20,13 +23,11 @@ pub trait RevocationListRepository: Send + Sync {
     async fn get_revocation_list(
         &self,
         id: &RevocationListId,
-        relations: &RevocationListRelations,
     ) -> Result<Option<RevocationList>, DataLayerError>;
 
     async fn get_revocation_list_by_entry_id(
         &self,
         entry_id: RevocationListEntryId,
-        relations: &RevocationListRelations,
     ) -> Result<Option<RevocationList>, DataLayerError>;
 
     async fn get_revocation_by_issuer_identifier_id(
@@ -35,7 +36,6 @@ pub trait RevocationListRepository: Send + Sync {
         issuer_certificate_id: Option<CertificateId>,
         purpose: RevocationListPurpose,
         status_list_type: &RevocationMethodId,
-        relations: &RevocationListRelations,
     ) -> Result<Option<RevocationList>, DataLayerError>;
 
     async fn update_formatted_list(
@@ -78,4 +78,16 @@ pub trait RevocationListRepository: Send + Sync {
         &self,
         entry_ids: Vec<RevocationListEntryId>,
     ) -> Result<Vec<RevocationListEntry>, DataLayerError>;
+}
+
+#[async_trait::async_trait]
+impl AsyncModelLoader<RevocationList> for Arc<dyn RevocationListRepository> {
+    async fn load(&self, id: &RevocationListId) -> Result<RevocationList, DataLayerError> {
+        self.get_revocation_list(id)
+            .await?
+            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
+                relation: "revocation-list",
+                id: id.to_string(),
+            })
+    }
 }

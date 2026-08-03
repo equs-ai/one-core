@@ -55,7 +55,7 @@ async fn activate_wallet_unit_nonce_expired() {
     let wallet_unit = context
         .db
         .managed_instances
-        .get(&wallet_unit.id, &Default::default())
+        .get(&wallet_unit.id)
         .await
         .unwrap();
     assert_eq!(wallet_unit.status, InstanceStatus::Error);
@@ -101,7 +101,7 @@ async fn activate_wallet_unit_attestation_invalid() {
     let wallet_unit = context
         .db
         .managed_instances
-        .get(&wallet_unit.id, &Default::default())
+        .get(&wallet_unit.id)
         .await
         .unwrap();
     assert_eq!(wallet_unit.status, InstanceStatus::Error);
@@ -301,7 +301,7 @@ async fn activate_instance_verifier_role_successfully() {
     let updated = context
         .db
         .managed_instances
-        .get(&verifier_instance.id, &Default::default())
+        .get(&verifier_instance.id)
         .await
         .unwrap();
     assert_eq!(updated.status, InstanceStatus::Active);
@@ -376,7 +376,7 @@ async fn activate_instance_verifier_role_provisions_access_certificate() {
     let updated = context
         .db
         .managed_instances
-        .get(&verifier_instance.id, &Default::default())
+        .get(&verifier_instance.id)
         .await
         .unwrap();
     assert_eq!(updated.status, InstanceStatus::Active);

@@ -588,13 +588,13 @@ async fn provider_get_wallet_unit_session_org_mismatch() {
         user_sub: None,
         verifier_csr: None,
         verifier_signature_ids: None,
-        organisation: Some(dummy_organisation(None)),
-        attested_keys: None,
+        organisation: dummy_organisation(None).into(),
+        attested_keys: Default::default(),
     };
     let mut wallet_unit_repository = MockManagedInstanceRepository::new();
     wallet_unit_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(wallet_unit.clone())));
+        .returning(move |_| Ok(Some(wallet_unit.clone())));
 
     // given
     let service = ManagedInstanceService {

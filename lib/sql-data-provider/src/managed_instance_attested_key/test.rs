@@ -27,11 +27,7 @@ async fn test_upsert_wallet_instance_attested_key_success() {
     };
     provider.upsert_attested_key(request.clone()).await.unwrap();
 
-    let reloaded = provider
-        .get_attested_key(&id, &Default::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let reloaded = provider.get_attested_key(&id).await.unwrap().unwrap();
     assert_eq!(reloaded.instance_id, request.instance_id);
     assert_eq!(reloaded.expiration_date, request.expiration_date);
     assert_eq!(reloaded.public_key_jwk, request.public_key_jwk);
@@ -67,11 +63,7 @@ async fn test_upsert_wallet_instance_attested_key_conflict_success() {
     };
     provider.upsert_attested_key(request.clone()).await.unwrap();
 
-    let reloaded = provider
-        .get_attested_key(&id, &Default::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let reloaded = provider.get_attested_key(&id).await.unwrap().unwrap();
     assert_eq!(reloaded.created_date, original_attested_key.created_date);
     assert_eq!(reloaded.instance_id, request.instance_id);
     assert_eq!(reloaded.expiration_date, request.expiration_date);
@@ -101,7 +93,7 @@ async fn test_get_wallet_instance_attested_key_by_wallet_instance() {
         .unwrap();
 
     let reloaded = provider
-        .get_by_instance_id(&test_setup.wallet_unit_ids[0], &Default::default())
+        .get_by_instance_id(&test_setup.wallet_unit_ids[0])
         .await
         .unwrap();
     assert_eq!(reloaded.len(), 1);

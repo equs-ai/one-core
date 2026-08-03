@@ -12,7 +12,7 @@ use one_core::model::identifier::{Identifier, IdentifierType};
 use one_core::model::interaction::InteractionType;
 use one_core::model::key::Key;
 use one_core::model::organisation::Organisation;
-use one_core::model::revocation_list::{RevocationListPurpose, RevocationListRelations};
+use one_core::model::revocation_list::RevocationListPurpose;
 use one_core::proto::jwt::Jwt;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::eddsa::Eddsa;
@@ -308,7 +308,6 @@ async fn test_post_issuer_credential_with_bitstring_in_parallel() {
             issuer_identifier.id,
             RevocationListPurpose::Revocation,
             &"BITSTRINGSTATUSLIST".into(),
-            &Default::default(),
         )
         .await
         .unwrap();
@@ -410,7 +409,6 @@ async fn test_post_issuer_credential_with_tokenstatuslist_in_parallel() {
             issuer_identifier.id,
             RevocationListPurpose::RevocationAndSuspension,
             &"TOKENSTATUSLIST".into(),
-            &Default::default(),
         )
         .await
         .unwrap();
@@ -451,7 +449,6 @@ async fn test_post_issuer_credential_with_bitstring_revocation_method_and_existi
                 issuer_identifier_id,
                 RevocationListPurpose::Revocation,
                 &"BITSTRINGSTATUSLIST".into(),
-                &RevocationListRelations::default()
             )
             .await
             .unwrap()
@@ -467,7 +464,6 @@ async fn test_post_issuer_credential_with_bitstring_revocation_method_and_existi
                 issuer_identifier_id,
                 RevocationListPurpose::Suspension,
                 &"BITSTRINGSTATUSLIST".into(),
-                &RevocationListRelations::default()
             )
             .await
             .unwrap()
@@ -483,7 +479,6 @@ async fn test_post_issuer_credential_with_bitstring_revocation_method_and_existi
                 issuer_identifier_id,
                 RevocationListPurpose::Revocation,
                 &"TOKENSTATUSLIST".into(),
-                &RevocationListRelations::default()
             )
             .await
             .unwrap()

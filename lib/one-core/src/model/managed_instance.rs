@@ -1,3 +1,4 @@
+use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use shared_types::{ManagedInstanceId, OrganisationId, RevocationListEntryId};
 use standardized_types::jwk::PublicJwk;
@@ -8,14 +9,14 @@ use super::common::GetListResponse;
 use super::list_query::ListQuery;
 use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::list_filter::{ListFilterValue, StringMatch, ValueComparison};
-use crate::model::managed_instance_attested_key::{
-    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
-};
-use crate::model::organisation::{Organisation, OrganisationRelations};
+use crate::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
+use crate::model::organisation::Organisation;
+use crate::model::relation::{Related, RelatedVec};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct ManagedInstance {
+    #[model(id)]
     pub id: ManagedInstanceId,
     pub name: String,
     pub created_date: OffsetDateTime,
@@ -33,8 +34,8 @@ pub struct ManagedInstance {
     pub verifier_signature_ids: Option<Vec<RevocationListEntryId>>,
 
     // Relations:
-    pub organisation: Option<Organisation>,
-    pub attested_keys: Option<Vec<ManagedInstanceAttestedKey>>,
+    pub organisation: Related<Organisation>,
+    pub attested_keys: RelatedVec<ManagedInstanceAttestedKey>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Display)]
@@ -44,12 +45,6 @@ pub enum ManagedInstanceOs {
     Ios,
     Android,
     Web,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ManagedInstanceRelations {
-    pub organisation: Option<OrganisationRelations>,
-    pub attested_keys: Option<ManagedInstanceAttestedKeyRelations>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

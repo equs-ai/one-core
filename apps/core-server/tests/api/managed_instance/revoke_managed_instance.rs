@@ -41,7 +41,7 @@ async fn test_revoke_wallet_unit_successfully() {
     let updated_wallet_unit = context
         .db
         .managed_instances
-        .get(wallet_unit.id, &Default::default())
+        .get(wallet_unit.id)
         .await
         .unwrap();
     similar_asserts::assert_eq!(updated_wallet_unit.id, wallet_unit.id);

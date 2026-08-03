@@ -5,7 +5,6 @@ use super::dto::RevocationListResponseDTO;
 use super::error::RevocationServiceError;
 use crate::config::core_config::RevocationType;
 use crate::error::ContextWithErrorCode;
-use crate::model::revocation_list::RevocationListRelations;
 
 impl RevocationListService {
     pub async fn get_revocation_list_by_id(
@@ -14,7 +13,7 @@ impl RevocationListService {
     ) -> Result<RevocationListResponseDTO, RevocationServiceError> {
         let result = self
             .revocation_list_repository
-            .get_revocation_list(id, &RevocationListRelations::default())
+            .get_revocation_list(id)
             .await
             .error_while("getting revocation list")?;
 
@@ -43,7 +42,7 @@ impl RevocationListService {
     ) -> Result<Vec<u8>, RevocationServiceError> {
         let result = self
             .revocation_list_repository
-            .get_revocation_list(id, &RevocationListRelations::default())
+            .get_revocation_list(id)
             .await
             .error_while("getting revocation list")?;
 

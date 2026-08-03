@@ -247,7 +247,7 @@ async fn test_revoke_managed_instance_verifier_revokes_access_certificates() {
     let updated = context
         .db
         .managed_instances
-        .get(verifier_instance.id, &Default::default())
+        .get(verifier_instance.id)
         .await
         .unwrap();
     assert_eq!(updated.status, InstanceStatus::Revoked);
@@ -314,11 +314,7 @@ async fn test_delete_managed_instance_verifier_revokes_access_certificates() {
     // then
     assert_eq!(resp.status(), 204);
 
-    let deleted = context
-        .db
-        .managed_instances
-        .get(verifier_instance.id, &Default::default())
-        .await;
+    let deleted = context.db.managed_instances.get(verifier_instance.id).await;
     assert_eq!(deleted, None);
 
     let entries = context

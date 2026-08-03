@@ -1,9 +1,9 @@
 use autometrics::autometrics;
 use one_core::model::common::LockType;
+use one_core::model::relation::Related;
 use one_core::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntityInfo, RevocationListEntry,
-    RevocationListPurpose, RevocationListRelations, UpdateRevocationListEntryId,
-    UpdateRevocationListEntryRequest,
+    RevocationListPurpose, UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
 };
 use one_core::repository::error::DataLayerError;
 use one_core::repository::revocation_list_repository::RevocationListRepository;
@@ -23,51 +23,28 @@ use crate::mapper::{map_lock_type, to_data_layer_error, to_update_data_layer_err
 use crate::revocation_list::RevocationListProvider;
 
 impl RevocationListProvider {
-    async fn entity_model_to_repository_model(
+    fn entity_model_to_repository_model(
         &self,
         revocation_list: revocation_list::Model,
-        relations: &RevocationListRelations,
-    ) -> Result<RevocationList, DataLayerError> {
-        let issuer_identifier = match relations.issuer_identifier.as_ref() {
-            Some(_relations) => Some(
-                self.identifier_repository
-                    .get(revocation_list.issuer_identifier_id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "revocation_list-identifier",
-                        id: revocation_list.issuer_identifier_id.to_string(),
-                    })?,
-            ),
-            None => None,
-        };
-
-        let issuer_certificate = match (
-            relations.issuer_certificate.as_ref(),
-            revocation_list.issuer_certificate_id,
-        ) {
-            (Some(_relations), Some(issuer_certificate_id)) => Some(
-                self.certificate_repository
-                    .get(issuer_certificate_id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "revocation_list-certificate",
-                        id: issuer_certificate_id.to_string(),
-                    })?,
-            ),
-            _ => None,
-        };
-
-        Ok(RevocationList {
+    ) -> RevocationList {
+        RevocationList {
             id: revocation_list.id,
             created_date: revocation_list.created_date,
             last_modified: revocation_list.last_modified,
             formatted_list: revocation_list.formatted_list,
             purpose: revocation_list.purpose.into(),
-            issuer_identifier,
-            issuer_certificate,
+            issuer_identifier: Related::new(
+                revocation_list.issuer_identifier_id,
+                self.identifier_repository.clone(),
+            ),
+            issuer_certificate: revocation_list.issuer_certificate_id.map(
+                |issuer_certificate_id| {
+                    Related::new(issuer_certificate_id, self.certificate_repository.clone())
+                },
+            ),
             format: revocation_list.format.into(),
             r#type: revocation_list.r#type,
-        })
+        }
     }
 }
 
@@ -78,20 +55,16 @@ impl RevocationListRepository for RevocationListProvider {
         &self,
         request: RevocationList,
     ) -> Result<RevocationListId, DataLayerError> {
-        let issuer_identifier = request
-            .issuer_identifier
-            .ok_or(DataLayerError::MappingError)?;
-
         revocation_list::ActiveModel {
             id: Set(request.id),
             created_date: Set(request.created_date),
             last_modified: Set(request.last_modified),
             formatted_list: Set(request.formatted_list),
             purpose: Set(request.purpose.into()),
-            issuer_identifier_id: Set(issuer_identifier.id),
+            issuer_identifier_id: Set(request.issuer_identifier.id()),
             format: Set(request.format.into()),
             r#type: Set(request.r#type),
-            issuer_certificate_id: Set(request.issuer_certificate.map(|c| c.id)),
+            issuer_certificate_id: Set(request.issuer_certificate.map(|c| c.id())),
         }
         .insert(&self.db)
         .await
@@ -103,38 +76,24 @@ impl RevocationListRepository for RevocationListProvider {
     async fn get_revocation_list(
         &self,
         id: &RevocationListId,
-        relations: &RevocationListRelations,
     ) -> Result<Option<RevocationList>, DataLayerError> {
         let revocation_list = revocation_list::Entity::find_by_id(id)
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?;
 
-        match revocation_list {
-            None => Ok(None),
-            Some(revocation_list) => {
-                let revocation_list = self
-                    .entity_model_to_repository_model(revocation_list, relations)
-                    .await?;
-
-                Ok(Some(revocation_list))
-            }
-        }
+        Ok(revocation_list.map(|list| self.entity_model_to_repository_model(list)))
     }
 
     async fn get_revocation_list_by_entry_id(
         &self,
         entry_id: RevocationListEntryId,
-        relations: &RevocationListRelations,
     ) -> Result<Option<RevocationList>, DataLayerError> {
         match revocation_list_entry::Entity::find_by_id(entry_id)
             .one(&self.db)
             .await
         {
-            Ok(Some(entry)) => {
-                self.get_revocation_list(&entry.revocation_list_id, relations)
-                    .await
-            }
+            Ok(Some(entry)) => self.get_revocation_list(&entry.revocation_list_id).await,
             Ok(None) => Ok(None),
             Err(e) => Err(to_data_layer_error(e)),
         }
@@ -146,7 +105,6 @@ impl RevocationListRepository for RevocationListProvider {
         issuer_certificate_id: Option<CertificateId>,
         purpose: RevocationListPurpose,
         status_list_type: &RevocationMethodId,
-        relations: &RevocationListRelations,
     ) -> Result<Option<RevocationList>, DataLayerError> {
         let purpose_as_db_type = revocation_list::RevocationListPurpose::from(purpose);
 
@@ -166,16 +124,7 @@ impl RevocationListRepository for RevocationListProvider {
             .await
             .map_err(to_data_layer_error)?;
 
-        match revocation_list {
-            None => Ok(None),
-            Some(revocation_list) => {
-                let revocation_list = self
-                    .entity_model_to_repository_model(revocation_list, relations)
-                    .await?;
-
-                Ok(Some(revocation_list))
-            }
-        }
+        Ok(revocation_list.map(|list| self.entity_model_to_repository_model(list)))
     }
 
     async fn update_formatted_list(

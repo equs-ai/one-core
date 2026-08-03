@@ -2,18 +2,17 @@ use autometrics::autometrics;
 use futures::FutureExt;
 use futures::future::join_all;
 use one_core::model::managed_instance::{
-    ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, ManagedInstanceRelations,
-    UpdateManagedInstanceRequest,
+    ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, UpdateManagedInstanceRequest,
 };
 use one_core::proto::transaction_manager::TransactionManager;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::managed_instance_repository::ManagedInstanceRepository;
-use one_dto_mapper::try_convert_inner;
-use sea_orm::{ActiveModelTrait, EntityTrait, PaginatorTrait, QueryOrder, Set, Unchanged};
+use sea_orm::{ActiveModelTrait, EntityTrait, QueryOrder, Set, Unchanged};
 use shared_types::ManagedInstanceId;
 
 use super::ManagedInstanceProvider;
-use crate::common::calculate_pages_count;
+use super::mapper::managed_instance_from_model;
+use crate::common::list_query_with_custom_model;
 use crate::entity::managed_instance;
 use crate::list_query_generic::SelectWithListQuery;
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
@@ -29,24 +28,20 @@ impl ManagedInstanceRepository for ManagedInstanceProvider {
                     .insert(&self.db)
                     .await
                     .map_err(to_data_layer_error)?;
-                if let Some(attested_keys) = attested_keys {
-                    for key in attested_keys {
-                        self.wallet_instance_attested_key_repository
-                            .create_attested_key(key.clone())
-                            .await?;
-                    }
+
+                for key in &attested_keys.as_ref().await? {
+                    self.wallet_instance_attested_key_repository
+                        .create_attested_key(key.clone())
+                        .await?;
                 }
+
                 Ok(wallet_unit.id)
             }
             .boxed())
             .await?
     }
 
-    async fn get(
-        &self,
-        id: &ManagedInstanceId,
-        relations: &ManagedInstanceRelations,
-    ) -> Result<Option<ManagedInstance>, DataLayerError> {
+    async fn get(&self, id: &ManagedInstanceId) -> Result<Option<ManagedInstance>, DataLayerError> {
         let Some(wallet_unit) = managed_instance::Entity::find_by_id(id)
             .one(&self.db)
             .await
@@ -54,39 +49,19 @@ impl ManagedInstanceRepository for ManagedInstanceProvider {
         else {
             return Ok(None);
         };
-        let organisation_id = wallet_unit.organisation_id;
-        let mut wallet_unit = ManagedInstance::try_from(wallet_unit)?;
 
-        if let Some(_org_relations) = &relations.organisation {
-            let org = self
-                .organisation_repository
-                .get_organisation(&organisation_id)
-                .await?
-                .ok_or(DataLayerError::MissingRequiredRelation {
-                    relation: "wallet_unit-organisation",
-                    id: organisation_id.to_string(),
-                })?;
-            wallet_unit.organisation = Some(org);
-        }
-
-        if let Some(attested_key_relations) = &relations.attested_keys {
-            let attested_keys = self
-                .wallet_instance_attested_key_repository
-                .get_by_instance_id(&wallet_unit.id, attested_key_relations)
-                .await?;
-            wallet_unit.attested_keys = Some(attested_keys);
-        }
-
-        Ok(Some(wallet_unit))
+        Ok(Some(managed_instance_from_model(
+            wallet_unit,
+            &self.organisation_repository,
+            &self.wallet_instance_attested_key_repository,
+        )?))
     }
 
     async fn get_list(
         &self,
         query_params: ManagedInstanceListQuery,
     ) -> Result<ManagedInstanceList, DataLayerError> {
-        let mut query = managed_instance::Entity::find();
-
-        query = query.with_list_query(&query_params);
+        let mut query = managed_instance::Entity::find().with_list_query(&query_params);
 
         if query_params.sorting.is_some() || query_params.pagination.is_some() {
             // fallback ordering
@@ -95,27 +70,14 @@ impl ManagedInstanceRepository for ManagedInstanceProvider {
                 .order_by_desc(managed_instance::Column::Id);
         }
 
-        let wallet_units = query.all(&self.db).await.map_err(to_data_layer_error)?;
-
-        let total_items = managed_instance::Entity::find()
-            .with_list_query(&query_params)
-            .count(&self.db)
-            .await
-            .map_err(to_data_layer_error)?;
-
-        let page_size = query_params
-            .pagination
-            .as_ref()
-            .map(|p| p.page_size as u64)
-            .unwrap_or(total_items);
-
-        let total_pages = calculate_pages_count(total_items, page_size);
-
-        Ok(ManagedInstanceList {
-            values: try_convert_inner(wallet_units)?,
-            total_pages,
-            total_items,
+        list_query_with_custom_model(query, query_params, &self.db, |model| {
+            managed_instance_from_model(
+                model,
+                &self.organisation_repository,
+                &self.wallet_instance_attested_key_repository,
+            )
         })
+        .await
     }
 
     async fn update(

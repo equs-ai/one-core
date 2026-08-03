@@ -3,11 +3,9 @@ use one_core::model::list_filter::ListFilterValue;
 use one_core::model::list_query::{ListPagination, ListSorting};
 use one_core::model::managed_instance::{
     ManagedInstance, ManagedInstanceFilterValue, ManagedInstanceListQuery, ManagedInstanceOs,
-    ManagedInstanceRelations, SortableManagedInstanceColumn, UpdateManagedInstanceRequest,
+    SortableManagedInstanceColumn, UpdateManagedInstanceRequest,
 };
-use one_core::model::managed_instance_attested_key::{
-    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
-};
+use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::model::organisation::Organisation;
 use one_core::repository::managed_instance_repository::ManagedInstanceRepository;
 use one_core::service::test_utilities::dummy_organisation;
@@ -71,12 +69,13 @@ fn dummy_wallet_instance(id: ManagedInstanceId, org: OrganisationId) -> ManagedI
         user_sub: None,
         verifier_csr: None,
         verifier_signature_ids: None,
-        organisation: Some(Organisation {
+        organisation: Organisation {
             created_date: now,
             last_modified: now,
             ..dummy_organisation(Some(org))
-        }),
-        attested_keys: None,
+        }
+        .into(),
+        attested_keys: Default::default(),
     }
 }
 
@@ -106,10 +105,7 @@ async fn test_create_wallet_instance_success() {
     assert_eq!(result.unwrap(), wallet_unit_id);
 
     // Verify the wallet unit was actually created in the database
-    let stored_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap();
+    let stored_wallet_instance = provider.get(&wallet_unit_id).await.unwrap();
     assert!(stored_wallet_instance.is_some());
 
     let stored_wallet_instance = stored_wallet_instance.unwrap();
@@ -189,18 +185,10 @@ async fn test_create_wallet_instance_different_statuses() {
     assert!(result_revoked.is_ok());
 
     // Verify both were created with correct statuses
-    let active_stored = provider
-        .get(&active_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let active_stored = provider.get(&active_id).await.unwrap().unwrap();
     assert_eq!(active_stored.status, InstanceStatus::Active);
 
-    let revoked_stored = provider
-        .get(&revoked_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let revoked_stored = provider.get(&revoked_id).await.unwrap().unwrap();
     assert_eq!(revoked_stored.status, InstanceStatus::Revoked);
 }
 
@@ -226,18 +214,10 @@ async fn test_create_wallet_instance_different_os_types() {
     assert!(result_ios.is_ok());
 
     // Verify both were created with correct OS types
-    let android_stored = provider
-        .get(&android_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let android_stored = provider.get(&android_id).await.unwrap().unwrap();
     assert_eq!(android_stored.os, ManagedInstanceOs::Android);
 
-    let ios_stored = provider
-        .get(&ios_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let ios_stored = provider.get(&ios_id).await.unwrap().unwrap();
     assert_eq!(ios_stored.os, ManagedInstanceOs::Ios);
 }
 
@@ -291,9 +271,7 @@ async fn test_get_wallet_instance_success() {
         ..
     } = setup(1).await;
 
-    let result = provider
-        .get(&wallet_unit_ids[0], &ManagedInstanceRelations::default())
-        .await;
+    let result = provider.get(&wallet_unit_ids[0]).await;
 
     assert!(result.is_ok());
     let wallet_unit = result.unwrap();
@@ -312,9 +290,7 @@ async fn test_get_wallet_instance_success() {
 async fn test_get_wallet_instance_missing() {
     let TestSetup { provider, .. } = setup(0).await;
 
-    let result = provider
-        .get(&Uuid::new_v4().into(), &ManagedInstanceRelations::default())
-        .await;
+    let result = provider.get(&Uuid::new_v4().into()).await;
 
     assert!(result.is_ok());
     assert!(result.unwrap().is_none());
@@ -739,11 +715,7 @@ async fn test_update_wallet_instance_status_success() {
     assert!(result.is_ok());
 
     // Verify only the status and last_modified were updated
-    let updated_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let updated_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
 
     // Status should be updated
     assert_eq!(updated_wallet_instance.status, InstanceStatus::Revoked);
@@ -790,11 +762,7 @@ async fn test_update_wallet_instance_empty_request() {
     provider.create(wallet_unit).await.unwrap();
 
     // Get original last_modified
-    let original_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let original_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
 
     // Update with empty request (no fields specified)
     let update_request = UpdateManagedInstanceRequest::default();
@@ -803,11 +771,7 @@ async fn test_update_wallet_instance_empty_request() {
     assert!(result.is_ok());
 
     // Verify no fields were changed except last_modified
-    let updated_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let updated_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
 
     assert_eq!(updated_wallet_instance.status, original_status);
     // But last_modified should be updated
@@ -835,11 +799,7 @@ async fn test_update_wallet_instance_status_changes() {
     assert!(result.is_ok());
 
     // Verify status was updated
-    let updated_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let updated_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
     assert_eq!(updated_wallet_instance.status, InstanceStatus::Revoked);
 
     // Update back to ACTIVE
@@ -852,11 +812,7 @@ async fn test_update_wallet_instance_status_changes() {
     assert!(result.is_ok());
 
     // Verify status was updated back
-    let updated_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let updated_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
     assert_eq!(updated_wallet_instance.status, InstanceStatus::Active);
 }
 
@@ -869,11 +825,7 @@ async fn test_update_wallet_instance_public_key_changes() {
     let mut wallet_unit = dummy_wallet_instance(wallet_unit_id, test_setup.organisation_id);
     wallet_unit.authentication_key_jwk = None;
     provider.create(wallet_unit).await.unwrap();
-    let created_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let created_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
     assert_eq!(created_wallet_instance.authentication_key_jwk, None);
 
     let new_jwk = random_jwk();
@@ -886,11 +838,7 @@ async fn test_update_wallet_instance_public_key_changes() {
     assert!(result.is_ok());
 
     // Verify public key was updated
-    let updated_wallet_instance = provider
-        .get(&wallet_unit_id, &ManagedInstanceRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
+    let updated_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
     assert_eq!(
         updated_wallet_instance.authentication_key_jwk,
         Some(new_jwk)
@@ -962,29 +910,25 @@ async fn test_update_wallet_instance_attested_key_changes() {
     let wallet_unit_id: ManagedInstanceId = Uuid::new_v4().into();
     let mut wallet_unit = dummy_wallet_instance(wallet_unit_id, test_setup.organisation_id);
     let attested_key1 = dummy_attested_key(wallet_unit_id);
-    wallet_unit.attested_keys = Some(vec![attested_key1.clone()]);
+    wallet_unit.attested_keys = vec![attested_key1.clone()].into();
     provider.create(wallet_unit).await.unwrap();
-    let created_wallet_instance = provider
-        .get(
-            &wallet_unit_id,
-            &ManagedInstanceRelations {
-                attested_keys: Some(ManagedInstanceAttestedKeyRelations::default()),
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap()
-        .unwrap();
+    let created_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
     assert_eq!(
         created_wallet_instance
             .attested_keys
             .as_ref()
+            .await
             .unwrap()
             .len(),
         1
     );
     assert_eq!(
-        created_wallet_instance.attested_keys.as_ref().unwrap()[0].id,
+        created_wallet_instance
+            .attested_keys
+            .as_ref()
+            .await
+            .unwrap()[0]
+            .id,
         attested_key1.id
     );
 
@@ -999,21 +943,12 @@ async fn test_update_wallet_instance_attested_key_changes() {
     assert!(result.is_ok());
 
     // Verify public key was updated
-    let updated_wallet_instance = provider
-        .get(
-            &wallet_unit_id,
-            &ManagedInstanceRelations {
-                attested_keys: Some(ManagedInstanceAttestedKeyRelations::default()),
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap()
-        .unwrap();
+    let updated_wallet_instance = provider.get(&wallet_unit_id).await.unwrap().unwrap();
     assert_eq!(
         updated_wallet_instance
             .attested_keys
             .as_ref()
+            .await
             .unwrap()
             .len(),
         2
@@ -1022,6 +957,7 @@ async fn test_update_wallet_instance_attested_key_changes() {
         updated_wallet_instance
             .attested_keys
             .as_ref()
+            .await
             .unwrap()
             .iter()
             .any(|attested_key| attested_key.id == attested_key1.id)
@@ -1030,6 +966,7 @@ async fn test_update_wallet_instance_attested_key_changes() {
         updated_wallet_instance
             .attested_keys
             .as_ref()
+            .await
             .unwrap()
             .iter()
             .any(|attested_key| attested_key.id == attested_key2.id)

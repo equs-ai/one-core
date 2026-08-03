@@ -199,7 +199,6 @@ impl RevocationMethod for BitstringStatusList {
                 credential.issuer_certificate.as_ref().map(|c| c.id()),
                 purpose,
                 &self.config_id,
-                &Default::default(),
             )
             .await
             .error_while("getting revocation list")?
@@ -523,7 +522,6 @@ impl BitstringStatusList {
                             None,
                             purpose,
                             &self.config_id,
-                            &Default::default(),
                         )
                         .await?;
 
@@ -564,7 +562,6 @@ impl BitstringStatusList {
                     None,
                     purpose,
                     &self.config_id,
-                    &Default::default(),
                 )
                 .await
                 .error_while("getting revocation list")?
@@ -671,7 +668,7 @@ impl BitstringStatusList {
                 format: self.params.format,
                 r#type: self.config_id.to_owned(),
                 purpose,
-                issuer_identifier: Some(issuer_identifier.to_owned()),
+                issuer_identifier: issuer_identifier.to_owned().into(),
                 issuer_certificate: None,
             })
             .await

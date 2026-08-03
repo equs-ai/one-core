@@ -38,11 +38,7 @@ async fn test_remove_wallet_unit_successfully() {
     // then
     similar_asserts::assert_eq!(resp.status(), 204);
 
-    let updated_wallet_unit = context
-        .db
-        .managed_instances
-        .get(wallet_unit.id, &Default::default())
-        .await;
+    let updated_wallet_unit = context.db.managed_instances.get(wallet_unit.id).await;
     similar_asserts::assert_eq!(updated_wallet_unit, None);
 
     let history_entries = context

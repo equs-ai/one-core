@@ -4,7 +4,7 @@ use std::sync::Arc;
 use one_core::model::instance::{InstanceRole, InstanceStatus};
 use one_core::model::managed_instance::{
     ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, ManagedInstanceOs,
-    ManagedInstanceRelations, UpdateManagedInstanceRequest,
+    UpdateManagedInstanceRequest,
 };
 use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::model::organisation::Organisation;
@@ -76,8 +76,11 @@ impl ManagedInstancesDB {
             user_sub: test_wallet_instance.user_sub,
             verifier_csr: test_wallet_instance.verifier_csr,
             verifier_signature_ids: test_wallet_instance.verifier_signature_ids,
-            organisation: Some(organisation),
-            attested_keys: test_wallet_instance.attested_keys,
+            organisation: organisation.into(),
+            attested_keys: test_wallet_instance
+                .attested_keys
+                .unwrap_or_default()
+                .into(),
         };
 
         self.repository
@@ -95,10 +98,9 @@ impl ManagedInstancesDB {
     pub async fn get(
         &self,
         wallet_instance_id: impl Into<ManagedInstanceId>,
-        relations: &ManagedInstanceRelations,
     ) -> Option<ManagedInstance> {
         self.repository
-            .get(&wallet_instance_id.into(), relations)
+            .get(&wallet_instance_id.into())
             .await
             .unwrap()
     }

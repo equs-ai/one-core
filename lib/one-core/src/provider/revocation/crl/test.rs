@@ -44,9 +44,8 @@ async fn test_add_signature_new_list() {
             eq(Some(certificate.id)),
             eq(RevocationListPurpose::Revocation),
             eq::<RevocationMethodId>("CRL".into()),
-            always(),
         )
-        .return_once(|_, _, _, _, _| Ok(None));
+        .return_once(|_, _, _, _| Ok(None));
 
     let mut key_provider = MockKeyProvider::new();
     key_provider.expect_get_key_storage().returning(|_| {
@@ -162,8 +161,8 @@ async fn test_revoke_signature() {
         .returning(|_, _| Ok(()));
     revocation_list_repository
         .expect_get_revocation_list_by_entry_id()
-        .with(eq(signature_id), always())
-        .return_once(move |_, _| {
+        .with(eq(signature_id))
+        .return_once(move |_| {
             Ok(Some(RevocationList {
                 id: list_id,
                 created_date: crate::clock::now_utc(),
@@ -172,8 +171,8 @@ async fn test_revoke_signature() {
                 format: StatusListCredentialFormat::X509Crl,
                 r#type: "CRL".into(),
                 purpose: RevocationListPurpose::Revocation,
-                issuer_identifier: None,
-                issuer_certificate: Some(certificate),
+                issuer_identifier: dummy_identifier().into(),
+                issuer_certificate: Some(certificate.into()),
             }))
         });
 
@@ -278,10 +277,10 @@ async fn test_get_updated_list_no_update() {
     let mut revocation_list_repository = MockRevocationListRepository::new();
     revocation_list_repository
         .expect_get_revocation_list()
-        .with(eq(list_id), always())
+        .with(eq(list_id))
         .return_once({
             let formatted_list = formatted_list.clone();
-            move |_, _| {
+            move |_| {
                 Ok(Some(RevocationList {
                     id: list_id,
                     created_date: crate::clock::now_utc(),
@@ -290,8 +289,8 @@ async fn test_get_updated_list_no_update() {
                     format: StatusListCredentialFormat::X509Crl,
                     r#type: "CRL".into(),
                     purpose: RevocationListPurpose::Revocation,
-                    issuer_identifier: None,
-                    issuer_certificate: Some(certificate),
+                    issuer_identifier: dummy_identifier().into(),
+                    issuer_certificate: Some(certificate.into()),
                 }))
             }
         });
@@ -322,10 +321,10 @@ async fn test_get_updated_list_with_update() {
     let mut revocation_list_repository = MockRevocationListRepository::new();
     revocation_list_repository
         .expect_get_revocation_list()
-        .with(eq(list_id), always())
+        .with(eq(list_id))
         .return_once({
             let formatted_list = old_list.clone();
-            move |_, _| {
+            move |_| {
                 let one_hour_ago = crate::clock::now_utc() - Duration::hours(1);
                 Ok(Some(RevocationList {
                     id: list_id,
@@ -335,8 +334,8 @@ async fn test_get_updated_list_with_update() {
                     format: StatusListCredentialFormat::X509Crl,
                     r#type: "CRL".into(),
                     purpose: RevocationListPurpose::Revocation,
-                    issuer_identifier: None,
-                    issuer_certificate: Some(certificate),
+                    issuer_identifier: dummy_identifier().into(),
+                    issuer_certificate: Some(certificate.into()),
                 }))
             }
         });

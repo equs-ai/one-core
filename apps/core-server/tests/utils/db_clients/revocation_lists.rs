@@ -4,10 +4,11 @@ use one_core::model::certificate::Certificate;
 use one_core::model::identifier::Identifier;
 use one_core::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntry, RevocationListEntryState,
-    RevocationListPurpose, RevocationListRelations, StatusListCredentialFormat,
-    UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
+    RevocationListPurpose, StatusListCredentialFormat, UpdateRevocationListEntryId,
+    UpdateRevocationListEntryRequest,
 };
 use one_core::repository::revocation_list_repository::RevocationListRepository;
+use one_dto_mapper::convert_inner;
 use shared_types::{
     CredentialId, IdentifierId, RevocationListEntryId, RevocationListId, RevocationMethodId,
 };
@@ -49,10 +50,10 @@ impl RevocationListsDB {
             last_modified: params.last_modified.unwrap_or(get_dummy_date()),
             formatted_list: params.formatted_list.unwrap_or_default(),
             purpose: params.purpose.unwrap_or(RevocationListPurpose::Revocation),
-            issuer_identifier: Some(issuer_identifier),
+            issuer_identifier: issuer_identifier.into(),
             format: params.format.unwrap_or(StatusListCredentialFormat::Jwt),
             r#type: params.r#type.unwrap_or("BITSTRINGSTATUSLIST".into()),
-            issuer_certificate: params.issuer_certificate,
+            issuer_certificate: convert_inner(params.issuer_certificate),
         };
 
         self.repository
@@ -68,7 +69,6 @@ impl RevocationListsDB {
         issuer_identifier_id: IdentifierId,
         purpose: RevocationListPurpose,
         status_list_type: &RevocationMethodId,
-        relations: &RevocationListRelations,
     ) -> Option<RevocationList> {
         self.repository
             .get_revocation_by_issuer_identifier_id(
@@ -76,7 +76,6 @@ impl RevocationListsDB {
                 None,
                 purpose,
                 status_list_type,
-                relations,
             )
             .await
             .unwrap()

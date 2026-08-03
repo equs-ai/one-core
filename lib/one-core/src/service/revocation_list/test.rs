@@ -6,13 +6,13 @@ use uuid::Uuid;
 
 use crate::config::core_config::RevocationType;
 use crate::model::revocation_list::{
-    RevocationList, RevocationListPurpose, RevocationListRelations, StatusListCredentialFormat,
+    RevocationList, RevocationListPurpose, StatusListCredentialFormat,
 };
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::revocation_list_repository::MockRevocationListRepository;
 use crate::service::revocation_list::RevocationListService;
 use crate::service::revocation_list::dto::RevocationListResponseDTO;
-use crate::service::test_utilities::generic_config;
+use crate::service::test_utilities::{dummy_identifier, generic_config};
 
 #[derive(Default)]
 struct Repositories {
@@ -40,7 +40,7 @@ async fn test_get_revocation_list() {
             last_modified: crate::clock::now_utc(),
             formatted_list: b"revocation-list-credential".to_vec(),
             purpose: RevocationListPurpose::Revocation,
-            issuer_identifier: None,
+            issuer_identifier: dummy_identifier().into(),
             format: StatusListCredentialFormat::Jwt,
             r#type: "BITSTRINGSTATUSLIST".into(),
             issuer_certificate: None,
@@ -49,11 +49,8 @@ async fn test_get_revocation_list() {
         revocation_list_repository
             .expect_get_revocation_list()
             .times(1)
-            .with(
-                eq(revocation_id.to_owned()),
-                eq(RevocationListRelations::default()),
-            )
-            .returning(move |_, _| Ok(Some(revocation.clone())));
+            .with(eq(revocation_id))
+            .returning(move |_| Ok(Some(revocation.clone())));
     }
 
     let service = setup_service(Repositories {

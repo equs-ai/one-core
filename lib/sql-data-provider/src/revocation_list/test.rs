@@ -133,7 +133,7 @@ async fn test_create_revocation_list() {
             format: StatusListCredentialFormat::Jwt,
             r#type: "BITSTRINGSTATUSLIST".into(),
             purpose: RevocationListPurpose::Revocation,
-            issuer_identifier: Some(setup.identifier),
+            issuer_identifier: setup.identifier.into(),
             issuer_certificate: None,
         })
         .await
@@ -147,7 +147,7 @@ async fn test_get_revocation_list() {
 
     let result = setup
         .provider
-        .get_revocation_list(&setup.list_id, &Default::default())
+        .get_revocation_list(&setup.list_id)
         .await
         .unwrap()
         .unwrap();
@@ -165,7 +165,6 @@ async fn test_get_revocation_by_issuer_identifier_id() {
             None,
             RevocationListPurpose::Revocation,
             &"BITSTRINGSTATUSLIST".into(),
-            &Default::default(),
         )
         .await
         .unwrap()

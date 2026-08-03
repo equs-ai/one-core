@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use futures::FutureExt;
+use one_dto_mapper::convert_inner;
 use proc_macros::Provider;
 use rcgen::KeyUsagePurpose;
 use resolver::{StatusListCacheEntry, StatusListResolver};
@@ -20,15 +21,15 @@ use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::common::LockType;
 use crate::model::credential::Credential;
 use crate::model::did::KeyRole;
-use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
-use crate::model::managed_instance::ManagedInstanceRelations;
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRevocationInfo,
 };
+use crate::model::relation::Related;
 use crate::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntry, RevocationListEntryState,
-    RevocationListPurpose, RevocationListRelations, StatusListCredentialFormat,
-    UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
+    RevocationListPurpose, StatusListCredentialFormat, UpdateRevocationListEntryId,
+    UpdateRevocationListEntryRequest,
 };
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::http_client::HttpClient;
@@ -226,7 +227,6 @@ impl RevocationMethod for TokenStatusList {
                 issuer_certificate.as_ref().map(|c| c.id),
                 RevocationListPurpose::RevocationAndSuspension,
                 &self.config_id,
-                &Default::default(),
             )
             .await
             .error_while("getting revocation list")?
@@ -347,13 +347,7 @@ impl RevocationMethod for TokenStatusList {
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         let wallet_instance = self
             .wallet_unit_repository
-            .get(
-                &attestation.instance_id,
-                &ManagedInstanceRelations {
-                    organisation: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get(&attestation.instance_id)
             .await
             .error_while("getting wallet instance")?
             .ok_or(RevocationError::MappingError(
@@ -362,9 +356,8 @@ impl RevocationMethod for TokenStatusList {
 
         let issuer_id = wallet_instance
             .organisation
-            .ok_or(RevocationError::MappingError(
-                "Missing organisation".to_string(),
-            ))?
+            .as_ref()
+            .await?
             .wallet_provider_issuer
             .ok_or(RevocationError::MappingError(
                 "Missing wallet_provider_issuer".to_string(),
@@ -409,7 +402,7 @@ impl RevocationMethod for TokenStatusList {
     ) -> Result<CredentialRevocationInfo, RevocationError> {
         Ok(CredentialRevocationInfo {
             credential_status: self.create_credential_status(
-                &key_info.revocation_list.id,
+                &key_info.revocation_list.id(),
                 key_info.revocation_list_index,
             )?,
             serial: None,
@@ -421,11 +414,11 @@ impl RevocationMethod for TokenStatusList {
         keys: Vec<ManagedInstanceAttestedKeyRevocationInfo>,
         new_state: RevocationState,
     ) -> Result<(), RevocationError> {
-        let mut revocation_lists: HashMap<RevocationListId, (RevocationList, Vec<usize>)> =
+        let mut revocation_lists: HashMap<RevocationListId, (Related<RevocationList>, Vec<usize>)> =
             HashMap::new();
         for key in keys {
             revocation_lists
-                .entry(key.revocation_list.id)
+                .entry(key.revocation_list.id())
                 .or_insert((key.revocation_list, vec![]))
                 .1
                 .push(key.revocation_list_index);
@@ -434,6 +427,7 @@ impl RevocationMethod for TokenStatusList {
         self.transaction_manager
             .tx(async move {
                 for (list, indexes) in revocation_lists.into_values() {
+                    let list = list.as_ref().await?;
                     for index in indexes {
                         self.revocation_list_repository
                             .update_entry(
@@ -454,12 +448,14 @@ impl RevocationMethod for TokenStatusList {
 
                     let encoded_list = generate_token_from_entries(entries).await?;
 
+                    let issuer_certificate = match list.issuer_certificate.as_ref() {
+                        None => None,
+                        Some(certificate) => Some(certificate.as_ref().await?.to_owned()),
+                    };
                     let list_credential = format_status_list_credential(
                         &list.id,
-                        &list.issuer_identifier.ok_or(RevocationError::MappingError(
-                            "Missing issuer_identifier".to_string(),
-                        ))?,
-                        list.issuer_certificate.as_ref(),
+                        list.issuer_identifier.as_ref().await?.as_ref(),
+                        issuer_certificate.as_ref(),
                         encoded_list,
                         &*self.key_provider,
                         &self.key_algorithm_provider,
@@ -517,25 +513,12 @@ impl RevocationMethod for TokenStatusList {
 
                 let current_list = self
                     .revocation_list_repository
-                    .get_revocation_list_by_entry_id(
-                        signature_id,
-                        &RevocationListRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            issuer_certificate: Some(Default::default()),
-                        },
-                    )
+                    .get_revocation_list_by_entry_id(signature_id)
                     .await
                     .error_while("getting revocation list")?
                     .ok_or(RevocationError::MappingError(
                         "Missing list for revocation entry".to_owned(),
                     ))?;
-                let issuer =
-                    current_list
-                        .issuer_identifier
-                        .ok_or(RevocationError::MappingError(
-                            "Missing revocation list issuer".to_owned(),
-                        ))?;
-
                 let current_entries = self
                     .revocation_list_repository
                     .get_entries(current_list.id)
@@ -544,10 +527,14 @@ impl RevocationMethod for TokenStatusList {
 
                 let encoded_list = generate_token_from_entries(current_entries).await?;
 
+                let issuer_certificate = match current_list.issuer_certificate.as_ref() {
+                    None => None,
+                    Some(certificate) => Some(certificate.as_ref().await?.to_owned()),
+                };
                 let list_credential = format_status_list_credential(
                     &current_list.id,
-                    &issuer,
-                    current_list.issuer_certificate.as_ref(),
+                    current_list.issuer_identifier.as_ref().await?.as_ref(),
+                    issuer_certificate.as_ref(),
                     encoded_list,
                     &*self.key_provider,
                     &self.key_algorithm_provider,
@@ -619,7 +606,6 @@ impl TokenStatusList {
                         issuer_certificate.map(|c| c.id),
                         RevocationListPurpose::RevocationAndSuspension,
                         &self.config_id,
-                        &Default::default(),
                     )
                     .await
                     .error_while("getting revocation list")?;
@@ -656,7 +642,6 @@ impl TokenStatusList {
                             issuer_certificate.map(|c| c.id),
                             RevocationListPurpose::RevocationAndSuspension,
                             &self.config_id,
-                            &Default::default(),
                         )
                         .await
                         .error_while("getting revocation list")?
@@ -769,8 +754,8 @@ impl TokenStatusList {
                 format: self.params.format,
                 r#type: self.config_id.to_owned(),
                 purpose: RevocationListPurpose::RevocationAndSuspension,
-                issuer_identifier: Some(issuer_identifier.to_owned()),
-                issuer_certificate: issuer_certificate.cloned(),
+                issuer_identifier: issuer_identifier.to_owned().into(),
+                issuer_certificate: convert_inner(issuer_certificate.cloned()),
             })
             .await
             .error_while("creating revocation list")?;

@@ -42,7 +42,6 @@ async fn test_revoke_wrprc_success() {
                 identifier.id,
                 RevocationListPurpose::Revocation,
                 &"TOKENSTATUSLIST".into(),
-                &Default::default(),
             )
             .await
             .unwrap();

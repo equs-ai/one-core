@@ -1,14 +1,9 @@
 use one_core::model::identifier::IdentifierType;
 use one_core::model::instance::InstanceStatus;
-use one_core::model::managed_instance::ManagedInstanceRelations;
-use one_core::model::managed_instance_attested_key::{
-    ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyRelations,
-    ManagedInstanceAttestedKeyRevocationInfo,
-};
+use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::model::organisation::UpdateOrganisationRequest;
 use one_core::model::revocation_list::{
     RevocationListEntityId, RevocationListEntryState, RevocationListPurpose,
-    RevocationListRelations,
 };
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
@@ -88,17 +83,14 @@ async fn test_revoke_wallet_instance_success() {
                     last_modified: one_core::clock::now_utc(),
                     expiration_date: one_core::clock::now_utc() + Duration::days(1),
                     public_key_jwk: public_key_jwk(),
-                    revocation: Some(ManagedInstanceAttestedKeyRevocationInfo {
-                        revocation_list: revocation_list.clone(),
-                        revocation_list_index: 0,
-                    }),
+                    revocation: None,
                 }]),
                 ..Default::default()
             },
         )
         .await;
 
-    context
+    let revocation_entry_id = context
         .db
         .revocation_lists
         .create_entry(
@@ -117,18 +109,27 @@ async fn test_revoke_wallet_instance_success() {
     let wallet_unit = context
         .db
         .managed_instances
-        .get(
-            wallet_unit.id,
-            &ManagedInstanceRelations {
-                organisation: None,
-                attested_keys: Some(ManagedInstanceAttestedKeyRelations {
-                    revocation: Some(RevocationListRelations::default()),
-                }),
-            },
-        )
+        .get(wallet_unit.id)
         .await
         .unwrap();
     assert_eq!(wallet_unit.status, InstanceStatus::Revoked);
+
+    let attested_keys = wallet_unit.attested_keys.as_ref().await.unwrap();
+    assert_eq!(attested_keys.len(), 1);
+    let attested_key_revocation = attested_keys[0]
+        .revocation
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap()
+        .to_owned();
+    assert_eq!(attested_key_revocation.id, revocation_entry_id);
+    assert_eq!(attested_key_revocation.revocation_list_index, 0);
+    assert_eq!(
+        attested_key_revocation.revocation_list.id(),
+        revocation_list.id
+    );
 
     let revocation_list_entry = context
         .db

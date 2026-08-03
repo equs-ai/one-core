@@ -1,13 +1,16 @@
 use one_dto_mapper::From;
-use shared_types::{ManagedInstanceAttestedKeyId, ManagedInstanceId};
+use proc_macros::Model;
+use shared_types::{ManagedInstanceAttestedKeyId, ManagedInstanceId, RevocationListEntryId};
 use standardized_types::jwk::PublicJwk;
 use time::OffsetDateTime;
 
-use crate::model::revocation_list::{RevocationList, RevocationListRelations};
+use crate::model::relation::Related;
+use crate::model::revocation_list::RevocationList;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct ManagedInstanceAttestedKey {
+    #[model(id)]
     pub id: ManagedInstanceAttestedKeyId,
     pub instance_id: ManagedInstanceId, // cannot be a relation, because wallet instance defines a reverse relation already
     pub created_date: OffsetDateTime,
@@ -16,18 +19,15 @@ pub struct ManagedInstanceAttestedKey {
     pub public_key_jwk: PublicJwk,
 
     // Relations
-    pub revocation: Option<ManagedInstanceAttestedKeyRevocationInfo>,
+    pub revocation: Option<Related<ManagedInstanceAttestedKeyRevocationInfo>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ManagedInstanceAttestedKeyRelations {
-    pub revocation: Option<RevocationListRelations>,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct ManagedInstanceAttestedKeyRevocationInfo {
-    pub revocation_list: RevocationList,
+    #[model(id)]
+    pub id: RevocationListEntryId,
+    pub revocation_list: Related<RevocationList>,
     pub revocation_list_index: usize,
 }
 

@@ -1,21 +1,19 @@
+use std::sync::Arc;
+
 use shared_types::ManagedInstanceId;
 
 use super::error::DataLayerError;
 use crate::model::managed_instance::{
-    ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, ManagedInstanceRelations,
-    UpdateManagedInstanceRequest,
+    ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, UpdateManagedInstanceRequest,
 };
+use crate::model::relation::AsyncModelLoader;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
 pub trait ManagedInstanceRepository: Send + Sync {
     async fn create(&self, request: ManagedInstance) -> Result<ManagedInstanceId, DataLayerError>;
 
-    async fn get(
-        &self,
-        id: &ManagedInstanceId,
-        relations: &ManagedInstanceRelations,
-    ) -> Result<Option<ManagedInstance>, DataLayerError>;
+    async fn get(&self, id: &ManagedInstanceId) -> Result<Option<ManagedInstance>, DataLayerError>;
 
     async fn get_list(
         &self,
@@ -29,4 +27,16 @@ pub trait ManagedInstanceRepository: Send + Sync {
     ) -> Result<(), DataLayerError>;
 
     async fn delete(&self, id: &ManagedInstanceId) -> Result<(), DataLayerError>;
+}
+
+#[async_trait::async_trait]
+impl AsyncModelLoader<ManagedInstance> for Arc<dyn ManagedInstanceRepository> {
+    async fn load(&self, id: &ManagedInstanceId) -> Result<ManagedInstance, DataLayerError> {
+        self.get(id)
+            .await?
+            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
+                relation: "managed-instance",
+                id: id.to_string(),
+            })
+    }
 }

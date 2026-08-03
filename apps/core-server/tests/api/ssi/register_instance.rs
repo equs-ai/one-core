@@ -181,7 +181,7 @@ async fn test_register_instance_verifier_role_user_authentication_pending_then_a
     let updated = context
         .db
         .managed_instances
-        .get(&wallet_unit.id, &Default::default())
+        .get(&wallet_unit.id)
         .await
         .unwrap();
     assert_eq!(updated.status, InstanceStatus::Active);

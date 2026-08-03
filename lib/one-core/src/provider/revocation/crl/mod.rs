@@ -24,8 +24,8 @@ use crate::model::managed_instance_attested_key::{
 };
 use crate::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntityInfo, RevocationListEntryState,
-    RevocationListPurpose, RevocationListRelations, StatusListCredentialFormat,
-    UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
+    RevocationListPurpose, StatusListCredentialFormat, UpdateRevocationListEntryId,
+    UpdateRevocationListEntryRequest,
 };
 use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::transaction_manager::TransactionManager;
@@ -178,7 +178,6 @@ impl RevocationMethod for CRLRevocation {
                         Some(certificate.id),
                         RevocationListPurpose::Revocation,
                         &self.config_id,
-                        &Default::default(),
                     )
                     .await
                     .error_while("getting revocation list")?;
@@ -207,7 +206,6 @@ impl RevocationMethod for CRLRevocation {
                         Some(certificate.id),
                         RevocationListPurpose::Revocation,
                         &self.config_id,
-                        &Default::default(),
                     )
                     .await
                     .error_while("getting revocation list")?
@@ -266,13 +264,7 @@ impl RevocationMethod for CRLRevocation {
 
         let list = self
             .revocation_list_repository
-            .get_revocation_list_by_entry_id(
-                signature_id,
-                &RevocationListRelations {
-                    issuer_certificate: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get_revocation_list_by_entry_id(signature_id)
             .await
             .error_while("getting revocation list entry")?
             .ok_or(RevocationError::MappingError(
@@ -290,13 +282,7 @@ impl RevocationMethod for CRLRevocation {
     ) -> Result<Vec<u8>, RevocationError> {
         let list = self
             .revocation_list_repository
-            .get_revocation_list(
-                &list_id,
-                &RevocationListRelations {
-                    issuer_certificate: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get_revocation_list(&list_id)
             .await
             .error_while("getting revocation list")?
             .ok_or(RevocationError::MappingError(
@@ -341,8 +327,8 @@ impl CRLRevocation {
                 format: StatusListCredentialFormat::X509Crl,
                 r#type: self.config_id.to_owned(),
                 purpose: RevocationListPurpose::Revocation,
-                issuer_identifier: Some(issuer.to_owned()),
-                issuer_certificate: Some(certificate.to_owned()),
+                issuer_identifier: issuer.to_owned().into(),
+                issuer_certificate: Some(certificate.to_owned().into()),
             })
             .await
             .error_while("creating revocation list")?)
@@ -391,7 +377,11 @@ impl CRLRevocation {
         };
 
         let formatted_list = self
-            .format_list(next_crl_number, &issuer_certificate, revoked_certificates)
+            .format_list(
+                next_crl_number,
+                issuer_certificate.as_ref().await?.as_ref(),
+                revoked_certificates,
+            )
             .await?;
 
         self.revocation_list_repository
