@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
 use standardized_types::jwk::PublicJwk;
 use standardized_types::openid4vp::dcql;
-use time::OffsetDateTime;
 use url::Url;
 
 use crate::proto::jwt::model::JWTPayload;
@@ -198,10 +197,8 @@ pub(crate) struct IntendedUse {
     pub privacy_policy: Vec<Policy>,
 
     // timestamp parsing workaround, in ETSI standard these should be ISO 8601-1 encoded
-    #[serde(deserialize_with = "crate::mapper::timestamp::deserialize")]
-    pub created_at: OffsetDateTime,
-    #[serde(default, with = "crate::mapper::timestamp::option")]
-    pub revoked_at: Option<OffsetDateTime>,
+    pub created_at: String,
+    pub revoked_at: Option<String>,
     pub credential: Vec<Credential>,
     pub intended_use_identifier: String,
 }
