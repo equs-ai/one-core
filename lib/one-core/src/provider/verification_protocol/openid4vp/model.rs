@@ -4,10 +4,10 @@ use anyhow::Context;
 use dcql::{CredentialQueryId, DcqlQuery};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use shared_types::{InteractionId, KeyId, TransactionDataId, TransactionDataType};
+use serde_with::{OneOrMany, serde_as, skip_serializing_none};
+use shared_types::{ClaimSchemaId, InteractionId, KeyId, TransactionDataId, TransactionDataType};
 use standardized_types::jwk::PublicJwk;
-use standardized_types::openid4vp::{ClientMetadata, ResponseMode};
+use standardized_types::openid4vp::{ClientMetadata, PresentationFormat, ResponseMode};
 use strum::{Display, EnumString};
 use time::OffsetDateTime;
 use url::Url;
@@ -52,6 +52,14 @@ pub struct DcqlSubmissionEudi {
     pub vp_token: HashMap<String, String>,
 }
 
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PexSubmission {
+    #[serde_as(as = "OneOrMany<_>")]
+    pub vp_token: Vec<String>,
+    pub presentation_submission: PresentationSubmissionMappingDTO,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseSubmission {
     pub response: String,
@@ -62,7 +70,30 @@ pub struct ResponseSubmission {
 pub enum VpSubmissionData {
     Dcql(DcqlSubmission),
     DcqlEudi(DcqlSubmissionEudi),
+    Pex(PexSubmission),
     EncryptedResponse(ResponseSubmission),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PresentationSubmissionMappingDTO {
+    pub id: String,
+    pub definition_id: String,
+    pub descriptor_map: Vec<PresentationSubmissionDescriptorDTO>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PresentationSubmissionDescriptorDTO {
+    pub id: String,
+    pub format: String,
+    pub path: String,
+    pub path_nested: Option<NestedPresentationSubmissionDescriptorDTO>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct NestedPresentationSubmissionDescriptorDTO {
+    pub format: String,
+    pub path: String,
 }
 
 #[skip_serializing_none]
@@ -94,8 +125,13 @@ pub struct OpenID4VPClientMetadataJwks {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub(crate) struct OpenID4VPVerifierInteractionContent {
     pub nonce: String,
+    /// Legacy Presentation Exchange query, only used by proximity protocol version 1
+    #[serde(default)]
     #[serde(deserialize_with = "deserialize_with_serde_json")]
-    pub dcql_query: DcqlQuery,
+    pub presentation_definition: Option<OpenID4VPPresentationDefinition>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_with_serde_json")]
+    pub dcql_query: Option<DcqlQuery>,
     /// with client_id_scheme prefix (for Final 1.0)
     pub client_id: String,
     pub client_id_scheme: Option<ClientIdScheme>,
@@ -126,6 +162,56 @@ pub(crate) struct TransactionDataRequest {
     pub data: Option<serde_json::Value>,
     /// Base64-encoded transaction data to be included with the proof request
     pub encoded: String,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct OpenID4VPPresentationDefinition {
+    pub id: String,
+    pub input_descriptors: Vec<OpenID4VPPresentationDefinitionInputDescriptor>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct OpenID4VPPresentationDefinitionInputDescriptor {
+    pub id: String,
+    pub name: Option<String>,
+    pub purpose: Option<String>,
+    pub format: HashMap<String, PresentationFormat>,
+    pub constraints: OpenID4VPPresentationDefinitionConstraint,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct OpenID4VPPresentationDefinitionConstraint {
+    pub fields: Vec<OpenID4VPPresentationDefinitionConstraintField>,
+    #[serde(default)]
+    pub limit_disclosure: Option<OpenID4VPPresentationDefinitionLimitDisclosurePreference>,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum OpenID4VPPresentationDefinitionLimitDisclosurePreference {
+    Required,
+    Preferred,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct OpenID4VPPresentationDefinitionConstraintField {
+    pub id: Option<ClaimSchemaId>,
+    pub name: Option<String>,
+    pub purpose: Option<String>,
+    pub path: Vec<String>,
+    pub optional: Option<bool>,
+    pub filter: Option<OpenID4VPPresentationDefinitionConstraintFieldFilter>,
+    #[serde(default)]
+    pub intent_to_retain: Option<bool>,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug, PartialEq)]
+pub struct OpenID4VPPresentationDefinitionConstraintFieldFilter {
+    pub r#type: String,
+    pub r#const: String,
 }
 
 #[derive(Debug, Clone)]

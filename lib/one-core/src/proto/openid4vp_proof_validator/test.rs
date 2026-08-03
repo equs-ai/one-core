@@ -304,7 +304,8 @@ fn test_data(dcql_query: DcqlQuery) -> TestData {
     let interaction_data = OpenID4VPVerifierInteractionContent {
         nonce: nonce.to_owned(),
         encryption_key: None,
-        dcql_query,
+        presentation_definition: None,
+        dcql_query: Some(dcql_query),
         client_id: "client_id".to_string(),
         client_id_scheme: None,
         response_uri: None,
