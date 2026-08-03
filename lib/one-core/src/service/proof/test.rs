@@ -8,6 +8,7 @@ use secrecy::SecretSlice;
 use shared_types::{EntityId, InteractionId, ProofId, TransactionDataType};
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::AuthorizationRequest;
 use standardized_types::openid4vp::dcql::DcqlQuery;
 use uuid::Uuid;
 
@@ -79,7 +80,6 @@ use crate::provider::verification_protocol::MockVerificationProtocol;
 use crate::provider::verification_protocol::dto::{
     ShareResponse, VerificationProtocolCapabilities,
 };
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::ble::BLEPeer;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::ble::model::{
     BLEOpenID4VPInteractionDataVerifier, BLEVerifierProtocolData,

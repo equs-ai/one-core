@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use one_core::provider::verification_protocol::openid4vp::model::{
-    DcqlSubmission, OpenID4VPDirectPostRequestDTO, OpenID4VPDirectPostResponseDTO,
-    ResponseSubmission, VpSubmissionData,
+    OpenID4VPDirectPostRequestDTO, VpSubmissionData,
 };
 use one_dto_mapper::{From, Into};
 use proc_macros::options_not_nullable;
@@ -10,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use shared_types::InteractionId;
+use standardized_types::openid4vp::{DirectPostResponse, EncryptedResponse, VpTokenResponse};
 use utoipa::ToSchema;
 
 #[options_not_nullable]
@@ -36,21 +36,21 @@ pub(crate) enum VpSubmissionDataRestDTO {
 
 #[serde_as]
 #[derive(Debug, Deserialize, Clone, ToSchema, Into)]
-#[into(DcqlSubmission)]
+#[into(VpTokenResponse)]
 pub(crate) struct DcqlSubmissionRestDTO {
     #[serde_as(as = "JsonString")]
     pub vp_token: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Clone, ToSchema, Into)]
-#[into(ResponseSubmission)]
+#[into(EncryptedResponse)]
 pub(crate) struct ResponseSubmissionRestDTO {
     pub response: String,
 }
 
 #[options_not_nullable]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VPDirectPostResponseDTO)]
+#[from(DirectPostResponse)]
 pub(crate) struct OpenID4VPDirectPostResponseRestDTO {
     pub redirect_uri: Option<String>,
 }

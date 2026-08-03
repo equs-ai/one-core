@@ -8,6 +8,7 @@ use standardized_types::jwk::PublicJwk;
 use standardized_types::openid4vp::dcql::{
     CredentialFormat, CredentialQuery, CredentialQueryId, TrustedAuthority,
 };
+use standardized_types::openid4vp::{DirectPostResponse, VpTokenResponse};
 use standardized_types::x509::KeyIdentifier;
 
 use crate::config::core_config::{DidType, FormatType, VerificationProtocolType};
@@ -45,8 +46,8 @@ use crate::provider::verification_protocol::openid4vp::mapper::{
     extract_presentation_ctx_from_interaction_content, vec_last_position_from_token_path,
 };
 use crate::provider::verification_protocol::openid4vp::model::{
-    DcqlSubmission, OpenID4VPDirectPostResponseDTO, OpenID4VPVerifierInteractionContent,
-    PexSubmission, SubmissionRequestData, TransactionDataRequest, VpSubmissionData,
+    OpenID4VPVerifierInteractionContent, PexSubmission, SubmissionRequestData,
+    TransactionDataRequest, VpSubmissionData,
 };
 use crate::provider::verification_protocol::openid4vp::validator::{
     validate_expiration_time, validate_issuance_time,
@@ -71,7 +72,7 @@ impl OpenId4VpProofValidator for OpenId4VpProofValidatorProto {
         proof: Proof,
         interaction_data: OpenID4VPVerifierInteractionContent,
         protocol_type: VerificationProtocolType,
-    ) -> Result<(ValidatedProofResult, OpenID4VPDirectPostResponseDTO), OpenID4VCError> {
+    ) -> Result<(ValidatedProofResult, DirectPostResponse), OpenID4VCError> {
         throw_if_proof_state_not_in(
             &proof,
             &[ProofStateEnum::Pending, ProofStateEnum::Requested],
@@ -111,7 +112,7 @@ impl OpenId4VpProofValidator for OpenId4VpProofValidatorProto {
         let redirect_uri: Option<String> = proof.redirect_uri.to_owned();
         Ok((
             ValidatedProofResult::new(&proof, proved_claims).await?,
-            OpenID4VPDirectPostResponseDTO { redirect_uri },
+            DirectPostResponse { redirect_uri },
         ))
     }
 }
@@ -144,7 +145,8 @@ impl OpenId4VpProofValidatorProto {
         interaction_data: OpenID4VPVerifierInteractionContent,
         protocol_type: VerificationProtocolType,
     ) -> Result<Vec<ValidatedProofClaimDTO>, OpenID4VCError> {
-        let VpSubmissionData::Dcql(DcqlSubmission { vp_token }) = submission.submission_data else {
+        let VpSubmissionData::Dcql(VpTokenResponse { vp_token }) = submission.submission_data
+        else {
             return Err(OpenID4VCError::ValidationError(
                 "Missing DCQL VP token".to_string(),
             ));

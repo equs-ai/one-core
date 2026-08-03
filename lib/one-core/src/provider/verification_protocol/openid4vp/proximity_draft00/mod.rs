@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use serde_with::{DurationSeconds, serde_as};
 use shared_types::{InteractionId, KeyId, ProofId};
+use standardized_types::openid4vp::VpTokenResponse;
 use standardized_types::openid4vp::dcql::DcqlQuery;
 use time::Duration;
 use url::Url;
@@ -19,7 +20,7 @@ use super::dcql::get_presentation_definition_v2;
 use super::final1_0::dcql::create_dcql_query;
 use super::mapper::format_to_type;
 use super::mdoc::mdoc_presentation_context;
-use super::model::{DcqlSubmission, default_presentation_url_scheme};
+use super::model::default_presentation_url_scheme;
 use super::proximity_draft00::async_verifier_flow::{AsyncVerifierFlowParams, verifier_flow};
 use super::proximity_draft00::ble::oidc_ble_holder::BleHolderTransport;
 use super::proximity_draft00::ble::oidc_ble_verifier::{
@@ -739,7 +740,7 @@ pub(super) struct CreatePresentationParams<'a> {
 
 pub(super) async fn create_presentation(
     params: CreatePresentationParams<'_>,
-) -> Result<DcqlSubmission, VerificationProtocolError> {
+) -> Result<VpTokenResponse, VerificationProtocolError> {
     let mut vp_token = HashMap::new();
 
     // For DCQL each credential gets a presentation individually
@@ -789,7 +790,7 @@ pub(super) async fn create_presentation(
             .or_insert(vec![formatted_presentation.vp_token]);
     }
 
-    Ok(DcqlSubmission { vp_token })
+    Ok(VpTokenResponse { vp_token })
 }
 
 pub(super) struct ProofShareParams<'a> {

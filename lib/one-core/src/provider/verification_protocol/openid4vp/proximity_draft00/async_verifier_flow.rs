@@ -7,6 +7,7 @@ use one_crypto::utilities;
 use serde::Serialize;
 use shared_types::{DidValue, InteractionId, ProofId};
 use standardized_types::openid4vp::dcql::DcqlQuery;
+use standardized_types::openid4vp::{AuthorizationRequest, ClientIdPrefix, VpTokenResponse};
 use time::Duration;
 use tokio::select;
 use tokio_util::sync::CancellationToken;
@@ -22,9 +23,8 @@ use crate::proto::jwt::model::{JWTHeader, JWTPayload};
 use crate::provider::credential_formatter::model::AuthenticationFn;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::encode_client_id_with_scheme;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
 use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, DcqlSubmission, OpenID4VPPresentationDefinition, PexSubmission,
+    OpenID4VPPresentationDefinition, PexSubmission,
 };
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::draft20_request::OpenID4VP20AuthorizationRequest;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
@@ -75,7 +75,7 @@ pub(super) enum HolderResponse {
 
 pub(super) enum HolderSubmission {
     V1(PexSubmission),
-    V2(DcqlSubmission),
+    V2(VpTokenResponse),
 }
 
 pub(super) enum SubmissionData {
@@ -86,7 +86,7 @@ pub(super) enum SubmissionData {
     },
     V2 {
         request: AuthorizationRequest,
-        submission: DcqlSubmission,
+        submission: VpTokenResponse,
         dcql_query: DcqlQuery,
     },
 }
@@ -270,7 +270,7 @@ async fn get_request_v1(
         nonce: Some(nonce),
         presentation_definition: Some(params.presentation_definition.clone()),
         client_id: params.did.to_string(),
-        client_id_scheme: Some(ClientIdScheme::Did),
+        client_id_scheme: Some(ClientIdPrefix::DecentralizedIdentifier),
         ..Default::default()
     };
     let signed_request = request_as_signed_jwt(request.clone(), &params.did, auth_fn).await?;
@@ -287,7 +287,11 @@ async fn get_request_v2(
         response_type: None,
         response_mode: None,
         response_uri: None,
-        client_id: encode_client_id_with_scheme(params.did.to_string(), ClientIdScheme::Did, false),
+        client_id: encode_client_id_with_scheme(
+            params.did.to_string(),
+            ClientIdPrefix::DecentralizedIdentifier,
+            false,
+        ),
         dcql_query: params.dcql_query.clone(),
         redirect_uri: None,
         verifier_info: vec![],

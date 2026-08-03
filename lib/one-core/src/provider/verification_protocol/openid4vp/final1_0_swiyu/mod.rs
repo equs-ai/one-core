@@ -5,6 +5,9 @@ use proc_macros::Provider;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use serde_with::{DurationSeconds, serde_as};
+use standardized_types::openid4vp::{
+    AuthorizationRequest, AuthorizationRequestQueryParams, ClientIdPrefix,
+};
 use time::Duration;
 use url::Url;
 
@@ -22,12 +25,7 @@ use crate::provider::verification_protocol::dto::{
     UpdateResponse, VerificationProtocolCapabilities,
 };
 use crate::provider::verification_protocol::openid4vp::final1_0::OpenID4VPFinal1_0;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::{
-    AuthorizationRequest, AuthorizationRequestQueryParams,
-};
-use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, OpenID4VPVerifierInteractionContent,
-};
+use crate::provider::verification_protocol::openid4vp::model::OpenID4VPVerifierInteractionContent;
 use crate::provider::verification_protocol::openid4vp::{FormatMapper, VerificationProtocolError};
 use crate::provider::verification_protocol::{
     VerificationProtocol, deserialize_interaction_data, serialize_interaction_data,
@@ -67,11 +65,11 @@ pub(crate) fn swiyu_to_final_params(mut params: Value) -> Result<Value, serde_js
         .and_then(|verifier| verifier.interaction_expires_in_seconds)
     {
         json!({
-           "supportedClientIdSchemes": [ClientIdScheme::Did],
+           "supportedClientIdSchemes": [ClientIdPrefix::DecentralizedIdentifier],
            "interactionExpiresInSeconds": interaction_expires_in_seconds.whole_seconds()
         })
     } else {
-        json!({ "supportedClientIdSchemes": [ClientIdScheme::Did] })
+        json!({ "supportedClientIdSchemes": [ClientIdPrefix::DecentralizedIdentifier] })
     };
 
     let additional_params = json!({
@@ -85,7 +83,7 @@ pub(crate) fn swiyu_to_final_params(mut params: Value) -> Result<Value, serde_js
             }
         },
         "holder": {
-            "supportedClientIdSchemes": [ClientIdScheme::Did]
+            "supportedClientIdSchemes": [ClientIdPrefix::DecentralizedIdentifier]
         },
         "verifier": verifier,
     });

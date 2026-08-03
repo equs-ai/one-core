@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use standardized_types::openid4vp::dcql::DcqlQuery;
+use standardized_types::openid4vp::{AuthorizationRequest, VpTokenResponse};
 use uuid::Uuid;
 
 use super::BLEPeer;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
 use crate::provider::verification_protocol::openid4vp::model::{
-    DcqlSubmission, OpenID4VPPresentationDefinition, PexSubmission,
+    OpenID4VPPresentationDefinition, PexSubmission,
 };
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::draft20_request::OpenID4VP20AuthorizationRequest;
 
@@ -18,7 +18,7 @@ pub(crate) struct BLEOpenID4VPInteractionDataHolder {
     pub peer: BLEPeer,
     pub identity_request_nonce: Option<String>,
     pub openid_request: AuthorizationRequest,
-    pub presentation_submission: Option<DcqlSubmission>,
+    pub presentation_submission: Option<VpTokenResponse>,
     pub dcql_query: DcqlQuery,
 }
 
@@ -44,7 +44,7 @@ pub(crate) enum BLEVerifierProtocolData {
     },
     V2 {
         request: AuthorizationRequest,
-        submission: Option<DcqlSubmission>,
+        submission: Option<VpTokenResponse>,
         dcql_query: DcqlQuery,
     },
 }
@@ -53,12 +53,11 @@ pub(crate) enum BLEVerifierProtocolData {
 mod tests {
     use secrecy::SecretSlice;
     use similar_asserts::assert_eq;
+    use standardized_types::openid4vp::ClientIdPrefix;
 
     use super::*;
     use crate::proto::bluetooth_low_energy::low_level::dto::DeviceInfo;
-    use crate::provider::verification_protocol::openid4vp::model::{
-        ClientIdScheme, OpenID4VPVerifierInteractionContent,
-    };
+    use crate::provider::verification_protocol::openid4vp::model::OpenID4VPVerifierInteractionContent;
     use crate::provider::verification_protocol::openid4vp::proximity_draft00::peer_encryption::PeerEncryption;
     use crate::provider::verification_protocol::{
         deserialize_interaction_data, serialize_interaction_data,
@@ -86,7 +85,7 @@ mod tests {
             protocol_data: BLEVerifierProtocolData::V1 {
                 request: OpenID4VP20AuthorizationRequest {
                     client_id: "did:test:id".to_string(),
-                    client_id_scheme: Some(ClientIdScheme::Did),
+                    client_id_scheme: Some(ClientIdPrefix::DecentralizedIdentifier),
                     state: None,
                     nonce: None,
                     response_type: None,

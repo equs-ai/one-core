@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use futures::{Stream, StreamExt, stream};
 use one_crypto::utilities::generate_random_bytes;
 use serde_json::Value;
+use standardized_types::openid4vp::{AuthorizationRequest, VpTokenResponse};
 use tokio::select;
 use url::Url;
 use uuid::Uuid;
@@ -22,8 +23,6 @@ use crate::proto::bluetooth_low_energy::ble_resource::{Abort, BleWaiter, OnConfl
 use crate::proto::bluetooth_low_energy::low_level::ble_central::{BleCentral, TrackingBleCentral};
 use crate::proto::bluetooth_low_energy::low_level::dto::{CharacteristicWriteType, DeviceInfo};
 use crate::provider::verification_protocol::VerificationProtocolError;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
-use crate::provider::verification_protocol::openid4vp::model::DcqlSubmission;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::KeyAgreementKey;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::ble::dto::OpenID4VPBleData;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::ble::model::BLEOpenID4VPInteractionDataHolder;
@@ -224,7 +223,7 @@ impl ProximityHolderTransport for BleHolderTransport {
 
     async fn submit_presentation(
         &self,
-        presentation: DcqlSubmission,
+        presentation: VpTokenResponse,
         interaction_data: Value,
     ) -> Result<(), VerificationProtocolError> {
         let interaction: BLEOpenID4VPInteractionDataHolder =

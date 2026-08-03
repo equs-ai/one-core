@@ -1,11 +1,12 @@
 use secrecy::SecretSlice;
 use serde::{Deserialize, Serialize};
+use standardized_types::openid4vp::VpTokenResponse;
 use standardized_types::openid4vp::dcql::DcqlQuery;
 use uuid::Uuid;
 
 use crate::mapper::secret_slice;
 use crate::provider::verification_protocol::openid4vp::model::{
-    DcqlSubmission, OpenID4VPPresentationDefinition, PexSubmission,
+    OpenID4VPPresentationDefinition, PexSubmission,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -49,7 +50,7 @@ pub(crate) enum MQTTVerifierProtocolData {
         presentation_definition: OpenID4VPPresentationDefinition,
     },
     V2 {
-        submission: DcqlSubmission,
+        submission: VpTokenResponse,
         dcql_query: DcqlQuery,
     },
 }
@@ -117,7 +118,7 @@ mod tests {
             client_id: "client_id".to_string(),
             mdoc_generated_nonce: None,
             protocol_data: MQTTVerifierProtocolData::V2 {
-                submission: DcqlSubmission {
+                submission: VpTokenResponse {
                     vp_token: HashMap::from([("id".to_string(), vec!["token".to_string()])]),
                 },
                 dcql_query: dcql_query.to_owned(),

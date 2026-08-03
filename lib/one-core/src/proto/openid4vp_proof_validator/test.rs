@@ -7,6 +7,7 @@ use one_dto_mapper::try_convert_inner;
 use serde_json::json;
 use shared_types::{DidValue, ProofId};
 use similar_asserts::assert_eq;
+use standardized_types::openid4vp::VpTokenResponse;
 use standardized_types::openid4vp::dcql::{
     CredentialFormat, CredentialQuery, DcqlQuery, MsoMdocMeta,
 };
@@ -46,8 +47,8 @@ use crate::provider::transaction_data::provider::MockTransactionDataProvider;
 use crate::provider::transaction_data::{MockTransactionData, TransactionDataAuthorization};
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::model::{
-    DcqlSubmission, OpenID4VPVerifierInteractionContent, SubmissionRequestData,
-    TransactionDataRequest, VpSubmissionData,
+    OpenID4VPVerifierInteractionContent, SubmissionRequestData, TransactionDataRequest,
+    VpSubmissionData,
 };
 use crate::service::test_utilities::{
     dummy_claim_schema, dummy_credential_schema, dummy_dcql_query, dummy_did, dummy_identifier,
@@ -101,7 +102,7 @@ async fn test_validate_submission_success_dcql() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -135,7 +136,7 @@ async fn test_validate_submission_suspended_dcql() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -180,7 +181,7 @@ async fn test_validate_submission_incompatible_did_method() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -460,7 +461,7 @@ async fn test_validate_submission_dcql_no_holder_binding() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["bare_credential_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -555,7 +556,7 @@ async fn test_validate_submission_transaction_data_authorized() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -583,7 +584,7 @@ async fn test_validate_submission_transaction_data_missing_evidence() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -623,7 +624,7 @@ async fn test_validate_submission_transaction_data_duplicate_entries() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -664,7 +665,7 @@ async fn test_validate_submission_transaction_data_unsolicited_evidence() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
@@ -706,7 +707,7 @@ async fn test_validate_submission_empty_transaction_data_evidence_is_ignored() {
     let proto = setup_proto(mocks);
 
     let submission_data = SubmissionRequestData {
-        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+        submission_data: VpSubmissionData::Dcql(VpTokenResponse {
             vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
         }),
         state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),

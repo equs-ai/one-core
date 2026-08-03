@@ -4,7 +4,8 @@ use shared_types::InteractionId;
 use standardized_types::jwk::{JwkUse, PublicJwk};
 use standardized_types::openid4vp::dcql::DcqlQuery;
 use standardized_types::openid4vp::{
-    ClientMetadata, MdocAlgs, PresentationFormat, ResponseMode, SdJwtVcAlgs, W3CJwtAlgs, W3CLdpAlgs,
+    AuthorizationRequest, ClientMetadata, MdocAlgs, PresentationFormat, ResponseMode, SdJwtVcAlgs,
+    VerifierInfoAttestation, W3CJwtAlgs, W3CLdpAlgs,
 };
 use url::Url;
 
@@ -15,9 +16,6 @@ use crate::model::identifier::IdentifierData;
 use crate::model::proof::Proof;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::{
-    AuthorizationRequest, VerifierInfoAttestation,
-};
 use crate::util::key_selection::KeyFilter;
 
 #[expect(clippy::too_many_arguments)]

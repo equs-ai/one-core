@@ -8,7 +8,8 @@ use similar_asserts::assert_eq;
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::{JwkUse, Jwks, PublicJwk, PublicJwkEc};
 use standardized_types::openid4vp::{
-    ClientMetadata, MdocAlgs, PresentationFormat, SdJwtVcAlgs, W3CJwtAlgs, W3CLdpAlgs,
+    ClientIdPrefix, ClientMetadata, DirectPostResponse, MdocAlgs, PresentationFormat, SdJwtVcAlgs,
+    VpTokenResponse, W3CJwtAlgs, W3CLdpAlgs,
 };
 use uuid::Uuid;
 
@@ -104,7 +105,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
         presentation_definition: None,
         dcql_query: Some(dummy_dcql_query(true)),
         client_id: "client_id".to_string(),
-        client_id_scheme: Some(ClientIdScheme::RedirectUri),
+        client_id_scheme: Some(ClientIdPrefix::RedirectUri),
         response_uri: None,
         common: Default::default(),
     };
@@ -209,7 +210,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
 
     let err = service
         .direct_post(OpenID4VPDirectPostRequestDTO {
-            submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+            submission_data: VpSubmissionData::Dcql(VpTokenResponse {
                 vp_token: hashmap! { "credential_id".to_string() => vec!["vp_token".to_string()] },
             }),
             state: Some("a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap()),
@@ -241,7 +242,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
         presentation_definition: None,
         dcql_query: Some(dummy_dcql_query(true)),
         client_id: "client_id".to_string(),
-        client_id_scheme: Some(ClientIdScheme::RedirectUri),
+        client_id_scheme: Some(ClientIdPrefix::RedirectUri),
         response_uri: None,
         common: Default::default(),
     };
@@ -352,7 +353,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
                     }],
                     proved_claims: vec![],
                 },
-                OpenID4VPDirectPostResponseDTO { redirect_uri: None },
+                DirectPostResponse { redirect_uri: None },
             ))
         });
 
@@ -393,7 +394,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
 
     let err = service
         .direct_post(OpenID4VPDirectPostRequestDTO {
-            submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+            submission_data: VpSubmissionData::Dcql(VpTokenResponse {
                 vp_token: hashmap! { "credential_id".to_string() => vec!["vp_token".to_string()] },
             }),
             state: Some("a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap()),

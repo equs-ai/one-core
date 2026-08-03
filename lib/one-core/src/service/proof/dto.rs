@@ -3,6 +3,7 @@ use shared_types::{
     CertificateId, CredentialSchemaId, DidId, IdentifierId, InteractionId, KeyId, OrganisationId,
     ProofId, ProofSchemaId, TransactionDataId, TransactionDataType,
 };
+use standardized_types::openid4vp::ClientIdPrefix;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::OffsetDateTime;
 
@@ -12,9 +13,7 @@ use crate::model::list_query::ListQuery;
 use crate::model::proof::{ExactProofFilterColumn, ProofRole, ProofStateEnum, SortableProofColumn};
 use crate::proto::trust_information::dto::TrustInformation;
 use crate::provider::transaction_data::TransactionDataDisplayValue;
-use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, CommonVerifierInteractionContent,
-};
+use crate::provider::verification_protocol::openid4vp::model::CommonVerifierInteractionContent;
 use crate::service::certificate::dto::CertificateResponseDTO;
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, DetailCredentialClaimResponseDTO,
@@ -215,7 +214,7 @@ pub struct ShareProofRequestDTO {
 
 #[derive(Clone, Debug, Default)]
 pub struct ShareProofRequestParamsDTO {
-    pub client_id_scheme: Option<ClientIdScheme>,
+    pub client_id_scheme: Option<ClientIdPrefix>,
 }
 
 #[derive(Clone, Debug)]

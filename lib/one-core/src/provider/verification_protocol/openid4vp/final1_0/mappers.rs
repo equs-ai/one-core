@@ -3,10 +3,12 @@ use std::sync::Arc;
 use serde::Deserialize;
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::{Jwks, PublicJwk};
-use standardized_types::openid4vp::ClientMetadata;
+use standardized_types::openid4vp::{
+    AuthorizationRequest, AuthorizationRequestQueryParams, ClientIdPrefix, ClientMetadata,
+};
 use url::Url;
 
-use super::model::{AuthorizationRequest, AuthorizationRequestQueryParams, Params};
+use super::model::Params;
 use crate::model::proof::Proof;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
@@ -17,7 +19,7 @@ use crate::provider::verification_protocol::openid4vp::mapper::{
     format_authorization_request_client_id_scheme_x509,
 };
 use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, CommonVerifierInteractionContent, HolderTxData, OpenID4VPHolderInteractionData,
+    CommonVerifierInteractionContent, HolderTxData, OpenID4VPHolderInteractionData,
     TransactionDataRequest,
 };
 use crate::service::oid4vp_final1_0::proof_request::generate_vp_formats_supported;
@@ -52,7 +54,7 @@ pub(crate) async fn create_openid4vp_final1_0_authorization_request(
     openidvc_params: &Params,
     client_id_without_prefix: String,
     proof: &Proof,
-    client_id_scheme: ClientIdScheme,
+    client_id_scheme: ClientIdPrefix,
     key_algorithm_provider: &Arc<dyn KeyAlgorithmProvider>,
     key_provider: &dyn KeyProvider,
     authorization_request: AuthorizationRequest,
@@ -72,8 +74,8 @@ pub(crate) async fn create_openid4vp_final1_0_authorization_request(
         }
     } else {
         match client_id_scheme {
-            ClientIdScheme::RedirectUri => format_params_for_redirect_uri(authorization_request)?,
-            ClientIdScheme::X509SanDns | ClientIdScheme::X509Hash => {
+            ClientIdPrefix::RedirectUri => format_params_for_redirect_uri(authorization_request)?,
+            ClientIdPrefix::X509SanDns | ClientIdPrefix::X509Hash => {
                 let token = format_authorization_request_client_id_scheme_x509(
                     proof,
                     key_algorithm_provider,
@@ -91,7 +93,7 @@ pub(crate) async fn create_openid4vp_final1_0_authorization_request(
                     ..Default::default()
                 });
             }
-            ClientIdScheme::VerifierAttestation => {
+            ClientIdPrefix::VerifierAttestation => {
                 let response_uri = authorization_request
                     .response_uri
                     .as_ref()
@@ -112,14 +114,14 @@ pub(crate) async fn create_openid4vp_final1_0_authorization_request(
                 return Ok(AuthorizationRequestQueryParams {
                     client_id: encode_client_id_with_scheme(
                         client_id_without_prefix,
-                        ClientIdScheme::VerifierAttestation,
+                        ClientIdPrefix::VerifierAttestation,
                         openidvc_params.use_legacy_did_client_id_scheme,
                     ),
                     request: Some(token),
                     ..Default::default()
                 });
             }
-            ClientIdScheme::Did => {
+            ClientIdPrefix::DecentralizedIdentifier => {
                 let token = format_authorization_request_client_id_scheme_did(
                     proof,
                     key_algorithm_provider,
@@ -130,7 +132,7 @@ pub(crate) async fn create_openid4vp_final1_0_authorization_request(
                 return Ok(AuthorizationRequestQueryParams {
                     client_id: encode_client_id_with_scheme(
                         client_id_without_prefix,
-                        ClientIdScheme::Did,
+                        ClientIdPrefix::DecentralizedIdentifier,
                         openidvc_params.use_legacy_did_client_id_scheme,
                     ),
                     request: Some(token),
@@ -171,14 +173,14 @@ fn format_params_for_redirect_uri(
 
 pub(crate) fn encode_client_id_with_scheme(
     client_id_without_prefix: String,
-    client_id_scheme: ClientIdScheme,
+    client_id_scheme: ClientIdPrefix,
     use_legacy_did_client_id_scheme: bool,
 ) -> String {
     match client_id_scheme {
-        ClientIdScheme::Did if !use_legacy_did_client_id_scheme => {
-            format!("decentralized_identifier:{client_id_without_prefix}")
+        // In version 1.0, the "did" client_id_scheme was renamed to "decentralized_identifier".
+        ClientIdPrefix::DecentralizedIdentifier if use_legacy_did_client_id_scheme => {
+            client_id_without_prefix
         }
-        ClientIdScheme::Did if use_legacy_did_client_id_scheme => client_id_without_prefix,
         _ => format!("{client_id_scheme}:{client_id_without_prefix}"),
     }
 }
@@ -186,7 +188,7 @@ pub(crate) fn encode_client_id_with_scheme(
 pub(crate) fn decode_client_id_with_scheme(
     client_id: &str,
     allow_legacy_did_scheme: bool,
-) -> Result<(String, ClientIdScheme), VerificationProtocolError> {
+) -> Result<(String, ClientIdPrefix), VerificationProtocolError> {
     let (client_id_scheme, client_id_without_prefix) =
         client_id
             .split_once(':')
@@ -197,56 +199,56 @@ pub(crate) fn decode_client_id_with_scheme(
     // In version 1.0, the "did" client_id_scheme was renamed to "decentralized_identifier".
     if client_id_scheme == "did" {
         if allow_legacy_did_scheme {
-            return Ok((client_id.to_string(), ClientIdScheme::Did));
+            return Ok((
+                client_id.to_string(),
+                ClientIdPrefix::DecentralizedIdentifier,
+            ));
         }
         return Err(VerificationProtocolError::InvalidRequest(
             "did is not a valid client_id_scheme".to_string(),
         ));
     }
 
-    let client_id_scheme = match client_id_scheme {
-        "decentralized_identifier" => ClientIdScheme::Did,
-        _ => client_id_scheme.parse().map_err(|e| {
-            VerificationProtocolError::InvalidRequest(format!("invalid client_id_scheme: {e}"))
-        })?,
-    };
+    let client_id_scheme = client_id_scheme.parse().map_err(|e| {
+        VerificationProtocolError::InvalidRequest(format!("invalid client_id_scheme: {e}"))
+    })?;
 
     Ok((client_id_without_prefix.to_string(), client_id_scheme))
 }
 
-impl TryFrom<AuthorizationRequestQueryParams> for AuthorizationRequest {
-    type Error = VerificationProtocolError;
-
-    fn try_from(query_params: AuthorizationRequestQueryParams) -> Result<Self, Self::Error> {
-        fn json_parse<T: for<'a> Deserialize<'a>>(
-            input: String,
-        ) -> Result<T, VerificationProtocolError> {
-            serde_json::from_str(&input)
-                .map_err(|e| VerificationProtocolError::InvalidRequest(e.to_string()))
-        }
-
-        Ok(AuthorizationRequest {
-            client_id: query_params.client_id,
-            state: query_params.state,
-            nonce: query_params.nonce,
-            response_type: query_params.response_type,
-            response_mode: query_params.response_mode,
-            response_uri: query_params
-                .response_uri
-                .map(|uri| Url::parse(&uri))
-                .transpose()
-                .map_err(|_| {
-                    VerificationProtocolError::InvalidRequest("invalid response_uri".to_string())
-                })?,
-            client_metadata: query_params.client_metadata.map(json_parse).transpose()?,
-            redirect_uri: query_params.redirect_uri,
-            dcql_query: query_params.dcql_query.map(json_parse).transpose()?.ok_or(
-                VerificationProtocolError::InvalidRequest("missing dcql query".to_string()),
-            )?,
-            verifier_info: vec![],
-            transaction_data: query_params.transaction_data.unwrap_or_default(),
-        })
+/// Reassembles an unsigned Authorization Request that was passed entirely in the URL query string.
+pub(crate) fn authorization_request_from_query_params(
+    query_params: AuthorizationRequestQueryParams,
+) -> Result<AuthorizationRequest, VerificationProtocolError> {
+    fn json_parse<T: for<'a> Deserialize<'a>>(
+        input: String,
+    ) -> Result<T, VerificationProtocolError> {
+        serde_json::from_str(&input)
+            .map_err(|e| VerificationProtocolError::InvalidRequest(e.to_string()))
     }
+
+    Ok(AuthorizationRequest {
+        client_id: query_params.client_id,
+        state: query_params.state,
+        nonce: query_params.nonce,
+        response_type: query_params.response_type,
+        response_mode: query_params.response_mode,
+        response_uri: query_params
+            .response_uri
+            .map(|uri| Url::parse(&uri))
+            .transpose()
+            .map_err(|_| {
+                VerificationProtocolError::InvalidRequest("invalid response_uri".to_string())
+            })?,
+        client_metadata: query_params.client_metadata.map(json_parse).transpose()?,
+        redirect_uri: query_params.redirect_uri,
+        dcql_query: query_params.dcql_query.map(json_parse).transpose()?.ok_or(
+            VerificationProtocolError::InvalidRequest("missing dcql query".to_string()),
+        )?,
+        // `verifier_info` can only be conveyed in a signed request object
+        verifier_info: vec![],
+        transaction_data: query_params.transaction_data.unwrap_or_default(),
+    })
 }
 
 impl TryFrom<AuthorizationRequest> for OpenID4VPHolderInteractionData {
@@ -260,7 +262,7 @@ impl TryFrom<AuthorizationRequest> for OpenID4VPHolderInteractionData {
 
         // The Verifier MAY omit the redirect_uri Authorization Request parameter (or response_uri when Response Mode direct_post is used).
         // <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.9.3-3.1.1>
-        if response_uri.is_none() && client_id_scheme == ClientIdScheme::RedirectUri {
+        if response_uri.is_none() && client_id_scheme == ClientIdPrefix::RedirectUri {
             response_uri = Some(
                 client_id_without_prefix
                     .parse::<Url>()
@@ -314,7 +316,7 @@ mod test {
         let (client_id_without_prefix, client_id_scheme) =
             decode_client_id_with_scheme(client_id, false).unwrap();
         assert_eq!(client_id_without_prefix, "did:example:123");
-        assert_eq!(client_id_scheme, ClientIdScheme::Did);
+        assert_eq!(client_id_scheme, ClientIdPrefix::DecentralizedIdentifier);
     }
 
     #[test]
@@ -330,14 +332,14 @@ mod test {
         let (client_id_without_prefix, client_id_scheme) =
             decode_client_id_with_scheme(client_id, true).unwrap();
         assert_eq!(client_id_without_prefix, "did:example:123");
-        assert_eq!(client_id_scheme, ClientIdScheme::Did);
+        assert_eq!(client_id_scheme, ClientIdPrefix::DecentralizedIdentifier);
     }
 
     #[test]
     fn test_encode_client_id_with_decentralized_identifier_scheme() {
         let expected_client_id = "decentralized_identifier:did:example:123";
         let client_id = "did:example:123";
-        let client_id_scheme = ClientIdScheme::Did;
+        let client_id_scheme = ClientIdPrefix::DecentralizedIdentifier;
         let encoded_client_id =
             encode_client_id_with_scheme(client_id.to_string(), client_id_scheme, false);
         assert_eq!(expected_client_id, encoded_client_id);

@@ -7,6 +7,7 @@ use serde_json::json;
 use shared_types::DidValue;
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{PublicJwk, PublicJwkEc};
+use standardized_types::openid4vp::AuthorizationRequest;
 use standardized_types::openid4vp::dcql::DcqlQuery;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
@@ -24,7 +25,6 @@ use crate::provider::did_method::model::{DidDocument, DidVerificationMethod};
 use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::key_algorithm::MockKeyAlgorithm;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::KeyAgreementKey;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::async_verifier_flow::request_as_signed_jwt;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{

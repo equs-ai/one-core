@@ -694,7 +694,10 @@ async fn test_share_proof_client_id_scheme_did_openid4vp_draft20() {
     let resp = context
         .api
         .proofs
-        .share(proof.id, Some(ClientIdSchemeRestEnum::Did))
+        .share(
+            proof.id,
+            Some(ClientIdSchemeRestEnum::DecentralizedIdentifier),
+        )
         .await;
 
     // THEN
@@ -750,7 +753,10 @@ async fn test_share_proof_client_id_scheme_did_openid4vp_final1_0() {
     let resp = context
         .api
         .proofs
-        .share(proof.id, Some(ClientIdSchemeRestEnum::Did))
+        .share(
+            proof.id,
+            Some(ClientIdSchemeRestEnum::DecentralizedIdentifier),
+        )
         .await;
 
     // THEN

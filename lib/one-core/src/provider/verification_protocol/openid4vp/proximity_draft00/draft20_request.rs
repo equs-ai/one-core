@@ -6,20 +6,18 @@
 
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use standardized_types::openid4vp::ResponseMode;
+use standardized_types::openid4vp::{ClientIdPrefix, ResponseMode};
 use url::Url;
 
 use crate::provider::verification_protocol::openid4vp::mapper::deserialize_with_serde_json;
-use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, OpenID4VPPresentationDefinition,
-};
+use crate::provider::verification_protocol::openid4vp::model::OpenID4VPPresentationDefinition;
 
 #[skip_serializing_none]
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub(crate) struct OpenID4VP20AuthorizationRequest {
     pub client_id: String,
     #[serde(default)]
-    pub client_id_scheme: Option<ClientIdScheme>,
+    pub client_id_scheme: Option<ClientIdPrefix>,
 
     #[serde(default)]
     pub state: Option<String>,

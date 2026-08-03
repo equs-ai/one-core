@@ -15,6 +15,24 @@ pub mod secret_string {
     }
 }
 
+/// Deserializes a value that may be provided either inline (as JSON) or as a JSON string.
+///
+/// Several standards allow the same parameter to be passed both as a JSON object (e.g. inside a
+/// request object) and as a JSON-encoded string (e.g. as a URL query parameter).
+pub fn deserialize_json_or_string<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: for<'a> serde::Deserialize<'a>,
+{
+    use serde::Deserialize;
+
+    let value = serde_json::Value::deserialize(deserializer)?;
+    match value.as_str() {
+        None => serde_json::from_value(value).map_err(serde::de::Error::custom),
+        Some(buffer) => serde_json::from_str(buffer).map_err(serde::de::Error::custom),
+    }
+}
+
 /// XML date-time (de)serialization for ETSI trusted-list formats.
 ///
 /// ETSI TS 119 612 §5.1.3 / TS 119 602 require ISO 8601 UTC with the `Z`

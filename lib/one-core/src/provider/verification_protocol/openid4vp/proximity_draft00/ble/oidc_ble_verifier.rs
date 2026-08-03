@@ -11,6 +11,7 @@ use futures::{Stream, StreamExt, TryStreamExt};
 use one_crypto::utilities;
 use serde::de::DeserializeOwned;
 use shared_types::InteractionId;
+use standardized_types::openid4vp::VpTokenResponse;
 use tokio::select;
 use tokio::sync::Mutex;
 use tracing::{info, warn};
@@ -32,7 +33,7 @@ use crate::proto::bluetooth_low_energy::low_level::dto::{
     CharacteristicPermissions, CharacteristicProperties, ConnectionEvent,
     CreateCharacteristicOptions, DeviceInfo, ServiceDescription,
 };
-use crate::provider::verification_protocol::openid4vp::model::{DcqlSubmission, PexSubmission};
+use crate::provider::verification_protocol::openid4vp::model::PexSubmission;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::KeyAgreementKey;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::async_verifier_flow::{
     HolderResponse, HolderSubmission, ProximityVerifierTransport, SubmissionData,
@@ -183,7 +184,7 @@ impl BleVerifierTransport {
                 }
             }
             ProtocolVersion::V2 => {
-                let response: Option<DcqlSubmission> =
+                let response: Option<VpTokenResponse> =
                     read_presentation_submission(&context.peer, &self.peripheral).await?;
                 if let Some(submission) = response {
                     HolderResponse::Submission(HolderSubmission::V2(submission))

@@ -4,6 +4,7 @@ use anyhow::Context;
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use shared_types::{BlobId, ProofId};
+use standardized_types::openid4vp::DirectPostResponse;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -21,8 +22,7 @@ use crate::model::proof_schema::{
 };
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::model::{
-    OpenID4VPDirectPostResponseDTO, OpenID4VPVerifierInteractionContent, SubmissionRequestData,
-    VpSubmissionData,
+    OpenID4VPVerifierInteractionContent, SubmissionRequestData, VpSubmissionData,
 };
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::ble::model::{
     BLEOpenID4VPInteractionDataVerifier, BLEVerifierProtocolData,
@@ -155,7 +155,7 @@ impl ProofService {
         &self,
         proof: Proof,
         unpacked_request: SubmissionRequestData,
-    ) -> Result<OpenID4VPDirectPostResponseDTO, ProofServiceError> {
+    ) -> Result<DirectPostResponse, ProofServiceError> {
         let organisation = proof
             .schema
             .as_ref()

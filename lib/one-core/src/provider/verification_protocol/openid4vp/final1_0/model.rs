@@ -1,16 +1,13 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
-use serde_with::{DurationSeconds, VecSkipError, serde_as, skip_serializing_none};
-use standardized_types::openid4vp::dcql::{CredentialQueryId, DcqlQuery};
-use standardized_types::openid4vp::{ClientMetadata, PresentationFormat, ResponseMode};
+use serde::Deserialize;
+use serde_with::{DurationSeconds, serde_as};
+use standardized_types::openid4vp::{ClientIdPrefix, PresentationFormat};
 use time::Duration;
-use url::Url;
 
 use crate::provider::verification_protocol::model::CommonParams;
-use crate::provider::verification_protocol::openid4vp::mapper::deserialize_with_serde_json;
 use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, OpenID4VCRedirectUriParams, default_presentation_url_scheme,
+    OpenID4VCRedirectUriParams, default_presentation_url_scheme,
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -43,7 +40,7 @@ pub(crate) struct Params {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HolderParams {
-    pub supported_client_id_schemes: Vec<ClientIdScheme>,
+    pub supported_client_id_schemes: Vec<ClientIdPrefix>,
 
     #[serde(default)]
     #[serde_as(as = "DurationSeconds<i64>")]
@@ -54,79 +51,8 @@ pub(crate) struct HolderParams {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PresentationVerifierParams {
-    pub supported_client_id_schemes: Vec<ClientIdScheme>,
+    pub supported_client_id_schemes: Vec<ClientIdPrefix>,
     #[serde(default)]
     #[serde_as(as = "Option<DurationSeconds<i64>>")]
     pub interaction_expires_in_seconds: Option<Duration>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub(crate) struct AuthorizationRequestQueryParams {
-    /// with client_id_scheme prefix
-    pub client_id: String,
-    pub state: Option<String>,
-    pub nonce: Option<String>,
-    pub response_type: Option<String>,
-    pub response_mode: Option<ResponseMode>,
-    pub response_uri: Option<String>,
-    pub client_metadata: Option<String>,
-    pub dcql_query: Option<String>,
-    pub transaction_data: Option<Vec<String>>,
-
-    // https://www.rfc-editor.org/rfc/rfc9101.html#name-authorization-request
-    pub request: Option<String>,
-    pub request_uri: Option<String>,
-
-    pub redirect_uri: Option<String>,
-}
-
-#[serde_as]
-#[skip_serializing_none]
-#[derive(Clone, Deserialize, Serialize, Debug)]
-pub(crate) struct AuthorizationRequest {
-    /// with client_id_scheme prefix
-    pub client_id: String,
-
-    #[serde(default)]
-    pub state: Option<String>,
-    #[serde(default)]
-    pub nonce: Option<String>,
-
-    #[serde(default)]
-    pub response_type: Option<String>,
-    #[serde(default)]
-    pub response_mode: Option<ResponseMode>,
-    #[serde(default)]
-    pub response_uri: Option<Url>,
-
-    #[serde(default, deserialize_with = "deserialize_with_serde_json")]
-    pub client_metadata: Option<ClientMetadata>,
-
-    pub dcql_query: DcqlQuery,
-
-    #[serde(default)]
-    pub redirect_uri: Option<String>,
-
-    #[serde_as(as = "VecSkipError<_>")] // wallets SHOULD ignore any unrecognized or unsupported Verifier Info types
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub verifier_info: Vec<VerifierInfoAttestation>,
-
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub transaction_data: Vec<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Clone, Deserialize, Serialize, Debug)]
-pub(crate) struct VerifierInfoAttestation {
-    pub format: VerifierInfoAttestationFormat,
-    pub data: String,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub credential_ids: Vec<CredentialQueryId>,
-}
-
-#[derive(Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]
-pub(crate) enum VerifierInfoAttestationFormat {
-    #[serde(rename = "registration_cert")]
-    RegistrationCert,
 }

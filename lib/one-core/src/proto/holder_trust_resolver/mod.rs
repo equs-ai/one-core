@@ -1,11 +1,11 @@
 use shared_types::{OrganisationId, ProofId};
+use standardized_types::openid4vp::VerifierInfoAttestation;
 use standardized_types::openid4vp::dcql::{CredentialQueryId, DcqlQuery};
 use thiserror::Error;
 use time::Duration;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::provider::credential_formatter::model::IdentifierDetails;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::VerifierInfoAttestation;
 
 mod mapper;
 pub(crate) mod resolver;

@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use shared_types::DidValue;
 use standardized_types::openid4vp::dcql::DcqlQuery;
+use standardized_types::openid4vp::{AuthorizationRequest, ClientIdPrefix, VpTokenResponse};
 use url::Url;
 
 use crate::config::core_config::{TransportType, VerificationProtocolType};
@@ -13,8 +14,6 @@ use crate::provider::credential_formatter::model::{IdentifierDetails, Verificati
 use crate::provider::verification_protocol::dto::{InvitationResponseDTO, UpdateResponse};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::decode_client_id_with_scheme;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
-use crate::provider::verification_protocol::openid4vp::model::{ClientIdScheme, DcqlSubmission};
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::{
     CreatePresentationParams, create_interaction_and_proof, create_presentation,
 };
@@ -48,7 +47,7 @@ pub(crate) trait ProximityHolderTransport: Send + Sync {
 
     async fn submit_presentation(
         &self,
-        presenatition: DcqlSubmission,
+        presenatition: VpTokenResponse,
         interaction_data: serde_json::Value,
     ) -> Result<(), VerificationProtocolError>;
 
@@ -86,7 +85,7 @@ pub(crate) async fn handle_invitation_with_transport<T: Send + Sync + 'static>(
     .await
     .error_while("parsing request JWT")?;
 
-    let (did_value, ClientIdScheme::Did) =
+    let (did_value, ClientIdPrefix::DecentralizedIdentifier) =
         decode_client_id_with_scheme(&presentation_request.payload.custom.client_id, false)?
     else {
         return Err(VerificationProtocolError::InvalidRequest(format!(

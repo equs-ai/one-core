@@ -4,6 +4,7 @@ use std::sync::Arc;
 use one_dto_mapper::convert_inner;
 use shared_types::{OrganisationId, ProofId};
 use standardized_types::etsi_119_602::MultiLangString;
+use standardized_types::openid4vp::VerifierInfoAttestation;
 use standardized_types::openid4vp::dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
 use time::Duration;
 use url::Url;
@@ -24,7 +25,6 @@ use crate::proto::wrp_validator::model::{AccessCertificateResult, IntendedUse, T
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::model::{CertificateDetails, IdentifierDetails};
 use crate::provider::signer::registration_certificate;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::VerifierInfoAttestation;
 use crate::repository::history_repository::HistoryRepository;
 
 pub(crate) struct HolderTrustResolverProto {

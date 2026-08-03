@@ -1,9 +1,13 @@
 //! Spec https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
 
+pub mod authorization_request;
+pub mod authorization_response;
 pub mod dcql;
 
 use std::collections::HashMap;
 
+pub use authorization_request::*;
+pub use authorization_response::*;
 use serde::{Deserialize, Serialize};
 use serde_with::{VecSkipError, serde_as, skip_serializing_none};
 

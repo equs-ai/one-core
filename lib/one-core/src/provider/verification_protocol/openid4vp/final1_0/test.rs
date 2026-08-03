@@ -10,7 +10,10 @@ use similar_asserts::assert_eq;
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
 use standardized_types::openid4vp::dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
-use standardized_types::openid4vp::{ClientMetadata, MdocAlgs, PresentationFormat, ResponseMode};
+use standardized_types::openid4vp::{
+    AuthorizationRequestQueryParams, ClientIdPrefix, ClientMetadata, MdocAlgs, PresentationFormat,
+    ResponseMode,
+};
 use url::Url;
 use uuid::Uuid;
 
@@ -52,7 +55,7 @@ use crate::provider::transaction_data::{
 use crate::provider::verification_protocol::dto::{FormattedCredentialPresentation, ShareResponse};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, HolderTxData, OpenID4VPHolderInteractionData, ValidatedHolderTxData,
+    HolderTxData, OpenID4VPHolderInteractionData, ValidatedHolderTxData,
 };
 use crate::provider::verification_protocol::{
     FormatMapper, VerificationProtocol, serialize_interaction_data,
@@ -114,16 +117,16 @@ fn generic_params() -> serde_json::Value {
         "urlScheme": "openid4vp",
         "holder":  {
             "supportedClientIdSchemes": [
-                ClientIdScheme::RedirectUri,
-                ClientIdScheme::VerifierAttestation
+                ClientIdPrefix::RedirectUri,
+                ClientIdPrefix::VerifierAttestation
             ],
             "trustEcosystemsLeewaySeconds": 45
         },
         "verifier": {
             "interactionExpiresInSeconds": 1000,
             "supportedClientIdSchemes": [
-                ClientIdScheme::RedirectUri,
-                ClientIdScheme::VerifierAttestation
+                ClientIdPrefix::RedirectUri,
+                ClientIdPrefix::VerifierAttestation
             ],
         },
         "redirectUri": {
@@ -251,7 +254,7 @@ fn test_holder_interaction_data(
         response_type: Some("vp_token".to_string()),
         state: Some(Uuid::new_v4().to_string()),
         nonce: Some("test-nonce-12345".to_string()),
-        client_id_scheme: ClientIdScheme::RedirectUri,
+        client_id_scheme: ClientIdPrefix::RedirectUri,
         client_id: "https://verifier.example.com".to_string(),
         client_metadata: Some(ClientMetadata {
             vp_formats_supported: HashMap::from([(
@@ -447,7 +450,7 @@ async fn test_share_proof_direct_post() {
             format_type_mapper,
             None,
             Some(ShareProofRequestParamsDTO {
-                client_id_scheme: Some(ClientIdScheme::RedirectUri),
+                client_id_scheme: Some(ClientIdPrefix::RedirectUri),
             }),
         )
         .await
@@ -547,7 +550,7 @@ async fn test_share_proof_direct_post_jwt_ecdsa() {
             format_type_mapper,
             None,
             Some(ShareProofRequestParamsDTO {
-                client_id_scheme: Some(ClientIdScheme::RedirectUri),
+                client_id_scheme: Some(ClientIdPrefix::RedirectUri),
             }),
         )
         .await
@@ -626,7 +629,7 @@ async fn test_share_proof_direct_post_jwt_eddsa() {
             format_type_mapper,
             None,
             Some(ShareProofRequestParamsDTO {
-                client_id_scheme: Some(ClientIdScheme::RedirectUri),
+                client_id_scheme: Some(ClientIdPrefix::RedirectUri),
             }),
         )
         .await
@@ -1300,4 +1303,122 @@ fn test_assign_transaction_data_auto_assigns_to_explicitly_created_duplicate() {
         ],
         result
     );
+}
+
+fn unsigned_request_query(client_id: &str) -> String {
+    let client_metadata = ClientMetadata {
+        vp_formats_supported: HashMap::from([(
+            "mso_mdoc".to_string(),
+            PresentationFormat::MdocAlgs(MdocAlgs {
+                issuerauth_alg_values: vec![],
+                deviceauth_alg_values: vec![],
+            }),
+        )]),
+        ..Default::default()
+    };
+
+    let query_params = AuthorizationRequestQueryParams {
+        client_id: client_id.to_string(),
+        state: Some("test-state".to_string()),
+        nonce: Some("test-nonce-12345".to_string()),
+        response_type: Some("vp_token".to_string()),
+        response_mode: Some(ResponseMode::DirectPost),
+        response_uri: Some("https://verifier.example.com/response".to_string()),
+        client_metadata: Some(serde_json::to_string(&client_metadata).unwrap()),
+        dcql_query: Some(serde_json::to_string(&dummy_dcql_query(true)).unwrap()),
+        ..Default::default()
+    };
+
+    serde_qs::to_string(&query_params).unwrap()
+}
+
+#[tokio::test]
+async fn test_request_from_openid4vp_query_unsigned_request() {
+    let mut holder_trust_resolver = MockHolderTrustResolver::new();
+    holder_trust_resolver
+        .expect_resolve_verification_trust()
+        .once()
+        .returning(|verifier_details, _, _, _, verifier_info, _| {
+            // an unsigned request cannot carry verifier authentication data
+            assert!(verifier_details.is_none());
+            assert!(verifier_info.is_empty());
+            Ok(())
+        });
+
+    let protocol = setup_protocol(TestInputs {
+        holder_trust_resolver,
+        ..Default::default()
+    });
+
+    let (request, verifier_details) = protocol
+        .request_from_openid4vp_query(
+            &unsigned_request_query("redirect_uri:https://verifier.example.com/response"),
+            Uuid::new_v4().into(),
+            dummy_organisation(None).id,
+        )
+        .await
+        .unwrap();
+
+    assert!(verifier_details.is_none());
+    assert_eq!(
+        "redirect_uri:https://verifier.example.com/response",
+        request.client_id
+    );
+    assert_eq!(Some("test-state".to_string()), request.state);
+    assert_eq!(Some("test-nonce-12345".to_string()), request.nonce);
+    assert_eq!(Some("vp_token".to_string()), request.response_type);
+    assert_eq!(Some(ResponseMode::DirectPost), request.response_mode);
+    assert_eq!(
+        Some("https://verifier.example.com/response".parse().unwrap()),
+        request.response_uri
+    );
+    assert_eq!(dummy_dcql_query(true), request.dcql_query);
+    assert!(request.client_metadata.is_some());
+}
+
+#[tokio::test]
+async fn test_request_from_openid4vp_query_unsigned_request_fails_for_signed_only_scheme() {
+    let mut holder_trust_resolver = MockHolderTrustResolver::new();
+    holder_trust_resolver
+        .expect_resolve_verification_trust()
+        .never();
+
+    let protocol = setup_protocol(TestInputs {
+        holder_trust_resolver,
+        ..Default::default()
+    });
+
+    let result = protocol
+        .request_from_openid4vp_query(
+            &unsigned_request_query("verifier_attestation:https://verifier.example.com"),
+            Uuid::new_v4().into(),
+            dummy_organisation(None).id,
+        )
+        .await;
+
+    assert!(matches!(
+        result,
+        Err(VerificationProtocolError::InvalidRequest(reason))
+            if reason.contains("requires a signed request object")
+    ));
+}
+
+#[tokio::test]
+async fn test_request_from_openid4vp_query_unsigned_request_fails_for_unsupported_scheme() {
+    let protocol = setup_protocol(TestInputs::default());
+
+    // `x509_san_dns` is not in `holder.supportedClientIdSchemes` of the test params
+    let result = protocol
+        .request_from_openid4vp_query(
+            &unsigned_request_query("x509_san_dns:verifier.example.com"),
+            Uuid::new_v4().into(),
+            dummy_organisation(None).id,
+        )
+        .await;
+
+    assert!(matches!(
+        result,
+        Err(VerificationProtocolError::InvalidRequest(reason))
+            if reason.contains("Unsupported client_id_scheme")
+    ));
 }

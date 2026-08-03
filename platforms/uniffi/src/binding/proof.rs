@@ -12,7 +12,6 @@ use one_core::provider::verification_protocol::dto::{
     DisclosurePolicyViolation, PresentationDefinitionTransactionDataDTO,
     PresentationDefinitionV2ResponseDTO,
 };
-use one_core::provider::verification_protocol::openid4vp::model::ClientIdScheme;
 use one_core::service::credential_schema::dto::CredentialSchemaDetailResponseDTO;
 use one_core::service::error::ServiceError;
 use one_core::service::proof::dto::{
@@ -22,6 +21,7 @@ use one_core::service::proof::dto::{
 };
 use one_core::service::ssi_holder::dto::PresentationSubmitV2RequestDTO;
 use one_dto_mapper::{From, Into, TryInto, convert_inner, try_convert_inner_of_inner};
+use standardized_types::openid4vp::ClientIdPrefix;
 
 use super::common::SortDirection;
 use super::credential::{
@@ -534,13 +534,13 @@ pub struct ShareProofRequestParamsBindingDTO {
     pub client_id_scheme: Option<ClientIdSchemeBindingEnum>,
 }
 
-#[derive(Clone, Debug, Into, uniffi::Enum)]
-#[into(ClientIdScheme)]
+#[derive(Clone, Debug, uniffi::Enum, Into)]
 #[uniffi(name = "ClientIdScheme")]
+#[into(ClientIdPrefix)]
 pub enum ClientIdSchemeBindingEnum {
     RedirectUri,
     VerifierAttestation,
-    Did,
+    DecentralizedIdentifier,
     X509SanDns,
 }
 

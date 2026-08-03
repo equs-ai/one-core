@@ -204,7 +204,10 @@ async fn test_get_client_request_final1_did_scheme_no_verifier_info() {
     let resp = context
         .api
         .proofs
-        .share(proof.id, Some(ClientIdSchemeRestEnum::Did))
+        .share(
+            proof.id,
+            Some(ClientIdSchemeRestEnum::DecentralizedIdentifier),
+        )
         .await;
     assert_eq!(resp.status(), 201);
 

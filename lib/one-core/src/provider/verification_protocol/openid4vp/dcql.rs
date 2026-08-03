@@ -9,13 +9,13 @@ use standardized_types::openid4vp::dcql::{
     ClaimPath, ClaimValue, CredentialFormat, CredentialQuery, CredentialQueryId, DcqlQuery,
     PathSegment, TrustedAuthority,
 };
+use standardized_types::openid4vp::{VerifierInfoAttestation, VerifierInfoAttestationFormat};
 use standardized_types::x509::KeyIdentifier;
 
 use super::disclosure_policy::{
     dn_and_serial_matches_any_in_chain, dn_matches_leaf_only, entitlement_matches_reg_cert,
     entitlement_matches_via_registry,
 };
-use super::final1_0::model::{VerifierInfoAttestation, VerifierInfoAttestationFormat};
 use crate::config::core_config::{CoreConfig, FormatType};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;

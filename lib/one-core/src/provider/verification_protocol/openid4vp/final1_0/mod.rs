@@ -13,8 +13,10 @@ use serde_json::Value;
 use shared_types::{TransactionDataId, TransactionDataType};
 use standardized_types::iana::EncryptionAlgorithm;
 use standardized_types::jwk::PublicJwk;
-use standardized_types::openid4vp::ResponseMode;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
+use standardized_types::openid4vp::{
+    ClientIdPrefix, DirectPostResponse, ResponseMode, VpTokenResponse,
+};
 use time::Duration;
 use url::Url;
 use utils::validate_interaction_data;
@@ -64,8 +66,7 @@ use crate::provider::verification_protocol::openid4vp::final1_0::mappers::{
     create_open_id_for_vp_client_metadata_final1_0, transaction_data_from_interaction,
 };
 use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, CommonVerifierInteractionContent, DcqlSubmission, HolderTxData, JwePayload,
-    OpenID4VPDirectPostResponseDTO, OpenID4VPHolderInteractionData,
+    CommonVerifierInteractionContent, HolderTxData, JwePayload, OpenID4VPHolderInteractionData,
     OpenID4VPVerifierInteractionContent, ValidatedHolderTxData, VpSubmissionData,
 };
 use crate::provider::verification_protocol::openid4vp::{
@@ -344,7 +345,7 @@ impl OpenID4VPFinal1_0 {
             }
         }
         Ok((
-            VpSubmissionData::Dcql(DcqlSubmission { vp_token }),
+            VpSubmissionData::Dcql(VpTokenResponse { vp_token }),
             encryption_info,
         ))
     }
@@ -489,9 +490,9 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
         }
 
         if [
-            ClientIdScheme::Did,
-            ClientIdScheme::RedirectUri,
-            ClientIdScheme::VerifierAttestation,
+            ClientIdPrefix::DecentralizedIdentifier,
+            ClientIdPrefix::RedirectUri,
+            ClientIdPrefix::VerifierAttestation,
         ]
         .iter()
         .any(|scheme| schemes.contains(scheme))
@@ -499,8 +500,8 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
             verifier_identifier_types.insert(IdentifierType::Did);
         }
 
-        if schemes.contains(&ClientIdScheme::X509SanDns)
-            || schemes.contains(&ClientIdScheme::X509Hash)
+        if schemes.contains(&ClientIdPrefix::X509SanDns)
+            || schemes.contains(&ClientIdPrefix::X509Hash)
         {
             verifier_identifier_types.insert(IdentifierType::Certificate);
         }
@@ -592,7 +593,7 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
         .await
         .error_while("posting submission")?;
 
-        let response: Result<OpenID4VPDirectPostResponseDTO, _> = response.json();
+        let response: Result<DirectPostResponse, _> = response.json();
 
         if let Ok(value) = response {
             Ok(UpdateResponse {
@@ -647,10 +648,10 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
         }
 
         let client_id_without_prefix = match client_id_scheme {
-            ClientIdScheme::RedirectUri | ClientIdScheme::VerifierAttestation => {
+            ClientIdPrefix::RedirectUri | ClientIdPrefix::VerifierAttestation => {
                 response_uri.to_owned()
             }
-            ClientIdScheme::X509SanDns => {
+            ClientIdPrefix::X509SanDns => {
                 let base_url = Url::parse(base_url)
                     .map_err(|e| VerificationProtocolError::Failed(e.to_string()))?;
 
@@ -661,7 +662,7 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
                     ))?
                     .to_string()
             }
-            ClientIdScheme::X509Hash => {
+            ClientIdPrefix::X509Hash => {
                 let verifier_certificate = proof.verifier_certificate.as_ref().ok_or(
                     VerificationProtocolError::Failed("verifier_certificate is None".to_string()),
                 )?;
@@ -671,7 +672,7 @@ impl VerificationProtocol for OpenID4VPFinal1_0 {
 
                 Base64UrlSafeNoPadding::encode_to_string(fingerprint)?
             }
-            ClientIdScheme::Did => {
+            ClientIdPrefix::DecentralizedIdentifier => {
                 let Some(Identifier {
                     data: IdentifierData::Did(verifier_did),
                     ..

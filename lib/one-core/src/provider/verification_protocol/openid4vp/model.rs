@@ -7,8 +7,10 @@ use serde_with::{OneOrMany, serde_as, skip_serializing_none};
 use shared_types::{ClaimSchemaId, InteractionId, KeyId, TransactionDataId, TransactionDataType};
 use standardized_types::jwk::PublicJwk;
 use standardized_types::openid4vp::dcql::{CredentialQueryId, DcqlQuery};
-use standardized_types::openid4vp::{ClientMetadata, PresentationFormat, ResponseMode};
-use strum::{Display, EnumString};
+use standardized_types::openid4vp::{
+    ClientIdPrefix, ClientMetadata, EncryptedResponse, PresentationFormat, ResponseMode,
+    VerifierInfoAttestation, VpTokenResponse,
+};
 use time::OffsetDateTime;
 use url::Url;
 
@@ -16,7 +18,6 @@ use super::mapper::{deserialize_with_serde_json, unix_timestamp_option};
 use crate::model::credential::Credential;
 use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::VerifierInfoAttestation;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct JwePayload {
@@ -43,11 +44,6 @@ impl JwePayload {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DcqlSubmission {
-    pub vp_token: HashMap<String, Vec<String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DcqlSubmissionEudi {
     pub vp_token: HashMap<String, String>,
 }
@@ -61,17 +57,12 @@ pub struct PexSubmission {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResponseSubmission {
-    pub response: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum VpSubmissionData {
-    Dcql(DcqlSubmission),
+    Dcql(VpTokenResponse),
     DcqlEudi(DcqlSubmissionEudi),
     Pex(PexSubmission),
-    EncryptedResponse(ResponseSubmission),
+    EncryptedResponse(EncryptedResponse),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -104,12 +95,6 @@ pub struct OpenID4VPDirectPostRequestDTO {
     pub state: Option<InteractionId>,
 }
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct OpenID4VPDirectPostResponseDTO {
-    pub redirect_uri: Option<String>,
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct OpenID4VPClientMetadataJwks {
     pub keys: Vec<PublicJwk>,
@@ -134,7 +119,7 @@ pub(crate) struct OpenID4VPVerifierInteractionContent {
     pub dcql_query: Option<DcqlQuery>,
     /// with client_id_scheme prefix (for Final 1.0)
     pub client_id: String,
-    pub client_id_scheme: Option<ClientIdScheme>,
+    pub client_id_scheme: Option<ClientIdPrefix>,
     pub response_uri: Option<String>,
     pub encryption_key: Option<PublicJwk>,
     #[serde(flatten)]
@@ -236,7 +221,7 @@ pub(crate) struct OpenID4VPHolderInteractionData {
     pub response_type: Option<String>,
     pub state: Option<String>,
     pub nonce: Option<String>,
-    pub client_id_scheme: ClientIdScheme,
+    pub client_id_scheme: ClientIdPrefix,
 
     /// without client_id_scheme prefix (in case of Final 1.0)
     pub client_id: String,
@@ -300,18 +285,6 @@ pub struct ValidatedHolderTxData {
 // Apparently the indirection via functions is required: https://github.com/serde-rs/serde/issues/368
 pub(crate) fn default_presentation_url_scheme() -> String {
     "openid4vp".to_string()
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Display, EnumString)]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-pub enum ClientIdScheme {
-    RedirectUri,
-    VerifierAttestation,
-    #[serde(alias = "decentralized_identifier")]
-    Did,
-    X509SanDns,
-    X509Hash,
 }
 
 #[derive(Debug, Clone, Deserialize)]

@@ -3,11 +3,13 @@ use std::collections::BTreeSet;
 
 use serde_json::json;
 use shared_types::{DidValue, OrganisationId, ProofId};
-use standardized_types::openid4vp::PresentationFormat;
+use standardized_types::openid4vp::{
+    AuthorizationRequest, AuthorizationRequestQueryParams, ClientIdPrefix, PresentationFormat,
+    VerifierAttestationClaims,
+};
 use url::Url;
 
-use super::mappers::decode_client_id_with_scheme;
-use super::model::{AuthorizationRequest, AuthorizationRequestQueryParams};
+use super::mappers::{authorization_request_from_query_params, decode_client_id_with_scheme};
 use super::{OpenID4VPFinal1_0, encode_client_id_with_scheme};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
@@ -21,9 +23,7 @@ use crate::provider::credential_formatter::model::{
 };
 use crate::provider::did_method::error::DidMethodError;
 use crate::provider::verification_protocol::openid4vp::VerificationProtocolError;
-use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, OpenID4VCVerifierAttestationPayload, OpenID4VPHolderInteractionData,
-};
+use crate::provider::verification_protocol::openid4vp::model::OpenID4VPHolderInteractionData;
 use crate::provider::verification_protocol::openid4vp::validator::{
     validate_against_redirect_uris, validate_san_dns_matching_client_id,
     validate_x509_hash_matching_client_id,
@@ -247,7 +247,7 @@ impl OpenID4VPFinal1_0 {
          * TODO(ONE-3846): this should be created by some trusted entity, not by current verifier.
          *     Key verification function should only allow trusted entity keys
          */
-        let attestation_jwt = Jwt::<OpenID4VCVerifierAttestationPayload>::build_from_token(
+        let attestation_jwt = Jwt::<VerifierAttestationClaims>::build_from_token(
             &attestation_jwt,
             Some(&key_verification),
             None,
@@ -312,7 +312,7 @@ impl OpenID4VPFinal1_0 {
             AuthorizationRequest {
                 client_id: encode_client_id_with_scheme(
                     client_id_without_prefix,
-                    ClientIdScheme::VerifierAttestation,
+                    ClientIdPrefix::VerifierAttestation,
                     self.params.use_legacy_did_client_id_scheme,
                 ),
                 ..request_token.payload.custom
@@ -355,41 +355,32 @@ impl OpenID4VPFinal1_0 {
             self.params.use_legacy_did_client_id_scheme,
         )?;
 
-        if !self
-            .params
-            .holder
-            .supported_client_id_schemes
-            .contains(&client_id_scheme)
-        {
-            return Err(VerificationProtocolError::InvalidRequest(format!(
-                "Unsupported client_id_scheme: {client_id_scheme}"
-            )));
-        }
+        self.validate_supported_client_id_scheme(client_id_scheme)?;
 
         let (referenced_params, verifier_details): (
             AuthorizationRequest,
             Option<IdentifierDetails>,
         ) = match client_id_scheme {
-            ClientIdScheme::VerifierAttestation => {
+            ClientIdPrefix::VerifierAttestation => {
                 let (request, did) = self
                     .parse_referenced_data_from_verifier_attestation_token(request_token)
                     .await?;
                 (request, did.map(IdentifierDetails::Did))
             }
-            ClientIdScheme::RedirectUri => (request_token.payload.custom, None),
-            ClientIdScheme::X509SanDns => {
+            ClientIdPrefix::RedirectUri => (request_token.payload.custom, None),
+            ClientIdPrefix::X509SanDns => {
                 let (params, certificate) = self
                     .parse_referenced_data_from_x509_san_dns_token(request_token)
                     .await?;
                 (params, Some(IdentifierDetails::Certificate(certificate)))
             }
-            ClientIdScheme::X509Hash => {
+            ClientIdPrefix::X509Hash => {
                 let (params, certificate) = self
                     .parse_referenced_data_from_x509_hash_token(request_token)
                     .await?;
                 (params, Some(IdentifierDetails::Certificate(certificate)))
             }
-            ClientIdScheme::Did => {
+            ClientIdPrefix::DecentralizedIdentifier => {
                 let (request, did) = self
                     .parse_referenced_data_from_did_signed_token(request_token)
                     .await?;
@@ -417,6 +408,63 @@ impl OpenID4VPFinal1_0 {
             .error_while("resolving trust")?;
 
         Ok((referenced_params, verifier_details))
+    }
+
+    fn validate_supported_client_id_scheme(
+        &self,
+        client_id_scheme: ClientIdPrefix,
+    ) -> Result<(), VerificationProtocolError> {
+        if !self
+            .params
+            .holder
+            .supported_client_id_schemes
+            .contains(&client_id_scheme)
+        {
+            return Err(VerificationProtocolError::InvalidRequest(format!(
+                "Unsupported client_id_scheme: {client_id_scheme}"
+            )));
+        }
+
+        Ok(())
+    }
+
+    async fn authorization_params_from_query_params(
+        &self,
+        query_params: AuthorizationRequestQueryParams,
+        proof_id: ProofId,
+        organisation_id: OrganisationId,
+    ) -> Result<(AuthorizationRequest, Option<IdentifierDetails>), VerificationProtocolError> {
+        let (_, client_id_scheme) = decode_client_id_with_scheme(
+            &query_params.client_id,
+            self.params.use_legacy_did_client_id_scheme,
+        )?;
+
+        self.validate_supported_client_id_scheme(client_id_scheme)?;
+
+        // All other Client Identifier Prefixes authenticate the Verifier through the signature over
+        // the request object, so they cannot be used with an unsigned request.
+        // See https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
+        if client_id_scheme != ClientIdPrefix::RedirectUri {
+            return Err(VerificationProtocolError::InvalidRequest(format!(
+                "client_id_scheme {client_id_scheme} requires a signed request object"
+            )));
+        }
+
+        let request = authorization_request_from_query_params(query_params)?;
+
+        self.holder_trust_resolver
+            .resolve_verification_trust(
+                None,
+                proof_id,
+                organisation_id,
+                &request.dcql_query,
+                &request.verifier_info,
+                self.params.holder.trust_ecosystems_leeway_seconds,
+            )
+            .await
+            .error_while("resolving trust")?;
+
+        Ok((request, None))
     }
 
     pub(super) async fn request_from_openid4vp_query(
@@ -459,10 +507,11 @@ impl OpenID4VPFinal1_0 {
                     .map_err(|e| VerificationProtocolError::Failed(e.to_string()))?
             }
             (None, Some(request)) => request.to_string(),
+            // Unsigned request: all parameters are passed directly in the query string.
             (None, None) => {
-                return Err(VerificationProtocolError::InvalidRequest(
-                    "request or request_uri is required".to_string(),
-                ));
+                return self
+                    .authorization_params_from_query_params(query_params, proof_id, organisation_id)
+                    .await;
             }
         };
 
@@ -651,7 +700,7 @@ pub(super) fn validate_interaction_data(
             "response_uri must be set".to_string(),
         ));
     };
-    if interaction_data.client_id_scheme == ClientIdScheme::RedirectUri
+    if interaction_data.client_id_scheme == ClientIdPrefix::RedirectUri
         && interaction_data.client_id.as_str() != response_uri.as_str()
     {
         return Err(VerificationProtocolError::InvalidRequest(

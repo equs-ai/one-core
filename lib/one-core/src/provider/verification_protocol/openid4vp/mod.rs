@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use standardized_types::openid4vp::ClientIdPrefix;
+
 use super::{FormatMapper, VerificationProtocolError};
 use crate::error::ContextWithErrorCode;
 use crate::model::identifier::{Identifier, IdentifierType};
@@ -12,7 +14,6 @@ use crate::provider::credential_formatter::model::AuthenticationFn;
 use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
-use crate::provider::verification_protocol::openid4vp::model::ClientIdScheme;
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
 pub(crate) mod dcql;
 pub(crate) mod disclosure_policy;
@@ -28,9 +29,9 @@ pub mod validator;
 
 fn get_client_id_scheme(
     params: Option<ShareProofRequestParamsDTO>,
-    supported_client_id_schemes: &[ClientIdScheme],
+    supported_client_id_schemes: &[ClientIdPrefix],
     verifier_identifier: Identifier,
-) -> Result<ClientIdScheme, VerificationProtocolError> {
+) -> Result<ClientIdPrefix, VerificationProtocolError> {
     let param_scheme = params.unwrap_or_default().client_id_scheme;
 
     if let Some(scheme) = param_scheme {
@@ -55,15 +56,15 @@ fn get_client_id_scheme(
 
 fn get_supported_client_id_scheme_for_identifier(
     identifier: &IdentifierType,
-) -> Vec<ClientIdScheme> {
+) -> Vec<ClientIdPrefix> {
     match identifier {
         IdentifierType::Key => vec![],
         IdentifierType::Did => vec![
-            ClientIdScheme::Did,
-            ClientIdScheme::VerifierAttestation,
-            ClientIdScheme::RedirectUri,
+            ClientIdPrefix::DecentralizedIdentifier,
+            ClientIdPrefix::VerifierAttestation,
+            ClientIdPrefix::RedirectUri,
         ],
-        IdentifierType::Certificate => vec![ClientIdScheme::X509SanDns, ClientIdScheme::X509Hash],
+        IdentifierType::Certificate => vec![ClientIdPrefix::X509SanDns, ClientIdPrefix::X509Hash],
         IdentifierType::CertificateAuthority => vec![],
     }
 }

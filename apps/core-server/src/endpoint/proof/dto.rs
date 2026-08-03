@@ -12,7 +12,6 @@ use one_core::provider::verification_protocol::dto::{
     CredentialQueryResponseDTO, CredentialSetResponseDTO, DisclosurePolicyViolation,
     PresentationDefinitionV2ResponseDTO,
 };
-use one_core::provider::verification_protocol::openid4vp::model::ClientIdScheme;
 use one_core::service::error::ServiceError;
 use one_core::service::proof::dto::{
     CreateProofRequestDTO, CreateProofRequestTransactionDataDTO, ProofClaimDTO, ProofClaimValueDTO,
@@ -29,6 +28,7 @@ use shared_types::{
     CertificateId, CredentialSchemaId, DidId, IdentifierId, KeyId, OrganisationId, ProofId,
     ProofSchemaId, TransactionDataId,
 };
+use standardized_types::openid4vp::ClientIdPrefix;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::OffsetDateTime;
 use utoipa::{IntoParams, ToSchema};
@@ -487,8 +487,8 @@ pub(crate) struct ShareProofRequestParamsRestDTO {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema, From, Into)]
-#[from(ClientIdScheme)]
-#[into(ClientIdScheme)]
+#[from(ClientIdPrefix)]
+#[into(ClientIdPrefix)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientIdSchemeRestEnum {
     RedirectUri,
@@ -496,7 +496,7 @@ pub enum ClientIdSchemeRestEnum {
     /// Accepts both "did" and "decentralized_identifier" as valid values.
     /// Swagger UI will show decentralized_identifier as the value.
     #[serde(rename = "decentralized_identifier", alias = "did")]
-    Did,
+    DecentralizedIdentifier,
     X509SanDns,
     X509Hash,
 }

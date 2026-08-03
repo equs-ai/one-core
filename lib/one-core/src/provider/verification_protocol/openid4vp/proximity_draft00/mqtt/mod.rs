@@ -6,6 +6,7 @@ use model::{MQTTOpenID4VPInteractionDataHolder, MQTTSessionKeys};
 use one_crypto::utilities::generate_random_bytes;
 use serde::Deserialize;
 use serde_json::Value;
+use standardized_types::openid4vp::{AuthorizationRequest, VpTokenResponse};
 use url::Url;
 use uuid::Uuid;
 
@@ -14,8 +15,6 @@ use crate::config::core_config::TransportType;
 use crate::error::ContextWithErrorCode;
 use crate::proto::mqtt_client::{MqttClient, MqttTopic};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
-use crate::provider::verification_protocol::openid4vp::model::DcqlSubmission;
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
     IdentityRequest, ProtocolVersion,
 };
@@ -195,7 +194,7 @@ impl ProximityHolderTransport for MqttHolderTransport {
 
     async fn submit_presentation(
         &self,
-        presentation: DcqlSubmission,
+        presentation: VpTokenResponse,
         interaction_data: Value,
     ) -> Result<(), VerificationProtocolError> {
         let interaction_data: MQTTOpenID4VPInteractionDataHolder =

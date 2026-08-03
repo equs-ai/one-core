@@ -1,6 +1,7 @@
 use coset::iana;
 use shared_types::ProofId;
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vp::{VerifierInfoAttestation, VerifierInfoAttestationFormat};
 use time::Duration;
 
 use super::common::{DeviceRequest, ItemsRequest};
@@ -23,9 +24,6 @@ use crate::provider::credential_formatter::model::{
 use crate::provider::presentation_formatter::mso_mdoc::model::ReaderAuthentication;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::SessionTranscript;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
-use crate::provider::verification_protocol::openid4vp::final1_0::model::{
-    VerifierInfoAttestation, VerifierInfoAttestationFormat,
-};
 
 #[expect(clippy::too_many_arguments)]
 pub(super) async fn resolve_verifier_and_trust(

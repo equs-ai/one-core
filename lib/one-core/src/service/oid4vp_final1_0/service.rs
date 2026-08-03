@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use one_crypto::jwe::{decrypt_jwe_payload, extract_jwe_header};
 use shared_types::{BlobId, KeyId, ProofId};
-use standardized_types::openid4vp::ClientMetadata;
+use standardized_types::openid4vp::{
+    ClientIdPrefix, ClientMetadata, DirectPostResponse, EncryptedResponse, VerifierInfoAttestation,
+    VerifierInfoAttestationFormat,
+};
 use tracing::warn;
 
 use super::OID4VPFinal1_0Service;
@@ -29,9 +32,6 @@ use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::{
     create_open_id_for_vp_client_metadata_final1_0, decode_client_id_with_scheme,
 };
-use crate::provider::verification_protocol::openid4vp::final1_0::model::{
-    VerifierInfoAttestation, VerifierInfoAttestationFormat,
-};
 use crate::provider::verification_protocol::openid4vp::mapper::{
     format_authorization_request_client_id_scheme_did,
     format_authorization_request_client_id_scheme_redirect_uri,
@@ -39,9 +39,8 @@ use crate::provider::verification_protocol::openid4vp::mapper::{
     format_authorization_request_client_id_scheme_x509,
 };
 use crate::provider::verification_protocol::openid4vp::model::{
-    ClientIdScheme, CommonVerifierInteractionContent, JwePayload, OpenID4VPDirectPostRequestDTO,
-    OpenID4VPDirectPostResponseDTO, OpenID4VPVerifierInteractionContent, ResponseSubmission,
-    SubmissionRequestData, VpSubmissionData,
+    CommonVerifierInteractionContent, JwePayload, OpenID4VPDirectPostRequestDTO,
+    OpenID4VPVerifierInteractionContent, SubmissionRequestData, VpSubmissionData,
 };
 use crate::service::ssi_validator::validate_verification_protocol_type;
 use crate::util::openid4vp::persist_accepted_proof;
@@ -131,7 +130,7 @@ impl OID4VPFinal1_0Service {
         .error_while("selecting agreement key")?;
 
         let verifier_info = match client_id_scheme {
-            ClientIdScheme::X509SanDns | ClientIdScheme::X509Hash => {
+            ClientIdPrefix::X509SanDns | ClientIdPrefix::X509Hash => {
                 let verifier_identifier = proof.verifier_identifier.as_ref().ok_or(
                     OID4VPFinal1_0ServiceError::MappingError("missing verifier".to_string()),
                 )?;
@@ -161,12 +160,12 @@ impl OID4VPFinal1_0Service {
         .error_while("generating authorization request")?;
 
         Ok(match client_id_scheme {
-            ClientIdScheme::RedirectUri => {
+            ClientIdPrefix::RedirectUri => {
                 format_authorization_request_client_id_scheme_redirect_uri(authorization_request)
                     .await
                     .error_while("formatting authorization request")?
             }
-            ClientIdScheme::VerifierAttestation => {
+            ClientIdPrefix::VerifierAttestation => {
                 let (client_id_without_prefix, _) = decode_client_id_with_scheme(&client_id, false)
                     .error_while("decoding clientId")?;
 
@@ -181,15 +180,17 @@ impl OID4VPFinal1_0Service {
                 .await
                 .error_while("formatting authorization request")?
             }
-            ClientIdScheme::Did => format_authorization_request_client_id_scheme_did(
-                &proof,
-                &self.key_algorithm_provider,
-                &*self.key_provider,
-                authorization_request,
-            )
-            .await
-            .error_while("formatting authorization request")?,
-            ClientIdScheme::X509SanDns | ClientIdScheme::X509Hash => {
+            ClientIdPrefix::DecentralizedIdentifier => {
+                format_authorization_request_client_id_scheme_did(
+                    &proof,
+                    &self.key_algorithm_provider,
+                    &*self.key_provider,
+                    authorization_request,
+                )
+                .await
+                .error_while("formatting authorization request")?
+            }
+            ClientIdPrefix::X509SanDns | ClientIdPrefix::X509Hash => {
                 format_authorization_request_client_id_scheme_x509(
                     &proof,
                     &self.key_algorithm_provider,
@@ -251,7 +252,7 @@ impl OID4VPFinal1_0Service {
     pub async fn direct_post(
         &self,
         request: OpenID4VPDirectPostRequestDTO,
-    ) -> Result<OpenID4VPDirectPostResponseDTO, OID4VPFinal1_0ServiceError> {
+    ) -> Result<DirectPostResponse, OID4VPFinal1_0ServiceError> {
         validate_verification_protocol_config_exists(
             &self.config,
             &[
@@ -297,7 +298,7 @@ impl OID4VPFinal1_0Service {
         &self,
         proof: Proof,
         unpacked_request: SubmissionRequestData,
-    ) -> Result<OpenID4VPDirectPostResponseDTO, OID4VPFinal1_0ServiceError> {
+    ) -> Result<DirectPostResponse, OID4VPFinal1_0ServiceError> {
         let organisation = proof
             .schema
             .as_ref()
@@ -359,7 +360,7 @@ impl OID4VPFinal1_0Service {
             .error_while("creating proof blob")?;
 
         let validation_result: Result<
-            (ValidatedProofResult, OpenID4VPDirectPostResponseDTO),
+            (ValidatedProofResult, DirectPostResponse),
             OID4VPFinal1_0ServiceError,
         > = async {
             let (proof_result, response) = self
@@ -448,7 +449,7 @@ impl OID4VPFinal1_0Service {
             }),
             OpenID4VPDirectPostRequestDTO {
                 submission_data:
-                    VpSubmissionData::EncryptedResponse(ResponseSubmission { response: jwe }),
+                    VpSubmissionData::EncryptedResponse(EncryptedResponse { response: jwe }),
                 ..
             } => {
                 let jwe_header = extract_jwe_header(&jwe).map_err(|err| {
