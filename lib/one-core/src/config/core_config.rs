@@ -18,8 +18,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Value, json};
 use serde_with::{DurationSeconds, serde_as, skip_serializing_none};
 use shared_types::{
-    CredentialFormat, DidMethodId, RevocationMethodId, SignerId, TaskId, TransactionDataType,
-    TrustListSubscriberId,
+    CredentialFormat, DidMethodId, EcosystemId, RevocationMethodId, SignerId, TaskId,
+    TransactionDataType, TrustListSubscriberId,
 };
 use strum::{AsRefStr, Display, EnumString};
 use time::Duration;
@@ -75,6 +75,7 @@ pub struct CoreConfig {
     pub verifier_provider: VerifierProviderConfig,
     pub document_signer_provider: DocumentSignerProviderConfig,
     pub transaction_data_provider: TransactionDataProviderConfig,
+    pub ecosystem: EcosystemProviderConfig,
     pub global_settings: GlobalSettings,
 }
 
@@ -959,6 +960,29 @@ pub enum TransactionDataProviderType {
 
 pub type TransactionDataProviderConfig =
     ConfigBlock<TransactionDataType, TransactionDataProviderType>;
+
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Display,
+    EnumString,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    AsRefStr,
+    Hash,
+)]
+pub enum EcosystemProviderType {
+    #[serde(rename = "EUDI")]
+    #[strum(serialize = "EUDI")]
+    Eudi,
+}
+
+pub type EcosystemProviderConfig = ConfigBlock<EcosystemId, EcosystemProviderType>;
 
 // Alias for the collection of traits we want config keys to implement.
 pub trait ConfigKey: Debug + Display + Clone + Ord + Hash + Eq {}

@@ -64,6 +64,7 @@ fn convert_internal_structure_to_dto() {
           "signer": {},
           "trustListPublisher": {},
           "trustListSubscriber": {},
+          "ecosystem": {},
           "globalSettings": {
             "defaultLanguage": ""
           }
@@ -128,6 +129,7 @@ fn do_not_serialize_private_parameters() {
           "signer": {},
           "trustListPublisher": {},
           "trustListSubscriber": {},
+          "ecosystem": {},
           "globalSettings": {
             "defaultLanguage": ""
           }

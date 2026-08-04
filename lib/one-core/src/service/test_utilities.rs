@@ -259,6 +259,7 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
         transactionDataProvider: {}
         trustListPublisher: {}
         trustListSubscriber: {}
+        ecosystem: {}
         globalSettings:
             certificateValidation:
                 leewaySeconds: 60

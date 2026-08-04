@@ -21,4 +21,5 @@ trustListPublisher: {}
 trustListSubscriber: {}
 documentSignerProvider: {}
 transactionDataProvider: {}
+ecosystem: {}
 globalSettings: {}

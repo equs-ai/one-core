@@ -93,6 +93,8 @@ pub(crate) struct ConfigRestDTO {
     /// credential presentation.
     #[schema(example = json!({}))]
     pub transaction_data_provider: HashMap<String, Value>,
+    #[schema(example = json!({}))]
+    pub ecosystem: HashMap<String, Value>,
     /// Deployment-wide settings that are not tied to a specific config entity.
     pub global_settings: GlobalSettingsRestDTO,
 }
@@ -139,6 +141,7 @@ impl From<ConfigDTO> for ConfigRestDTO {
             trust_list_subscriber: config.trust_list_subscriber,
             verifier_provider: config.verifier_provider,
             transaction_data_provider: config.transaction_data_provider,
+            ecosystem: config.ecosystem,
             global_settings: config.global_settings.into(),
         }
     }

@@ -120,6 +120,7 @@ rusty_fork_test! {
             transactionDataProvider: {}
             trustListPublisher: {}
             trustListSubscriber: {}
+            ecosystem: {}
             globalSettings:
               httpClient:
                 insecureHttpTransportAllowed: true
