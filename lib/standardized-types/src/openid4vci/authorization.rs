@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// [RFC 9396](https://www.rfc-editor.org/rfc/rfc9396.html) and profiled by OpenID4VCI with the
 /// `openid_credential` type.
 ///
-/// Spec <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-request-issuance-of-a-certa>
+/// Spec <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-using-authorization-details>
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizationDetail {
     pub r#type: String,
