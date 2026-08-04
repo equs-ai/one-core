@@ -11,6 +11,7 @@ pub mod data_type;
 pub mod did_method;
 mod disabled_provider;
 pub mod document_signer;
+pub mod ecosystem;
 pub mod issuance_protocol;
 pub mod key_algorithm;
 pub mod key_security_level;

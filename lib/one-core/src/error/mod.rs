@@ -1005,6 +1005,9 @@ pub enum ErrorCode {
 
     #[strum(message = "User authentication mandated but not supported for instances with OS WEB")]
     BR_0473,
+
+    #[strum(message = "No suitable provider")]
+    BR_0478,
 }
 
 pub trait ErrorCodeMixin: Error + Send + Sync + 'static {
