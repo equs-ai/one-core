@@ -11,6 +11,8 @@ use shared_types::{CredentialFormat, CredentialId, DidId, InteractionId};
 use similar_asserts::assert_eq;
 use standardized_types::jwk::{PublicJwk, PublicJwkEc};
 use standardized_types::oauth2::TokenType;
+use standardized_types::oauth2::token::TokenRequest;
+use standardized_types::openid4vci::*;
 use uuid::Uuid;
 
 use super::OID4VCIFinal1_0Service;
@@ -50,7 +52,6 @@ use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::issuance_protocol::MockIssuanceProtocol;
 use crate::provider::issuance_protocol::error::{IssuanceProtocolError, OpenID4VCIError};
 use crate::provider::issuance_protocol::openid4vci_final1_0::OpenID4VCIFinal1_0;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::*;
 use crate::provider::issuance_protocol::provider::MockIssuanceProtocolProvider;
 use crate::provider::key_algorithm::key::{
     KeyHandle, MockSignaturePublicKeyHandle, SignatureKeyHandle,
@@ -474,6 +475,7 @@ async fn test_get_issuer_metadata_jwt() {
             .display
             .as_ref()
             .unwrap()[0]
+            .standard
             .name
     );
     assert_eq!(
@@ -495,7 +497,7 @@ async fn test_get_issuer_metadata_jwt() {
         credential_configuration
             .credential_signing_alg_values_supported
             .unwrap(),
-        vec![CredentialSigningAlgValue::String("ES256".to_string())]
+        vec![SigningAlgValue::String("ES256".to_string())]
     );
 
     assert!(credential_configuration.vct.is_none());
@@ -614,6 +616,7 @@ async fn test_get_issuer_metadata_sd_jwt() {
             .display
             .as_ref()
             .unwrap()[0]
+            .standard
             .name
     );
     // SD-JWT format should not have doctype (which is mdoc-specific)
@@ -633,7 +636,7 @@ async fn test_get_issuer_metadata_sd_jwt() {
     );
     assert_eq!(
         credential.credential_signing_alg_values_supported.unwrap(),
-        vec![CredentialSigningAlgValue::String("ES256".to_string())]
+        vec![SigningAlgValue::String("ES256".to_string())]
     );
     // For SD-JWT, check vct field instead of credential_definition
     assert_eq!(credential.vct.unwrap(), "test-vct");
@@ -782,6 +785,7 @@ async fn test_get_issuer_metadata_mdoc() {
             .display
             .as_ref()
             .unwrap()[0]
+            .standard
             .name
     );
     assert_eq!(
@@ -941,19 +945,19 @@ async fn test_get_issuer_metadata_includes_schema_translations() {
 
     let en_display = displays
         .iter()
-        .find(|d| d.locale.as_deref() == Some("en"))
+        .find(|d| d.standard.locale.as_deref() == Some("en"))
         .unwrap();
-    assert_eq!("English Name", en_display.name);
-    assert!(en_display.description.is_none());
+    assert_eq!("English Name", en_display.standard.name);
+    assert!(en_display.standard.description.is_none());
 
     let de_display = displays
         .iter()
-        .find(|d| d.locale.as_deref() == Some("de"))
+        .find(|d| d.standard.locale.as_deref() == Some("de"))
         .unwrap();
-    assert_eq!("German Name", de_display.name);
+    assert_eq!("German Name", de_display.standard.name);
     assert_eq!(
         Some("German Description"),
-        de_display.description.as_deref()
+        de_display.standard.description.as_deref()
     );
 }
 
@@ -1168,7 +1172,7 @@ async fn test_create_token() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },
@@ -1214,7 +1218,7 @@ async fn test_create_token_empty_pre_authorized_code() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "".to_string(),
                 tx_code: None,
             },
@@ -1274,7 +1278,7 @@ async fn test_create_token_pre_authorized_code_used() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },
@@ -1334,7 +1338,7 @@ async fn test_create_token_wrong_credential_state() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },
@@ -1511,13 +1515,11 @@ async fn test_create_credential_success() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -1525,8 +1527,14 @@ async fn test_create_credential_success() {
 
     let result = result.unwrap();
     assert_eq!(
-        result.credentials.unwrap().first().unwrap().credential,
-        "xyz".into(),
+        result
+            .standard
+            .credentials
+            .unwrap()
+            .first()
+            .unwrap()
+            .credential,
+        "xyz",
     );
 }
 
@@ -1696,13 +1704,11 @@ async fn test_create_credential_success_sd_jwt_vc() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -1710,8 +1716,14 @@ async fn test_create_credential_success_sd_jwt_vc() {
 
     let result = result.unwrap();
     assert_eq!(
-        result.credentials.unwrap().first().unwrap().credential,
-        "xyz".into(),
+        result
+            .standard
+            .credentials
+            .unwrap()
+            .first()
+            .unwrap()
+            .credential,
+        "xyz",
     );
 }
 
@@ -1904,13 +1916,11 @@ async fn test_create_credential_success_mdoc() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -1919,8 +1929,14 @@ async fn test_create_credential_success_mdoc() {
     assert!(result.is_ok());
     let result = result.unwrap();
     assert_eq!(
-        result.credentials.unwrap().first().unwrap().credential,
-        "xyz".into(),
+        result
+            .standard
+            .credentials
+            .unwrap()
+            .first()
+            .unwrap()
+            .credential,
+        "xyz",
     );
 }
 
@@ -1947,13 +1963,11 @@ async fn test_create_credential_configuration_id_invalid() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     "invalid".to_string(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -1991,13 +2005,11 @@ async fn test_create_credential_format_invalid_bearer_token() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -2046,13 +2058,11 @@ async fn test_create_credential_pre_authorized_code_not_used() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -2101,13 +2111,11 @@ async fn test_create_credential_interaction_data_invalid() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.123",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -2164,13 +2172,11 @@ async fn test_create_credential_access_token_expired() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -2338,13 +2344,11 @@ async fn test_create_credential_issuer_failed() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -2485,13 +2489,11 @@ async fn test_create_credential_nonce_reused() {
         .create_credential(
             &schema.id,
             "3fa85f64-5717-4562-b3fc-2c963f66afa6.asdfasdfasdf",
-            OpenID4VCICredentialRequestDTO {
-                credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+            CredentialRequest {
+                credential: CredentialRequestIdentifier::CredentialConfigurationId(
                     schema.schema_id().await.unwrap().to_owned(),
                 ),
-                proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(vec![
-                    PROOF_JWT.to_string(),
-                ])),
+                proofs: Some(Proofs::Jwt(vec![PROOF_JWT.to_string()])),
                 credential_response_encryption: None,
             },
         )
@@ -2570,7 +2572,7 @@ async fn test_for_mdoc_schema_pre_authorized_grant_type_creates_refresh_token() 
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },
@@ -2664,7 +2666,7 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::RefreshToken {
+            TokenRequest::RefreshToken {
                 refresh_token: refresh_token.to_string(),
             },
             None,
@@ -2753,7 +2755,7 @@ async fn test_refresh_token_request_fails_if_refresh_token_is_expired() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::RefreshToken {
+            TokenRequest::RefreshToken {
                 refresh_token: refresh_token.to_string(),
             },
             None,
@@ -2804,7 +2806,7 @@ async fn test_create_token_eudi_compliant_without_attestation_fails() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },
@@ -2860,7 +2862,7 @@ async fn test_create_token_eudi_compliant_with_only_attestation_fails() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },
@@ -2915,7 +2917,7 @@ async fn test_create_token_non_eudi_with_attestation_fails() {
     let result = service
         .create_token(
             &schema.id,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: "c62f4237-3c74-42f2-a5ff-c72489e025f7".to_string(),
                 tx_code: None,
             },

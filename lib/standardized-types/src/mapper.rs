@@ -15,6 +15,29 @@ pub mod secret_string {
     }
 }
 
+// Utility for optional `secrecy` string values serialization
+pub mod opt_secret_string {
+    use secrecy::{ExposeSecret, SecretString};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    pub fn serialize<S: Serializer>(
+        secret: &Option<SecretString>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
+        secret
+            .as_ref()
+            .map(|secret| secret.expose_secret())
+            .serialize(s)
+    }
+
+    pub fn deserialize<'de, D>(d: D) -> Result<Option<SecretString>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let data: Option<String> = Option::deserialize(d)?;
+        Ok(data.map(SecretString::from))
+    }
+}
+
 /// Deserializes a value that may be provided either inline (as JSON) or as a JSON string.
 ///
 /// Several standards allow the same parameter to be passed both as a JSON object (e.g. inside a

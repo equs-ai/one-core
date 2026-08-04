@@ -3,11 +3,11 @@ use one_core::model::credential_schema::CredentialSchema;
 use one_core::model::did::{DidType, KeyRole, RelatedKey};
 use one_core::model::identifier::IdentifierType;
 use one_core::model::interaction::InteractionType;
-use one_core::provider::issuance_protocol::openid4vci_final1_0::model::OpenID4VCINotificationEvent;
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use serde_json::json;
 use similar_asserts::assert_eq;
+use standardized_types::openid4vci::NotificationEvent;
 use time::macros::format_description;
 use uuid::Uuid;
 
@@ -27,7 +27,7 @@ async fn test_post_notification_credential_accepted() {
         .openid4vci_notification(
             credential_schema.id,
             "notification",
-            OpenID4VCINotificationEvent::CredentialAccepted,
+            NotificationEvent::CredentialAccepted,
         )
         .await;
 
@@ -47,7 +47,7 @@ async fn test_post_notification_credential_failure() {
         .openid4vci_notification(
             credential_schema.id,
             "notification",
-            OpenID4VCINotificationEvent::CredentialFailure,
+            NotificationEvent::CredentialFailure,
         )
         .await;
 
@@ -67,7 +67,7 @@ async fn test_post_notification_credential_deleted() {
         .openid4vci_notification(
             credential_schema.id,
             "notification",
-            OpenID4VCINotificationEvent::CredentialDeleted,
+            NotificationEvent::CredentialDeleted,
         )
         .await;
 

@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use shared_types::InstanceId;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 use time::Duration;
 
 use crate::config::core_config::KeyAlgorithmType;
@@ -22,7 +23,6 @@ use crate::proto::wallet_provider_client::dto::IssueWalletAttestationResponse;
 use crate::provider::credential_formatter::model::{
     AuthenticationFn, CertificateDetails, CredentialStatus, IdentifierDetails,
 };
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;

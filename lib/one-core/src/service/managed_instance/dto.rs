@@ -4,6 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::{DurationSeconds, serde_as, skip_serializing_none};
 use shared_types::{ManagedInstanceId, RevocationMethodId, TrustCollectionId};
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 use time::{Duration, OffsetDateTime};
 
 use crate::config::core_config::DocumentSignerType;
@@ -11,7 +12,6 @@ use crate::model::common::GetListResponse;
 use crate::model::instance::{InstanceRole, InstanceStatus};
 use crate::model::managed_instance::ManagedInstanceOs;
 use crate::provider::credential_formatter::sdjwtvc_formatter::model::SdJwtVcStatus;
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 
 #[derive(Clone, Debug)]
 pub struct RegisterWalletUnitRequestDTO {

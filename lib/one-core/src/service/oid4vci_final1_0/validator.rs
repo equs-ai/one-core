@@ -1,6 +1,9 @@
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vci::{
+    CredentialRequest, CredentialRequestIdentifier, KeyStorageSecurityLevel,
+};
 use time::Duration;
 
 use super::error::OID4VCIFinal1_0ServiceError;
@@ -13,10 +16,8 @@ use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::DecomposedJwt;
 use crate::provider::credential_formatter::model::{PublicKeySource, TokenVerifier};
 use crate::provider::issuance_protocol::error::OpenID4VCIError;
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
-    OpenID4VCICredentialRequestDTO, OpenID4VCICredentialRequestIdentifier, OpenID4VCIFinal1Params,
-    OpenID4VCIIssuerInteractionDataDTO,
+    OpenID4VCIFinal1Params, OpenID4VCIIssuerInteractionDataDTO,
 };
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::service::managed_instance::dto::{
@@ -28,11 +29,10 @@ use crate::validator::{
 
 pub(crate) async fn validate_credential_request_format(
     schema: &CredentialSchema,
-    request: &OpenID4VCICredentialRequestDTO,
+    request: &CredentialRequest,
 ) -> Result<CredentialSchemaFormat, OID4VCIFinal1_0ServiceError> {
-    let OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
-        credential_configuration_id,
-    ) = &request.credential
+    let CredentialRequestIdentifier::CredentialConfigurationId(credential_configuration_id) =
+        &request.credential
     else {
         return Err(OpenID4VCIError::InvalidRequest.into());
     };

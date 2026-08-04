@@ -10,6 +10,7 @@ use shared_types::{
     EntityId, IdentifierId, ManagedInstanceId, OrganisationId, RevocationListEntryId,
 };
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 use time::Duration;
 use uuid::Uuid;
 
@@ -61,7 +62,6 @@ use crate::proto::jwt::{Jwt, JwtPublicKeyInfo};
 use crate::proto::session_provider::SessionExt;
 use crate::provider::credential_formatter::model::AuthenticationFn;
 use crate::provider::credential_formatter::sdjwtvc_formatter::model::SdJwtVcStatus;
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::revocation::RevocationMethod;

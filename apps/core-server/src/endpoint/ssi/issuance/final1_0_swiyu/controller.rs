@@ -9,14 +9,16 @@ use one_core::error::{ErrorCode, ErrorCodeMixin};
 use one_core::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
 use proc_macros::endpoint;
 use shared_types::{CredentialId, CredentialSchemaId, IdentifierId};
+use standardized_types::oauth2::authorization_server_metadata::AuthorizationServerMetadata;
+use standardized_types::oauth2::token::TokenResponse;
+use standardized_types::openid4vci::{
+    CredentialOffer, CredentialRequest, NonceResponse, NotificationRequest,
+};
 
 use crate::dto::error::ErrorResponseRestDTO;
 use crate::endpoint::ssi::dto::OpenID4VCIErrorResponseRestDTO;
 use crate::endpoint::ssi::issuance::final1_0::dto::{
-    OAuthAuthorizationServerMetadataRestDTO, OpenID4VCIFinal1CredentialOfferRestDTO,
-    OpenID4VCIFinal1CredentialRequestRestDTO, OpenID4VCIFinal1CredentialResponseRestDTO,
-    OpenID4VCINonceResponseRestDTO, OpenID4VCINotificationRequestRestDTO,
-    OpenID4VCITokenRequestRestDTO, OpenID4VCITokenResponseRestDTO,
+    OpenID4VCIFinal1CredentialResponseRestDTO, OpenID4VCITokenRequestRestDTO,
 };
 use crate::endpoint::ssi::issuance::final1_0_swiyu::dto::{
     OpenID4VCISwiyuIssuerMetadataResponseRestDTO, SwiyuOpenID4VCITokenResponseRestDTO,
@@ -115,7 +117,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_get_issuer_metadata_legacy(
         ("credential_schema_id" = CredentialSchemaId, Path, description = "Credential schema id")
     ),
     responses(
-        (status = 200, description = "OK", body = OAuthAuthorizationServerMetadataRestDTO),
+        (status = 200, description = "OK", body = AuthorizationServerMetadata),
         (status = 404, description = "Credential schema not found"),
         (status = 500, description = "Server error"),
     ),
@@ -140,11 +142,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_oauth_authorization_server(
         .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OAuthAuthorizationServerMetadataRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(error) if matches!(error.error_code(), ErrorCode::BR_0006 | ErrorCode::BR_0089) => {
             tracing::error!("Not found error: {error}");
             StatusCode::NOT_FOUND.into_response()
@@ -166,7 +164,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_oauth_authorization_server(
         ("credential_schema_id" = CredentialSchemaId, Path, description = "Credential schema id")
     ),
     responses(
-        (status = 200, description = "OK", body = OAuthAuthorizationServerMetadataRestDTO),
+        (status = 200, description = "OK", body = AuthorizationServerMetadata),
         (status = 404, description = "Credential schema not found"),
         (status = 500, description = "Server error"),
     ),
@@ -195,7 +193,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_oauth_authorization_server_legacy(
         ("credential_id" = CredentialId, Path, description = "Credential id")
     ),
     responses(
-        (status = 200, description = "OK", body = OpenID4VCIFinal1CredentialOfferRestDTO),
+        (status = 200, description = "OK", body = CredentialOffer),
         (status = 400, description = "Invalid request"),
         (status = 404, description = "Credential not found"),
         (status = 500, description = "Server error"),
@@ -221,11 +219,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_get_credential_offer(
         .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OpenID4VCIFinal1CredentialOfferRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(OID4VCIFinal1_0ServiceError::OpenID4VCIError(error)) => {
             tracing::error!("OpenID4VCI credential offer error: {:?}", error);
             (
@@ -256,7 +250,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_get_credential_offer(
         ("refresh_token" = Option<String>, Query, nullable = false)
     ),
     responses(
-        (status = 200, description = "OK", body = OpenID4VCITokenResponseRestDTO),
+        (status = 200, description = "OK", body = TokenResponse),
         (status = 400, description = "OIDC token errors", body = OpenID4VCIErrorResponseRestDTO),
         (status = 404, description = "Credential schema not found"),
         (status = 409, description = "Wrong credential state"),
@@ -360,16 +354,13 @@ pub(crate) async fn oid4vci_final1_0_swiyu_create_credential(
         TypedHeader<headers::Authorization<Bearer>>,
         ErrorResponseRestDTO,
     >,
-    WithRejection(Json(request), _): WithRejection<
-        Json<OpenID4VCIFinal1CredentialRequestRestDTO>,
-        ErrorResponseRestDTO,
-    >,
+    WithRejection(Json(request), _): WithRejection<Json<CredentialRequest>, ErrorResponseRestDTO>,
 ) -> Response {
     let access_token = token.token();
     let result = state
         .core
         .oid4vci_final1_0_swiyu_service
-        .create_credential(&credential_schema_id, access_token, request.into())
+        .create_credential(&credential_schema_id, access_token, request)
         .await;
 
     match result {
@@ -405,7 +396,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_create_credential(
         ("protocol_id" = String, Path, description = "Issuance protocol id")
     ),
     responses(
-        (status = 200, description = "OK", body = OpenID4VCINonceResponseRestDTO),
+        (status = 200, description = "OK", body = NonceResponse),
         (status = 500, description = "Server error"),
     ),
     tag = "openid4vci-final1_0-swiyu",
@@ -426,11 +417,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_nonce(
         .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OpenID4VCINonceResponseRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(e) => {
             tracing::error!("Error: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
@@ -441,7 +428,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_nonce(
 #[utoipa::path(
     post,
     path = "/ssi/openid4vci/final-1.0-swiyu/{id}/notification",
-    request_body(content = OpenID4VCINotificationRequestRestDTO, description = "Notification request"),
+    request_body(content = NotificationRequest, description = "Notification request"),
     params(
         ("id" = CredentialSchemaId, Path, description = "Credential schema id")
     ),
@@ -472,16 +459,13 @@ pub(crate) async fn oid4vci_final1_0_credential_notification(
         TypedHeader<headers::Authorization<Bearer>>,
         ErrorResponseRestDTO,
     >,
-    WithRejection(Json(request), _): WithRejection<
-        Json<OpenID4VCINotificationRequestRestDTO>,
-        ErrorResponseRestDTO,
-    >,
+    WithRejection(Json(request), _): WithRejection<Json<NotificationRequest>, ErrorResponseRestDTO>,
 ) -> Response {
     let access_token = token.token();
     let result = state
         .core
         .oid4vci_final1_0_swiyu_service
-        .handle_notification(credential_schema_id, access_token, request.into())
+        .handle_notification(credential_schema_id, access_token, request)
         .await;
 
     match result {

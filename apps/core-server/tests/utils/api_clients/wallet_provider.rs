@@ -1,7 +1,7 @@
-use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use serde_json::json;
 use shared_types::ManagedInstanceId;
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 
 use crate::utils::api_clients::{HttpClient, Response};
 

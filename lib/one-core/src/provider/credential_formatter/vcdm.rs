@@ -4,6 +4,7 @@ use bon::bon;
 use indexmap::{IndexMap, IndexSet, indexset};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::{OneOrMany, serde_as, skip_serializing_none};
+pub use standardized_types::w3c_vcdm::Context as ContextType;
 use time::OffsetDateTime;
 use url::Url;
 
@@ -13,19 +14,6 @@ use crate::provider::credential_formatter::MetadataClaimSchema;
 use crate::provider::credential_formatter::model::{
     CredentialSchema, CredentialStatus, Description, Issuer, Name,
 };
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
-#[serde(untagged)]
-pub enum ContextType {
-    Url(Url),
-    Object(serde_json::Map<String, serde_json::Value>),
-}
-
-impl From<Url> for ContextType {
-    fn from(value: Url) -> Self {
-        Self::Url(value)
-    }
-}
 
 #[skip_serializing_none]
 #[serde_as]

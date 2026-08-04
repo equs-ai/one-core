@@ -6,10 +6,7 @@ use shared_types::{
 };
 use url::Url;
 
-use super::dto::{
-    ContinueIssuanceDTO, Features, IssuanceProtocolCapabilities,
-    OpenID4VCIIssuerMetadataResponseDTO,
-};
+use super::dto::{ContinueIssuanceDTO, Features, IssuanceProtocolCapabilities, IssuerMetadata};
 use super::error::IssuanceProtocolError;
 use super::model::{
     ContinueIssuanceResponseDTO, InvitationResponseEnum, IssuanceAcceptResponse, ShareResponse,
@@ -100,7 +97,7 @@ impl<T: Provider + IssuanceProtocol + Display + ?Sized> IssuanceProtocol for Dis
         protocol_id: &str,
         credential_schema_id: &CredentialSchemaId,
         issuer_identifier: &Identifier,
-    ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, IssuanceProtocolError> {
+    ) -> Result<IssuerMetadata, IssuanceProtocolError> {
         self.inner()
             .issuer_metadata(protocol_id, credential_schema_id, issuer_identifier)
             .await
@@ -212,7 +209,7 @@ impl IssuanceProtocol for CapabilityChecked {
         protocol_id: &str,
         credential_schema_id: &CredentialSchemaId,
         issuer_identifier: &Identifier,
-    ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, IssuanceProtocolError> {
+    ) -> Result<IssuerMetadata, IssuanceProtocolError> {
         self.0
             .issuer_metadata(protocol_id, credential_schema_id, issuer_identifier)
             .await

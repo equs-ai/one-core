@@ -1,9 +1,8 @@
-use one_core::provider::issuance_protocol::model::{OpenID4VCITxCode, OpenID4VCITxCodeInputMode};
 use one_core::service::ssi_holder::dto::{
-    ContinueIssuanceResponseDTO, InitiateIssuanceAuthorizationDetailDTO,
-    InitiateIssuanceResponseDTO,
+    ContinueIssuanceResponseDTO, InitiateIssuanceResponseDTO,
 };
 use one_dto_mapper::{From, Into, convert_inner, convert_inner_of_inner};
+use standardized_types::openid4vci::{AuthorizationDetail, TxCode, TxCodeInputMode};
 
 use super::credential_schema::KeyStorageSecurityBindingEnum;
 use crate::OneCore;
@@ -190,7 +189,7 @@ pub struct ContinueIssuanceResponseBindingDTO {
 }
 
 #[derive(Clone, Debug, From, uniffi::Record)]
-#[from(OpenID4VCITxCode)]
+#[from(TxCode)]
 #[uniffi(name = "OpenID4VCITxCode")]
 pub struct OpenID4VCITxCodeBindingDTO {
     /// For validation.
@@ -203,7 +202,7 @@ pub struct OpenID4VCITxCodeBindingDTO {
 }
 
 #[derive(Clone, Debug, From, uniffi::Enum)]
-#[from(OpenID4VCITxCodeInputMode)]
+#[from(TxCodeInputMode)]
 #[uniffi(name = "OpenID4VCITxCodeInputMode")]
 pub enum OpenID4VCITxCodeInputModeBindingEnum {
     Numeric,
@@ -231,7 +230,7 @@ pub struct InitiateIssuanceRequestBindingDTO {
 }
 
 #[derive(Clone, Debug, uniffi::Record, Into)]
-#[into(InitiateIssuanceAuthorizationDetailDTO)]
+#[into(AuthorizationDetail)]
 #[uniffi(name = "InitiateIssuanceAuthorizationDetail")]
 pub struct InitiateIssuanceAuthorizationDetailBindingDTO {
     pub r#type: String,

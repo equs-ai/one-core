@@ -5,15 +5,18 @@ use one_crypto::hasher::sha256::SHA256;
 use one_dto_mapper::convert_inner_of_inner;
 use secrecy::ExposeSecret;
 use serde::de::Error;
+use standardized_types::oauth2::token::TokenResponse;
+use standardized_types::openid4vci::{
+    KeyAttestationsRequired, KeyStorageSecurityLevel, ProofTypeSupported,
+};
 use time::OffsetDateTime;
 
 use super::model::{
-    CredentialIssuerParams, CredentialSchemaBackgroundPropertiesRequestDTO,
-    CredentialSchemaCodePropertiesRequestDTO, CredentialSchemaCodeTypeEnum,
-    CredentialSchemaLayoutPropertiesRequestDTO, CredentialSchemaLogoPropertiesRequestDTO,
-    HolderInteractionData, OpenID4VCICredentialConfigurationData,
+    CredentialConfigurationData, CredentialDisplayWithDesign, CredentialIssuerParams,
+    CredentialSchemaBackgroundPropertiesRequestDTO, CredentialSchemaCodePropertiesRequestDTO,
+    CredentialSchemaCodeTypeEnum, CredentialSchemaLayoutPropertiesRequestDTO,
+    CredentialSchemaLogoPropertiesRequestDTO, HolderInteractionData,
     OpenID4VCIIssuerInteractionDataDTO, OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
-    OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO, OpenID4VCITokenResponseDTO,
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{IdentifierType, Params};
@@ -23,9 +26,6 @@ use crate::model::credential_schema::{
     LogoProperties,
 };
 use crate::provider::issuance_protocol::error::{IssuanceProtocolError, OpenID4VCIError};
-use crate::provider::issuance_protocol::model::{
-    KeyStorageSecurityLevel, OpenID4VCIKeyAttestationsRequired, OpenID4VCIProofTypeSupported,
-};
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 
 pub(crate) fn get_credential_offer_url(
@@ -39,9 +39,9 @@ pub(crate) fn get_credential_offer_url(
     ))
 }
 
-impl TryFrom<&OpenID4VCITokenResponseDTO> for OpenID4VCIIssuerInteractionDataDTO {
+impl TryFrom<&TokenResponse> for OpenID4VCIIssuerInteractionDataDTO {
     type Error = OpenID4VCIError;
-    fn try_from(value: &OpenID4VCITokenResponseDTO) -> Result<Self, Self::Error> {
+    fn try_from(value: &TokenResponse) -> Result<Self, Self::Error> {
         Ok(Self {
             pre_authorized_code_used: true,
             access_token_hash: SHA256
@@ -145,19 +145,19 @@ impl From<LayoutProperties> for CredentialSchemaLayoutPropertiesRequestDTO {
     }
 }
 
-pub(crate) fn map_proof_types_supported<R: From<[(String, OpenID4VCIProofTypeSupported); 1]>>(
+pub(crate) fn map_proof_types_supported<R: From<[(String, ProofTypeSupported); 1]>>(
     supported_jose_alg_ids: Vec<String>,
     key_storage_security_level: Option<KeyStorageSecurityLevel>,
 ) -> R {
     let key_attestations_required =
-        key_storage_security_level.map(|level| OpenID4VCIKeyAttestationsRequired {
+        key_storage_security_level.map(|level| KeyAttestationsRequired {
             key_storage: vec![level],
             user_authentication: vec![],
         });
 
     R::from([(
         "jwt".to_string(),
-        OpenID4VCIProofTypeSupported {
+        ProofTypeSupported {
             proof_signing_alg_values_supported: supported_jose_alg_ids,
             key_attestations_required,
         },
@@ -200,9 +200,12 @@ pub(crate) fn parse_credential_issuer_params(
         })
 }
 
-impl From<OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO> for Option<LayoutProperties> {
-    fn from(value: OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO) -> Self {
-        let background = match (value.background_image, value.background_color) {
+impl From<CredentialDisplayWithDesign> for Option<LayoutProperties> {
+    fn from(value: CredentialDisplayWithDesign) -> Self {
+        let background = match (
+            value.standard.background_image,
+            value.standard.background_color,
+        ) {
             (None, None) => None,
             (None, Some(background_color)) => Some(BackgroundProperties {
                 color: Some(background_color),
@@ -214,7 +217,7 @@ impl From<OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO> for Option<Layo
             }),
         };
 
-        let logo = match (value.logo, value.text_color) {
+        let logo = match (value.standard.logo, value.standard.text_color) {
             (None, None) => None,
             (None, Some(text_color)) => Some(LogoProperties {
                 font_color: Some(text_color),
@@ -281,7 +284,7 @@ pub(crate) fn interaction_data_to_accepted_key_storage_security(
 
 pub(super) fn credential_config_to_holder_signing_algs_and_key_storage_security(
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
-    credential_config: &OpenID4VCICredentialConfigurationData,
+    credential_config: &CredentialConfigurationData,
 ) -> (Option<Vec<String>>, Option<Vec<KeyStorageSecurity>>) {
     let Some(proof_types_supported) = &credential_config.proof_types_supported else {
         return (None, None);

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use one_crypto::utilities::{generate_alphanumeric, generate_numeric};
 use shared_types::{BlobId, DidMethodId, IdentifierId};
+use standardized_types::openid4vci::{ProofTypeSupported, TxCodeInputMode};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -20,9 +21,6 @@ use crate::provider::did_method::model::Operation;
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::issuance_protocol::HolderBindingInput;
 use crate::provider::issuance_protocol::error::IssuanceProtocolError;
-use crate::provider::issuance_protocol::model::{
-    OpenID4VCIProofTypeSupported, OpenID4VCITxCodeInputMode,
-};
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_security_level::provider::KeySecurityLevelProvider;
 use crate::provider::key_storage::KeyStorage;
@@ -63,7 +61,7 @@ pub(crate) fn interaction_from_handle_invitation(
 #[expect(clippy::too_many_arguments)]
 pub(super) async fn autogenerate_holder_binding(
     cryptographic_binding_methods_supported: Option<&Vec<String>>,
-    proof_types_supported: Option<&IndexMap<String, OpenID4VCIProofTypeSupported>>,
+    proof_types_supported: Option<&IndexMap<String, ProofTypeSupported>>,
     organisation: &Organisation,
     key_provider: &dyn KeyProvider,
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
@@ -233,7 +231,7 @@ struct PickedKeyConfig {
 }
 
 fn pick_key_configuration(
-    proof_types_supported: Option<&IndexMap<String, OpenID4VCIProofTypeSupported>>,
+    proof_types_supported: Option<&IndexMap<String, ProofTypeSupported>>,
     key_provider: &dyn KeyProvider,
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
     key_security_level_provider: &dyn KeySecurityLevelProvider,
@@ -304,16 +302,16 @@ fn pick_key_configuration(
     ))
 }
 
-impl From<OpenID4VCITxCodeInputMode> for TransactionCodeType {
-    fn from(value: OpenID4VCITxCodeInputMode) -> Self {
+impl From<TxCodeInputMode> for TransactionCodeType {
+    fn from(value: TxCodeInputMode) -> Self {
         match value {
-            OpenID4VCITxCodeInputMode::Numeric => Self::Numeric,
-            OpenID4VCITxCodeInputMode::Text => Self::Alphanumeric,
+            TxCodeInputMode::Numeric => Self::Numeric,
+            TxCodeInputMode::Text => Self::Alphanumeric,
         }
     }
 }
 
-impl From<TransactionCodeType> for OpenID4VCITxCodeInputMode {
+impl From<TransactionCodeType> for TxCodeInputMode {
     fn from(value: TransactionCodeType) -> Self {
         match value {
             TransactionCodeType::Numeric => Self::Numeric,

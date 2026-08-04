@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 use shared_types::{
     CredentialId, EcosystemId, InteractionId, OrganisationId, ProofId, TransactionDataId,
 };
+use standardized_types::openid4vci::{AuthorizationDetail, TxCode};
 use url::Url;
 
 use crate::model::credential_schema::KeyStorageSecurity;
 use crate::model::interaction::InteractionType;
-use crate::provider::issuance_protocol::model::OpenID4VCITxCode;
 
 #[derive(Clone, Debug)]
 pub struct HandleInvitationRequestDTO {
@@ -41,7 +41,7 @@ pub struct PresentationSubmitV2CredentialRequestDTO {
 pub enum HandleInvitationResultDTO {
     Credential {
         interaction_id: InteractionId,
-        tx_code: Option<OpenID4VCITxCode>,
+        tx_code: Option<TxCode>,
         key_storage_security_levels: Option<Vec<KeyStorageSecurity>>,
         key_algorithms: Option<Vec<String>>,
         protocol: String,
@@ -78,16 +78,10 @@ pub struct InitiateIssuanceRequestDTO {
     pub client_id: String,
     pub redirect_uri: Option<String>,
     pub scope: Option<Vec<String>>,
-    pub authorization_details: Option<Vec<InitiateIssuanceAuthorizationDetailDTO>>,
+    pub authorization_details: Option<Vec<AuthorizationDetail>>,
     pub issuer_state: Option<String>,
     pub authorization_server: Option<String>,
     pub ecosystem: Option<EcosystemId>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct InitiateIssuanceAuthorizationDetailDTO {
-    pub r#type: String,
-    pub credential_configuration_id: String,
 }
 
 #[derive(Clone, Debug)]

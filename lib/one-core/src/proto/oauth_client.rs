@@ -3,15 +3,19 @@ use std::sync::Arc;
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use one_crypto::utilities::generate_alphanumeric;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use standardized_types::oauth2::authorization_request::AuthorizationRequest;
+use standardized_types::oauth2::authorization_server_metadata::{
+    AuthorizationServerMetadata, CodeChallengeMethod,
+};
+use standardized_types::oauth2::pushed_authorization_request::{
+    PushedAuthorizationReference, PushedAuthorizationResponse,
+};
 use thiserror::Error;
 use url::Url;
 
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::proto::http_client::HttpClient;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
-    OAuthAuthorizationServerMetadata, OAuthCodeChallengeMethod,
-};
 
 /// A PKCE (RFC 7636) `S256` verifier/challenge pair.
 pub(crate) struct Pkce {
@@ -40,7 +44,7 @@ impl OAuthClient {
     pub(crate) async fn initiate_authorization_code_flow(
         &self,
         authorization_server: Url,
-        request: OAuthAuthorizationRequest,
+        request: AuthorizationRequest,
     ) -> Result<OAuthAuthorizationResponse, OAuthClientError> {
         // TODO ONE-9131: Use metadata cache here
         let metadata = self
@@ -54,11 +58,11 @@ impl OAuthClient {
         // optional support for PKCE
         let (request, code_verifier) = if metadata
             .code_challenge_methods_supported
-            .contains(&OAuthCodeChallengeMethod::S256)
+            .contains(&CodeChallengeMethod::S256)
         {
             let pkce = Pkce::generate()?;
             (
-                request.with_code_challenge(pkce.challenge, OAuthCodeChallengeMethod::S256),
+                request.with_code_challenge(pkce.challenge, CodeChallengeMethod::S256),
                 Some(pkce.verifier),
             )
         } else {
@@ -84,10 +88,10 @@ impl OAuthClient {
     async fn send_par_request(
         &self,
         par_endpoint: Url,
-        request: OAuthAuthorizationRequest,
-    ) -> Result<OAuthResponseParamsPAR, OAuthClientError> {
+        request: AuthorizationRequest,
+    ) -> Result<PushedAuthorizationReference, OAuthClientError> {
         let client_id = request.client_id.clone();
-        let response: OAuthPARResponse = async {
+        let response: PushedAuthorizationResponse = async {
             self.http_client
                 .post(par_endpoint.as_str())
                 .form(request)?
@@ -99,7 +103,7 @@ impl OAuthClient {
         .await
         .error_while("PAR request")?;
 
-        Ok(OAuthResponseParamsPAR {
+        Ok(PushedAuthorizationReference {
             request_uri: response.request_uri,
             client_id,
         })
@@ -108,7 +112,7 @@ impl OAuthClient {
     async fn fetch_authorization_server_metadata(
         &self,
         issuer_url: Url,
-    ) -> Result<OAuthAuthorizationServerMetadata, OAuthClientError> {
+    ) -> Result<AuthorizationServerMetadata, OAuthClientError> {
         // obtain OAuth 2.0 Authorization server metadata (https://datatracker.ietf.org/doc/html/rfc8414#section-3)
         // prepend `.well-known/oauth-authorization-server` to path to construct provider metadata endpoint
         let original_path_segments: Vec<_> = issuer_url
@@ -149,12 +153,6 @@ impl OAuthClient {
         .await
         .error_while("fetching authorization server metadata")?)
     }
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct OAuthResponseParamsPAR {
-    request_uri: String,
-    client_id: String,
 }
 
 pub(crate) trait OAuthClientProvider {
@@ -199,73 +197,10 @@ impl ErrorCodeMixin for OAuthClientError {
     }
 }
 
-/// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.1>
-#[derive(Clone, Debug, Serialize)]
-pub(crate) struct OAuthAuthorizationRequest {
-    pub client_id: String,
-    pub scope: Option<String>,
-    pub state: Option<String>,
-    pub redirect_uri: Option<String>,
-    pub authorization_details: Option<String>,
-    pub response_type: String,
-    pub code_challenge: Option<String>,
-    pub code_challenge_method: Option<OAuthCodeChallengeMethod>,
-
-    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.3-2.1>
-    pub issuer_state: Option<String>,
-}
-
-impl OAuthAuthorizationRequest {
-    pub fn new(
-        client_id: String,
-        scope: Option<String>,
-        state: Option<String>,
-        redirect_uri: Option<String>,
-        authorization_details: Option<String>,
-    ) -> Self {
-        Self {
-            client_id,
-            scope,
-            state,
-            redirect_uri,
-            authorization_details,
-            response_type: "code".to_string(),
-            code_challenge: None,
-            code_challenge_method: None,
-            issuer_state: None,
-        }
-    }
-
-    fn with_code_challenge(
-        self,
-        code_challenge: String,
-        code_challenge_method: OAuthCodeChallengeMethod,
-    ) -> Self {
-        Self {
-            code_challenge: Some(code_challenge),
-            code_challenge_method: Some(code_challenge_method),
-            ..self
-        }
-    }
-
-    pub(crate) fn with_issuer_state(self, issuer_state: String) -> Self {
-        Self {
-            issuer_state: Some(issuer_state),
-            ..self
-        }
-    }
-}
-
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct OAuthAuthorizationResponse {
     pub url: Url,
     pub code_verifier: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct OAuthPARResponse {
-    pub request_uri: String,
-    pub expires_in: i32,
 }
 
 #[cfg(test)]
@@ -287,8 +222,8 @@ mod tests {
         let issuer = mock_server.uri();
         Mock::given(method(Method::GET))
             .and(path("/.well-known/oauth-authorization-server"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                OAuthAuthorizationServerMetadata {
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(AuthorizationServerMetadata {
                     issuer: issuer.parse().unwrap(),
                     authorization_endpoint: Some(
                         Url::parse("https://authorize.com/authorize").unwrap(),
@@ -305,8 +240,8 @@ mod tests {
                     client_attestation_signing_alg_values_supported: None,
                     client_attestation_pop_signing_alg_values_supported: None,
                     dpop_signing_alg_values_supported: None,
-                },
-            ))
+                }),
+            )
             .expect(1)
             .mount(&mock_server)
             .await;
@@ -315,20 +250,20 @@ mod tests {
         let result = client
             .initiate_authorization_code_flow(
                 issuer.parse().unwrap(),
-                OAuthAuthorizationRequest::new(
-                    "clientId".to_string(),
-                    Some("scope1 scope2".to_string()),
-                    Some("testState".to_string()),
-                    Some("http://redirect.uri".to_string()),
-                    Some(
+                AuthorizationRequest::builder()
+                    .client_id("clientId".to_string())
+                    .scope("scope1 scope2".to_string())
+                    .state("testState".to_string())
+                    .redirect_uri("http://redirect.uri".to_string())
+                    .authorization_details(
                         json!([{
                             "credential_configuration_id": "configurationId",
                             "type": "type",
                         }])
                         .to_string(),
-                    ),
-                )
-                .with_issuer_state("issuerState".to_string()),
+                    )
+                    .issuer_state("issuerState".to_string())
+                    .build(),
             )
             .await
             .unwrap();
@@ -358,8 +293,8 @@ mod tests {
         let issuer = mock_server.uri();
         Mock::given(method(Method::GET))
             .and(path("/.well-known/oauth-authorization-server"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                OAuthAuthorizationServerMetadata {
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(AuthorizationServerMetadata {
                     issuer: issuer.parse().unwrap(),
                     authorization_endpoint: Some(
                         Url::parse("https://authorize.com/authorize").unwrap(),
@@ -367,7 +302,7 @@ mod tests {
                     token_endpoint: None,
                     pushed_authorization_request_endpoint: None,
                     jwks_uri: None,
-                    code_challenge_methods_supported: vec![OAuthCodeChallengeMethod::S256],
+                    code_challenge_methods_supported: vec![CodeChallengeMethod::S256],
                     scopes_supported: vec![],
                     response_types_supported: vec![],
                     grant_types_supported: vec![],
@@ -376,8 +311,8 @@ mod tests {
                     client_attestation_signing_alg_values_supported: None,
                     client_attestation_pop_signing_alg_values_supported: None,
                     dpop_signing_alg_values_supported: None,
-                },
-            ))
+                }),
+            )
             .expect(1)
             .mount(&mock_server)
             .await;
@@ -386,19 +321,19 @@ mod tests {
         let result = client
             .initiate_authorization_code_flow(
                 issuer.parse().unwrap(),
-                OAuthAuthorizationRequest::new(
-                    "clientId".to_string(),
-                    Some("scope1 scope2".to_string()),
-                    Some("testState".to_string()),
-                    Some("http://redirect.uri".to_string()),
-                    Some(
+                AuthorizationRequest::builder()
+                    .client_id("clientId".to_string())
+                    .scope("scope1 scope2".to_string())
+                    .state("testState".to_string())
+                    .redirect_uri("http://redirect.uri".to_string())
+                    .authorization_details(
                         json!([{
                             "credential_configuration_id": "configurationId",
                             "type": "type",
                         }])
                         .to_string(),
-                    ),
-                ),
+                    )
+                    .build(),
             )
             .await
             .unwrap();
@@ -427,8 +362,8 @@ mod tests {
         let issuer = mock_server.uri();
         Mock::given(method(Method::GET))
             .and(path("/.well-known/oauth-authorization-server"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                OAuthAuthorizationServerMetadata {
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(AuthorizationServerMetadata {
                     issuer: issuer.parse().unwrap(),
                     authorization_endpoint: Some(
                         Url::parse("https://authorize.com/authorize").unwrap(),
@@ -438,7 +373,7 @@ mod tests {
                         Url::parse(&format!("{issuer}/par")).unwrap(),
                     ),
                     jwks_uri: None,
-                    code_challenge_methods_supported: vec![OAuthCodeChallengeMethod::S256],
+                    code_challenge_methods_supported: vec![CodeChallengeMethod::S256],
                     scopes_supported: vec![],
                     response_types_supported: vec![],
                     grant_types_supported: vec![],
@@ -447,8 +382,8 @@ mod tests {
                     client_attestation_signing_alg_values_supported: None,
                     client_attestation_pop_signing_alg_values_supported: None,
                     dpop_signing_alg_values_supported: None,
-                },
-            ))
+                }),
+            )
             .expect(1)
             .mount(&mock_server)
             .await;
@@ -462,7 +397,7 @@ mod tests {
             .and(body_string_contains("state=testState"))
             .and(body_string_contains("authorization_details=%5B%7B%22credential_configuration_id%22%3A%22configurationId%22%2C%22type%22%3A%22type%22%7D%5D"))
             .and(body_string_contains("code_challenge_method=S256"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(OAuthPARResponse {
+            .respond_with(ResponseTemplate::new(200).set_body_json(PushedAuthorizationResponse {
                 request_uri: "testRequestUri".to_string(),
                 expires_in: 300,
             }))
@@ -474,19 +409,19 @@ mod tests {
         let result = client
             .initiate_authorization_code_flow(
                 issuer.parse().unwrap(),
-                OAuthAuthorizationRequest::new(
-                    "clientId".to_string(),
-                    Some("scope1 scope2".to_string()),
-                    Some("testState".to_string()),
-                    Some("http://redirect.uri".to_string()),
-                    Some(
+                AuthorizationRequest::builder()
+                    .client_id("clientId".to_string())
+                    .scope("scope1 scope2".to_string())
+                    .state("testState".to_string())
+                    .redirect_uri("http://redirect.uri".to_string())
+                    .authorization_details(
                         json!([{
                             "credential_configuration_id": "configurationId",
                             "type": "type",
                         }])
                         .to_string(),
-                    ),
-                ),
+                    )
+                    .build(),
             )
             .await
             .unwrap();
@@ -515,8 +450,8 @@ mod tests {
         let issuer = mock_server.uri();
         Mock::given(method(Method::GET))
             .and(path("/.well-known/oauth-authorization-server"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(
-                OAuthAuthorizationServerMetadata {
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(AuthorizationServerMetadata {
                     issuer: issuer.parse().unwrap(),
                     authorization_endpoint: Some(
                         Url::parse("https://authorize.com/authorize").unwrap(),
@@ -526,7 +461,7 @@ mod tests {
                         Url::parse(&format!("{issuer}/par")).unwrap(),
                     ),
                     jwks_uri: None,
-                    code_challenge_methods_supported: vec![OAuthCodeChallengeMethod::S256],
+                    code_challenge_methods_supported: vec![CodeChallengeMethod::S256],
                     scopes_supported: vec![],
                     response_types_supported: vec![],
                     grant_types_supported: vec![],
@@ -535,8 +470,8 @@ mod tests {
                     client_attestation_signing_alg_values_supported: None,
                     client_attestation_pop_signing_alg_values_supported: None,
                     dpop_signing_alg_values_supported: None,
-                },
-            ))
+                }),
+            )
             .expect(1)
             .mount(&mock_server)
             .await;
@@ -544,10 +479,12 @@ mod tests {
         Mock::given(method(Method::POST))
             .and(path("/par"))
             .and(body_string_contains("issuer_state=testing-state"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(OAuthPARResponse {
-                request_uri: "testRequestUri".to_string(),
-                expires_in: 300,
-            }))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(PushedAuthorizationResponse {
+                    request_uri: "testRequestUri".to_string(),
+                    expires_in: 300,
+                }),
+            )
             .expect(1)
             .mount(&mock_server)
             .await;
@@ -556,8 +493,10 @@ mod tests {
         let result = client
             .initiate_authorization_code_flow(
                 issuer.parse().unwrap(),
-                OAuthAuthorizationRequest::new("clientId".to_string(), None, None, None, None)
-                    .with_issuer_state("testing-state".to_string()),
+                AuthorizationRequest::builder()
+                    .client_id("clientId".to_string())
+                    .issuer_state("testing-state".to_string())
+                    .build(),
             )
             .await
             .unwrap();

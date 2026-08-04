@@ -1,38 +1,25 @@
+//! OpenAPI-bearing mirrors of the OpenID4VCI issuance types.
+//!
+//! Everything in this module that is defined by the specification lives in `standardized-types`
+//! and is used directly. What remains here are mirrors of types that carry Procivis extensions and
+//! therefore live in `one-core`: `one-core` has no `utoipa` dependency, so those types cannot
+//! derive `ToSchema` and cannot appear in the OpenAPI document.
+//!
+//! [`OpenID4VCITokenRequestRestDTO`] is the exception: it is not a mirror, see its own docs.
+
 use indexmap::IndexMap;
-use one_core::mapper::opt_secret_string;
-use one_core::provider::credential_formatter::vcdm::ContextType;
-use one_core::provider::issuance_protocol::model::{
-    OpenID4VCIProofTypeSupported, OpenID4VCITxCode, OpenID4VCITxCodeInputMode,
-};
 use one_core::provider::issuance_protocol::openid4vci_final1_0::model::{
-    CredentialSigningAlgValue, OpenID4VCIAuthorizationCodeGrant,
-    OpenID4VCICredentialConfigurationData, OpenID4VCICredentialDefinition,
-    OpenID4VCICredentialDefinitionRequestDTO, OpenID4VCICredentialMetadataClaimResponseDTO,
-    OpenID4VCICredentialMetadataResponseDTO, OpenID4VCICredentialRequestDTO,
-    OpenID4VCICredentialRequestIdentifier, OpenID4VCICredentialRequestProofs,
-    OpenID4VCICredentialResponseEncryptionDTO, OpenID4VCICredentialSubjectItem,
-    OpenID4VCIFinal1CredentialOfferDTO, OpenID4VCIGrants, OpenID4VCIIssuerMetadataBatchIssuanceDTO,
-    OpenID4VCIIssuerMetadataClaimDisplay, OpenID4VCIIssuerMetadataCredentialMetadataImage,
-    OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO,
-    OpenID4VCIIssuerMetadataDisplayResponseDTO, OpenID4VCIIssuerMetadataLogoDTO,
-    OpenID4VCINonceResponseDTO, OpenID4VCINotificationEvent, OpenID4VCINotificationRequestDTO,
-    OpenID4VCIPreAuthorizedCodeGrant, OpenID4VCITokenResponseDTO,
+    CredentialMetadataData, OpenID4VCICredentialDefinitionRequestDTO,
+    OpenID4VCICredentialSubjectItem,
 };
-use one_core::service::oid4vci_final1_0::dto::{
-    OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO,
-    OpenID4VCICredentialResponseEntryDTO,
-};
-use one_dto_mapper::{From, Into, convert_inner, convert_inner_of_inner};
+use one_dto_mapper::{From, Into, convert_inner_of_inner};
 use proc_macros::options_not_nullable;
-use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
-use standardized_types::iana::EncryptionAlgorithm;
-use standardized_types::jwe::CompressionAlgorithm;
-use standardized_types::jwk::PublicJwk;
-use standardized_types::mapper::secret_string;
-use standardized_types::oauth2::TokenType;
-use standardized_types::oauth2::dynamic_client_registration::TokenEndpointAuthMethod;
+use standardized_types::openid4vci::{
+    BatchCredentialIssuance, ClaimMetadata, CredentialDefinition, CredentialResponseEntry, Image,
+    IssuerDisplay, IssuerInfoAttestation, ProofTypeSupported, SigningAlgValue,
+};
 use utoipa::ToSchema;
 
 use crate::endpoint::credential_schema::dto::CredentialSchemaCodeTypeRestEnum;
@@ -47,123 +34,49 @@ pub(crate) struct OpenID4VCIIssuerMetadataResponseRestDTO {
     pub notification_endpoint: Option<String>,
     pub credential_configurations_supported:
         IndexMap<String, OpenID4VCIIssuerMetadataCredentialSupportedResponseRestDTO>,
-    pub display: Option<Vec<OpenID4VCIIssuerMetadataDisplayResponseRestDTO>>,
-    pub batch_credential_issuance: Option<OpenID4VCIIssuerMetadataBatchIssuanceRestDTO>,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIIssuerMetadataBatchIssuanceDTO)]
-pub(crate) struct OpenID4VCIIssuerMetadataBatchIssuanceRestDTO {
-    pub batch_size: u32,
+    pub display: Option<Vec<IssuerDisplay>>,
+    /// ETSI TS 119 472-3 V1.1.1, Section 4.2.3
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub issuer_info: Vec<IssuerInfoAttestation>,
+    pub batch_credential_issuance: Option<BatchCredentialIssuance>,
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIIssuerMetadataDisplayResponseDTO)]
-pub(crate) struct OpenID4VCIIssuerMetadataDisplayResponseRestDTO {
-    pub name: String,
-    pub locale: Option<String>,
-    #[from(with_fn = convert_inner)]
-    pub logo: Option<OpenID4VCIIssuerMetadataLogoRestDTO>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCICredentialConfigurationData)]
+#[derive(Clone, Debug, Serialize, ToSchema)]
 pub(crate) struct OpenID4VCIIssuerMetadataCredentialSupportedResponseRestDTO {
     pub format: String,
     pub doctype: Option<String>,
     pub vct: Option<String>,
-    #[from(with_fn = convert_inner)]
     pub credential_metadata: Option<OpenID4VCICredentialMetadataResponseRestDTO>,
     pub scope: Option<String>,
     pub cryptographic_binding_methods_supported: Option<Vec<String>>,
-    #[from(with_fn = convert_inner_of_inner)]
-    pub credential_signing_alg_values_supported: Option<Vec<CredentialSigningAlgValueRestEnum>>,
+    pub credential_signing_alg_values_supported: Option<Vec<SigningAlgValue>>,
     #[schema(value_type = Object)]
-    pub proof_types_supported: Option<IndexMap<String, OpenID4VCIProofTypeSupported>>,
-    #[from(with_fn = convert_inner)]
-    pub credential_definition: Option<OpenID4VCICredentialDefinitionRestDTO>,
+    pub proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
+    pub credential_definition: Option<CredentialDefinition>,
     pub disclosure_policy: Option<DisclosurePolicy>,
 }
 
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(CredentialSigningAlgValue)]
-#[serde(untagged)]
-pub(crate) enum CredentialSigningAlgValueRestEnum {
-    String(String),
-    Integer(i64),
-}
-
 #[options_not_nullable]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCICredentialMetadataResponseDTO)]
+#[from(CredentialMetadataData)]
 pub(crate) struct OpenID4VCICredentialMetadataResponseRestDTO {
     #[from(with_fn = convert_inner_of_inner)]
     pub display: Option<Vec<OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO>>,
-    #[from(with_fn = convert_inner_of_inner)]
-    pub claims: Option<Vec<OpenID4VCICredentialMetadataClaimResponseRestDTO>>,
+    pub claims: Option<Vec<ClaimMetadata>>,
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCICredentialDefinition)]
-pub(crate) struct OpenID4VCICredentialDefinitionRestDTO {
-    pub r#type: Vec<String>,
-    #[serde(rename = "@context")]
-    #[schema(value_type = Vec<String>)]
-    pub context: Option<Vec<ContextType>>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCICredentialMetadataClaimResponseDTO)]
-pub(crate) struct OpenID4VCICredentialMetadataClaimResponseRestDTO {
-    pub path: Vec<String>,
-    #[from(with_fn = convert_inner_of_inner)]
-    pub display: Option<Vec<OpenID4VCIIssuerMetadataClaimDisplayRestDTO>>,
-    pub mandatory: Option<bool>,
-    #[serde(flatten)]
-    pub additional_values: Option<IndexMap<String, serde_json::Value>>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIIssuerMetadataClaimDisplay)]
-pub(crate) struct OpenID4VCIIssuerMetadataClaimDisplayRestDTO {
-    pub name: Option<String>,
-    pub locale: Option<String>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO)]
+#[derive(Clone, Debug, Serialize, ToSchema)]
 pub(crate) struct OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO {
     pub name: String,
     pub locale: Option<String>,
-    #[from(with_fn = convert_inner)]
-    pub logo: Option<OpenID4VCIIssuerMetadataLogoRestDTO>,
+    pub logo: Option<Image>,
     pub description: Option<String>,
     pub background_color: Option<String>,
-    #[from(with_fn = convert_inner)]
-    pub background_image: Option<OpenID4VCIIssuerMetadataCredentialMetadataImageRestDTO>,
+    pub background_image: Option<Image>,
     pub text_color: Option<String>,
-    #[from(with_fn = convert_inner)]
     pub procivis_design: Option<OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesignRestDTO>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIIssuerMetadataLogoDTO)]
-pub(crate) struct OpenID4VCIIssuerMetadataLogoRestDTO {
-    pub uri: String,
-    pub alt_text: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIIssuerMetadataCredentialMetadataImage)]
-pub(crate) struct OpenID4VCIIssuerMetadataCredentialMetadataImageRestDTO {
-    pub uri: String,
 }
 
 #[options_not_nullable]
@@ -176,36 +89,14 @@ pub(crate) struct OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesignRestDT
     pub code_type: Option<CredentialSchemaCodeTypeRestEnum>,
 }
 
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OAuthAuthorizationServerMetadataResponseDTO)]
-pub(crate) struct OAuthAuthorizationServerMetadataRestDTO {
-    pub issuer: String,
-    #[from(with_fn = convert_inner)]
-    pub authorization_endpoint: Option<String>,
-    #[from(with_fn = convert_inner)]
-    pub token_endpoint: Option<String>,
-    #[from(with_fn = convert_inner)]
-    pub jwks_uri: Option<String>,
-    #[from(with_fn = convert_inner)]
-    pub pushed_authorization_request_endpoint: Option<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub code_challenge_methods_supported: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub scopes_supported: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub response_types_supported: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub grant_types_supported: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub token_endpoint_auth_methods_supported: Vec<TokenEndpointAuthMethod>,
-    #[from(with_fn = convert_inner)]
-    pub challenge_endpoint: Option<String>,
-    pub client_attestation_signing_alg_values_supported: Option<Vec<String>>,
-    pub client_attestation_pop_signing_alg_values_supported: Option<Vec<String>>,
-    pub dpop_signing_alg_values_supported: Option<Vec<String>>,
-}
-
+/// Loosely typed form of the Token Request, deliberately *not* replaced by
+/// [`standardized_types::oauth2::token::TokenRequest`].
+///
+/// `TokenRequest` is a discriminated union, so an unsupported `grant_type` would fail
+/// deserialization and be answered with a generic extractor rejection. Accepting `grant_type` as a
+/// free string lets `TryFrom` answer with the OAuth error object the specification requires
+/// (`unsupported_grant_type` / `invalid_request`), and lets it reject parameter combinations that
+/// do not match the grant.
 #[options_not_nullable]
 #[derive(Clone, Debug, Deserialize, ToSchema)]
 // No serde(deny_unknown_fields): "Additional Token Request parameters MAY be defined and used"
@@ -241,166 +132,13 @@ pub(crate) struct OpenID4VCICredentialDefinitionRequestRestDTO {
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[serde(deny_unknown_fields)]
-#[into(OpenID4VCICredentialRequestDTO)]
-pub(crate) struct OpenID4VCIFinal1CredentialRequestRestDTO {
-    #[serde(flatten)]
-    pub credential: OpenID4VCICredentialRequestIdentifierRest,
-    #[into(with_fn = convert_inner)]
-    pub proofs: Option<OpenID4VCICredentialRequestProofsRest>,
-    #[into(with_fn = convert_inner)]
-    pub credential_response_encryption:
-        Option<OpenID4VCICredentialResponseEncryptionRequestRestDTO>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Into)]
-#[into(OpenID4VCICredentialResponseEncryptionDTO)]
-pub struct OpenID4VCICredentialResponseEncryptionRequestRestDTO {
-    pub jwk: PublicJwk,
-    pub enc: EncryptionAlgorithm,
-    pub zip: Option<CompressionAlgorithm>,
-}
-
-#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[into(OpenID4VCICredentialRequestIdentifier)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum OpenID4VCICredentialRequestIdentifierRest {
-    CredentialConfigurationId(String),
-    CredentialIdentifier(String),
-}
-
-#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[into(OpenID4VCICredentialRequestProofs)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum OpenID4VCICredentialRequestProofsRest {
-    Jwt(Vec<String>),
-    DiVp(Vec<String>),
-    Attestation([String; 1]),
-}
-
-#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[into(OpenID4VCINotificationEvent)]
-#[serde(rename_all = "snake_case")]
-#[expect(clippy::enum_variant_names)]
-pub(crate) enum OpenID4VCINotificationEventRest {
-    CredentialAccepted,
-    CredentialFailure,
-    CredentialDeleted,
-}
-
-#[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[into(OpenID4VCINotificationRequestDTO)]
-// > Additional Notification Request parameters MAY be defined and used.
-// > The Credential Issuer MUST ignore any unrecognized parameters.
-// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-11.1-3
-pub(crate) struct OpenID4VCINotificationRequestRestDTO {
-    pub notification_id: String,
-    pub event: OpenID4VCINotificationEventRest,
-    pub event_description: Option<String>,
-}
-
 #[derive(Clone, Debug, Serialize, ToSchema)]
-#[serde(transparent)]
-pub(crate) struct TimestampRest(pub i64);
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCITokenResponseDTO)]
-pub(crate) struct OpenID4VCITokenResponseRestDTO {
-    #[serde(with = "secret_string")]
-    #[schema(value_type = String, example = "secret")]
-    pub access_token: SecretString,
-    pub token_type: TokenType,
-    pub expires_in: TimestampRest,
-    #[from(with_fn = convert_inner)]
-    #[serde(with = "opt_secret_string")]
-    #[schema(value_type = String, example = "secret", nullable = false)]
-    pub refresh_token: Option<SecretString>,
-    #[from(with_fn = convert_inner)]
-    pub refresh_token_expires_in: Option<TimestampRest>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCICredentialResponseDTO)]
 pub(crate) struct OpenID4VCIFinal1CredentialResponseRestDTO {
     #[serde(rename = "redirectUri")]
     pub redirect_uri: Option<String>,
 
-    #[from(with_fn = convert_inner_of_inner)]
-    pub credentials: Option<Vec<OpenID4VCICredentialResponseEntryRestDTO>>,
+    pub credentials: Option<Vec<CredentialResponseEntry>>,
     pub transaction_id: Option<String>,
     pub interval: Option<u64>,
     pub notification_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCICredentialResponseEntryDTO)]
-pub(crate) struct OpenID4VCICredentialResponseEntryRestDTO {
-    pub credential: String,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIFinal1CredentialOfferDTO)]
-pub(crate) struct OpenID4VCIFinal1CredentialOfferRestDTO {
-    pub credential_issuer: String,
-    pub credential_configuration_ids: Vec<String>,
-    pub grants: OpenID4VCIGrantsRestDTO,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIGrants)]
-pub(crate) enum OpenID4VCIGrantsRestDTO {
-    #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
-    PreAuthorizedCode(OpenID4VCIPreAuthorizedGrantRestDTO),
-    #[serde(rename = "authorization_code")]
-    AuthorizationCode(OpenID4VCIAuthorizationCodeGrantRestDTO),
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIPreAuthorizedCodeGrant)]
-pub(crate) struct OpenID4VCIPreAuthorizedGrantRestDTO {
-    #[serde(rename = "pre-authorized_code")]
-    pub pre_authorized_code: String,
-    #[from(with_fn = convert_inner)]
-    pub tx_code: Option<OpenID4VCITxCodeRestDTO>,
-    pub authorization_server: Option<String>,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCIAuthorizationCodeGrant)]
-pub(crate) struct OpenID4VCIAuthorizationCodeGrantRestDTO {
-    pub issuer_state: Option<String>,
-    pub authorization_server: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(OpenID4VCINonceResponseDTO)]
-pub(crate) struct OpenID4VCINonceResponseRestDTO {
-    pub c_nonce: String,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Serialize, Debug, ToSchema, From)]
-#[from(OpenID4VCITxCode)]
-pub(crate) struct OpenID4VCITxCodeRestDTO {
-    #[serde(default)]
-    pub input_mode: OpenID4VCITxCodeInputModeRestEnum,
-    #[serde(default)]
-    pub length: Option<i64>,
-    #[serde(default)]
-    pub description: Option<String>,
-}
-
-#[derive(Clone, Serialize, Debug, ToSchema, PartialEq, From)]
-#[from(OpenID4VCITxCodeInputMode)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum OpenID4VCITxCodeInputModeRestEnum {
-    Numeric,
-    Text,
 }

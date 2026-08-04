@@ -1,17 +1,17 @@
 use indexmap::IndexMap;
 use one_core::provider::issuance_protocol::openid4vci_final1_0::model::{
-    OpenID4VCICredentialConfigurationData, OpenID4VCIIssuerMetadataResponseDTO,
-    OpenID4VCITokenResponseDTO,
+    CredentialConfigurationData, IssuerMetadata,
 };
 use one_dto_mapper::{convert_inner, convert_inner_of_inner};
+use standardized_types::oauth2::token::TokenResponse;
 
 use crate::endpoint::ssi::issuance::final1_0_swiyu::dto::{
     OpenID4VCISwiyuIssuerMetadataCredentialSupportedResponseRestDTO,
     OpenID4VCISwiyuIssuerMetadataResponseRestDTO, SwiyuOpenID4VCITokenResponseRestDTO,
 };
 
-impl From<OpenID4VCIIssuerMetadataResponseDTO> for OpenID4VCISwiyuIssuerMetadataResponseRestDTO {
-    fn from(value: OpenID4VCIIssuerMetadataResponseDTO) -> Self {
+impl From<IssuerMetadata> for OpenID4VCISwiyuIssuerMetadataResponseRestDTO {
+    fn from(value: IssuerMetadata) -> Self {
         Self {
             credential_issuer: value.credential_issuer,
             authorization_servers: value.authorization_servers,
@@ -28,16 +28,16 @@ impl From<OpenID4VCIIssuerMetadataResponseDTO> for OpenID4VCISwiyuIssuerMetadata
     }
 }
 
-impl From<OpenID4VCICredentialConfigurationData>
+impl From<CredentialConfigurationData>
     for OpenID4VCISwiyuIssuerMetadataCredentialSupportedResponseRestDTO
 {
-    fn from(value: OpenID4VCICredentialConfigurationData) -> Self {
+    fn from(value: CredentialConfigurationData) -> Self {
         let mut credential_display = vec![];
         let mut swiyu_claims = IndexMap::new();
         if let Some(meta) = &value.credential_metadata {
             if let Some(claims) = &meta.claims {
                 for claim in claims {
-                    swiyu_claims.insert(claim.path.join("."), claim.clone().into());
+                    swiyu_claims.insert(claim.path.join("."), claim.clone());
                 }
             }
             if let Some(displays) = &meta.display {
@@ -62,9 +62,9 @@ impl From<OpenID4VCICredentialConfigurationData>
     }
 }
 
-impl From<OpenID4VCITokenResponseDTO> for SwiyuOpenID4VCITokenResponseRestDTO {
-    fn from(value: OpenID4VCITokenResponseDTO) -> Self {
-        let OpenID4VCITokenResponseDTO {
+impl From<TokenResponse> for SwiyuOpenID4VCITokenResponseRestDTO {
+    fn from(value: TokenResponse) -> Self {
+        let TokenResponse {
             access_token,
             expires_in,
             refresh_token,
@@ -74,9 +74,9 @@ impl From<OpenID4VCITokenResponseDTO> for SwiyuOpenID4VCITokenResponseRestDTO {
         Self {
             access_token,
             token_type: "BEARER".to_string(),
-            expires_in: expires_in.into(),
+            expires_in,
             refresh_token,
-            refresh_token_expires_in: convert_inner(refresh_token_expires_in),
+            refresh_token_expires_in,
         }
     }
 }

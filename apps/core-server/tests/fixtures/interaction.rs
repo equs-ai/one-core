@@ -1,8 +1,8 @@
 use one_core::model::credential_schema::CredentialSchema;
-use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use serde_json::json;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 use time::Duration;
 use time::macros::format_description;
 

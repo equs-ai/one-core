@@ -16,9 +16,7 @@ use crate::model::interaction::Interaction;
 use crate::model::key::Key;
 use crate::model::organisation::Organisation;
 use crate::provider::Provider;
-use crate::provider::issuance_protocol::dto::{
-    ContinueIssuanceDTO, OpenID4VCIIssuerMetadataResponseDTO,
-};
+use crate::provider::issuance_protocol::dto::{ContinueIssuanceDTO, IssuerMetadata};
 use crate::provider::issuance_protocol::model::InvitationResponseEnum;
 
 mod decorators;
@@ -117,7 +115,7 @@ pub(crate) trait IssuanceProtocol: Provider + Send + Sync {
         protocol_id: &str,
         credential_schema_id: &CredentialSchemaId,
         issuer_identifier: &Identifier,
-    ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, IssuanceProtocolError>;
+    ) -> Result<IssuerMetadata, IssuanceProtocolError>;
 
     fn get_capabilities(&self) -> IssuanceProtocolCapabilities;
 

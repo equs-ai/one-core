@@ -16,13 +16,15 @@ use one_core::service::oid4vci_final1_0::dto::{
 use one_core::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
 use proc_macros::endpoint;
 use shared_types::{CredentialId, CredentialSchemaId, IdentifierId};
+use standardized_types::oauth2::authorization_server_metadata::AuthorizationServerMetadata;
+use standardized_types::oauth2::token::TokenResponse;
+use standardized_types::openid4vci::{
+    CredentialOffer, CredentialRequest, NonceResponse, NotificationRequest,
+};
 
 use super::dto::{
-    OAuthAuthorizationServerMetadataRestDTO, OpenID4VCIFinal1CredentialOfferRestDTO,
-    OpenID4VCIFinal1CredentialRequestRestDTO, OpenID4VCIFinal1CredentialResponseRestDTO,
-    OpenID4VCIIssuerMetadataResponseRestDTO, OpenID4VCINonceResponseRestDTO,
-    OpenID4VCINotificationRequestRestDTO, OpenID4VCITokenRequestRestDTO,
-    OpenID4VCITokenResponseRestDTO,
+    OpenID4VCIFinal1CredentialResponseRestDTO, OpenID4VCIIssuerMetadataResponseRestDTO,
+    OpenID4VCITokenRequestRestDTO,
 };
 use crate::dto::error::ErrorResponseRestDTO;
 use crate::endpoint::ssi::dto::{OpenID4VCIErrorResponseRestDTO, OpenID4VCIErrorRestEnum};
@@ -127,7 +129,7 @@ pub(crate) async fn oid4vci_final1_0_get_issuer_metadata(
         ("credential_schema_id" = CredentialSchemaId, Path, description = "Credential schema id")
     ),
     responses(
-        (status = 200, description = "OK", body = OAuthAuthorizationServerMetadataRestDTO),
+        (status = 200, description = "OK", body = AuthorizationServerMetadata),
         (status = 404, description = "Credential schema not found"),
         (status = 500, description = "Server error"),
     ),
@@ -152,11 +154,7 @@ pub(crate) async fn oid4vci_final1_0_oauth_authorization_server(
         .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OAuthAuthorizationServerMetadataRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(error) if matches!(error.error_code(), ErrorCode::BR_0006 | ErrorCode::BR_0089) => {
             tracing::error!("Not found error: {error}");
             StatusCode::NOT_FOUND.into_response()
@@ -177,7 +175,7 @@ pub(crate) async fn oid4vci_final1_0_oauth_authorization_server(
         ("credential_id" = CredentialId, Path, description = "Credential id")
     ),
     responses(
-        (status = 200, description = "OK", body = OpenID4VCIFinal1CredentialOfferRestDTO),
+        (status = 200, description = "OK", body = CredentialOffer),
         (status = 400, description = "Invalid request"),
         (status = 404, description = "Credential not found"),
         (status = 500, description = "Server error"),
@@ -203,11 +201,7 @@ pub(crate) async fn oid4vci_final1_0_get_credential_offer(
         .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OpenID4VCIFinal1CredentialOfferRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(OID4VCIFinal1_0ServiceError::OpenID4VCIError(error)) => {
             tracing::warn!("OpenID4VCI credential offer error: {:?}", error);
             (
@@ -242,7 +236,7 @@ pub(crate) async fn oid4vci_final1_0_get_credential_offer(
         ("OAuth-Client-Attestation-PoP" = inline(Option<String>), Header, description = "OAuth Client Attestation Proof of Possession JWT", nullable = false)
     ),
     responses(
-        (status = 200, description = "OK", body = OpenID4VCITokenResponseRestDTO),
+        (status = 200, description = "OK", body = TokenResponse),
         (status = 400, description = "OIDC token errors", body = OpenID4VCIErrorResponseRestDTO),
         (status = 404, description = "Credential schema not found"),
         (status = 409, description = "Wrong credential state"),
@@ -288,11 +282,7 @@ pub(crate) async fn oid4vci_final1_0_create_token(
     .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OpenID4VCITokenResponseRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(OID4VCIFinal1_0ServiceError::OpenID4VCIError(error)) => {
             tracing::error!("OpenID4VCI token validation error: {:?}", error);
             (
@@ -316,7 +306,7 @@ pub(crate) async fn oid4vci_final1_0_create_token(
     permissions = [],
     post,
     path = "/ssi/openid4vci/final-1.0/{id}/credential",
-    request_body(content = OpenID4VCIFinal1CredentialRequestRestDTO, description = "Credential request"),
+    request_body(content = CredentialRequest, description = "Credential request"),
     params(
         ("id" = CredentialSchemaId, Path, description = "Credential schema id")
     ),
@@ -347,16 +337,13 @@ pub(crate) async fn oid4vci_final1_0_create_credential(
         TypedHeader<headers::Authorization<Bearer>>,
         ErrorResponseRestDTO,
     >,
-    WithRejection(Json(request), _): WithRejection<
-        Json<OpenID4VCIFinal1CredentialRequestRestDTO>,
-        ErrorResponseRestDTO,
-    >,
+    WithRejection(Json(request), _): WithRejection<Json<CredentialRequest>, ErrorResponseRestDTO>,
 ) -> Response {
     let access_token = token.token();
     let result = state
         .core
         .oid4vci_final1_0_service
-        .create_credential(&credential_schema_id, access_token, request.into())
+        .create_credential(&credential_schema_id, access_token, request)
         .await;
 
     match result {
@@ -396,7 +383,7 @@ pub(crate) async fn oid4vci_final1_0_create_credential(
     permissions = [],
     post,
     path = "/ssi/openid4vci/final-1.0/{id}/notification",
-    request_body(content = OpenID4VCINotificationRequestRestDTO, description = "Notification request"),
+    request_body(content = NotificationRequest, description = "Notification request"),
     params(
         ("id" = CredentialSchemaId, Path, description = "Credential schema id")
     ),
@@ -427,16 +414,13 @@ pub(crate) async fn oid4vci_final1_0_credential_notification(
         TypedHeader<headers::Authorization<Bearer>>,
         ErrorResponseRestDTO,
     >,
-    WithRejection(Json(request), _): WithRejection<
-        Json<OpenID4VCINotificationRequestRestDTO>,
-        ErrorResponseRestDTO,
-    >,
+    WithRejection(Json(request), _): WithRejection<Json<NotificationRequest>, ErrorResponseRestDTO>,
 ) -> Response {
     let access_token = token.token();
     let result = state
         .core
         .oid4vci_final1_0_service
-        .handle_notification(credential_schema_id, access_token, request.into())
+        .handle_notification(credential_schema_id, access_token, request)
         .await;
 
     match result {
@@ -468,7 +452,7 @@ pub(crate) async fn oid4vci_final1_0_credential_notification(
         ("protocol_id" = String, Path, description = "Issuance protocol id")
     ),
     responses(
-        (status = 200, description = "OK", body = OpenID4VCINonceResponseRestDTO),
+        (status = 200, description = "OK", body = NonceResponse),
         (status = 500, description = "Server error"),
     ),
     tag = "openid4vci-final1_0",
@@ -489,11 +473,7 @@ pub(crate) async fn oid4vci_final1_0_nonce(
         .await;
 
     match result {
-        Ok(value) => (
-            StatusCode::OK,
-            Json(OpenID4VCINonceResponseRestDTO::from(value)),
-        )
-            .into_response(),
+        Ok(value) => (StatusCode::OK, Json(value)).into_response(),
         Err(e) => {
             tracing::error!("Error: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR.into_response()

@@ -25,6 +25,8 @@ pub mod jwe;
 pub mod jwk;
 pub mod mapper;
 pub mod oauth2;
+pub mod openid4vci;
 pub mod openid4vp;
+pub mod w3c_vcdm;
 pub mod x509;
 pub mod xades;

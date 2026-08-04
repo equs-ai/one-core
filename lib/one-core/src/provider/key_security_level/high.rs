@@ -1,9 +1,9 @@
 use proc_macros::Provider;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 
 use super::KeySecurityLevel;
 use super::dto::{KeySecurityLevelCapabilities, Params};
 use crate::config::core_config::KeySecurityLevelType;
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 
 #[derive(Provider)]
 pub struct High {

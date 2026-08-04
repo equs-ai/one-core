@@ -6,17 +6,17 @@ use mockall::predicate::{always, eq};
 use regex::Regex;
 use shared_types::{CredentialFormat, OrganisationId};
 use similar_asserts::assert_eq;
+use standardized_types::oauth2::authorization_server_metadata::{
+    AuthorizationServerMetadata, CodeChallengeMethod,
+};
+use standardized_types::openid4vci::AuthorizationDetail;
 use url::Url;
 use uuid::Uuid;
 use wiremock::http::Method;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use super::SSIHolderService;
-use super::dto::{
-    HandleInvitationRequestDTO, InitiateIssuanceAuthorizationDetailDTO, InitiateIssuanceRequestDTO,
-    OpenIDAuthorizationCodeFlowInteractionData,
-};
+use super::dto::HandleInvitationRequestDTO;
 use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum, CredentialType};
@@ -44,9 +44,7 @@ use crate::provider::issuance_protocol::error::TxCodeError;
 use crate::provider::issuance_protocol::model::{
     ContinueIssuanceResponseDTO, CredentialWithBlob, IssuanceAcceptResponse,
 };
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
-    HolderInteractionData, OAuthAuthorizationServerMetadata, OAuthCodeChallengeMethod,
-};
+use crate::provider::issuance_protocol::openid4vci_final1_0::model::HolderInteractionData;
 use crate::provider::issuance_protocol::provider::MockIssuanceProtocolProvider;
 use crate::provider::key_algorithm::ecdsa::Ecdsa;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
@@ -61,6 +59,10 @@ use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::repository::proof_repository::MockProofRepository;
+use crate::service::ssi_holder::SSIHolderService;
+use crate::service::ssi_holder::dto::{
+    InitiateIssuanceRequestDTO, OpenIDAuthorizationCodeFlowInteractionData,
+};
 use crate::service::test_utilities::{
     dummy_did, dummy_identifier, dummy_key, dummy_organisation, dummy_proof, generic_config,
     generic_formatter_capabilities, get_dummy_date,
@@ -793,7 +795,7 @@ async fn test_initiate_issuance() {
     Mock::given(method(Method::GET))
         .and(path("/.well-known/oauth-authorization-server"))
         .respond_with(
-            ResponseTemplate::new(200).set_body_json(OAuthAuthorizationServerMetadata {
+            ResponseTemplate::new(200).set_body_json(AuthorizationServerMetadata {
                 issuer: issuer.parse().unwrap(),
                 authorization_endpoint: Some(Url::parse(authorization_endpoint).unwrap()),
                 token_endpoint: None,
@@ -822,7 +824,7 @@ async fn test_initiate_issuance() {
             client_id: "clientId".to_string(),
             redirect_uri: Some("http://redirect.uri".to_string()),
             scope: Some(vec!["scope1".to_string(), "scope2".to_string()]),
-            authorization_details: Some(vec![InitiateIssuanceAuthorizationDetailDTO {
+            authorization_details: Some(vec![AuthorizationDetail {
                 r#type: "type".to_string(),
                 credential_configuration_id: "configurationId".to_string(),
             }]),
@@ -971,7 +973,7 @@ async fn test_initiate_issuance_pkce() {
     Mock::given(method(Method::GET))
         .and(path("/.well-known/oauth-authorization-server"))
         .respond_with(
-            ResponseTemplate::new(200).set_body_json(OAuthAuthorizationServerMetadata {
+            ResponseTemplate::new(200).set_body_json(AuthorizationServerMetadata {
                 issuer: issuer.parse().unwrap(),
                 authorization_endpoint: Some(
                     Url::parse("https://authorize.com/authorize").unwrap(),
@@ -979,7 +981,7 @@ async fn test_initiate_issuance_pkce() {
                 token_endpoint: None,
                 pushed_authorization_request_endpoint: None,
                 jwks_uri: None,
-                code_challenge_methods_supported: vec![OAuthCodeChallengeMethod::S256],
+                code_challenge_methods_supported: vec![CodeChallengeMethod::S256],
                 scopes_supported: vec![],
                 response_types_supported: vec![],
                 grant_types_supported: vec![],

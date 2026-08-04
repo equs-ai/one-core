@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
 use one_core::model::interaction::InteractionType;
-use one_core::provider::issuance_protocol::model::{OpenID4VCITxCode, OpenID4VCITxCodeInputMode};
 use one_core::service::error::ServiceError;
 use one_core::service::proof::dto::{ProposeProofRequestDTO, ProposeProofResponseDTO};
 use one_core::service::ssi_holder::dto::{
-    ContinueIssuanceResponseDTO, HandleInvitationRequestDTO,
-    InitiateIssuanceAuthorizationDetailDTO, InitiateIssuanceResponseDTO,
+    ContinueIssuanceResponseDTO, HandleInvitationRequestDTO, InitiateIssuanceResponseDTO,
     PresentationSubmitV2CredentialRequestDTO, PresentationSubmitV2RequestDTO,
 };
 use one_dto_mapper::{From, Into, TryInto, convert_inner, convert_inner_of_inner};
@@ -16,6 +14,7 @@ use shared_types::{
     CredentialId, DidId, IdentifierId, InstanceId, InteractionId, KeyId, OrganisationId, ProofId,
     TransactionDataId,
 };
+use standardized_types::openid4vci::{AuthorizationDetail, TxCode, TxCodeInputMode};
 use strum::Display;
 use url::Url;
 use utoipa::ToSchema;
@@ -103,7 +102,7 @@ pub(crate) struct ContinueIssuanceResponseRestDTO {
 
 #[options_not_nullable]
 #[derive(Clone, Serialize, Debug, From, ToSchema)]
-#[from(OpenID4VCITxCode)]
+#[from(TxCode)]
 pub(crate) struct OpenID4VCITxCodeRestDTO {
     #[schema(value_type = String, example = "numeric", default = "numeric")]
     #[serde(default)] // we always provide it, but it is optional according to OpenID4VCI standard
@@ -119,7 +118,7 @@ pub(crate) struct OpenID4VCITxCodeRestDTO {
 }
 
 #[derive(Clone, Serialize, Debug, PartialEq, Display, From, Default)]
-#[from(OpenID4VCITxCodeInputMode)]
+#[from(TxCodeInputMode)]
 pub(crate) enum OpenID4VCITxCodeInputModeRestDTO {
     #[serde(rename = "numeric")]
     #[strum(serialize = "numeric")]
@@ -283,7 +282,7 @@ pub(crate) struct InitiateIssuanceRequestRestDTO {
 }
 
 #[derive(Clone, Debug, Deserialize, ToSchema, Into)]
-#[into(InitiateIssuanceAuthorizationDetailDTO)]
+#[into(AuthorizationDetail)]
 #[serde(rename_all = "camelCase")]
 // > Additional authorization_details data fields MAY be defined and used
 // > when the type value is openid_credential. Note that this effectively

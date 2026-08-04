@@ -1,9 +1,9 @@
 use std::cmp::Reverse;
 
 use one_dto_mapper::convert_inner;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 
 use crate::config::core_config::KeySecurityLevelType;
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use crate::provider::key_security_level::provider::KeySecurityLevelProvider;
 use crate::service::error::ValidationError;
 

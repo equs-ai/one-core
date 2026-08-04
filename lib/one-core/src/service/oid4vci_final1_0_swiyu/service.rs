@@ -1,15 +1,14 @@
 use shared_types::{CredentialId, CredentialSchemaId, IdentifierId};
+use standardized_types::oauth2::authorization_server_metadata::AuthorizationServerMetadata;
+use standardized_types::oauth2::token::{TokenRequest, TokenResponse};
+use standardized_types::openid4vci::{
+    CredentialOffer, CredentialRequest, NonceResponse, NotificationRequest,
+};
 
 use super::OID4VCIFinal1_0SwiyuService;
 use crate::error::ContextWithErrorCode;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
-    OpenID4VCICredentialRequestDTO, OpenID4VCIFinal1CredentialOfferDTO,
-    OpenID4VCIIssuerMetadataResponseDTO, OpenID4VCINonceResponseDTO,
-    OpenID4VCINotificationRequestDTO, OpenID4VCITokenRequestDTO, OpenID4VCITokenResponseDTO,
-};
-use crate::service::oid4vci_final1_0::dto::{
-    OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO,
-};
+use crate::provider::issuance_protocol::openid4vci_final1_0::model::IssuerMetadata;
+use crate::service::oid4vci_final1_0::dto::OpenID4VCICredentialResponseDTO;
 use crate::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
 
 impl OID4VCIFinal1_0SwiyuService {
@@ -18,7 +17,7 @@ impl OID4VCIFinal1_0SwiyuService {
         protocol_id: &str,
         identifier_id: &IdentifierId,
         credential_schema_id: &CredentialSchemaId,
-    ) -> Result<OAuthAuthorizationServerMetadataResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<AuthorizationServerMetadata, OID4VCIFinal1_0ServiceError> {
         self.inner
             .oauth_authorization_server(protocol_id, identifier_id, credential_schema_id)
             .await
@@ -28,7 +27,7 @@ impl OID4VCIFinal1_0SwiyuService {
         protocol_id: &str,
         identifier_id: &IdentifierId,
         credential_schema_id: &CredentialSchemaId,
-    ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<IssuerMetadata, OID4VCIFinal1_0ServiceError> {
         let issuance_protocol = self.protocol_provider.get_protocol(protocol_id)?;
 
         let issuer_identifier = self.inner.get_issuer_identifier(identifier_id).await?;
@@ -44,7 +43,7 @@ impl OID4VCIFinal1_0SwiyuService {
         &self,
         credential_schema_id: CredentialSchemaId,
         credential_id: CredentialId,
-    ) -> Result<OpenID4VCIFinal1CredentialOfferDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<CredentialOffer, OID4VCIFinal1_0ServiceError> {
         self.inner
             .get_credential_offer(credential_schema_id, credential_id)
             .await
@@ -53,10 +52,10 @@ impl OID4VCIFinal1_0SwiyuService {
     pub async fn create_token(
         &self,
         credential_schema_id: &CredentialSchemaId,
-        request: OpenID4VCITokenRequestDTO,
+        request: TokenRequest,
         oauth_client_attestation: Option<&str>,
         oauth_client_attestation_pop: Option<&str>,
-    ) -> Result<OpenID4VCITokenResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<TokenResponse, OID4VCIFinal1_0ServiceError> {
         self.inner
             .create_token(
                 credential_schema_id,
@@ -71,7 +70,7 @@ impl OID4VCIFinal1_0SwiyuService {
         &self,
         credential_schema_id: &CredentialSchemaId,
         access_token: &str,
-        request: OpenID4VCICredentialRequestDTO,
+        request: CredentialRequest,
     ) -> Result<OpenID4VCICredentialResponseDTO, OID4VCIFinal1_0ServiceError> {
         self.inner
             .create_credential(credential_schema_id, access_token, request)
@@ -81,7 +80,7 @@ impl OID4VCIFinal1_0SwiyuService {
     pub async fn generate_nonce(
         &self,
         protocol_id: &str,
-    ) -> Result<OpenID4VCINonceResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<NonceResponse, OID4VCIFinal1_0ServiceError> {
         self.inner.generate_nonce(protocol_id).await
     }
 
@@ -89,7 +88,7 @@ impl OID4VCIFinal1_0SwiyuService {
         &self,
         credential_schema_id: CredentialSchemaId,
         access_token: &str,
-        request: OpenID4VCINotificationRequestDTO,
+        request: NotificationRequest,
     ) -> Result<(), OID4VCIFinal1_0ServiceError> {
         self.inner
             .handle_notification(credential_schema_id, access_token, request)

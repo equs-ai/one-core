@@ -1,5 +1,4 @@
 use one_core::config::core_config::DocumentSignerType;
-use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use one_core::service::managed_instance::dto;
 use one_dto_mapper::{From, Into, convert_inner};
 use proc_macros::options_not_nullable;
@@ -7,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
 use shared_types::{ManagedInstanceId, TrustCollectionId};
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 use utoipa::ToSchema;
 
 use crate::deserialize::one_or_many;

@@ -7,20 +7,19 @@ use secrecy::SecretString;
 use shared_types::{IdentifierId, InteractionId};
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::oauth2::TokenType;
+use standardized_types::oauth2::token::{ExpiresIn, TokenRequest, TokenResponse};
+use standardized_types::openid4vci::{
+    BatchCredentialIssuance, ClaimDisplay, ClaimMetadata, CredentialDisplay, CredentialOffer,
+    Grants, Image, IssuerDisplay, IssuerInfoAttestation, PreAuthorizedCodeGrant,
+    ProofTypeSupported, SigningAlgValue, TxCode,
+};
 use time::Duration;
 use uuid::Uuid;
 
 use super::model::{
-    CredentialSigningAlgValue, EtsiIssuerInfoResponseDTO, OpenID4VCICredentialConfigurationData,
-    OpenID4VCICredentialMetadataClaimResponseDTO, OpenID4VCICredentialMetadataResponseDTO,
-    OpenID4VCIFinal1CredentialOfferDTO, OpenID4VCIGrants, OpenID4VCIIssuerInteractionDataDTO,
-    OpenID4VCIIssuerMetadataBatchIssuanceDTO, OpenID4VCIIssuerMetadataClaimDisplay,
-    OpenID4VCIIssuerMetadataCredentialMetadataImage,
-    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
-    OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO,
-    OpenID4VCIIssuerMetadataDisplayResponseDTO, OpenID4VCIIssuerMetadataLogoDTO,
-    OpenID4VCIIssuerMetadataResponseDTO, OpenID4VCIPreAuthorizedCodeGrant,
-    OpenID4VCITokenRequestDTO, OpenID4VCITokenResponseDTO, PreparedMetadata, Timestamp,
+    CredentialConfigurationData, CredentialDisplayWithDesign, CredentialMetadataData,
+    IssuerMetadata, OpenID4VCIIssuerInteractionDataDTO,
+    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign, PreparedMetadata,
 };
 use super::validator::{
     throw_if_credential_state_not_eq, throw_if_interaction_created_date,
@@ -36,7 +35,6 @@ use crate::model::identifier::Identifier;
 use crate::model::interaction::Interaction;
 use crate::model::localized_text::LocalizedTextField;
 use crate::provider::issuance_protocol::error::{OpenID4VCIError, OpenIDIssuanceError};
-use crate::provider::issuance_protocol::model::{OpenID4VCIProofTypeSupported, OpenID4VCITxCode};
 
 pub(crate) fn create_issuer_metadata_response(
     protocol_id: &str,
@@ -46,8 +44,8 @@ pub(crate) fn create_issuer_metadata_response(
         schema,
         credential_configurations_supported,
     }: PreparedMetadata,
-    issuer_info: Vec<EtsiIssuerInfoResponseDTO>,
-) -> Result<OpenID4VCIIssuerMetadataResponseDTO, OpenID4VCIError> {
+    issuer_info: Vec<IssuerInfoAttestation>,
+) -> Result<IssuerMetadata, OpenID4VCIError> {
     let credential_schema_id = schema.id;
     let credential_issuer = format!(
         "{protocol_base_url}/{protocol_id}/{}/{credential_schema_id}",
@@ -57,14 +55,14 @@ pub(crate) fn create_issuer_metadata_response(
     let batch_credential_issuance = if let Some(batch_size) = schema.batch_size
         && batch_size >= 2
     {
-        Some(OpenID4VCIIssuerMetadataBatchIssuanceDTO {
+        Some(BatchCredentialIssuance {
             batch_size: batch_size as _,
         })
     } else {
         None
     };
 
-    Ok(OpenID4VCIIssuerMetadataResponseDTO {
+    Ok(IssuerMetadata {
         credential_issuer,
         authorization_servers: None,
         credential_endpoint: format!("{protocol_base_url}/{credential_schema_id}/credential"),
@@ -73,7 +71,7 @@ pub(crate) fn create_issuer_metadata_response(
             "{protocol_base_url}/{credential_schema_id}/notification"
         )),
         credential_configurations_supported,
-        display: Some(vec![OpenID4VCIIssuerMetadataDisplayResponseDTO {
+        display: Some(vec![IssuerDisplay {
             name: identifier.name.clone(),
             locale: Some("en".to_string()),
             logo: None,
@@ -90,14 +88,14 @@ pub(crate) async fn credential_configuration_supported(
     format: &CredentialSchemaFormat,
     credential_schema: &CredentialSchema,
     cryptographic_binding_methods_supported: Vec<String>,
-    proof_types_supported: IndexMap<String, OpenID4VCIProofTypeSupported>,
+    proof_types_supported: IndexMap<String, ProofTypeSupported>,
     credential_signing_alg_values_supported: Vec<String>,
-) -> Result<OpenID4VCICredentialConfigurationData, OpenID4VCIError> {
+) -> Result<CredentialConfigurationData, OpenID4VCIError> {
     let credential_metadata_claims =
         create_claims_dtos_from_claims(credential_schema, format).await?;
     let display_dtos = create_display_dtos_from_schema(credential_schema, format).await?;
 
-    let credential_metadata = OpenID4VCICredentialMetadataResponseDTO {
+    let credential_metadata = CredentialMetadataData {
         display: Some(display_dtos),
         claims: Some(credential_metadata_claims),
     };
@@ -157,7 +155,7 @@ pub(crate) async fn credential_configuration_supported(
 async fn create_claims_dtos_from_claims(
     credential_schema: &CredentialSchema,
     format: &CredentialSchemaFormat,
-) -> Result<Vec<OpenID4VCICredentialMetadataClaimResponseDTO>, OpenID4VCIError> {
+) -> Result<Vec<ClaimMetadata>, OpenID4VCIError> {
     let claim_schemas = credential_schema
         .claim_schemas
         .as_ref()
@@ -195,10 +193,10 @@ async fn create_claims_dtos_from_claims(
 
         let display = create_claim_display_dtos(claim_schema).await?;
 
-        result.push(OpenID4VCICredentialMetadataClaimResponseDTO {
+        result.push(ClaimMetadata {
             path,
             mandatory: Some(claim_schema.required),
-            additional_values: None,
+            additional_values: Default::default(),
             display: Some(display),
         });
     }
@@ -208,31 +206,29 @@ async fn create_claims_dtos_from_claims(
 async fn create_display_dto_from_schema(
     credential_schema: &CredentialSchema,
     format: &CredentialSchemaFormat,
-) -> Result<OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO, OpenID4VCIError> {
-    let mut display = OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO {
-        name: credential_schema.name.clone(),
-        locale: None,
-        logo: None,
-        background_color: None,
-        text_color: None,
-        description: None,
-        background_image: None,
+) -> Result<CredentialDisplayWithDesign, OpenID4VCIError> {
+    let mut display = CredentialDisplayWithDesign {
+        standard: CredentialDisplay {
+            name: credential_schema.name.clone(),
+            ..Default::default()
+        },
         procivis_design: None,
     };
 
     if let Some(layout_properties) = credential_schema.layout_properties.to_owned() {
         // Extract background
         if let Some(background) = layout_properties.background {
-            display.background_color = background.color;
-            display.background_image = background
-                .image
-                .map(|uri| OpenID4VCIIssuerMetadataCredentialMetadataImage { uri });
+            display.standard.background_color = background.color;
+            display.standard.background_image = background.image.map(|uri| Image {
+                uri,
+                alt_text: None,
+            });
         }
 
         // Extract logo
         if let Some(logo) = layout_properties.logo {
-            display.text_color = logo.font_color;
-            display.logo = logo.image.map(|uri| OpenID4VCIIssuerMetadataLogoDTO {
+            display.standard.text_color = logo.font_color;
+            display.standard.logo = logo.image.map(|uri| Image {
                 uri,
                 alt_text: Some(format!("{} logo", credential_schema.name)),
             });
@@ -300,7 +296,7 @@ async fn create_display_dto_from_schema(
 async fn create_display_dtos_from_schema(
     credential_schema: &CredentialSchema,
     format: &CredentialSchemaFormat,
-) -> Result<Vec<OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO>, OpenID4VCIError> {
+) -> Result<Vec<CredentialDisplayWithDesign>, OpenID4VCIError> {
     let translations = credential_schema
         .translations
         .as_ref()
@@ -326,14 +322,15 @@ async fn create_display_dtos_from_schema(
 
     let displays = by_lang
         .into_iter()
-        .map(
-            |(lang, (name, description))| OpenID4VCIIssuerMetadataCredentialSupportedDisplayDTO {
+        .map(|(lang, (name, description))| CredentialDisplayWithDesign {
+            standard: CredentialDisplay {
                 name: name.unwrap_or_else(|| credential_schema.name.clone()),
                 locale: Some(lang),
                 description,
-                ..visual_base.clone()
+                ..visual_base.standard.clone()
             },
-        )
+            ..visual_base.clone()
+        })
         .collect();
 
     Ok(displays)
@@ -341,7 +338,7 @@ async fn create_display_dtos_from_schema(
 
 async fn create_claim_display_dtos(
     claim: &ClaimSchema,
-) -> Result<Vec<OpenID4VCIIssuerMetadataClaimDisplay>, OpenID4VCIError> {
+) -> Result<Vec<ClaimDisplay>, OpenID4VCIError> {
     let translations = claim
         .translations
         .as_ref()
@@ -357,7 +354,7 @@ async fn create_claim_display_dtos(
     Ok(translations
         .iter()
         .filter(|t| t.field == LocalizedTextField::Name)
-        .map(|t| OpenID4VCIIssuerMetadataClaimDisplay {
+        .map(|t| ClaimDisplay {
             name: Some(t.value.clone()),
             locale: Some(t.lang.clone()),
         })
@@ -366,12 +363,12 @@ async fn create_claim_display_dtos(
 
 fn jsonld_configuration(
     oidc_format: &str,
-    credential_metadata: OpenID4VCICredentialMetadataResponseDTO,
+    credential_metadata: CredentialMetadataData,
     cryptographic_binding_methods_supported: Vec<String>,
-    proof_types_supported: Option<IndexMap<String, OpenID4VCIProofTypeSupported>>,
+    proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> OpenID4VCICredentialConfigurationData {
-    OpenID4VCICredentialConfigurationData {
+) -> CredentialConfigurationData {
+    CredentialConfigurationData {
         format: oidc_format.into(),
         credential_definition: None, //TODO! Fill for json_ld
         credential_metadata: Some(credential_metadata),
@@ -384,13 +381,13 @@ fn jsonld_configuration(
 
 fn jwt_configuration(
     oidc_format: &str,
-    credential_metadata: OpenID4VCICredentialMetadataResponseDTO,
+    credential_metadata: CredentialMetadataData,
     cryptographic_binding_methods_supported: Vec<String>,
-    proof_types_supported: Option<IndexMap<String, OpenID4VCIProofTypeSupported>>,
+    proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     credential_signing_alg_values_supported: Vec<String>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> OpenID4VCICredentialConfigurationData {
-    OpenID4VCICredentialConfigurationData {
+) -> CredentialConfigurationData {
+    CredentialConfigurationData {
         format: oidc_format.into(),
         credential_definition: None, //TODO! Fill with W3C types
         cryptographic_binding_methods_supported: Some(cryptographic_binding_methods_supported),
@@ -399,7 +396,7 @@ fn jwt_configuration(
         credential_signing_alg_values_supported: Some(
             credential_signing_alg_values_supported
                 .into_iter()
-                .map(CredentialSigningAlgValue::String)
+                .map(SigningAlgValue::String)
                 .collect(),
         ),
         disclosure_policy,
@@ -409,14 +406,14 @@ fn jwt_configuration(
 
 fn sdjwt_configuration(
     oidc_format: &str,
-    credential_metadata: OpenID4VCICredentialMetadataResponseDTO,
+    credential_metadata: CredentialMetadataData,
     vct: &str,
     cryptographic_binding_methods_supported: Vec<String>,
-    proof_types_supported: Option<IndexMap<String, OpenID4VCIProofTypeSupported>>,
+    proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     credential_signing_alg_values_supported: Vec<String>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> OpenID4VCICredentialConfigurationData {
-    OpenID4VCICredentialConfigurationData {
+) -> CredentialConfigurationData {
+    CredentialConfigurationData {
         format: oidc_format.into(),
         credential_metadata: Some(credential_metadata),
         cryptographic_binding_methods_supported: Some(cryptographic_binding_methods_supported),
@@ -426,7 +423,7 @@ fn sdjwt_configuration(
         credential_signing_alg_values_supported: Some(
             credential_signing_alg_values_supported
                 .into_iter()
-                .map(CredentialSigningAlgValue::String)
+                .map(SigningAlgValue::String)
                 .collect(),
         ),
         disclosure_policy,
@@ -436,11 +433,11 @@ fn sdjwt_configuration(
 
 fn mdoc_configuration(
     doctype: String,
-    credential_metadata: OpenID4VCICredentialMetadataResponseDTO,
-    proof_types_supported: Option<IndexMap<String, OpenID4VCIProofTypeSupported>>,
+    credential_metadata: CredentialMetadataData,
+    proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> OpenID4VCICredentialConfigurationData {
-    OpenID4VCICredentialConfigurationData {
+) -> CredentialConfigurationData {
+    CredentialConfigurationData {
         format: "mso_mdoc".to_string(),
         doctype: Some(doctype.to_string()),
         credential_metadata: Some(credential_metadata),
@@ -462,11 +459,11 @@ pub(crate) async fn create_credential_offer(
     pre_authorized_code: &str,
     credential_schema: &CredentialSchema,
     identifier_id: IdentifierId,
-) -> Result<OpenID4VCIFinal1CredentialOfferDTO, OpenIDIssuanceError> {
+) -> Result<CredentialOffer, OpenIDIssuanceError> {
     let tx_code = credential_schema
         .transaction_code
         .as_ref()
-        .map(|code| OpenID4VCITxCode {
+        .map(|code| TxCode {
             input_mode: code.r#type.into(),
             length: Some(code.length as _),
             description: code.description.to_owned(),
@@ -477,7 +474,7 @@ pub(crate) async fn create_credential_offer(
         credential_schema.id
     );
 
-    Ok(OpenID4VCIFinal1CredentialOfferDTO {
+    Ok(CredentialOffer {
         credential_issuer,
         credential_configuration_ids: vec![
             credential_schema
@@ -485,7 +482,7 @@ pub(crate) async fn create_credential_offer(
                 .await
                 .map_err(|e| OpenIDIssuanceError::ValidationError(e.to_string()))?,
         ],
-        grants: OpenID4VCIGrants::PreAuthorizedCode(OpenID4VCIPreAuthorizedCodeGrant {
+        grants: Grants::PreAuthorizedCode(PreAuthorizedCodeGrant {
             pre_authorized_code: pre_authorized_code.to_owned(),
             tx_code,
             authorization_server: None,
@@ -497,11 +494,11 @@ pub(crate) fn oidc_issuer_create_token(
     interaction_data: &OpenID4VCIIssuerInteractionDataDTO,
     credentials: &[Credential],
     interaction: &Interaction,
-    request: &OpenID4VCITokenRequestDTO,
+    request: &TokenRequest,
     pre_authorization_expires_in: Duration,
     access_token_expires_in: Duration,
     refresh_token_expires_in: Duration,
-) -> Result<OpenID4VCITokenResponseDTO, OpenIDIssuanceError> {
+) -> Result<TokenResponse, OpenIDIssuanceError> {
     throw_if_token_request_invalid(request)?;
     throw_if_tx_code_invalid(interaction_data.transaction_code.as_ref(), request)?;
 
@@ -515,7 +512,7 @@ pub(crate) fn oidc_issuer_create_token(
 
     let now = crate::clock::now_utc();
     Ok(match request {
-        OpenID4VCITokenRequestDTO::PreAuthorizedCode { .. } => {
+        TokenRequest::PreAuthorizedCode { .. } => {
             throw_if_interaction_created_date(pre_authorization_expires_in, interaction)?;
             throw_if_interaction_pre_authorized_code_used(interaction_data)?;
 
@@ -523,29 +520,29 @@ pub(crate) fn oidc_issuer_create_token(
                 throw_if_credential_state_not_eq(credential, CredentialStateEnum::Pending)
             })?;
 
-            OpenID4VCITokenResponseDTO {
+            TokenResponse {
                 access_token: generate_new_token(),
                 token_type: TokenType::Bearer,
-                expires_in: Timestamp((now + access_token_expires_in).unix_timestamp()),
+                expires_in: ExpiresIn((now + access_token_expires_in).unix_timestamp()),
                 refresh_token: None,
                 refresh_token_expires_in: None,
             }
         }
 
-        OpenID4VCITokenRequestDTO::RefreshToken { refresh_token } => {
+        TokenRequest::RefreshToken { refresh_token } => {
             validate_refresh_token(interaction_data, refresh_token)?;
             // we update both the access token and the refresh token
-            OpenID4VCITokenResponseDTO {
+            TokenResponse {
                 access_token: generate_new_token(),
                 token_type: TokenType::Bearer,
-                expires_in: Timestamp((now + access_token_expires_in).unix_timestamp()),
+                expires_in: ExpiresIn((now + access_token_expires_in).unix_timestamp()),
                 refresh_token: Some(generate_new_token()),
-                refresh_token_expires_in: Some(Timestamp(
+                refresh_token_expires_in: Some(ExpiresIn(
                     (now + refresh_token_expires_in).unix_timestamp(),
                 )),
             }
         }
-        OpenID4VCITokenRequestDTO::AuthorizationCode { .. } => {
+        TokenRequest::AuthorizationCode { .. } => {
             return Err(OpenIDIssuanceError::OpenID4VCI(
                 OpenID4VCIError::InvalidGrant,
             ));

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 
 #[derive(Clone, Serialize)]
 pub struct KeySecurityLevelCapabilities {

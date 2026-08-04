@@ -3,11 +3,11 @@ use one_core::model::instance::InstanceStatus;
 use one_core::model::managed_instance::UpdateManagedInstanceRequest;
 use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::proto::jwt::Jwt;
-use one_core::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use one_core::provider::key_algorithm::KeyAlgorithm;
 use one_core::provider::key_algorithm::ecdsa::Ecdsa;
 use serde_json::json;
 use similar_asserts::assert_eq;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 use time::Duration;
 use uuid::Uuid;
 

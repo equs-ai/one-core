@@ -3,10 +3,10 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use shared_types::ManagedInstanceId;
 use standardized_types::jwk::PublicJwk;
+use standardized_types::openid4vci::KeyStorageSecurityLevel;
 
 use crate::model::instance::InstanceRole;
 use crate::model::managed_instance::ManagedInstanceOs;
-use crate::provider::issuance_protocol::model::KeyStorageSecurityLevel;
 use crate::service::managed_instance::dto::{
     self, DocumentSignerMetadataDTO, FeatureFlags, ProviderTrustCollectionDTO,
 };

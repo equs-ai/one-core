@@ -1,9 +1,9 @@
 use axum::http::HeaderMap;
 use core_server::extractor::Accept;
 use headers::HeaderMapExt;
-use one_core::provider::issuance_protocol::openid4vci_final1_0::model::OpenID4VCINotificationEvent;
 use serde_json::json;
 use shared_types::{CredentialSchemaId, OrganisationId, TrustListPublicationId};
+use standardized_types::openid4vci::NotificationEvent;
 use uuid::Uuid;
 
 use super::{HttpClient, Response};
@@ -85,7 +85,7 @@ impl SSIApi {
         &self,
         credential_schema_id: impl Into<Uuid>,
         notification_id: &str,
-        event: OpenID4VCINotificationEvent,
+        event: NotificationEvent,
     ) -> Response {
         let credential_schema_id = credential_schema_id.into();
         let url = format!("/ssi/openid4vci/final-1.0/{credential_schema_id}/notification");

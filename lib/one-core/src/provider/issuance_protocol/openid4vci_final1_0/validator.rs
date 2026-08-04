@@ -1,12 +1,10 @@
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use shared_types::{DidValue, OrganisationId};
+use standardized_types::oauth2::token::TokenRequest;
 
 use super::mapper::credential_config_to_holder_signing_algs_and_key_storage_security;
-use super::model::{
-    OpenID4VCICredentialConfigurationData, OpenID4VCIIssuerInteractionDataDTO,
-    OpenID4VCITokenRequestDTO,
-};
+use super::model::{CredentialConfigurationData, OpenID4VCIIssuerInteractionDataDTO};
 use crate::config::core_config::KeySecurityLevelType;
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialStateEnum};
@@ -25,20 +23,18 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::repository::instance_repository::InstanceRepository;
 
 pub(crate) fn throw_if_token_request_invalid(
-    request: &OpenID4VCITokenRequestDTO,
+    request: &TokenRequest,
 ) -> Result<(), OpenIDIssuanceError> {
     match &request {
-        OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+        TokenRequest::PreAuthorizedCode {
             pre_authorized_code,
             tx_code: _,
         } if pre_authorized_code.is_empty() => Err(OpenIDIssuanceError::OpenID4VCI(
             OpenID4VCIError::InvalidRequest,
         )),
-        OpenID4VCITokenRequestDTO::RefreshToken { refresh_token } if refresh_token.is_empty() => {
-            Err(OpenIDIssuanceError::OpenID4VCI(
-                OpenID4VCIError::InvalidRequest,
-            ))
-        }
+        TokenRequest::RefreshToken { refresh_token } if refresh_token.is_empty() => Err(
+            OpenIDIssuanceError::OpenID4VCI(OpenID4VCIError::InvalidRequest),
+        ),
 
         _ => Ok(()),
     }
@@ -46,12 +42,12 @@ pub(crate) fn throw_if_token_request_invalid(
 
 pub(crate) fn throw_if_tx_code_invalid(
     expected_code: Option<&String>,
-    request: &OpenID4VCITokenRequestDTO,
+    request: &TokenRequest,
 ) -> Result<(), OpenID4VCIError> {
     match (expected_code, request) {
         (
             Some(expected_code),
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: _,
                 tx_code: Some(request_code),
             },
@@ -68,7 +64,7 @@ pub(crate) fn throw_if_tx_code_invalid(
         }
         (
             None,
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code: _,
                 tx_code: Some(_),
             },
@@ -157,7 +153,7 @@ pub(super) fn validate_key_requirements_supported(
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
     key_storage_provider: &dyn KeyProvider,
     key_security_provider: &dyn KeySecurityLevelProvider,
-    credential_config: &OpenID4VCICredentialConfigurationData,
+    credential_config: &CredentialConfigurationData,
 ) -> Result<(), IssuanceProtocolError> {
     if let (Some(algs), Some(security)) =
         credential_config_to_holder_signing_algs_and_key_storage_security(

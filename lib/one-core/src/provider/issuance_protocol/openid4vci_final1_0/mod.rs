@@ -14,22 +14,15 @@ use mapper::{
     parse_credential_issuer_params,
 };
 use model::{
-    ChallengeResponseDTO, EtsiIssuerInfoAttestationFormat, EtsiIssuerInfoResponseDTO,
-    HolderInteractionData, OAuthAuthorizationServerMetadata, OpenID4VCIAuthorizationCodeGrant,
-    OpenID4VCICredentialConfigurationData, OpenID4VCICredentialRequestDTO,
-    OpenID4VCICredentialRequestIdentifier, OpenID4VCICredentialRequestProofs,
-    OpenID4VCIFinal1CredentialOfferDTO, OpenID4VCIFinal1Params, OpenID4VCIGrants,
-    OpenID4VCIIssuerInteractionDataDTO, OpenID4VCIIssuerMetadataResponseDTO,
-    OpenID4VCINonceResponseDTO, OpenID4VCINotificationEvent, OpenID4VCINotificationRequestDTO,
-    OpenID4VCITokenRequestDTO, OpenID4VCITokenResponseDTO, PreparedMetadata,
-    TokenRequestWalletAttestationRequest, WalletAttestationResult,
+    CredentialConfigurationData, HolderInteractionData, IssuerMetadata, OpenID4VCIFinal1Params,
+    OpenID4VCIIssuerInteractionDataDTO, PreparedMetadata, TokenRequestWalletAttestationRequest,
+    WalletAttestationResult,
 };
 use one_crypto::encryption::{decrypt_string, encrypt_string};
 use one_crypto::jwe::decrypt_jwe_payload;
 use proc_macros::Provider;
 use proof_formatter::{OpenID4VCIProofJWTFormatter, PublicKeyInfo};
 use secrecy::{ExposeSecret, SecretString};
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use service::{
     create_credential_offer, create_issuer_metadata_response, credential_configuration_supported,
@@ -40,6 +33,17 @@ use shared_types::{
     InteractionId, OrganisationId, SerializedCredential,
 };
 use standardized_types::jwk::JwkUse;
+use standardized_types::oauth2::attestation_based_client_auth::ChallengeResponse;
+use standardized_types::oauth2::authorization_server_metadata::AuthorizationServerMetadata;
+use standardized_types::oauth2::token::{
+    TokenErrorCode, TokenErrorResponse, TokenRequest, TokenResponse,
+};
+use standardized_types::openid4vci::{
+    AuthorizationCodeGrant, AuthorizationDetail, CredentialOffer, CredentialRequest,
+    CredentialRequestIdentifier, Grants, IssuerInfoAttestation, IssuerInfoAttestationFormat,
+    NonceResponse, NotificationEvent, NotificationRequest, ProofTypeSupported, Proofs,
+    ResponseEncryption,
+};
 use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::{Duration, OffsetDateTime};
 use url::Url;
@@ -52,8 +56,8 @@ use super::mapper::{
     interaction_from_handle_invitation,
 };
 use super::model::{
-    ContinueIssuanceResponseDTO, InvitationResponseEnum, IssuanceAcceptResponse,
-    OpenID4VCIProofTypeSupported, ShareResponse, SubmitIssuerResponse,
+    ContinueIssuanceResponseDTO, InvitationResponseEnum, IssuanceAcceptResponse, ShareResponse,
+    SubmitIssuerResponse,
 };
 use super::{
     HolderBindingInput, IssuanceProtocol, IssuanceProtocolError, deserialize_interaction_data,
@@ -100,7 +104,6 @@ use crate::provider::credential_formatter::provider::CredentialFormatterProvider
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::issuance_protocol::openid4vci_final1_0::jwe::build_jwe;
 use crate::provider::issuance_protocol::openid4vci_final1_0::mapper_v2::credential_to_credential_detail_v2;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::OpenID4VCICredentialResponseEncryptionDTO;
 use crate::provider::key_algorithm::ecdsa::ecdsa_public_key_as_jwk;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
@@ -116,10 +119,7 @@ use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::key_repository::KeyRepository;
 use crate::service::credential::dto::CredentialAttestationBlobs;
 use crate::service::credential::mapper::credential_detail_response_from_model;
-use crate::service::oid4vci_final1_0::dto::{
-    OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO,
-};
-use crate::service::ssi_holder::dto::InitiateIssuanceAuthorizationDetailDTO;
+use crate::service::oid4vci_final1_0::dto::OpenID4VCICredentialResponseDTO;
 use crate::util::key_selection::KeyFilter;
 use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
 
@@ -380,7 +380,7 @@ impl OpenID4VCIFinal1_0 {
         interaction_data: &HolderInteractionData,
         tx_code: Option<String>,
         wallet_attestation_request: Option<TokenRequestWalletAttestationRequest>,
-    ) -> Result<OpenID4VCITokenResponseDTO, IssuanceProtocolError> {
+    ) -> Result<TokenResponse, IssuanceProtocolError> {
         let token_endpoint =
             interaction_data
                 .token_endpoint
@@ -399,19 +399,17 @@ impl OpenID4VCIFinal1_0 {
         let has_sent_tx_code = tx_code.is_some();
 
         let form = match grants {
-            OpenID4VCIGrants::PreAuthorizedCode(code) => {
-                OpenID4VCITokenRequestDTO::PreAuthorizedCode {
-                    pre_authorized_code: code.pre_authorized_code.to_owned(),
-                    tx_code,
-                }
-            }
-            OpenID4VCIGrants::AuthorizationCode(_) => {
+            Grants::PreAuthorizedCode(code) => TokenRequest::PreAuthorizedCode {
+                pre_authorized_code: code.pre_authorized_code.to_owned(),
+                tx_code,
+            },
+            Grants::AuthorizationCode(_) => {
                 let Some(data) = &interaction_data.continue_issuance else {
                     return Err(IssuanceProtocolError::Failed(
                         "continue_issuance data is missing".to_string(),
                     ));
                 };
-                OpenID4VCITokenRequestDTO::AuthorizationCode {
+                TokenRequest::AuthorizationCode {
                     authorization_code: data.authorization_code.to_owned(),
                     client_id: data.client_id.to_owned(),
                     redirect_uri: data.redirect_uri.to_owned(),
@@ -441,30 +439,18 @@ impl OpenID4VCIFinal1_0 {
         let response = request.send().await.error_while("requesting token")?;
 
         if response.status.is_client_error() && has_sent_tx_code {
-            #[derive(Deserialize)]
-            struct ErrorResponse {
-                error: OpenId4VciError,
-            }
-
-            #[derive(Deserialize)]
-            #[serde(rename_all = "snake_case")]
-            enum OpenId4VciError {
-                InvalidGrant,
-                InvalidRequest,
-            }
-
-            match serde_json::from_slice::<ErrorResponse>(&response.body).map(|r| r.error) {
-                Ok(OpenId4VciError::InvalidGrant) => {
+            match serde_json::from_slice::<TokenErrorResponse>(&response.body).map(|r| r.error) {
+                Ok(TokenErrorCode::InvalidGrant) => {
                     return Err(TxCodeError::IncorrectCode
                         .error_while("checking TX response")
                         .into());
                 }
-                Ok(OpenId4VciError::InvalidRequest) => {
+                Ok(TokenErrorCode::InvalidRequest) => {
                     return Err(TxCodeError::InvalidCodeUse
                         .error_while("checking TX response")
                         .into());
                 }
-                Err(_) => {}
+                Ok(_) | Err(_) => {}
             }
         }
 
@@ -538,11 +524,13 @@ impl OpenID4VCIFinal1_0 {
                     "token endpoint is missing".to_string(),
                 ))?;
 
-        let token_response: OpenID4VCITokenResponseDTO = async {
-            let mut request = self.client.post(token_endpoint).form(&[
-                ("refresh_token", refresh_token.expose_secret().to_string()),
-                ("grant_type", "refresh_token".to_string()),
-            ])?;
+        let token_response: TokenResponse = async {
+            let mut request =
+                self.client
+                    .post(token_endpoint)
+                    .form(&TokenRequest::RefreshToken {
+                        refresh_token: refresh_token.expose_secret().to_string(),
+                    })?;
 
             if let Some(TokenRequestWalletAttestationRequest {
                 wallet_attestation,
@@ -605,7 +593,7 @@ impl OpenID4VCIFinal1_0 {
                     "nonce endpoint is missing".to_string(),
                 ))?;
 
-        let response: OpenID4VCINonceResponseDTO = async {
+        let response: NonceResponse = async {
             self.client
                 .post(nonce_endpoint.as_str())
                 .send()
@@ -625,7 +613,7 @@ impl OpenID4VCIFinal1_0 {
         &self,
         challenge_endpoint: &str,
     ) -> Result<String, IssuanceProtocolError> {
-        let response: ChallengeResponseDTO = async {
+        let response: ChallengeResponse = async {
             self.client
                 .get(challenge_endpoint)
                 .send()
@@ -641,7 +629,7 @@ impl OpenID4VCIFinal1_0 {
 
     async fn send_notification(
         &self,
-        message: OpenID4VCINotificationRequestDTO,
+        message: NotificationRequest,
         notification_endpoint: &str,
         access_token: &str,
     ) -> Result<(), IssuanceProtocolError> {
@@ -748,11 +736,11 @@ impl OpenID4VCIFinal1_0 {
             proofs.push(proof_jwt);
         }
 
-        let body = OpenID4VCICredentialRequestDTO {
-            credential: OpenID4VCICredentialRequestIdentifier::CredentialConfigurationId(
+        let body = CredentialRequest {
+            credential: CredentialRequestIdentifier::CredentialConfigurationId(
                 interaction_data.credential_configuration_id.to_owned(),
             ),
-            proofs: Some(OpenID4VCICredentialRequestProofs::Jwt(proofs)),
+            proofs: Some(Proofs::Jwt(proofs)),
             credential_response_encryption: None,
         };
 
@@ -761,18 +749,19 @@ impl OpenID4VCIFinal1_0 {
             .await?;
 
         let credentials = response
+            .standard
             .credentials
             .ok_or(IssuanceProtocolError::Failed(
                 "Missing credentials".to_string(),
             ))?
             .into_iter()
-            .map(|c| c.credential)
+            .map(|c| c.credential.into())
             .collect();
 
         Ok(SubmitIssuerResponse {
             credentials,
             redirect_uri: response.redirect_uri,
-            notification_id: response.notification_id,
+            notification_id: response.standard.notification_id,
         })
     }
 
@@ -780,7 +769,7 @@ impl OpenID4VCIFinal1_0 {
         &self,
         interaction_data: &HolderInteractionData,
         access_token: &SecretString,
-        mut body: OpenID4VCICredentialRequestDTO,
+        mut body: CredentialRequest,
     ) -> Result<OpenID4VCICredentialResponseDTO, IssuanceProtocolError> {
         let encryption_key = self.prepare_response_encryption(interaction_data, &mut body)?;
         let response: Response = if let Some(request_encryption) =
@@ -876,7 +865,7 @@ impl OpenID4VCIFinal1_0 {
     fn prepare_response_encryption(
         &self,
         interaction_data: &HolderInteractionData,
-        body: &mut OpenID4VCICredentialRequestDTO,
+        body: &mut CredentialRequest,
     ) -> Result<Option<KeyHandle>, IssuanceProtocolError> {
         let Some(response_encryption) = &interaction_data.credential_response_encryption else {
             return Ok(None);
@@ -926,7 +915,7 @@ impl OpenID4VCIFinal1_0 {
         let jwk =
             ecdsa_public_key_as_jwk(&key_agreement.public().as_raw(), Some(JwkUse::Encryption))
                 .error_while("Generating JWK")?;
-        body.credential_response_encryption = Some(OpenID4VCICredentialResponseEncryptionDTO {
+        body.credential_response_encryption = Some(ResponseEncryption {
             jwk,
             enc,
             zip: response_encryption.zip_values_supported.first().cloned(),
@@ -1193,8 +1182,8 @@ impl OpenID4VCIFinal1_0 {
         organisation: Organisation,
         token_endpoint: String,
         issuer_metadata: IssuerMetadataRepresentation,
-        oauth_authorization_server_metadata: Option<OAuthAuthorizationServerMetadataResponseDTO>,
-        grants: OpenID4VCIGrants,
+        oauth_authorization_server_metadata: Option<AuthorizationServerMetadata>,
+        grants: Grants,
         configuration_ids: &[String],
         continue_issuance: Option<ContinueIssuanceDTO>,
         trust_mode: TrustMode,
@@ -1310,7 +1299,8 @@ impl OpenID4VCIFinal1_0 {
 
         let challenge_endpoint = oauth_authorization_server_metadata
             .as_ref()
-            .and_then(|oauth_metadata| oauth_metadata.challenge_endpoint.clone());
+            .and_then(|oauth_metadata| oauth_metadata.challenge_endpoint.as_ref())
+            .map(Url::to_string);
 
         let holder_data = HolderInteractionData {
             issuer_url: issuer_metadata.metadata().credential_issuer.clone(),
@@ -1383,7 +1373,7 @@ impl OpenID4VCIFinal1_0 {
         &self,
         identifier: &Identifier,
         credential_schema: &CredentialSchema,
-    ) -> Result<Vec<EtsiIssuerInfoResponseDTO>, IssuanceProtocolError> {
+    ) -> Result<Vec<IssuerInfoAttestation>, IssuanceProtocolError> {
         let trust_information_list = identifier.trust_information.as_ref().await?;
         if trust_information_list.is_empty() {
             return Ok(vec![]);
@@ -1425,8 +1415,8 @@ impl OpenID4VCIFinal1_0 {
                     )));
                 }
 
-                result.push(EtsiIssuerInfoResponseDTO {
-                    format: EtsiIssuerInfoAttestationFormat::RegistrationCert,
+                result.push(IssuerInfoAttestation {
+                    format: IssuerInfoAttestationFormat::RegistrationCert,
                     data: String::from_utf8(certificate.value)?,
                     credential_ids: trust_information
                         .allowed_issuance_types
@@ -1463,12 +1453,10 @@ impl OpenID4VCIFinal1_0 {
             ));
         };
 
-        let mut credential_configurations_supported: IndexMap<
-            String,
-            OpenID4VCICredentialConfigurationData,
-        > = Default::default();
+        let mut credential_configurations_supported: IndexMap<String, CredentialConfigurationData> =
+            Default::default();
         {
-            let proof_types_supported: IndexMap<String, OpenID4VCIProofTypeSupported> =
+            let proof_types_supported: IndexMap<String, ProofTypeSupported> =
                 map_proof_types_supported(
                     self.key_algorithm_provider
                         .supported_verification_jose_alg_ids(),
@@ -1619,7 +1607,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         )
         .await?;
 
-        if let OpenID4VCIGrants::AuthorizationCode(authorization_code) = credential_offer.grants {
+        if let Grants::AuthorizationCode(authorization_code) = credential_offer.grants {
             let params = self
                 .config
                 .credential_issuer
@@ -1662,12 +1650,10 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 authorization_details: Some(
                     credential_configuration_ids
                         .into_iter()
-                        .map(
-                            |credential_configuration_id| InitiateIssuanceAuthorizationDetailDTO {
-                                r#type: "openid_credential".to_string(),
-                                credential_configuration_id,
-                            },
-                        )
+                        .map(|credential_configuration_id| AuthorizationDetail {
+                            r#type: "openid_credential".to_string(),
+                            credential_configuration_id,
+                        })
                         .collect(),
                 ),
                 issuer_state: authorization_code.issuer_state,
@@ -1803,14 +1789,14 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             (notification_id, interaction_data.notification_endpoint)
         {
             let notification = match &result {
-                Ok(_) => OpenID4VCINotificationRequestDTO {
+                Ok(_) => NotificationRequest {
                     notification_id,
-                    event: OpenID4VCINotificationEvent::CredentialAccepted,
+                    event: NotificationEvent::CredentialAccepted,
                     event_description: None,
                 },
-                Err(err) => OpenID4VCINotificationRequestDTO {
+                Err(err) => NotificationRequest {
                     notification_id,
-                    event: OpenID4VCINotificationEvent::CredentialFailure,
+                    event: NotificationEvent::CredentialFailure,
                     event_description: Some(err.to_string()),
                 },
             };
@@ -1868,9 +1854,9 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .await?;
 
         self.send_notification(
-            OpenID4VCINotificationRequestDTO {
+            NotificationRequest {
                 notification_id,
-                event: OpenID4VCINotificationEvent::CredentialDeleted,
+                event: NotificationEvent::CredentialDeleted,
                 event_description: None,
             },
             notification_endpoint.as_str(),
@@ -2167,7 +2153,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 token_endpoint,
                 issuer_metadata,
                 Some(oauth_metadata),
-                OpenID4VCIGrants::AuthorizationCode(OpenID4VCIAuthorizationCodeGrant {
+                Grants::AuthorizationCode(AuthorizationCodeGrant {
                     issuer_state: None, // issuer state was used at the authorization request stage so it is not relevant anymore
                     authorization_server: continue_issuance_dto.authorization_server.to_owned(),
                 }),
@@ -2208,7 +2194,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         protocol_id: &str,
         credential_schema_id: &CredentialSchemaId,
         issuer_identifier: &Identifier,
-    ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, IssuanceProtocolError> {
+    ) -> Result<IssuerMetadata, IssuanceProtocolError> {
         let prepared_metadata = self.prepare_issuer_metadata(credential_schema_id).await?;
         let issuer_info = self
             .get_etsi_issuer_info(issuer_identifier, &prepared_metadata.schema)
@@ -2336,9 +2322,9 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             notification_id,
             interaction_data.notification_endpoint,
         ) {
-            let notification = OpenID4VCINotificationRequestDTO {
+            let notification = NotificationRequest {
                 notification_id,
-                event: OpenID4VCINotificationEvent::CredentialFailure,
+                event: NotificationEvent::CredentialFailure,
                 event_description: Some(err.to_string()),
             };
 
@@ -2371,7 +2357,7 @@ struct PrepareIssuanceSuccess {
 async fn resolve_credential_offer(
     client: &dyn HttpClient,
     invitation_url: Url,
-) -> Result<OpenID4VCIFinal1CredentialOfferDTO, IssuanceProtocolError> {
+) -> Result<CredentialOffer, IssuanceProtocolError> {
     let query_pairs: HashMap<_, _> = invitation_url.query_pairs().collect();
     match (
         query_pairs.get(CREDENTIAL_OFFER_VALUE_QUERY_PARAM_KEY),
@@ -2407,15 +2393,15 @@ async fn resolve_credential_offer(
 
 #[expect(clippy::large_enum_variant)]
 enum IssuerMetadataRepresentation {
-    Unsigned(OpenID4VCIIssuerMetadataResponseDTO),
+    Unsigned(IssuerMetadata),
     Signed(
-        DecomposedJwt<OpenID4VCIIssuerMetadataResponseDTO>,
+        DecomposedJwt<IssuerMetadata>,
         Option<(AccessCertificateResult, String)>,
     ),
 }
 
 impl IssuerMetadataRepresentation {
-    fn metadata(&self) -> &OpenID4VCIIssuerMetadataResponseDTO {
+    fn metadata(&self) -> &IssuerMetadata {
         match &self {
             Self::Unsigned(metadata) => metadata,
             Self::Signed(jwt, _) => &jwt.payload.custom,
@@ -2425,12 +2411,12 @@ impl IssuerMetadataRepresentation {
 
 struct AuthorizationMetadata {
     token_endpoint: String,
-    oauth_metadata: OAuthAuthorizationServerMetadataResponseDTO,
+    oauth_metadata: AuthorizationServerMetadata,
 }
 
 async fn get_authorization_metadata(
     fetcher: &dyn OpenIDMetadataFetcher,
-    issuer_metadata: &OpenID4VCIIssuerMetadataResponseDTO,
+    issuer_metadata: &IssuerMetadata,
     credential_issuer: &str,
     authorization_server: Option<&String>,
 ) -> Result<AuthorizationMetadata, IssuanceProtocolError> {
@@ -2440,14 +2426,13 @@ async fn get_authorization_metadata(
         authorization_server,
     )?;
 
-    let oauth_metadata_response: OAuthAuthorizationServerMetadata =
-        fetch_metadata_json_with_fallback(
-            fetcher,
-            &authorization_server_url,
-            "oauth-authorization-server",
-        )
-        .await
-        .error_while("fetching authorization server metadata")?;
+    let oauth_metadata_response: AuthorizationServerMetadata = fetch_metadata_json_with_fallback(
+        fetcher,
+        &authorization_server_url,
+        "oauth-authorization-server",
+    )
+    .await
+    .error_while("fetching authorization server metadata")?;
 
     let token_endpoint = oauth_metadata_response
         .token_endpoint
@@ -2459,12 +2444,12 @@ async fn get_authorization_metadata(
 
     Ok(AuthorizationMetadata {
         token_endpoint,
-        oauth_metadata: oauth_metadata_response.into(),
+        oauth_metadata: oauth_metadata_response,
     })
 }
 
 fn get_authorization_server_url_from_issuer_metadata(
-    issuer_metadata: &OpenID4VCIIssuerMetadataResponseDTO,
+    issuer_metadata: &IssuerMetadata,
     credential_issuer: &str,
     authorization_server_from_offer: Option<&String>,
 ) -> Result<Url, IssuanceProtocolError> {

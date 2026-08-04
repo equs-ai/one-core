@@ -1,13 +1,10 @@
-use one_dto_mapper::{From, Into};
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use serde::Deserialize;
 use shared_types::{InteractionId, OrganisationId, SerializedCredential, TaskId};
-use strum::Display;
+use standardized_types::openid4vci::{AuthorizationDetail, TxCode};
 use time::OffsetDateTime;
 
 use crate::model::credential::Credential;
 use crate::model::credential_schema::KeyStorageSecurity;
-use crate::service::ssi_holder::dto::InitiateIssuanceAuthorizationDetailDTO;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +28,7 @@ pub(crate) struct CommonParams {
 pub(crate) enum InvitationResponseEnum {
     Credential {
         interaction_id: InteractionId,
-        tx_code: Option<OpenID4VCITxCode>,
+        tx_code: Option<TxCode>,
         key_storage_security: Option<Vec<KeyStorageSecurity>>,
         key_algorithms: Option<Vec<String>>,
         requires_wallet_instance_attestation: bool,
@@ -41,84 +38,11 @@ pub(crate) enum InvitationResponseEnum {
         issuer: String,
         client_id: String,
         redirect_uri: Option<String>,
-        authorization_details: Option<Vec<InitiateIssuanceAuthorizationDetailDTO>>,
+        authorization_details: Option<Vec<AuthorizationDetail>>,
         issuer_state: Option<String>,
         scope: Option<Vec<String>>,
         authorization_server: Option<String>,
     },
-}
-
-/// Credential signing algorithm value - can be a string (e.g., "ES256") or a COSE algorithm ID (e.g., -7)
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum CredentialSigningAlgValue {
-    String(String),
-    Integer(i64),
-}
-
-#[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct OpenID4VCIProofTypeSupported {
-    pub proof_signing_alg_values_supported: Vec<String>,
-    pub key_attestations_required: Option<OpenID4VCIKeyAttestationsRequired>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct OpenID4VCIKeyAttestationsRequired {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub key_storage: Vec<KeyStorageSecurityLevel>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub user_authentication: Vec<String>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, From, Into)]
-#[from(KeyStorageSecurity)]
-#[into(KeyStorageSecurity)]
-pub enum KeyStorageSecurityLevel {
-    #[serde(rename = "iso_18045_high")]
-    High,
-    #[serde(rename = "iso_18045_moderate")]
-    Moderate,
-    #[serde(rename = "iso_18045_enhanced-basic")]
-    EnhancedBasic,
-    #[serde(rename = "iso_18045_basic")]
-    Basic,
-}
-
-impl KeyStorageSecurityLevel {
-    pub fn select_lowest(levels: &[Self]) -> Option<Self> {
-        levels
-            .iter()
-            .min_by_key(|level| match level {
-                Self::High => 4,
-                Self::Moderate => 3,
-                Self::EnhancedBasic => 2,
-                Self::Basic => 1,
-            })
-            .cloned()
-    }
-}
-
-#[skip_serializing_none]
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct OpenID4VCITxCode {
-    #[serde(default)]
-    pub input_mode: OpenID4VCITxCodeInputMode,
-    #[serde(default)]
-    pub length: Option<i64>,
-    #[serde(default)]
-    pub description: Option<String>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Display, Default)]
-pub enum OpenID4VCITxCodeInputMode {
-    #[serde(rename = "numeric")]
-    #[strum(serialize = "numeric")]
-    #[default]
-    Numeric,
-    #[serde(rename = "text")]
-    #[strum(serialize = "text")]
-    Text,
 }
 
 #[derive(Clone, Debug)]

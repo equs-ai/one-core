@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use shared_types::{CredentialId, DidId, IdentifierId, InteractionId, KeyId};
+use standardized_types::oauth2::authorization_request::AuthorizationRequest;
+use standardized_types::openid4vci::SigningAlgValue;
 use url::Url;
 use uuid::Uuid;
 
@@ -24,13 +26,12 @@ use crate::model::credential::{
 };
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
-use crate::proto::oauth_client::{OAuthAuthorizationRequest, OAuthClientProvider};
+use crate::proto::oauth_client::OAuthClientProvider;
 use crate::proto::transaction_manager::IsolationLevel;
 use crate::provider::blob_storage::BlobStorage;
 use crate::provider::issuance_protocol::dto::{ContinueIssuanceDTO, Features};
 use crate::provider::issuance_protocol::model::{CredentialWithBlob, InvitationResponseEnum};
 use crate::provider::issuance_protocol::openid4vci_final1_0::mapper::interaction_data_to_accepted_key_storage_security;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::CredentialSigningAlgValue;
 use crate::provider::issuance_protocol::{
     self, HolderBindingInput, IssuanceProtocol, deserialize_interaction_data,
     serialize_interaction_data,
@@ -151,7 +152,7 @@ impl SSIHolderService {
                     .is_some_and(|values| {
                         values
                             .iter()
-                            .any(|v| matches!(v, CredentialSigningAlgValue::String(alg) if alg == "ES256"))
+                            .any(|v| matches!(v, SigningAlgValue::String(alg) if alg == "ES256"))
                     })
                 {
                     FormatType::JsonLdClassic
@@ -486,20 +487,19 @@ impl SSIHolderService {
         })?;
 
         let interaction_id: InteractionId = Uuid::new_v4().into();
-        let mut authorization_request = OAuthAuthorizationRequest::new(
-            request.client_id.clone(),
-            request.scope.as_ref().map(|s| s.join(" ")),
-            Some(interaction_id.to_string()),
-            request.redirect_uri.clone(),
-            request
-                .authorization_details
-                .as_ref()
-                .map(|ad| serde_json::json!(ad).to_string()),
-        );
-        if let Some(issuer_state) = &request.issuer_state {
-            authorization_request =
-                authorization_request.with_issuer_state(issuer_state.to_owned());
-        }
+        let authorization_request = AuthorizationRequest::builder()
+            .client_id(request.client_id.clone())
+            .maybe_scope(request.scope.as_ref().map(|s| s.join(" ")))
+            .state(interaction_id.to_string())
+            .maybe_redirect_uri(request.redirect_uri.clone())
+            .maybe_authorization_details(
+                request
+                    .authorization_details
+                    .as_ref()
+                    .map(|ad| serde_json::json!(ad).to_string()),
+            )
+            .maybe_issuer_state(request.issuer_state.clone())
+            .build();
 
         let authorization_response = self
             .client

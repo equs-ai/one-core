@@ -20,7 +20,7 @@ use super::model::{
 };
 use super::openid4vci_final1_0::OpenID4VCIFinal1_0;
 use super::openid4vci_final1_0::model::{
-    OpenID4VCIFinal1Params, OpenID4VCIIssuerMetadataResponseDTO, OpenID4VCNonceParams,
+    IssuerMetadata, OpenID4VCIFinal1Params, OpenID4VCNonceParams,
 };
 use super::openid4vci_final1_0::service::create_issuer_metadata_response;
 use super::openid4vci_final1_0_swiyu::mapper::to_swiyu_data_type;
@@ -252,7 +252,7 @@ impl IssuanceProtocol for OpenID4VCISwiyu {
         protocol_id: &str,
         credential_schema_id: &CredentialSchemaId,
         issuer_identifier: &Identifier,
-    ) -> Result<OpenID4VCIIssuerMetadataResponseDTO, IssuanceProtocolError> {
+    ) -> Result<IssuerMetadata, IssuanceProtocolError> {
         let mut prepared_metadata = self
             .inner
             .prepare_issuer_metadata(credential_schema_id)
@@ -293,8 +293,8 @@ impl IssuanceProtocol for OpenID4VCISwiyu {
                     .get_type(&schema.data_type)
                     .error_while("getting claim data type")?;
                 if let Some(value_type) = to_swiyu_data_type(data_type, schema.array)? {
-                    let additional_values = claim.additional_values.get_or_insert_default();
-                    additional_values
+                    claim
+                        .additional_values
                         .insert("value_type".to_string(), serde_json::json!(value_type));
                 }
             }

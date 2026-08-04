@@ -11,16 +11,21 @@ use shared_types::{
     BlobId, CredentialId, CredentialSchemaFormatId, CredentialSchemaId, IdentifierId,
     InteractionId, NonceId,
 };
+use standardized_types::oauth2::authorization_server_metadata::AuthorizationServerMetadata;
 use standardized_types::oauth2::dynamic_client_registration::TokenEndpointAuthMethod;
+use standardized_types::oauth2::token::{ExpiresIn, TokenRequest, TokenResponse};
+use standardized_types::openid4vci::{
+    CredentialOffer, CredentialRequest, CredentialResponse, CredentialResponseEntry, NonceResponse,
+    NotificationEvent, NotificationRequest, Proofs,
+};
 use time::Duration;
 use uuid::Uuid;
 
 use super::OID4VCIFinal1_0Service;
 use super::dto::{
-    OAuthAuthorizationServerMetadataResponseDTO,
     OID4VCIFinal1_0IssuerMetadataResponseEnum as IssuerMetadataResponseEnum,
     OID4VCIFinal1_0IssuerMetadataResponseTypeEnum as IssuerMetadataResponseTypeEnum,
-    OpenID4VCICredentialResponseDTO, OpenID4VCICredentialResponseEntryDTO,
+    OpenID4VCICredentialResponseDTO,
 };
 use super::error::OID4VCIFinal1_0ServiceError;
 use super::mapper::interaction_data_to_dto;
@@ -58,11 +63,7 @@ use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::provider::issuance_protocol::IssuanceProtocol;
 use crate::provider::issuance_protocol::error::OpenID4VCIError;
 use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
-    OAuthAuthorizationServerMetadata, OpenID4VCICredentialRequestDTO,
-    OpenID4VCICredentialRequestProofs, OpenID4VCIFinal1CredentialOfferDTO, OpenID4VCIFinal1Params,
-    OpenID4VCIIssuerInteractionDataDTO, OpenID4VCINonceResponseDTO, OpenID4VCINotificationEvent,
-    OpenID4VCINotificationRequestDTO, OpenID4VCITokenRequestDTO, OpenID4VCITokenResponseDTO,
-    Timestamp,
+    OpenID4VCIFinal1Params, OpenID4VCIIssuerInteractionDataDTO,
 };
 use crate::provider::issuance_protocol::openid4vci_final1_0::proof_formatter::{
     OpenID4VCIProofHolderBinding, OpenID4VCIProofJWTFormatter, OpenID4VCIVerifiedProof,
@@ -133,7 +134,7 @@ impl OID4VCIFinal1_0Service {
         protocol_id: &str,
         identifier_id: &IdentifierId,
         credential_schema_id: &CredentialSchemaId,
-    ) -> Result<OAuthAuthorizationServerMetadataResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<AuthorizationServerMetadata, OID4VCIFinal1_0ServiceError> {
         validate_issuance_protocol_type(self.protocol_type, &self.config, protocol_id)
             .error_while("validating protocol type")?;
 
@@ -180,7 +181,7 @@ impl OID4VCIFinal1_0Service {
 
         let credential_issuer =
             format!("{protocol_base_url}/{protocol_id}/{identifier_id}/{credential_schema_id}");
-        Ok(OAuthAuthorizationServerMetadata {
+        Ok(AuthorizationServerMetadata {
             issuer: credential_issuer.parse().map_err(|e| {
                 OID4VCIFinal1_0ServiceError::MappingError(format!("Invalid issuer URL: {e}"))
             })?,
@@ -217,15 +218,14 @@ impl OID4VCIFinal1_0Service {
             client_attestation_signing_alg_values_supported,
             client_attestation_pop_signing_alg_values_supported,
             dpop_signing_alg_values_supported: Some(vec!["ES256".to_string()]), // necessary for the EUDI wallet to work
-        }
-        .into())
+        })
     }
 
     pub async fn get_credential_offer(
         &self,
         credential_schema_id: CredentialSchemaId,
         credential_id: CredentialId,
-    ) -> Result<OpenID4VCIFinal1CredentialOfferDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<CredentialOffer, OID4VCIFinal1_0ServiceError> {
         let credential = self
             .credential_repository
             .get_credential(
@@ -310,7 +310,7 @@ impl OID4VCIFinal1_0Service {
         &self,
         credential_schema_id: &CredentialSchemaId,
         access_token: &str,
-        request: OpenID4VCICredentialRequestDTO,
+        request: CredentialRequest,
     ) -> Result<OpenID4VCICredentialResponseDTO, OID4VCIFinal1_0ServiceError> {
         let Some(schema) = self
             .credential_schema_repository
@@ -364,7 +364,7 @@ impl OID4VCIFinal1_0Service {
         validate_issuance_protocol_type(self.protocol_type, &self.config, &credential.protocol)
             .error_while("validating protocol type")?;
 
-        let Some(OpenID4VCICredentialRequestProofs::Jwt(jwts)) = request.proofs.as_ref() else {
+        let Some(Proofs::Jwt(jwts)) = request.proofs.as_ref() else {
             return Err(OpenID4VCIError::InvalidOrMissingProof.into());
         };
         let num_proofs = jwts.len() as i32;
@@ -825,10 +825,12 @@ impl OID4VCIFinal1_0Service {
 
         Ok(OpenID4VCICredentialResponseDTO {
             redirect_uri: credential.redirect_uri.to_owned(),
-            credentials: Some(credentials),
-            transaction_id: None,
-            interval: None,
-            notification_id: Some(notification_id),
+            standard: CredentialResponse {
+                credentials: Some(credentials),
+                transaction_id: None,
+                interval: None,
+                notification_id: Some(notification_id),
+            },
         })
     }
 
@@ -838,7 +840,7 @@ impl OID4VCIFinal1_0Service {
         credential_id: CredentialId,
         format_id: CredentialSchemaFormatId,
         issuance_protocol: &dyn IssuanceProtocol,
-    ) -> Result<OpenID4VCICredentialResponseEntryDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<CredentialResponseEntry, OID4VCIFinal1_0ServiceError> {
         let wua_blob_id = if let Some(attestation) = holder_identifier.key_attestation {
             let blob_storage = self
                 .blob_storage_provider
@@ -880,8 +882,8 @@ impl OID4VCIFinal1_0Service {
             .await
             .error_while("updating credential")?;
 
-        Ok(OpenID4VCICredentialResponseEntryDTO {
-            credential: issued_credential,
+        Ok(CredentialResponseEntry {
+            credential: issued_credential.into(),
         })
     }
 
@@ -889,7 +891,7 @@ impl OID4VCIFinal1_0Service {
         &self,
         credential_schema_id: CredentialSchemaId,
         access_token: &str,
-        request: OpenID4VCINotificationRequestDTO,
+        request: NotificationRequest,
     ) -> Result<(), OID4VCIFinal1_0ServiceError> {
         let interaction_id = parse_access_token(access_token)?;
         let Some(interaction) = self
@@ -947,10 +949,10 @@ impl OID4VCIFinal1_0Service {
     pub async fn create_token(
         &self,
         credential_schema_id: &CredentialSchemaId,
-        request: OpenID4VCITokenRequestDTO,
+        request: TokenRequest,
         oauth_client_attestation: Option<&str>,
         oauth_client_attestation_pop: Option<&str>,
-    ) -> Result<OpenID4VCITokenResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<TokenResponse, OID4VCIFinal1_0ServiceError> {
         let params = validator::get_config_entity(&self.config).error_while("checking config")?;
 
         let credential_schema = self
@@ -963,18 +965,16 @@ impl OID4VCIFinal1_0Service {
             ))?;
 
         let interaction_id = match &request {
-            OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+            TokenRequest::PreAuthorizedCode {
                 pre_authorized_code,
                 tx_code: _,
             } => Uuid::from_str(pre_authorized_code)
                 .map_err(|_| OpenID4VCIError::InvalidRequest)?
                 .into(),
-            OpenID4VCITokenRequestDTO::AuthorizationCode { .. } => {
+            TokenRequest::AuthorizationCode { .. } => {
                 return Err(OpenID4VCIError::InvalidGrant.into());
             }
-            OpenID4VCITokenRequestDTO::RefreshToken { refresh_token } => {
-                parse_refresh_token(refresh_token)?
-            }
+            TokenRequest::RefreshToken { refresh_token } => parse_refresh_token(refresh_token)?,
         };
 
         let credentials = self
@@ -1097,7 +1097,7 @@ impl OID4VCIFinal1_0Service {
                     ..Default::default()
                 };
 
-                if let OpenID4VCITokenRequestDTO::PreAuthorizedCode { .. } = &request {
+                if let TokenRequest::PreAuthorizedCode { .. } = &request {
                     state_update.state = Some(CredentialStateEnum::Offered);
                 }
 
@@ -1125,7 +1125,7 @@ impl OID4VCIFinal1_0Service {
             {
                 response.refresh_token = Some(generate_new_token());
                 response.refresh_token_expires_in =
-                    Some(Timestamp((now + refresh_token_expires_in).unix_timestamp()));
+                    Some(ExpiresIn((now + refresh_token_expires_in).unix_timestamp()));
             }
 
             let interaction_data: OpenID4VCIIssuerInteractionDataDTO = (&response).try_into()?;
@@ -1153,7 +1153,7 @@ impl OID4VCIFinal1_0Service {
                 err @ OID4VCIFinal1_0ServiceError::OpenID4VCIError(OpenID4VCIError::InvalidGrant),
             ) if matches!(
                 request,
-                OpenID4VCITokenRequestDTO::PreAuthorizedCode {
+                TokenRequest::PreAuthorizedCode {
                     pre_authorized_code: _,
                     tx_code: Some(_)
                 }
@@ -1283,7 +1283,7 @@ impl OID4VCIFinal1_0Service {
     pub async fn generate_nonce(
         &self,
         protocol_id: &str,
-    ) -> Result<OpenID4VCINonceResponseDTO, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<NonceResponse, OID4VCIFinal1_0ServiceError> {
         validate_issuance_protocol_type(self.protocol_type, &self.config, protocol_id)
             .error_while("validating protocol type")?;
 
@@ -1299,7 +1299,7 @@ impl OID4VCIFinal1_0Service {
         };
 
         let c_nonce = generate_nonce(params, self.base_url.to_owned()).await?;
-        Ok(OpenID4VCINonceResponseDTO { c_nonce })
+        Ok(NonceResponse { c_nonce })
     }
 
     async fn prepare_batch_item(
@@ -1345,7 +1345,7 @@ impl OID4VCIFinal1_0Service {
     async fn process_notification_for_credential(
         &self,
         credential: Credential,
-        notification: &OpenID4VCINotificationRequestDTO,
+        notification: &NotificationRequest,
     ) -> Result<(), OID4VCIFinal1_0ServiceError> {
         validate_issuance_protocol_type(self.protocol_type, &self.config, &credential.protocol)
             .error_while("validating protocol type")?;
@@ -1360,8 +1360,8 @@ impl OID4VCIFinal1_0Service {
                 // ok, can be processed
             }
             // repeated requests also allowed
-            (CredentialStateEnum::Error, OpenID4VCINotificationEvent::CredentialFailure)
-            | (CredentialStateEnum::Rejected, OpenID4VCINotificationEvent::CredentialDeleted) => {
+            (CredentialStateEnum::Error, NotificationEvent::CredentialFailure)
+            | (CredentialStateEnum::Rejected, NotificationEvent::CredentialDeleted) => {
                 return Ok(());
             }
             // anything else is invalid
@@ -1371,12 +1371,12 @@ impl OID4VCIFinal1_0Service {
         };
 
         let new_state = match notification.event {
-            OpenID4VCINotificationEvent::CredentialAccepted => {
+            NotificationEvent::CredentialAccepted => {
                 // nothing to do
                 return Ok(());
             }
-            OpenID4VCINotificationEvent::CredentialFailure => CredentialStateEnum::Error,
-            OpenID4VCINotificationEvent::CredentialDeleted => CredentialStateEnum::Rejected,
+            NotificationEvent::CredentialFailure => CredentialStateEnum::Error,
+            NotificationEvent::CredentialDeleted => CredentialStateEnum::Rejected,
         };
 
         if credential.state == new_state {
