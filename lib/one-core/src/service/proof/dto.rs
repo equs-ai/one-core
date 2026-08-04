@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use shared_types::{
-    CertificateId, CredentialSchemaId, DidId, IdentifierId, InteractionId, KeyId, OrganisationId,
-    ProofId, ProofSchemaId, TransactionDataId, TransactionDataType,
+    CertificateId, CredentialSchemaId, DidId, EcosystemId, IdentifierId, InteractionId, KeyId,
+    OrganisationId, ProofId, ProofSchemaId, TransactionDataId, TransactionDataType,
 };
 use standardized_types::openid4vp::ClientIdPrefix;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
@@ -38,6 +38,7 @@ pub struct CreateProofRequestDTO {
     pub webhook_destination_url: Option<String>,
     pub subscriber_information: Option<String>,
     pub transaction_data: Vec<CreateProofRequestTransactionDataDTO>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 /// Transaction data supplied at proof-request creation. Turned into an OpenID4VP
@@ -223,6 +224,7 @@ pub struct ProposeProofRequestDTO {
     pub organisation_id: OrganisationId,
     pub engagement: Vec<String>,
     pub ui_message: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Clone, Debug)]

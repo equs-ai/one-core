@@ -508,6 +508,10 @@ pub(crate) struct CreateCredentialRequestRestDTO {
     pub webhook_destination_url: Option<String>,
     /// Optional subscriber information associated with this credential.
     pub subscriber_information: Option<String>,
+    #[modify_schema(field = ecosystem)]
+    #[schema(nullable = false)]
+    #[into(with_fn = convert_inner)]
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, ToSchema, Into)]

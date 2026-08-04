@@ -12,6 +12,11 @@ use wiremock::http::Method;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use super::SSIHolderService;
+use super::dto::{
+    HandleInvitationRequestDTO, InitiateIssuanceAuthorizationDetailDTO, InitiateIssuanceRequestDTO,
+    OpenIDAuthorizationCodeFlowInteractionData,
+};
 use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum, CredentialType};
@@ -56,11 +61,6 @@ use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::repository::proof_repository::MockProofRepository;
-use crate::service::ssi_holder::SSIHolderService;
-use crate::service::ssi_holder::dto::{
-    InitiateIssuanceAuthorizationDetailDTO, InitiateIssuanceRequestDTO,
-    OpenIDAuthorizationCodeFlowInteractionData,
-};
 use crate::service::test_utilities::{
     dummy_did, dummy_identifier, dummy_key, dummy_organisation, dummy_proof, generic_config,
     generic_formatter_capabilities, get_dummy_date,
@@ -828,6 +828,7 @@ async fn test_initiate_issuance() {
             }]),
             issuer_state: None,
             authorization_server: None,
+            ecosystem: None,
         })
         .await
         .unwrap();
@@ -866,6 +867,7 @@ async fn test_continue_issuance() {
             authorization_details: None,
             issuer_state: None,
             authorization_server: None,
+            ecosystem: None,
         },
         code_verifier: None,
     };
@@ -1003,6 +1005,7 @@ async fn test_initiate_issuance_pkce() {
             authorization_details: None,
             issuer_state: None,
             authorization_server: None,
+            ecosystem: None,
         })
         .await
         .unwrap();
@@ -1165,12 +1168,13 @@ async fn test_handle_invitation_session_org_mismatch() {
 
     // when
     let result = service
-        .handle_invitation(
-            "https://localhost:3000/some_path".parse().unwrap(),
-            Uuid::new_v4().into(),
-            None,
-            None,
-        )
+        .handle_invitation(HandleInvitationRequestDTO {
+            url: "https://localhost:3000/some_path".parse().unwrap(),
+            organisation_id: Uuid::new_v4().into(),
+            transport: None,
+            redirect_uri: None,
+            ecosystem: None,
+        })
         .await;
 
     // then
@@ -1353,6 +1357,7 @@ async fn test_initiate_issuance_session_org_mismatch() {
             authorization_details: None,
             issuer_state: None,
             authorization_server: None,
+            ecosystem: None,
         })
         .await;
 

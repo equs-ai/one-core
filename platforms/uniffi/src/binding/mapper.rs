@@ -45,7 +45,8 @@ use one_core::service::proof_schema::dto::{
     ImportProofSchemaClaimSchemaDTO, ProofSchemaFilterParamsDTO,
 };
 use one_core::service::ssi_holder::dto::{
-    HandleInvitationResultDTO, InitiateIssuanceRequestDTO, PresentationSubmitV2CredentialRequestDTO,
+    HandleInvitationRequestDTO, HandleInvitationResultDTO, InitiateIssuanceRequestDTO,
+    PresentationSubmitV2CredentialRequestDTO,
 };
 use one_dto_mapper::{convert_inner, convert_inner_of_inner, try_convert_inner};
 use serde_json::json;
@@ -53,6 +54,7 @@ use shared_types::KeyId;
 use shared_types::i18n::I18nString;
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use time::OffsetDateTime;
+use url::Url;
 
 use super::ble::DeviceInfoBindingDTO;
 use super::credential::{
@@ -71,7 +73,10 @@ use super::history::{
     HistoryMetadataBinding, MultiLangStringBindingDTO,
 };
 use super::identifier::{CreateIdentifierDidRequestBindingDTO, IdentifierListQueryBindingDTO};
-use super::interaction::{HandleInvitationResponseBindingEnum, InitiateIssuanceRequestBindingDTO};
+use super::interaction::{
+    HandleInvitationRequestBindingDTO, HandleInvitationResponseBindingEnum,
+    InitiateIssuanceRequestBindingDTO,
+};
 use super::key::KeyRequestBindingDTO;
 use super::organisation::{
     CreateOrganisationRequestBindingDTO, TrustCollectionInfoBindingDTO,
@@ -446,6 +451,7 @@ impl TryFrom<CreateProofRequestBindingDTO> for CreateProofRequestDTO {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()?,
+            ecosystem: convert_inner(value.ecosystem),
         })
     }
 }
@@ -722,6 +728,7 @@ impl TryFrom<InitiateIssuanceRequestBindingDTO> for InitiateIssuanceRequestDTO {
             authorization_details: convert_inner_of_inner(request.authorization_details),
             issuer_state: None,
             authorization_server: None,
+            ecosystem: convert_inner(request.ecosystem),
         })
     }
 }
@@ -1099,6 +1106,20 @@ impl TryFrom<PresentationSubmitV2CredentialRequestBindingDTO>
             credential_id: into_id(&credential_id)?,
             user_selections: user_selections.unwrap_or_default(),
             transaction_data_ids: into_id_vec(&transaction_data_ids.unwrap_or_default())?,
+        })
+    }
+}
+
+impl TryFrom<HandleInvitationRequestBindingDTO> for HandleInvitationRequestDTO {
+    type Error = ServiceError;
+    fn try_from(value: HandleInvitationRequestBindingDTO) -> Result<Self, Self::Error> {
+        Ok(Self {
+            url: Url::parse(&value.url)
+                .map_err(|e| ServiceError::ValidationError(e.to_string()))?,
+            organisation_id: into_id(value.organisation_id)?,
+            transport: value.transport,
+            redirect_uri: value.redirect_uri,
+            ecosystem: convert_inner(value.ecosystem),
         })
     }
 }

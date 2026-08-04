@@ -14,7 +14,6 @@ use super::dto::{
 };
 use crate::dto::common::EntityResponseRestDTO;
 use crate::dto::error::ErrorResponseRestDTO;
-use crate::dto::mapper::fallback_organisation_id_from_session;
 use crate::dto::response::{CreatedOrErrorResponse, EmptyOrErrorResponse, OkOrErrorResponse};
 use crate::endpoint::interaction::dto::{
     InitiateIssuanceRequestRestDTO, InitiateIssuanceResponseRestDTO, ProposeProofResponseRestDTO,
@@ -53,12 +52,7 @@ pub(crate) async fn handle_invitation(
             state
                 .core
                 .ssi_holder_service
-                .handle_invitation(
-                    request.url,
-                    fallback_organisation_id_from_session(request.organisation_id)?,
-                    request.transport,
-                    request.redirect_uri,
-                )
+                .handle_invitation(request.try_into()?)
                 .await
                 .error_while("handling invitation")?,
         )

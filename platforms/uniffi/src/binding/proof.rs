@@ -245,6 +245,7 @@ pub struct CreateProofRequestBindingDTO {
     pub engagement: Option<String>,
     /// Optional transaction data to request authorization for.
     pub transaction_data: Option<Vec<ProofRequestTransactionDataBindingDTO>>,
+    pub ecosystem: Option<String>,
 }
 
 /// Transaction data to include in a proof request.
@@ -502,6 +503,8 @@ pub struct ProposeProofRequestBindingDTO {
     pub engagement: Vec<String>,
     #[try_into(infallible)]
     pub ui_message: Option<String>,
+    #[try_into(infallible, with_fn = convert_inner)]
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, From, uniffi::Record)]

@@ -1,11 +1,9 @@
 use one_core::provider::issuance_protocol::model::{OpenID4VCITxCode, OpenID4VCITxCodeInputMode};
-use one_core::service::error::ServiceError;
 use one_core::service::ssi_holder::dto::{
     ContinueIssuanceResponseDTO, InitiateIssuanceAuthorizationDetailDTO,
     InitiateIssuanceResponseDTO,
 };
-use one_dto_mapper::{From, Into, convert_inner_of_inner};
-use url::Url;
+use one_dto_mapper::{From, Into, convert_inner, convert_inner_of_inner};
 
 use super::credential_schema::KeyStorageSecurityBindingEnum;
 use crate::OneCore;
@@ -22,20 +20,10 @@ impl OneCore {
         &self,
         request: HandleInvitationRequestBindingDTO,
     ) -> Result<HandleInvitationResponseBindingEnum, BindingError> {
-        let url =
-            Url::parse(&request.url).map_err(|e| ServiceError::ValidationError(e.to_string()))?;
-
-        let organisation_id = into_id(&request.organisation_id)?;
-
         let core = self.use_core().await?;
         let invitation_response = core
             .ssi_holder_service
-            .handle_invitation(
-                url,
-                organisation_id,
-                request.transport,
-                request.redirect_uri,
-            )
+            .handle_invitation(request.try_into()?)
             .await?;
 
         Ok(invitation_response.into())
@@ -139,6 +127,7 @@ pub struct HandleInvitationRequestBindingDTO {
     /// to once authorization is complete. For example:
     /// "myapp://example".
     pub redirect_uri: Option<String>,
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, uniffi::Enum)]
@@ -196,6 +185,8 @@ pub struct ContinueIssuanceResponseBindingDTO {
     pub requires_wallet_instance_attestation: bool,
     /// Protocol used for issuance.
     pub protocol: String,
+    #[from(with_fn = convert_inner )]
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, From, uniffi::Record)]
@@ -236,6 +227,7 @@ pub struct InitiateIssuanceRequestBindingDTO {
     pub scope: Option<Vec<String>>,
     /// OpenID4VCI authorization request parameter.
     pub authorization_details: Option<Vec<InitiateIssuanceAuthorizationDetailBindingDTO>>,
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, uniffi::Record, Into)]

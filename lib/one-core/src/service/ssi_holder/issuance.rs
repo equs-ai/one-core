@@ -442,6 +442,7 @@ impl SSIHolderService {
                         authorization_details,
                         issuer_state,
                         authorization_server,
+                        ecosystem: None, // TODO: ONE-9974, pass selected/detected ecosystem
                     })
                     .await?;
 
@@ -637,6 +638,7 @@ impl SSIHolderService {
             key_algorithms,
             requires_wallet_instance_attestation,
             protocol,
+            ecosystem: None, // TODO (ONE-9974): implement validations
         })
     }
 }

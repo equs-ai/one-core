@@ -1,11 +1,23 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use shared_types::{CredentialId, InteractionId, OrganisationId, ProofId, TransactionDataId};
+use shared_types::{
+    CredentialId, EcosystemId, InteractionId, OrganisationId, ProofId, TransactionDataId,
+};
+use url::Url;
 
 use crate::model::credential_schema::KeyStorageSecurity;
 use crate::model::interaction::InteractionType;
 use crate::provider::issuance_protocol::model::OpenID4VCITxCode;
+
+#[derive(Clone, Debug)]
+pub struct HandleInvitationRequestDTO {
+    pub url: Url,
+    pub organisation_id: OrganisationId,
+    pub transport: Option<Vec<String>>,
+    pub redirect_uri: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
+}
 
 #[derive(Clone, Debug)]
 pub struct PresentationSubmitV2RequestDTO {
@@ -55,6 +67,7 @@ pub struct ContinueIssuanceResponseDTO {
     pub key_algorithms: Option<Vec<String>>,
     pub requires_wallet_instance_attestation: bool,
     pub protocol: String,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -68,6 +81,7 @@ pub struct InitiateIssuanceRequestDTO {
     pub authorization_details: Option<Vec<InitiateIssuanceAuthorizationDetailDTO>>,
     pub issuer_state: Option<String>,
     pub authorization_server: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

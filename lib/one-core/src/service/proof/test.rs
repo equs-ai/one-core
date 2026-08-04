@@ -2296,6 +2296,7 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -2391,6 +2392,7 @@ async fn test_create_proof_using_invalid_did_method() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -2520,6 +2522,7 @@ async fn test_create_proof_using_identifier() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -2656,6 +2659,7 @@ async fn test_create_proof_without_related_key() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -2797,6 +2801,7 @@ async fn test_create_proof_with_related_key() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -2941,6 +2946,7 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![transaction_data.clone(), transaction_data],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -3089,6 +3095,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_input_schema = generic_proof_input_schema();
@@ -3223,6 +3230,7 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -3332,6 +3340,7 @@ async fn test_create_proof_failed_incompatible_exchange() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -3396,6 +3405,7 @@ async fn test_create_proof_did_deactivated_error() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -3529,6 +3539,7 @@ async fn test_create_proof_schema_deleted() {
             webhook_destination_url: None,
             subscriber_information: None,
             transaction_data: vec![],
+            ecosystem: None,
         })
         .await;
     assert2::assert!(
@@ -3554,6 +3565,7 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
         webhook_destination_url: None,
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let mut proof_schema_repository = MockProofSchemaRepository::default();
@@ -3690,6 +3702,7 @@ async fn test_create_proof_failed_invalid_redirect_uri() {
             webhook_destination_url: None,
             subscriber_information: None,
             transaction_data: vec![],
+            ecosystem: None,
         })
         .await;
     assert!(matches!(
@@ -3716,6 +3729,7 @@ async fn test_create_proof_fail_webhook_not_allowed() {
         webhook_destination_url: Some("http://webhook.url".to_string()),
         subscriber_information: None,
         transaction_data: vec![],
+        ecosystem: None,
     };
 
     let service = setup_service(Repositories {
@@ -4599,6 +4613,7 @@ async fn test_create_proof_session_org_mismatch() {
             webhook_destination_url: None,
             subscriber_information: None,
             transaction_data: vec![],
+            ecosystem: None,
         })
         .await;
     assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0178);
@@ -4682,6 +4697,7 @@ async fn test_proof_ops_session_org_mismatch() {
             organisation_id: Uuid::new_v4().into(),
             engagement: vec![],
             ui_message: None,
+            ecosystem: None,
         })
         .await;
     assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0178);

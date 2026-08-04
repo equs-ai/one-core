@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use shared_types::{
     CertificateId, ClaimSchemaId, CredentialFormat, CredentialId, CredentialSchemaId, DidId,
-    IdentifierId, InteractionId, KeyId, OrganisationId, RevocationMethodId,
+    EcosystemId, IdentifierId, InteractionId, KeyId, OrganisationId, RevocationMethodId,
 };
 use strum::AsRefStr;
 use time::OffsetDateTime;
@@ -246,6 +246,7 @@ pub struct CreateCredentialRequestDTO {
     pub profile: Option<String>,
     pub webhook_destination_url: Option<String>,
     pub subscriber_information: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Clone, Debug)]

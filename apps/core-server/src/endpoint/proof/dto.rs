@@ -147,6 +147,10 @@ pub(crate) struct CreateProofRequestRestDTO {
     #[into(with_fn = convert_inner)]
     #[schema(nullable = false)]
     pub transaction_data: Vec<ProofRequestTransactionDataRestDTO>,
+    #[modify_schema(field = ecosystem)]
+    #[schema(nullable = false)]
+    #[into(with_fn = convert_inner)]
+    pub ecosystem: Option<String>,
 }
 
 /// Transaction data to include in a proof request.

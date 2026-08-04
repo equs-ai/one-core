@@ -1,8 +1,5 @@
-use shared_types::OrganisationId;
-use url::Url;
-
 use super::SSIHolderService;
-use super::dto::HandleInvitationResultDTO;
+use super::dto::{HandleInvitationRequestDTO, HandleInvitationResultDTO};
 use super::error::HolderServiceError;
 use crate::error::ContextWithErrorCode;
 use crate::validator::throw_if_org_id_not_matching_session;
@@ -10,39 +7,41 @@ use crate::validator::throw_if_org_id_not_matching_session;
 impl SSIHolderService {
     pub async fn handle_invitation(
         &self,
-        url: Url,
-        organisation_id: OrganisationId,
-        transport: Option<Vec<String>>,
-        redirect_uri: Option<String>,
+        request: HandleInvitationRequestDTO,
     ) -> Result<HandleInvitationResultDTO, HolderServiceError> {
-        throw_if_org_id_not_matching_session(&organisation_id, &*self.session_provider)
+        throw_if_org_id_not_matching_session(&request.organisation_id, &*self.session_provider)
             .error_while("checking session")?;
         let organisation = self
             .organisation_repository
-            .get_organisation(&organisation_id)
+            .get_organisation(&request.organisation_id)
             .await
             .error_while("getting organisation")?
-            .ok_or(HolderServiceError::MissingOrganisation(organisation_id))?;
+            .ok_or(HolderServiceError::MissingOrganisation(
+                request.organisation_id,
+            ))?;
 
         if organisation.deactivated_at.is_some() {
             return Err(HolderServiceError::OrganisationIsDeactivated(
-                organisation_id,
+                request.organisation_id,
             ));
         }
 
-        let result = if let Some((issuance_exchange, issuance_protocol)) =
-            self.issuance_protocol_provider.detect_protocol(&url)
+        // TODO (ONE-9974): detect/validate ecosystem
+
+        let result = if let Some((issuance_exchange, issuance_protocol)) = self
+            .issuance_protocol_provider
+            .detect_protocol(&request.url)
         {
             self.handle_issuance_invitation(
-                url,
+                request.url,
                 organisation,
                 issuance_exchange,
                 issuance_protocol,
-                redirect_uri,
+                request.redirect_uri,
             )
             .await?
         } else {
-            self.handle_verification_invitation(url, organisation, transport)
+            self.handle_verification_invitation(request.url, organisation, request.transport)
                 .await?
         };
 

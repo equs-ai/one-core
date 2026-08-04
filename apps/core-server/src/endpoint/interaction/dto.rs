@@ -5,11 +5,11 @@ use one_core::provider::issuance_protocol::model::{OpenID4VCITxCode, OpenID4VCIT
 use one_core::service::error::ServiceError;
 use one_core::service::proof::dto::{ProposeProofRequestDTO, ProposeProofResponseDTO};
 use one_core::service::ssi_holder::dto::{
-    ContinueIssuanceResponseDTO, InitiateIssuanceAuthorizationDetailDTO,
-    InitiateIssuanceResponseDTO, PresentationSubmitV2CredentialRequestDTO,
-    PresentationSubmitV2RequestDTO,
+    ContinueIssuanceResponseDTO, HandleInvitationRequestDTO,
+    InitiateIssuanceAuthorizationDetailDTO, InitiateIssuanceResponseDTO,
+    PresentationSubmitV2CredentialRequestDTO, PresentationSubmitV2RequestDTO,
 };
-use one_dto_mapper::{From, Into, TryInto, convert_inner_of_inner};
+use one_dto_mapper::{From, Into, TryInto, convert_inner, convert_inner_of_inner};
 use proc_macros::{ModifySchema, options_not_nullable};
 use serde::{Deserialize, Serialize};
 use shared_types::{
@@ -24,25 +24,34 @@ use crate::dto::mapper::fallback_organisation_id_from_session;
 use crate::endpoint::credential_schema::dto::KeyStorageSecurityRestEnum;
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Deserialize, ToSchema, ModifySchema)]
+#[derive(Clone, Debug, Deserialize, ToSchema, ModifySchema, TryInto)]
+#[try_into(T = HandleInvitationRequestDTO, Error = ServiceError)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct HandleInvitationRequestRestDTO {
     #[schema(example = "https://example.com/credential-offer")]
+    #[try_into(infallible)]
     /// Typically encoded as a QR code or deep link by the issuer or verifier.
     pub url: Url,
     /// Required when not using STS authentication mode. Specifies the
     /// organizational context for this operation. When using STS
     /// authentication, this value is derived from the token.
+    #[try_into(with_fn = fallback_organisation_id_from_session)]
     pub organisation_id: Option<OrganisationId>,
     #[schema(example = json!(["HTTP"]))]
     /// For configurations with multiple transport protocols enabled you can
     /// specify which one to use for this interaction.
     #[modify_schema(field = transport)]
     #[schema(nullable = false)]
+    #[try_into(infallible)]
     pub transport: Option<Vec<String>>,
     /// For issuer-initiated Authorization Code Flow, provide the authorization server
     /// with the URI it should return the user to once authorization is complete.
+    #[try_into(infallible)]
     pub redirect_uri: Option<String>,
+    #[modify_schema(field = ecosystem)]
+    #[schema(nullable = false)]
+    #[try_into(infallible, with_fn = convert_inner)]
+    pub ecosystem: Option<String>,
 }
 
 #[options_not_nullable]
@@ -88,6 +97,8 @@ pub(crate) struct ContinueIssuanceResponseRestDTO {
     pub key_algorithms: Option<Vec<String>>,
     pub requires_wallet_instance_attestation: bool,
     pub protocol: String,
+    #[from(with_fn = convert_inner)]
+    pub ecosystem: Option<String>,
 }
 
 #[options_not_nullable]
@@ -214,7 +225,7 @@ pub(crate) struct PresentationSubmitV2CredentialRequestRestDTO {
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Deserialize, ToSchema, TryInto)]
+#[derive(Clone, Debug, Deserialize, ToSchema, ModifySchema, TryInto)]
 #[try_into(T = ProposeProofRequestDTO, Error = ServiceError)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct ProposeProofRequestRestDTO {
@@ -229,6 +240,10 @@ pub(crate) struct ProposeProofRequestRestDTO {
     pub engagement: Vec<String>,
     #[try_into(infallible)]
     pub ui_message: Option<String>,
+    #[modify_schema(field = ecosystem)]
+    #[schema(nullable = false)]
+    #[try_into(infallible, with_fn = convert_inner)]
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
@@ -241,7 +256,7 @@ pub(crate) struct ProposeProofResponseRestDTO {
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Deserialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, ToSchema, ModifySchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct InitiateIssuanceRequestRestDTO {
     /// Organization to place the issued credential into.
@@ -261,6 +276,10 @@ pub(crate) struct InitiateIssuanceRequestRestDTO {
     pub scope: Option<Vec<String>>,
     /// OpenID4VCI authorization request parameter.
     pub authorization_details: Option<Vec<InitiateIssuanceAuthorizationDetailRestDTO>>,
+
+    #[modify_schema(field = ecosystem)]
+    #[schema(nullable = false)]
+    pub ecosystem: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, ToSchema, Into)]

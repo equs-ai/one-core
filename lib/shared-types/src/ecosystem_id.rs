@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::macros::{impl_display, impl_from};
+use crate::macros::{impl_display, impl_from, impl_into};
 
 /// Identifier of an ecosystem based in CoreConfig.ecosystem
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -34,6 +34,7 @@ impl AsRef<str> for EcosystemId {
 
 impl_display!(EcosystemId);
 impl_from!(EcosystemId; String);
+impl_into!(EcosystemId; String);
 
 #[cfg(feature = "sea-orm")]
 use crate::macros::impls_for_seaorm_newtype;
