@@ -14,7 +14,7 @@ use crate::error::ContextWithErrorCode;
 use crate::mapper::openid4vp::format_type_to_dcql_format;
 use crate::model::blob::BlobType;
 use crate::model::certificate::Certificate;
-use crate::model::credential_schema::{CredentialSchema, CredentialSchemaRelations};
+use crate::model::credential_schema::CredentialSchema;
 use crate::model::identifier::{
     ExactIdentifierFilterColumn, GetIdentifierList, Identifier, IdentifierData,
     IdentifierFilterValue, IdentifierListQuery, SortableIdentifierColumn,
@@ -25,7 +25,7 @@ use crate::model::list_filter::{
     ValueComparison,
 };
 use crate::model::list_query::{ListPagination, ListQuery, ListSorting};
-use crate::model::proof_schema::{ProofInputSchemaRelations, ProofSchemaRelations};
+use crate::model::proof_schema::ProofSchemaRelations;
 use crate::model::relation::RelatedVec;
 use crate::model::trust_list_subscription::TrustListSubscription;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
@@ -366,7 +366,7 @@ async fn credential_schema_filter(
             *credential_schema_id,
         ))?;
     let filter_value =
-        filter_value_from_credential_schema(config, schema, TrustContext::Issuance).await?;
+        filter_value_from_credential_schema(config, &schema, TrustContext::Issuance).await?;
     Ok(filter_value)
 }
 
@@ -380,10 +380,7 @@ async fn proof_schema_filter(
             proof_schema_id,
             &ProofSchemaRelations {
                 organisation: None,
-                proof_inputs: Some(ProofInputSchemaRelations {
-                    credential_schema: Some(CredentialSchemaRelations::default()),
-                    ..Default::default()
-                }),
+                proof_inputs: Some(Default::default()),
             },
         )
         .await
@@ -398,15 +395,10 @@ async fn proof_schema_filter(
             "missing input schemas".to_string(),
         ))?
     {
-        let credential_schema =
-            input_schema
-                .credential_schema
-                .ok_or(IdentifierServiceError::MappingError(
-                    "missing credential schema".to_string(),
-                ))?;
+        let credential_schema = input_schema.credential_schema.as_ref().await?;
         let filter_value = filter_value_from_credential_schema(
             config,
-            credential_schema,
+            &credential_schema,
             TrustContext::Verification,
         )
         .await?;
@@ -422,7 +414,7 @@ enum TrustContext {
 
 async fn filter_value_from_credential_schema(
     config: &CoreConfig,
-    schema: CredentialSchema,
+    schema: &CredentialSchema,
     context: TrustContext,
 ) -> Result<IdentifierFilterValue, IdentifierServiceError> {
     let schema_format = schema.format().await?;

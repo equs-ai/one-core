@@ -24,9 +24,7 @@ use crate::model::identifier_trust_information::IdentifierTrustInformation;
 use crate::model::key::KeyRelations;
 use crate::model::organisation::OrganisationRelations;
 use crate::model::proof::{Proof, ProofRelations, ProofStateEnum, UpdateProofRequest};
-use crate::model::proof_schema::{
-    ProofInputSchemaRelations, ProofSchemaClaimRelations, ProofSchemaRelations,
-};
+use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::openid4vp_proof_validator::ValidatedProofResult;
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::{
@@ -70,10 +68,7 @@ impl OID4VPFinal1_0Service {
                     verifier_key: Some(Default::default()),
                     verifier_certificate: Some(Default::default()),
                     schema: Some(ProofSchemaRelations {
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            credential_schema: Some(Default::default()),
-                            ..Default::default()
-                        }),
+                        proof_inputs: Some(Default::default()),
                         ..Default::default()
                     }),
                     ..Default::default()
@@ -272,10 +267,7 @@ impl OID4VPFinal1_0Service {
                 &ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     interaction: Some(Default::default()),
                     verifier_key: Some(KeyRelations::default()),

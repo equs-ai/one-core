@@ -27,8 +27,7 @@ use crate::model::credential_schema::{
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::organisation::OrganisationRelations;
 use crate::model::proof_schema::{
-    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofInputSchemaRelations,
-    ProofSchema, ProofSchemaRelations,
+    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
 };
 use crate::proto::credential_schema::importer::{
     CredentialSchemaImporterProto, MockCredentialSchemaImporter,
@@ -458,10 +457,7 @@ async fn test_create_proof_schema_success() {
             let input_schemas = proof_schema.input_schemas.as_ref().unwrap();
             assert_eq!(1, input_schemas.len());
 
-            let claim_schemas = input_schemas[0].claim_schemas.as_ref().unwrap();
-            claim_schemas.len() == 1
-                && claim_schemas[0].schema.id == claim_schema_id
-                && proof_schema.organisation.as_ref().unwrap().id == organisation_id
+            proof_schema.organisation.as_ref().unwrap().id == organisation_id
                 && proof_schema.name == create_request_clone.name
                 && proof_schema.expire_duration == create_request_clone.expire_duration.unwrap()
         })
@@ -1076,10 +1072,7 @@ async fn test_create_proof_schema_array_success() {
             let input_schemas = proof_schema.input_schemas.as_ref().unwrap();
             assert_eq!(1, input_schemas.len());
 
-            let claim_schemas = input_schemas[0].claim_schemas.as_ref().unwrap();
-            claim_schemas.len() == 1
-                && claim_schemas[0].schema.id == claim_id
-                && proof_schema.organisation.as_ref().unwrap().id == organisation_id
+            proof_schema.organisation.as_ref().unwrap().id == organisation_id
                 && proof_schema.name == create_request_clone.name
                 && proof_schema.expire_duration == create_request_clone.expire_duration.unwrap()
         })
@@ -2525,18 +2518,18 @@ async fn test_get_proof_schema_success_nested_claims() {
 
     let mut proof_schema = generic_proof_schema();
     proof_schema.input_schemas = Some(vec![ProofInputSchema {
-        claim_schemas: Some(vec![ProofInputClaimSchema {
+        claim_schemas: vec![ProofInputClaimSchema {
             schema: location_x_claim_schema.to_owned(),
             required: true,
             order: 0,
-        }]),
-        credential_schema: Some(
-            credential_schema_with_claims(vec![
-                location_claim_schema,
-                location_x_claim_schema.to_owned(),
-            ])
-            .await,
-        ),
+        }]
+        .into(),
+        credential_schema: credential_schema_with_claims(vec![
+            location_claim_schema,
+            location_x_claim_schema.to_owned(),
+        ])
+        .await
+        .into(),
     }]);
 
     let service = setup_service(Repositories {
@@ -2598,19 +2591,19 @@ async fn test_get_proof_schema_success_nested_claims_not_mandatory() {
 
     let mut proof_schema = generic_proof_schema();
     proof_schema.input_schemas = Some(vec![ProofInputSchema {
-        claim_schemas: Some(vec![ProofInputClaimSchema {
+        claim_schemas: vec![ProofInputClaimSchema {
             schema: location_cs.to_owned(),
             required: true,
             order: 0,
-        }]),
-        credential_schema: Some(
-            credential_schema_with_claims(vec![
-                location_cs,
-                location_x_cs,
-                location_foo_cs.to_owned(),
-            ])
-            .await,
-        ),
+        }]
+        .into(),
+        credential_schema: credential_schema_with_claims(vec![
+            location_cs,
+            location_x_cs,
+            location_foo_cs.to_owned(),
+        ])
+        .await
+        .into(),
     }]);
 
     let service = setup_service(Repositories {
@@ -2672,7 +2665,7 @@ async fn test_get_proof_schema_success_nested_claims_parent_not_mandatory() {
 
     let mut proof_schema = generic_proof_schema();
     proof_schema.input_schemas = Some(vec![ProofInputSchema {
-        claim_schemas: Some(vec![
+        claim_schemas: vec![
             ProofInputClaimSchema {
                 schema: bar_cs.to_owned(),
                 required: true,
@@ -2683,10 +2676,11 @@ async fn test_get_proof_schema_success_nested_claims_parent_not_mandatory() {
                 required: false,
                 order: 1,
             },
-        ]),
-        credential_schema: Some(
-            credential_schema_with_claims(vec![bar_cs, location_cs, location_x_cs]).await,
-        ),
+        ]
+        .into(),
+        credential_schema: credential_schema_with_claims(vec![bar_cs, location_cs, location_x_cs])
+            .await
+            .into(),
     }]);
 
     let service = setup_service(Repositories {
@@ -2728,10 +2722,7 @@ fn proof_schema_repo_expecting_get(proof_schema: ProofSchema) -> MockProofSchema
             eq(proof_schema.id.to_owned()),
             eq(ProofSchemaRelations {
                 organisation: Some(OrganisationRelations::default()),
-                proof_inputs: Some(ProofInputSchemaRelations {
-                    claim_schemas: Some(Default::default()),
-                    credential_schema: Some(Default::default()),
-                }),
+                proof_inputs: Some(Default::default()),
             }),
         )
         .returning(move |_id, _relations| Ok(Some(proof_schema.clone())));

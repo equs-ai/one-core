@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use one_core::model::claim::{Claim, ClaimRelations};
 use one_core::model::claim_schema::ClaimSchema;
-use one_core::model::credential_schema::CredentialSchemaRelations;
 use one_core::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use one_core::model::interaction::Interaction;
 use one_core::model::key::{Key, KeyRelations};
@@ -10,9 +9,7 @@ use one_core::model::organisation::OrganisationRelations;
 use one_core::model::proof::{
     Proof, ProofClaim, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum,
 };
-use one_core::model::proof_schema::{
-    ProofInputSchemaRelations, ProofSchema, ProofSchemaClaimRelations, ProofSchemaRelations,
-};
+use one_core::model::proof_schema::{ProofSchema, ProofSchemaRelations};
 use one_core::repository::proof_repository::ProofRepository;
 use shared_types::{BlobId, ProofId};
 use sql_data_provider::test_utilities::get_dummy_date;
@@ -163,10 +160,7 @@ impl ProofsDB {
                     }),
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations {}),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(CredentialSchemaRelations::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     interaction: Some(Default::default()),

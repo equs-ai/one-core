@@ -109,20 +109,8 @@ pub(crate) async fn validate_proof(
 
     let mut remaining_requested_claims_with_mapping = HashMap::new();
     for input_schema in input_schemas {
-        let input_claims =
-            input_schema
-                .claim_schemas
-                .as_ref()
-                .ok_or(ServiceError::MappingError(
-                    "claim_schemas is None".to_string(),
-                ))?;
-        let credential_schema =
-            input_schema
-                .credential_schema
-                .as_ref()
-                .ok_or(ServiceError::MappingError(
-                    "credential_schema is None".to_string(),
-                ))?;
+        let input_claims = input_schema.claim_schemas.as_ref().await?;
+        let credential_schema = input_schema.credential_schema.as_ref().await?;
         let formats = credential_schema.formats.as_ref().await?;
         let format = formats.first().ok_or(ServiceError::MappingError(format!(
             "credential schema {} has no format",
@@ -130,7 +118,7 @@ pub(crate) async fn validate_proof(
         )))?;
         let mappings = format.claim_mappings.as_ref().await?;
         let mut claims_with_mapping = Vec::with_capacity(input_claims.len());
-        for input_claim_schema in input_claims {
+        for input_claim_schema in &input_claims {
             let claim_schema = &input_claim_schema.schema;
             let mapping = mappings
                 .iter()
@@ -310,13 +298,7 @@ pub(crate) async fn accept_proof(
             "proof input schemas is None".to_string(),
         ))?
     {
-        let credential_schema =
-            proof_input
-                .credential_schema
-                .as_ref()
-                .ok_or(ServiceError::MappingError(
-                    "proof input credential schema is None".to_string(),
-                ))?;
+        let credential_schema = proof_input.credential_schema.as_ref().await?;
         credential_schemas.insert(credential_schema.id, credential_schema.clone());
     }
 

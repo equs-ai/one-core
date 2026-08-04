@@ -198,7 +198,7 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
             imported_source_url: None,
             organisation: None,
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: Some(vec![ProofInputClaimSchema {
+                claim_schemas: vec![ProofInputClaimSchema {
                     schema: ClaimSchema {
                         id: Uuid::new_v4().into(),
                         key: "required_key".to_string(),
@@ -206,8 +206,9 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
                     },
                     required: true,
                     order: 0,
-                }]),
-                credential_schema: Some(test_credential_schema(format)),
+                }]
+                .into(),
+                credential_schema: test_credential_schema(format).into(),
             }]),
         }),
         claims: None,
@@ -318,8 +319,8 @@ fn test_holder_proof(
             imported_source_url: None,
             organisation: None,
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: None,
-                credential_schema: Some(test_credential_schema(format)),
+                claim_schemas: Default::default(),
+                credential_schema: test_credential_schema(format).into(),
             }]),
         }),
         claims: None,

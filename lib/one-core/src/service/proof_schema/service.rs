@@ -28,8 +28,7 @@ use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListPagination;
 use crate::model::organisation::{Organisation, OrganisationRelations};
 use crate::model::proof_schema::{
-    ProofInputSchema, ProofInputSchemaRelations, ProofSchema, ProofSchemaClaimRelations,
-    ProofSchemaRelations, SortableProofSchemaColumn,
+    ProofInputSchema, ProofSchema, ProofSchemaRelations, SortableProofSchemaColumn,
 };
 use crate::proto::credential_schema::dto::{
     ImportCredentialSchemaRequestDTO, ImportCredentialSchemaV2RequestDTO,
@@ -65,10 +64,7 @@ impl ProofSchemaService {
                 id,
                 &ProofSchemaRelations {
                     organisation: Some(OrganisationRelations::default()),
-                    proof_inputs: Some(ProofInputSchemaRelations {
-                        claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                        credential_schema: Some(Default::default()),
-                    }),
+                    proof_inputs: Some(Default::default()),
                 },
             )
             .await

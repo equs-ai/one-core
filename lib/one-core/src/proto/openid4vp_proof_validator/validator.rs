@@ -185,12 +185,7 @@ impl OpenId4VpProofValidatorProto {
 
             let proof_input_schema = proof_input_schemas
                 .iter()
-                .find(|input| {
-                    input
-                        .credential_schema
-                        .as_ref()
-                        .is_some_and(|schema| schema.id.to_string() == query_id)
-                })
+                .find(|input| input.credential_schema.id_ref().to_string() == query_id)
                 .ok_or(OpenID4VCError::Other(
                     "Missing proof input schema for credential schema".to_owned(),
                 ))?;
@@ -442,15 +437,17 @@ impl OpenId4VpProofValidatorProto {
 
             let mut proof_schema_input = None;
             for input in &proof_schema_inputs {
-                if let Some(credential_schema) = &input.credential_schema {
-                    let schema_id = credential_schema
-                        .schema_id()
-                        .await
-                        .map_err(|e| OpenID4VCError::Other(e.to_string()))?;
-                    if schema_id == target_schema_id {
-                        proof_schema_input = Some(input);
-                        break;
-                    }
+                let schema_id = input
+                    .credential_schema
+                    .as_ref()
+                    .await
+                    .map_err(|e| OpenID4VCError::Other(e.to_string()))?
+                    .schema_id()
+                    .await
+                    .map_err(|e| OpenID4VCError::Other(e.to_string()))?;
+                if schema_id == target_schema_id {
+                    proof_schema_input = Some(input);
+                    break;
                 }
             }
             let proof_schema_input = proof_schema_input.ok_or(OpenID4VCError::Other(
@@ -682,13 +679,11 @@ impl OpenId4VpProofValidatorProto {
         proof_schema_input: &ProofInputSchema,
         trusted_authorities: Option<&[TrustedAuthority]>,
     ) -> Result<DetailCredential, OpenID4VCError> {
-        let credential_schema =
-            proof_schema_input
-                .credential_schema
-                .as_ref()
-                .ok_or(OpenID4VCError::MappingError(
-                    "missing credential schema format".to_string(),
-                ))?;
+        let credential_schema = proof_schema_input
+            .credential_schema
+            .as_ref()
+            .await
+            .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?;
         let format = credential_schema.format().await.map_err(|_| {
             OpenID4VCError::MappingError("missing credential schema format".to_string())
         })?;
@@ -700,7 +695,7 @@ impl OpenId4VpProofValidatorProto {
         let credential = formatter
             .extract_credentials(
                 credential_token,
-                proof_schema_input.credential_schema.as_ref(),
+                Some(&credential_schema),
                 self.key_verification(KeyRole::AssertionMethod),
             )
             .await
@@ -994,27 +989,23 @@ async fn validate_claims(
     received_credential: DetailCredential,
     proof_input_schema: &ProofInputSchema,
 ) -> Result<Vec<ValidatedProofClaimDTO>, OpenID4VCError> {
-    let expected_credential_claims =
-        proof_input_schema
-            .claim_schemas
-            .as_ref()
-            .ok_or(OpenID4VCError::MappingError(
-                "Missing claim schemas".to_string(),
-            ))?;
+    let expected_credential_claims = proof_input_schema
+        .claim_schemas
+        .as_ref()
+        .await
+        .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?;
 
-    let credential_schema =
-        proof_input_schema
-            .credential_schema
-            .as_ref()
-            .ok_or(OpenID4VCError::MappingError(
-                "Missing credential schema".to_string(),
-            ))?;
+    let credential_schema = proof_input_schema
+        .credential_schema
+        .as_ref()
+        .await
+        .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?;
     let mut proved_claims: Vec<ValidatedProofClaimDTO> = Vec::new();
 
-    for expected_credential_claim in expected_credential_claims {
+    for expected_credential_claim in &expected_credential_claims {
         let resolved = resolve_claim(
             &expected_credential_claim.schema,
-            credential_schema,
+            &credential_schema,
             &received_credential.claims.claims,
         )
         .await?;

@@ -27,21 +27,8 @@ pub async fn create_dcql_query(
 
     let mut credential_queries = Vec::with_capacity(input_schemas.len());
     for input_schema in input_schemas {
-        let credential_schema =
-            input_schema
-                .credential_schema
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(
-                    "Credential schema not found".to_string(),
-                ))?;
-
-        let claim_schemas =
-            input_schema
-                .claim_schemas
-                .as_ref()
-                .ok_or(VerificationProtocolError::Failed(
-                    "Claim schemas not found".to_string(),
-                ))?;
+        let credential_schema = input_schema.credential_schema.as_ref().await?;
+        let claim_schemas = input_schema.claim_schemas.as_ref().await?;
         let formats = credential_schema.formats.as_ref().await?;
         let format = formats
             .first()
@@ -63,13 +50,13 @@ pub async fn create_dcql_query(
             FormatType::Mdoc => CredentialQuery::mso_mdoc(schema_id),
             FormatType::SdJwtVc => CredentialQuery::sd_jwt_vc(vec![schema_id]),
             FormatType::JsonLdClassic | FormatType::JsonLdBbsPlus => {
-                CredentialQuery::ldp_vc(w3c_credential_query_type_values(credential_schema).await?)
+                CredentialQuery::ldp_vc(w3c_credential_query_type_values(&credential_schema).await?)
             }
             FormatType::Jwt => {
-                CredentialQuery::jwt_vc(w3c_credential_query_type_values(credential_schema).await?)
+                CredentialQuery::jwt_vc(w3c_credential_query_type_values(&credential_schema).await?)
             }
             FormatType::SdJwt => CredentialQuery::w3c_sd_jwt(
-                w3c_credential_query_type_values(credential_schema).await?,
+                w3c_credential_query_type_values(&credential_schema).await?,
             ),
         };
 
@@ -100,7 +87,7 @@ pub async fn create_dcql_query(
             base_credential_query
                 .id(credential_schema.id.to_string())
                 .claims(claim_queries)
-                .maybe_claim_sets(build_claim_sets(claim_schemas))
+                .maybe_claim_sets(build_claim_sets(&claim_schemas))
                 .build(),
         )
     }

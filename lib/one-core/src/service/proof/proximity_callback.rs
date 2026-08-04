@@ -17,9 +17,7 @@ use crate::model::blob::{Blob, BlobType};
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::organisation::OrganisationRelations;
 use crate::model::proof::{Proof, ProofRelations, ProofStateEnum, UpdateProofRequest};
-use crate::model::proof_schema::{
-    ProofInputSchemaRelations, ProofSchemaClaimRelations, ProofSchemaRelations,
-};
+use crate::model::proof_schema::ProofSchemaRelations;
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::model::{
     OpenID4VPVerifierInteractionContent, SubmissionRequestData, VpSubmissionData,
@@ -54,10 +52,7 @@ impl ProofService {
                 &ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     interaction: Some(Default::default()),
                     ..Default::default()

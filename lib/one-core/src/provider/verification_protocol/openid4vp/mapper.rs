@@ -120,35 +120,36 @@ pub(crate) async fn create_open_id_for_vp_presentation_definition(
     format_to_type_mapper: FormatMapper, // Credential schema format to format type mapper
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<OpenID4VPPresentationDefinition, VerificationProtocolError> {
+    let Some(proof_input) = proof_schema.input_schemas.as_ref() else {
+        return Err(VerificationProtocolError::Failed(
+            "Missing proof input schemas".to_owned(),
+        ));
+    };
+    if proof_input.is_empty() {
+        return Err(VerificationProtocolError::Failed(
+            "Missing proof input schemas".to_owned(),
+        ));
+    }
+
     // using vec to keep the original order of claims/credentials in the proof request
-    let requested_credentials: Vec<(CredentialSchema, Option<Vec<ProofInputClaimSchema>>)> =
-        match proof_schema.input_schemas.as_ref() {
-            Some(proof_input) if !proof_input.is_empty() => proof_input
-                .iter()
-                .filter_map(|input| {
-                    let credential_schema = input.credential_schema.as_ref()?;
+    let mut requested_credentials: Vec<(CredentialSchema, Vec<ProofInputClaimSchema>)> = vec![];
+    for input in proof_input {
+        let credential_schema = input.credential_schema.as_ref().await?;
 
-                    let claims = input.claim_schemas.as_ref().map(|schemas| {
-                        schemas
-                            .iter()
-                            .map(|claim_schema| ProofInputClaimSchema {
-                                order: claim_schema.order,
-                                required: claim_schema.required,
-                                schema: claim_schema.schema.to_owned(),
-                            })
-                            .collect()
-                    });
+        let claims = input
+            .claim_schemas
+            .as_ref()
+            .await?
+            .iter()
+            .map(|claim_schema| ProofInputClaimSchema {
+                order: claim_schema.order,
+                required: claim_schema.required,
+                schema: claim_schema.schema.to_owned(),
+            })
+            .collect();
 
-                    Some((credential_schema.to_owned(), claims))
-                })
-                .collect(),
-
-            _ => {
-                return Err(VerificationProtocolError::Failed(
-                    "Missing proof input schemas".to_owned(),
-                ));
-            }
-        };
+        requested_credentials.push((credential_schema.to_owned(), claims));
+    }
 
     let mut input_descriptors = Vec::with_capacity(requested_credentials.len());
     for (idx, (credential_schema, claim_schemas)) in requested_credentials.into_iter().enumerate() {
@@ -157,7 +158,7 @@ pub(crate) async fn create_open_id_for_vp_presentation_definition(
             create_open_id_for_vp_presentation_definition_input_descriptor(
                 idx,
                 credential_schema,
-                claim_schemas.unwrap_or_default(),
+                claim_schemas,
                 &format_type,
                 formatter_provider,
             )

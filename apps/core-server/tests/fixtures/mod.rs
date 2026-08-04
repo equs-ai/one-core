@@ -22,7 +22,7 @@ use one_core::model::credential::{
     Credential, CredentialRelations, CredentialRole, CredentialStateEnum, CredentialType,
 };
 use one_core::model::credential_schema::{
-    CredentialSchema, CredentialSchemaRelations, KeyStorageSecurity, LayoutProperties, LayoutType,
+    CredentialSchema, KeyStorageSecurity, LayoutProperties, LayoutType,
 };
 use one_core::model::credential_schema_format::CredentialSchemaFormat;
 use one_core::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
@@ -38,8 +38,7 @@ use one_core::model::proof::{
     Proof, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum,
 };
 use one_core::model::proof_schema::{
-    ProofInputClaimSchema, ProofInputSchema, ProofInputSchemaRelations, ProofSchema,
-    ProofSchemaClaimRelations, ProofSchemaRelations,
+    ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
 };
 use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::DataRepository;
@@ -807,7 +806,7 @@ pub async fn create_proof_schema(
     let input_schemas = proof_input_schemas
         .iter()
         .map(|proof_input_schema| {
-            let claim_schemas = proof_input_schema
+            let claim_schemas: Vec<_> = proof_input_schema
                 .claims
                 .iter()
                 .enumerate()
@@ -829,8 +828,8 @@ pub async fn create_proof_schema(
                 .collect();
 
             ProofInputSchema {
-                claim_schemas: Some(claim_schemas),
-                credential_schema: Some(proof_input_schema.credential_schema.to_owned()),
+                claim_schemas: claim_schemas.into(),
+                credential_schema: proof_input_schema.credential_schema.to_owned().into(),
             }
         })
         .collect();
@@ -1082,10 +1081,7 @@ pub async fn get_proof(db_conn: &DbConn, proof_id: &ProofId) -> Proof {
                 }),
                 schema: Some(ProofSchemaRelations {
                     organisation: Some(OrganisationRelations {}),
-                    proof_inputs: Some(ProofInputSchemaRelations {
-                        claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                        credential_schema: Some(CredentialSchemaRelations::default()),
-                    }),
+                    proof_inputs: Some(Default::default()),
                 }),
                 verifier_identifier: Some(IdentifierRelations {}),
                 verifier_key: Some(KeyRelations::default()),

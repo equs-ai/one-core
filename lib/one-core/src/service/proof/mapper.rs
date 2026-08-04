@@ -260,22 +260,8 @@ pub(super) async fn get_verifier_proof_detail(
     let mut proof_inputs = vec![];
 
     for input_schema in proof_input_schemas {
-        let mut input_claim_schemas = input_schema
-            .claim_schemas
-            .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "Missing claims schemas in input_schema".to_string(),
-            ))?
-            .clone();
-
-        let credential_schema =
-            input_schema
-                .credential_schema
-                .as_ref()
-                .ok_or(ProofServiceError::MappingError(
-                    "Missing credential schema in input_schema".to_string(),
-                ))?;
-
+        let mut input_claim_schemas = input_schema.claim_schemas.as_ref().await?.clone();
+        let credential_schema = input_schema.credential_schema.as_ref().await?;
         let credential_claim_schemas = credential_schema.claim_schemas.as_ref().await?;
 
         // construct generated proof input claim schemas that are nested children of explicit input_claim_schemas

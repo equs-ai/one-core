@@ -1,17 +1,20 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use autometrics::autometrics;
 use futures::FutureExt;
-use one_core::model::credential_schema::CredentialSchema;
 use one_core::model::proof_schema::{
-    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofInputSchemaRelations,
-    ProofSchema, ProofSchemaListQuery, ProofSchemaRelations,
+    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaListQuery,
+    ProofSchemaRelations,
 };
+use one_core::model::relation::{AsyncVecLoader, BatchModelLoader, Related, RelatedVec};
+use one_core::repository::claim_schema_repository::ClaimSchemaRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::proof_schema_repository::ProofSchemaRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, Unchanged,
 };
-use shared_types::{CredentialSchemaId, ProofSchemaId};
+use shared_types::ProofSchemaId;
 use time::OffsetDateTime;
 
 use super::ProofSchemaProvider;
@@ -19,6 +22,7 @@ use crate::common::list_query_with_base_model;
 use crate::entity::{proof_input_claim_schema, proof_input_schema, proof_schema};
 use crate::list_query_generic::SelectWithListQuery;
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
+use crate::transaction_context::TransactionManagerImpl;
 
 #[autometrics]
 #[async_trait::async_trait]
@@ -41,21 +45,16 @@ impl ProofSchemaRepository for ProofSchemaProvider {
             return Err(DataLayerError::IncorrectParameters);
         }
 
+        let now = one_core::clock::now_utc();
         let proof_input_schemas_active_model = proof_input_schemas
             .iter()
             .enumerate()
             .map(|(order, schema)| {
-                let now = one_core::clock::now_utc();
-                let credential_schema = schema
-                    .credential_schema
-                    .as_ref()
-                    .ok_or(DataLayerError::IncorrectParameters)?;
-
                 let input_schema = proof_input_schema::ActiveModel {
                     order: Set(order as _),
                     created_date: Set(now),
                     last_modified: Set(now),
-                    credential_schema: Set(credential_schema.id),
+                    credential_schema: Set(schema.credential_schema.id()),
                     proof_schema: Set(proof_schema_id),
                     ..Default::default()
                 };
@@ -107,12 +106,7 @@ impl ProofSchemaRepository for ProofSchemaProvider {
                 .into_iter()
                 .zip(proof_input_schemas)
             {
-                let credential_schema = request
-                    .credential_schema
-                    .as_ref()
-                    .ok_or(DataLayerError::IncorrectParameters)?;
-
-                if model.credential_schema != credential_schema.id
+                if model.credential_schema != request.credential_schema.id()
                     || order != model.order as u32
                 {
                     return Err(DataLayerError::Db(anyhow!(
@@ -120,9 +114,7 @@ impl ProofSchemaRepository for ProofSchemaProvider {
                     )));
                 }
 
-                let claim_schemas = request
-                    .claim_schemas
-                    .ok_or(DataLayerError::IncorrectParameters)?;
+                let claim_schemas = request.claim_schemas.as_ref().await?;
 
                 for (order, claim_schema) in claim_schemas.iter().enumerate() {
                     let schema = proof_input_claim_schema::ActiveModel {
@@ -162,9 +154,8 @@ impl ProofSchemaRepository for ProofSchemaProvider {
         let organisation_id = proof_schema_model.organisation_id.to_owned();
         let mut proof_schema = ProofSchema::from(proof_schema_model);
 
-        if let Some(input_relations) = &relations.proof_inputs {
-            proof_schema.input_schemas =
-                Some(self.get_related_input_schemas(id, input_relations).await?);
+        if let Some(_input_relations) = &relations.proof_inputs {
+            proof_schema.input_schemas = Some(self.get_related_input_schemas(id).await?);
         }
 
         if let Some(_organisation_relations) = &relations.organisation {
@@ -217,23 +208,9 @@ impl ProofSchemaRepository for ProofSchemaProvider {
 }
 
 impl ProofSchemaProvider {
-    async fn get_related_credential_schema(
-        &self,
-        credential_schema_id: CredentialSchemaId,
-    ) -> Result<CredentialSchema, DataLayerError> {
-        self.credential_schema_repository
-            .get_credential_schema(&credential_schema_id)
-            .await?
-            .ok_or(DataLayerError::MissingRequiredRelation {
-                relation: "proof_schema-credential_schema",
-                id: credential_schema_id.to_string(),
-            })
-    }
-
     async fn get_related_input_schemas(
         &self,
         proof_schema_id: &ProofSchemaId,
-        relations: &ProofInputSchemaRelations,
     ) -> Result<Vec<ProofInputSchema>, DataLayerError> {
         let mut inputs = Vec::new();
 
@@ -244,57 +221,64 @@ impl ProofSchemaProvider {
             .await
             .map_err(|e| DataLayerError::Db(e.into()))?;
 
+        let schemas_loader = BatchModelLoader::new(
+            input_schemas.iter().map(|model| model.credential_schema),
+            self.credential_schema_repository.clone(),
+        );
+
         for input_schema in input_schemas {
-            let mut new_input = ProofInputSchema {
-                claim_schemas: None,
-                credential_schema: None,
-            };
-
-            if relations.claim_schemas.is_some() {
-                let input_schema_claim_schema =
-                    crate::entity::proof_input_claim_schema::Entity::find()
-                        .filter(
-                            proof_input_claim_schema::Column::ProofInputSchemaId
-                                .eq(input_schema.id),
-                        )
-                        .order_by_asc(proof_input_claim_schema::Column::Order)
-                        .all(&self.db)
-                        .await
-                        .map_err(|e| DataLayerError::Db(e.into()))?;
-
-                let claim_schema_ids = input_schema_claim_schema
-                    .iter()
-                    .map(|item| item.claim_schema_id)
-                    .collect();
-
-                let claim_schemas = self
-                    .claim_schema_repository
-                    .get_claim_schema_list(claim_schema_ids)
-                    .await?;
-
-                let input_schema_claims = input_schema_claim_schema
-                    .into_iter()
-                    .zip(claim_schemas)
-                    .map(|(model, schema)| ProofInputClaimSchema {
-                        schema,
-                        required: model.required,
-                        order: model.order as u32,
-                    })
-                    .collect();
-
-                new_input.claim_schemas = Some(input_schema_claims);
-            }
-
-            if let Some(_credential_schema_relations) = &relations.credential_schema {
-                let credential_schema = self
-                    .get_related_credential_schema(input_schema.credential_schema)
-                    .await?;
-
-                new_input.credential_schema = Some(credential_schema);
-            }
-
-            inputs.push(new_input)
+            inputs.push(ProofInputSchema {
+                claim_schemas: RelatedVec::new(ProofInputClaimSchemasLoader {
+                    db: self.db.clone(),
+                    proof_input_schema_id: input_schema.id,
+                    claim_schema_repository: self.claim_schema_repository.clone(),
+                }),
+                credential_schema: Related::new(
+                    input_schema.credential_schema,
+                    schemas_loader.clone(),
+                ),
+            })
         }
         Ok(inputs)
+    }
+}
+
+struct ProofInputClaimSchemasLoader {
+    db: TransactionManagerImpl,
+    proof_input_schema_id: i64,
+    claim_schema_repository: Arc<dyn ClaimSchemaRepository>,
+}
+
+#[async_trait::async_trait]
+impl AsyncVecLoader<ProofInputClaimSchema> for ProofInputClaimSchemasLoader {
+    async fn load(&self) -> Result<Vec<ProofInputClaimSchema>, DataLayerError> {
+        let input_schema_claim_schema = crate::entity::proof_input_claim_schema::Entity::find()
+            .filter(
+                proof_input_claim_schema::Column::ProofInputSchemaId.eq(self.proof_input_schema_id),
+            )
+            .order_by_asc(proof_input_claim_schema::Column::Order)
+            .all(&self.db)
+            .await
+            .map_err(|e| DataLayerError::Db(e.into()))?;
+
+        let claim_schema_ids = input_schema_claim_schema
+            .iter()
+            .map(|item| item.claim_schema_id)
+            .collect();
+
+        let claim_schemas = self
+            .claim_schema_repository
+            .get_claim_schema_list(claim_schema_ids)
+            .await?;
+
+        Ok(input_schema_claim_schema
+            .into_iter()
+            .zip(claim_schemas)
+            .map(|(model, schema)| ProofInputClaimSchema {
+                schema,
+                required: model.required,
+                order: model.order as u32,
+            })
+            .collect())
     }
 }

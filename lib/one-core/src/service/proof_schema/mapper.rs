@@ -74,8 +74,8 @@ pub(super) async fn proof_input_from_import_request(
     };
 
     Ok(ProofInputSchema {
-        claim_schemas: Some(proof_input_claim_schemas),
-        credential_schema: Some(credential_schema),
+        claim_schemas: proof_input_claim_schemas.into(),
+        credential_schema: credential_schema.into(),
     })
 }
 
@@ -150,19 +150,10 @@ async fn convert_input_schema_to_response(
     datatype_config: &DatatypeConfig,
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<ProofInputSchemaResponseDTO, ProofSchemaServiceError> {
-    let credential_schema =
-        value
-            .credential_schema
-            .ok_or(ProofSchemaServiceError::MappingError(
-                "credential_schema is None".to_string(),
-            ))?;
+    let credential_schema = value.credential_schema.as_ref().await?.to_owned();
 
     let claim_schemas = {
-        let claim_schemas = value
-            .claim_schemas
-            .ok_or(ProofSchemaServiceError::MappingError(
-                "claim_schemas is None".to_string(),
-            ))?;
+        let claim_schemas = value.claim_schemas.as_ref().await?.to_owned();
 
         let credential_schema_claims = credential_schema.claim_schemas.as_ref().await?;
         nest_claim_schemas(
@@ -381,8 +372,12 @@ pub fn proof_schema_from_create_request(
                 .ok_or(ProofSchemaServiceError::MissingCredentialSchema)?;
 
             let proof_input_schema = ProofInputSchema {
-                claim_schemas: proof_schema_claims.get(&credential_schema_id).cloned(),
-                credential_schema: Some(credential_schema),
+                claim_schemas: proof_schema_claims
+                    .get(&credential_schema_id)
+                    .cloned()
+                    .unwrap_or_default()
+                    .into(),
+                credential_schema: credential_schema.into(),
             };
 
             Ok::<_, ProofSchemaServiceError>(proof_input_schema)

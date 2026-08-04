@@ -133,10 +133,14 @@ async fn test_import_proof_schema_ok() {
     let proof_input_schemas = proof_schema.input_schemas.as_ref().unwrap();
     assert_eq!(1, proof_input_schemas.len());
 
-    let credential_schema = proof_input_schemas[0].credential_schema.as_ref().unwrap();
+    let credential_schema = proof_input_schemas[0]
+        .credential_schema
+        .as_ref()
+        .await
+        .unwrap();
     assert_eq!("test-credential-schema", credential_schema.name);
 
-    let claims = proof_input_schemas[0].claim_schemas.as_ref().unwrap();
+    let claims = proof_input_schemas[0].claim_schemas.as_ref().await.unwrap();
     assert_eq!(1, claims.len());
     assert_eq!(requested_claim_schema.key, claims[0].schema.key);
 }
@@ -282,7 +286,11 @@ async fn test_import_proof_schema_for_existing_credential_schema() {
     let proof_input_schemas = proof_schema.input_schemas.as_ref().unwrap();
     assert_eq!(1, proof_input_schemas.len());
 
-    let credential_schema = proof_input_schemas[0].credential_schema.as_ref().unwrap();
+    let credential_schema = proof_input_schemas[0]
+        .credential_schema
+        .as_ref()
+        .await
+        .unwrap();
     assert_eq!("test-credential-schema", credential_schema.name);
 
     let claim_schemas = credential_schema.claim_schemas.as_ref().await.unwrap();
@@ -297,7 +305,7 @@ async fn test_import_proof_schema_for_existing_credential_schema() {
         claim_schemas.len()
     );
 
-    let claims = proof_input_schemas[0].claim_schemas.as_ref().unwrap();
+    let claims = proof_input_schemas[0].claim_schemas.as_ref().await.unwrap();
     assert_eq!(1, claims.len());
     assert_eq!(requested_claim_schema.key, claims[0].schema.key);
 }
@@ -413,7 +421,11 @@ async fn test_import_proof_schema_nested_array() {
     let proof_input_schemas = proof_schema.input_schemas.as_ref().unwrap();
     assert_eq!(1, proof_input_schemas.len());
 
-    let credential_schema = proof_input_schemas[0].credential_schema.as_ref().unwrap();
+    let credential_schema = proof_input_schemas[0]
+        .credential_schema
+        .as_ref()
+        .await
+        .unwrap();
     assert_eq!("test-credential-schema", credential_schema.name);
 
     let claim_schemas = credential_schema.claim_schemas.as_ref().await.unwrap();
@@ -428,7 +440,7 @@ async fn test_import_proof_schema_nested_array() {
         claim_schemas.len()
     );
 
-    let claims = proof_input_schemas[0].claim_schemas.as_ref().unwrap();
+    let claims = proof_input_schemas[0].claim_schemas.as_ref().await.unwrap();
     assert_eq!(1, claims.len());
     assert_eq!(requested_claim_schema.key, claims[0].schema.key);
 }

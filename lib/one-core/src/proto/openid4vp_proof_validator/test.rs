@@ -380,7 +380,7 @@ fn test_data(dcql_query: DcqlQuery) -> TestData {
         state: ProofStateEnum::Pending,
         schema: Some(ProofSchema {
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: Some(vec![
+                claim_schemas: vec![
                     ProofInputClaimSchema {
                         schema: claim_schema_required,
                         required: true,
@@ -391,8 +391,9 @@ fn test_data(dcql_query: DcqlQuery) -> TestData {
                         required: false,
                         order: 1,
                     },
-                ]),
-                credential_schema: Some(credential_schema),
+                ]
+                .into(),
+                credential_schema: credential_schema.into(),
             }]),
             organisation: Some(dummy_organisation(None)),
             ..dummy_proof_schema()

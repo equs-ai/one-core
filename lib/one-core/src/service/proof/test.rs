@@ -42,8 +42,7 @@ use crate::model::proof::{
     GetProofList, Proof, ProofClaim, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum,
 };
 use crate::model::proof_schema::{
-    ProofInputClaimSchema, ProofInputSchema, ProofInputSchemaRelations, ProofSchema,
-    ProofSchemaClaimRelations, ProofSchemaRelations,
+    ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
 };
 use crate::proto::bluetooth_low_energy::ble_resource::BleWaiter;
 use crate::proto::bluetooth_low_energy::low_level::ble_central::MockBleCentral;
@@ -261,8 +260,8 @@ fn generic_proof_input_schema() -> ProofInputSchema {
 
     let credential_schema_id = Uuid::new_v4().into();
     ProofInputSchema {
-        claim_schemas: None,
-        credential_schema: Some(CredentialSchema {
+        claim_schemas: Default::default(),
+        credential_schema: CredentialSchema {
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -292,7 +291,8 @@ fn generic_proof_input_schema() -> ProofInputSchema {
             transaction_code: None,
             translations: Default::default(),
             embedded_disclosure_policy: None,
-        }),
+        }
+        .into(),
     }
 }
 
@@ -324,7 +324,7 @@ async fn test_get_proof_exists() {
             expire_duration: 0,
             organisation: Some(dummy_organisation(None)),
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: Some(vec![ProofInputClaimSchema {
+                claim_schemas: vec![ProofInputClaimSchema {
                     schema: ClaimSchema {
                         id: Uuid::new_v4().into(),
                         key: "key".to_string(),
@@ -338,56 +338,56 @@ async fn test_get_proof_exists() {
                     },
                     required: true,
                     order: 0,
-                }]),
-                credential_schema: Some(
-                    backfill_default_translations(
-                        CredentialSchema {
-                            ecosystem: None,
-                            batch_size: None,
-                            allow_revocation: false,
-                            id: credential_schema_id,
-                            deleted_at: None,
+                }]
+                .into(),
+                credential_schema: backfill_default_translations(
+                    CredentialSchema {
+                        ecosystem: None,
+                        batch_size: None,
+                        allow_revocation: false,
+                        id: credential_schema_id,
+                        deleted_at: None,
+                        created_date: crate::clock::now_utc(),
+                        key_storage_security: Some(KeyStorageSecurity::Basic),
+                        imported_source_url: "CORE_URL".to_string(),
+                        last_modified: crate::clock::now_utc(),
+                        name: "credential schema".to_string(),
+                        formats: vec![CredentialSchemaFormat {
+                            id: Uuid::new_v4().into(),
                             created_date: crate::clock::now_utc(),
-                            key_storage_security: Some(KeyStorageSecurity::Basic),
-                            imported_source_url: "CORE_URL".to_string(),
                             last_modified: crate::clock::now_utc(),
-                            name: "credential schema".to_string(),
-                            formats: vec![CredentialSchemaFormat {
-                                id: Uuid::new_v4().into(),
-                                created_date: crate::clock::now_utc(),
-                                last_modified: crate::clock::now_utc(),
-                                credential_schema_id,
-                                format: "JWT".into(),
-                                schema_id: "CredentialSchemaId".to_owned(),
-                                claim_mappings: Default::default(),
-                            }]
-                            .into(),
-                            claim_schemas: vec![ClaimSchema {
-                                id: Uuid::new_v4().into(),
-                                key: "ClaimKey".to_owned(),
-                                data_type: "STRING".to_owned(),
-                                created_date: crate::clock::now_utc(),
-                                last_modified: crate::clock::now_utc(),
-                                array: false,
-                                metadata: false,
-                                required: true,
-                                translations: Default::default(),
-                            }]
-                            .into(),
-                            organisation: dummy_organisation(None).into(),
-                            layout_type: LayoutType::Card,
-                            layout_properties: None,
-                            allow_suspension: true,
-                            requires_wallet_instance_attestation: false,
-                            transaction_code: None,
+                            credential_schema_id,
+                            format: "JWT".into(),
+                            schema_id: "CredentialSchemaId".to_owned(),
+                            claim_mappings: Default::default(),
+                        }]
+                        .into(),
+                        claim_schemas: vec![ClaimSchema {
+                            id: Uuid::new_v4().into(),
+                            key: "ClaimKey".to_owned(),
+                            data_type: "STRING".to_owned(),
+                            created_date: crate::clock::now_utc(),
+                            last_modified: crate::clock::now_utc(),
+                            array: false,
+                            metadata: false,
+                            required: true,
                             translations: Default::default(),
-                            embedded_disclosure_policy: None,
-                        },
-                        "en",
-                    )
-                    .await
-                    .unwrap(),
-                ),
+                        }]
+                        .into(),
+                        organisation: dummy_organisation(None).into(),
+                        layout_type: LayoutType::Card,
+                        layout_properties: None,
+                        allow_suspension: true,
+                        requires_wallet_instance_attestation: false,
+                        transaction_code: None,
+                        translations: Default::default(),
+                        embedded_disclosure_policy: None,
+                    },
+                    "en",
+                )
+                .await
+                .unwrap()
+                .into(),
             }]),
         }),
         claims: Some(vec![]),
@@ -430,10 +430,7 @@ async fn test_get_proof_exists() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -669,10 +666,7 @@ async fn test_get_proof_with_array_holder() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -945,10 +939,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -1236,10 +1227,7 @@ async fn test_get_proof_with_object_array_holder() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -1453,12 +1441,13 @@ async fn test_get_proof_with_array() {
             expire_duration: 0,
             organisation: Some(organisation.clone()),
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: Some(vec![ProofInputClaimSchema {
+                claim_schemas: vec![ProofInputClaimSchema {
                     schema: claim_schema.clone(),
                     required: true,
                     order: 0,
-                }]),
-                credential_schema: Some(credential_schema.clone()),
+                }]
+                .into(),
+                credential_schema: credential_schema.clone().into(),
             }]),
         }),
         claims: Some(
@@ -1509,10 +1498,7 @@ async fn test_get_proof_with_array() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -1736,12 +1722,13 @@ async fn test_get_proof_with_array_in_object() {
             expire_duration: 0,
             organisation: Some(organisation.clone()),
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: Some(vec![ProofInputClaimSchema {
+                claim_schemas: vec![ProofInputClaimSchema {
                     schema: claim_schemas[0].clone(),
                     required: true,
                     order: 0,
-                }]),
-                credential_schema: Some(credential_schema.clone()),
+                }]
+                .into(),
+                credential_schema: credential_schema.clone().into(),
             }]),
         }),
         claims: Some(
@@ -1792,10 +1779,7 @@ async fn test_get_proof_with_array_in_object() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -2035,12 +2019,13 @@ async fn test_get_proof_with_object_array() {
             expire_duration: 0,
             organisation: Some(organisation.clone()),
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: Some(vec![ProofInputClaimSchema {
+                claim_schemas: vec![ProofInputClaimSchema {
                     schema: claim_schemas[0].clone(),
                     required: true,
                     order: 0,
-                }]),
-                credential_schema: Some(credential_schema.clone()),
+                }]
+                .into(),
+                credential_schema: credential_schema.clone().into(),
             }]),
         }),
         claims: Some(
@@ -2091,10 +2076,7 @@ async fn test_get_proof_with_object_array() {
                 eq(ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(ProofSchemaClaimRelations::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -3140,6 +3122,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
     proof_input_schema
         .credential_schema
         .as_mut()
+        .await
         .unwrap()
         .key_storage_security = Some(KeyStorageSecurity::EnhancedBasic);
 

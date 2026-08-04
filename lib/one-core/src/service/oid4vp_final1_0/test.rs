@@ -147,7 +147,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
                 state: ProofStateEnum::Pending,
                 schema: Some(ProofSchema {
                     input_schemas: Some(vec![ProofInputSchema {
-                        claim_schemas: Some(vec![
+                        claim_schemas: vec![
                             ProofInputClaimSchema {
                                 schema: ClaimSchema {
                                     id: shared_types::ClaimSchemaId::from(Into::<Uuid>::into(
@@ -167,8 +167,9 @@ async fn test_submit_proof_failed_on_validator_failure() {
                                 required: false,
                                 order: 1,
                             },
-                        ]),
-                        credential_schema: Some(credential_schema),
+                        ]
+                        .into(),
+                        credential_schema: credential_schema.into(),
                     }]),
                     organisation: Some(dummy_organisation(None)),
                     ..dummy_proof_schema()
@@ -285,7 +286,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
                 state: ProofStateEnum::Pending,
                 schema: Some(ProofSchema {
                     input_schemas: Some(vec![ProofInputSchema {
-                        claim_schemas: Some(vec![
+                        claim_schemas: vec![
                             ProofInputClaimSchema {
                                 schema: ClaimSchema {
                                     id: shared_types::ClaimSchemaId::from(Into::<Uuid>::into(
@@ -305,8 +306,9 @@ async fn test_submit_proof_failed_on_trust_failure() {
                                 required: false,
                                 order: 1,
                             },
-                        ]),
-                        credential_schema: Some(credential_schema),
+                        ]
+                        .into(),
+                        credential_schema: credential_schema.into(),
                     }]),
                     organisation: Some(dummy_organisation(None)),
                     ..dummy_proof_schema()

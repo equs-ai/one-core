@@ -41,7 +41,7 @@ async fn validate_proof(
     let proof_schema = proof.schema.ok_or(OpenID4VCError::MappingError(
         "proof schema is None".to_string(),
     ))?;
-    validate_proof_completeness(&proof.id, &proof_schema, &proved_claims)?;
+    validate_proof_completeness(&proof.id, &proof_schema, &proved_claims).await?;
 
     let input_schemas = proof_schema
         .input_schemas
@@ -51,12 +51,11 @@ async fn validate_proof(
 
     let mut credential_schema_by_id = HashMap::new();
     for input_schema in input_schemas {
-        let credential_schema =
-            input_schema
-                .credential_schema
-                .ok_or(OpenID4VCError::MappingError(
-                    "credential_schema is None".to_string(),
-                ))?;
+        let credential_schema = input_schema
+            .credential_schema
+            .as_ref()
+            .await
+            .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?;
         credential_schema_by_id
             .entry(credential_schema.id)
             .or_insert(credential_schema.to_owned());
@@ -168,7 +167,7 @@ async fn validate_proof(
     })
 }
 
-fn validate_proof_completeness(
+async fn validate_proof_completeness(
     proof_id: &ProofId,
     proof_schema: &ProofSchema,
     proved_claims: &[ValidatedProofClaimDTO],
@@ -181,24 +180,16 @@ fn validate_proof_completeness(
                 "Missing proof input schemas".to_string(),
             ))?
     {
-        let credential_schema =
-            input_schema
-                .credential_schema
-                .as_ref()
-                .ok_or(OpenID4VCError::ValidationError(
-                    "Missing credential schema".to_string(),
-                ))?;
-        for proof_claim_input_schema in
-            input_schema
-                .claim_schemas
-                .as_ref()
-                .ok_or(OpenID4VCError::ValidationError(
-                    "Missing claim input schemas".to_string(),
-                ))?
+        let credential_schema_id = input_schema.credential_schema.id();
+        for proof_claim_input_schema in &input_schema
+            .claim_schemas
+            .as_ref()
+            .await
+            .map_err(|e| OpenID4VCError::ValidationError(e.to_string()))?
         {
             if proof_claim_input_schema.required
                 && !proved_claims.iter().any(|proved_claim| {
-                    credential_schema.id == proved_claim.credential_schema.id
+                    credential_schema_id == proved_claim.credential_schema.id
                         && proof_claim_input_schema.schema.id
                             == proved_claim.proof_input_claim.schema.id
                 })

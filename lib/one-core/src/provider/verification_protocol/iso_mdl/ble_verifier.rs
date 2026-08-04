@@ -607,21 +607,8 @@ async fn proof_input_schema_to_doc_request(
     session_transcript: &SessionTranscript,
     verifier: Option<&IsoMdlVerifier>,
 ) -> Result<DocRequest, VerificationProtocolError> {
-    let proof_claim_schemas =
-        input
-            .claim_schemas
-            .as_ref()
-            .ok_or(VerificationProtocolError::Failed(
-                "missing claim_schemas".to_string(),
-            ))?;
-
-    let credential_schema =
-        input
-            .credential_schema
-            .as_ref()
-            .ok_or(VerificationProtocolError::Failed(
-                "missing credential_schema".to_string(),
-            ))?;
+    let proof_claim_schemas = input.claim_schemas.as_ref().await?;
+    let credential_schema = input.credential_schema.as_ref().await?;
     let formats = credential_schema.formats.as_ref().await?;
     let format = formats.first().ok_or(VerificationProtocolError::Failed(
         "formats is empty".to_string(),
@@ -633,7 +620,7 @@ async fn proof_input_schema_to_doc_request(
         .collect();
 
     let mut name_spaces = HashMap::new();
-    for proof_claim_schema in proof_claim_schemas {
+    for proof_claim_schema in &proof_claim_schemas {
         let mapping = mappings_by_schema_id
             .get(&proof_claim_schema.schema.id)
             .ok_or_else(|| {

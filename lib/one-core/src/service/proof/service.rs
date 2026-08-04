@@ -48,7 +48,7 @@ use crate::model::proof::{
     Proof, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum, SortableProofColumn,
     UpdateProofRequest,
 };
-use crate::model::proof_schema::{ProofInputSchemaRelations, ProofSchemaRelations};
+use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::key_verification::KeyVerification;
 use crate::proto::nfc::static_handover_handler::NfcStaticHandoverHandler;
 use crate::provider::credential_formatter::mdoc_formatter::util::EmbeddedCbor;
@@ -98,10 +98,7 @@ impl ProofService {
                 &ProofRelations {
                     schema: Some(ProofSchemaRelations {
                         organisation: Some(Default::default()),
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(Default::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
@@ -322,10 +319,7 @@ impl ProofService {
                 &proof_schema_id,
                 &ProofSchemaRelations {
                     organisation: Some(Default::default()),
-                    proof_inputs: Some(ProofInputSchemaRelations {
-                        claim_schemas: Some(Default::default()),
-                        credential_schema: Some(Default::default()),
-                    }),
+                    proof_inputs: Some(Default::default()),
                 },
             )
             .await
@@ -357,10 +351,10 @@ impl ProofService {
                 "input_schemas is None".to_string(),
             ))?
             .iter()
-            .flat_map(|input| input.credential_schema.as_ref())
+            .map(|input| &input.credential_schema)
         {
             validate_key_storage_security_supported(
-                credential_schema.key_storage_security,
+                credential_schema.as_ref().await?.key_storage_security,
                 &self.config,
             )
             .error_while("validating key storage security")?;
@@ -1139,10 +1133,7 @@ impl ProofService {
                 id,
                 &ProofRelations {
                     schema: Some(ProofSchemaRelations {
-                        proof_inputs: Some(ProofInputSchemaRelations {
-                            claim_schemas: Some(Default::default()),
-                            credential_schema: Some(Default::default()),
-                        }),
+                        proof_inputs: Some(Default::default()),
                         organisation: Some(Default::default()),
                     }),
                     interaction: Some(Default::default()),

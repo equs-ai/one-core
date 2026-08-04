@@ -4,8 +4,7 @@ use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential_schema::CredentialSchema;
 use one_core::model::organisation::{Organisation, OrganisationRelations};
 use one_core::model::proof_schema::{
-    ProofInputClaimSchema, ProofInputSchema, ProofInputSchemaRelations, ProofSchema,
-    ProofSchemaRelations,
+    ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
 };
 use one_core::repository::proof_schema_repository::ProofSchemaRepository;
 use shared_types::{ClaimSchemaId, ProofSchemaId};
@@ -42,7 +41,7 @@ impl ProofSchemasDB {
     ) -> ProofSchema {
         let mut input_schemas: Vec<ProofInputSchema> = vec![];
         for proof_input_schema in proof_input_schemas {
-            let claim_schemas = proof_input_schema
+            let claim_schemas: Vec<_> = proof_input_schema
                 .claims
                 .iter()
                 .enumerate()
@@ -64,8 +63,8 @@ impl ProofSchemasDB {
                 .collect();
 
             input_schemas.push(ProofInputSchema {
-                claim_schemas: Some(claim_schemas),
-                credential_schema: Some(proof_input_schema.credential_schema.to_owned()),
+                claim_schemas: claim_schemas.into(),
+                credential_schema: proof_input_schema.credential_schema.to_owned().into(),
             });
         }
 
@@ -97,10 +96,7 @@ impl ProofSchemasDB {
                 id,
                 &ProofSchemaRelations {
                     organisation: Some(OrganisationRelations {}),
-                    proof_inputs: Some(ProofInputSchemaRelations {
-                        claim_schemas: Some(Default::default()),
-                        credential_schema: Some(Default::default()),
-                    }),
+                    proof_inputs: Some(Default::default()),
                 },
             )
             .await

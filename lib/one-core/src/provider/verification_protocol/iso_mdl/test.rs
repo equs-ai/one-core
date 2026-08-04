@@ -169,9 +169,8 @@ async fn test_presentation_reject_ok() {
             name: "".to_string(),
             expire_duration: 0,
             input_schemas: Some(vec![ProofInputSchema {
-                claim_schemas: None,
-                credential_schema: Some(CredentialSchema {
-                    ecosystem: None,
+                claim_schemas: Default::default(),
+                credential_schema: CredentialSchema {
                     batch_size: None,
                     allow_revocation: false,
                     id: credential_schema_id,
@@ -200,7 +199,9 @@ async fn test_presentation_reject_ok() {
                     transaction_code: None,
                     translations: Default::default(),
                     embedded_disclosure_policy: None,
-                }),
+                    ecosystem: None,
+                }
+                .into(),
             }]),
             organisation: None,
         }),

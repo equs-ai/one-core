@@ -146,9 +146,6 @@ pub(crate) struct CredentialSchemaClaimsNestedObjectView {
     pub fields: HashMap<String, Arrayed<CredentialSchemaClaimsNestedTypeView>>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct CredentialSchemaRelations {}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SortableCredentialSchemaColumn {
     Name,

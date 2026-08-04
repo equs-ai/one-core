@@ -3,9 +3,10 @@ use time::OffsetDateTime;
 
 use super::claim_schema::ClaimSchema;
 use super::common::GetListResponse;
-use super::credential_schema::{CredentialSchema, CredentialSchemaRelations};
+use super::credential_schema::CredentialSchema;
 use super::list_query::ListQuery;
 use super::organisation::{Organisation, OrganisationRelations};
+use crate::model::relation::{Related, RelatedVec};
 use crate::service::proof_schema::dto::ProofSchemaFilterValue;
 
 #[derive(Clone, Debug)]
@@ -25,12 +26,12 @@ pub struct ProofSchema {
     pub input_schemas: Option<Vec<ProofInputSchema>>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct ProofInputSchema {
     // Relations
-    pub claim_schemas: Option<Vec<ProofInputClaimSchema>>,
-    pub credential_schema: Option<CredentialSchema>,
+    pub claim_schemas: RelatedVec<ProofInputClaimSchema>,
+    pub credential_schema: Related<CredentialSchema>,
 }
 
 #[derive(Clone, Debug)]
@@ -62,10 +63,4 @@ pub struct ProofSchemaRelations {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ProofSchemaClaimRelations {}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ProofInputSchemaRelations {
-    pub claim_schemas: Option<ProofSchemaClaimRelations>,
-    pub credential_schema: Option<CredentialSchemaRelations>,
-}
+pub struct ProofInputSchemaRelations {}
