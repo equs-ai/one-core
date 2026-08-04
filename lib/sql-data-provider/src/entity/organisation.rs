@@ -6,7 +6,7 @@ use sea_orm::FromJsonQueryResult;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use shared_types::{IdentifierId, OrganisationId};
+use shared_types::{EcosystemId, IdentifierId, OrganisationId};
 use time::OffsetDateTime;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -29,9 +29,10 @@ pub struct Model {
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
 pub struct Configuration {
-    pub trusted_rp_required: Option<bool>,
-    pub trusted_issuer_required: Option<bool>,
-    pub trusted_wallet_provider_required: Option<bool>,
+    pub selected_ecosystems: Option<Vec<EcosystemId>>,
+    pub enforce_ecosystem_as_issuer: Option<bool>,
+    pub enforce_ecosystem_as_holder: Option<bool>,
+    pub enforce_ecosystem_as_verifier: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

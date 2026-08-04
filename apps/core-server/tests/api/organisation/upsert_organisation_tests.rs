@@ -529,8 +529,8 @@ async fn test_upsert_organisation_success_configuration_partial_update() {
         .await;
     assert_eq!(resp.status(), 204);
     let updated = context.db.organisations.get(&org.id).await;
-    assert!(updated.configuration.trusted_issuer_required);
-    assert!(updated.configuration.trusted_rp_required);
+    assert!(updated.configuration.enforce_ecosystem_as_verifier);
+    assert!(updated.configuration.enforce_ecosystem_as_holder);
 
     // WHEN: only update trustedRpRequired, omitting trustedIssuerRequired
     let resp = context
@@ -551,8 +551,8 @@ async fn test_upsert_organisation_success_configuration_partial_update() {
     // THEN: the omitted field keeps its previous value
     assert_eq!(resp.status(), 204);
     let updated = context.db.organisations.get(&org.id).await;
-    assert!(updated.configuration.trusted_issuer_required);
-    assert!(!updated.configuration.trusted_rp_required);
+    assert!(updated.configuration.enforce_ecosystem_as_verifier);
+    assert!(!updated.configuration.enforce_ecosystem_as_holder);
 }
 
 #[tokio::test]

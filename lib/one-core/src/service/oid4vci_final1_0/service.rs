@@ -592,7 +592,7 @@ impl OID4VCIFinal1_0Service {
                     &schema.name,
                 )
                 .await?;
-            if organisation.configuration.trusted_wallet_provider_required
+            if organisation.configuration.enforce_ecosystem_as_issuer
                 && trust != TrustResolutionResult::Trusted
             {
                 return Err(OpenID4VCIError::CredentialRequestDenied.into());
@@ -1264,7 +1264,7 @@ impl OID4VCIFinal1_0Service {
                 &credential_schema.name,
             )
             .await?;
-        if organisation.configuration.trusted_wallet_provider_required
+        if organisation.configuration.enforce_ecosystem_as_issuer
             && trust != TrustResolutionResult::Trusted
         {
             return Err(OpenID4VCIError::InvalidClient.into());

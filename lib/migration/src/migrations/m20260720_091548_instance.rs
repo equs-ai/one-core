@@ -882,7 +882,7 @@ async fn fill_organisations(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
                     .table(Organisation::Table)
                     .value(
                         NewOrganisation::Configuration,
-                        serde_json::to_string(&configuration)
+                        serde_json::to_value(&configuration)
                             .map_err(|e| DbErr::Migration(e.to_string()))?,
                     )
                     .cond_where(Expr::col(Organisation::Id).eq(organisation_id))

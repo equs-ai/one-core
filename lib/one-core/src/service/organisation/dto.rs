@@ -79,6 +79,7 @@ pub struct VerifierProviderDetailResponseDTO {
     pub issuer: Option<GetIdentifierListItemResponseDTO>,
 }
 
+// TODO ONE-9979: replace the trust flags with the ecosystem properties
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct OrganisationConfigurationDTO {
     pub trusted_issuer_required: bool,
@@ -89,24 +90,15 @@ pub struct OrganisationConfigurationDTO {
 impl From<OrganisationConfiguration> for OrganisationConfigurationDTO {
     fn from(value: OrganisationConfiguration) -> Self {
         Self {
-            trusted_issuer_required: value.trusted_issuer_required,
-            trusted_rp_required: value.trusted_rp_required,
-            trusted_wallet_provider_required: value.trusted_wallet_provider_required,
-        }
-    }
-}
-
-impl From<OrganisationConfigurationDTO> for OrganisationConfiguration {
-    fn from(value: OrganisationConfigurationDTO) -> Self {
-        Self {
-            trusted_issuer_required: value.trusted_issuer_required,
-            trusted_rp_required: value.trusted_rp_required,
-            trusted_wallet_provider_required: value.trusted_wallet_provider_required,
+            trusted_issuer_required: value.enforce_ecosystem_as_verifier,
+            trusted_rp_required: value.enforce_ecosystem_as_holder,
+            trusted_wallet_provider_required: value.enforce_ecosystem_as_issuer,
         }
     }
 }
 
 /// Partial update for `OrganisationConfiguration`: fields left `None` keep their current value.
+// TODO ONE-9979: adapt to the ecosystem properties, add `selected_ecosystems`
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct UpsertOrganisationConfigurationDTO {
     pub trusted_issuer_required: Option<bool>,

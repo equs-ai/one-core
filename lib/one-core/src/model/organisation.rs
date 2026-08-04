@@ -1,5 +1,5 @@
 use proc_macros::Model;
-use shared_types::{IdentifierId, OrganisationId};
+use shared_types::{EcosystemId, IdentifierId, OrganisationId};
 use time::OffsetDateTime;
 
 use super::common::GetListResponse;
@@ -23,21 +23,12 @@ pub struct Organisation {
     pub configuration: OrganisationConfiguration,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct OrganisationConfiguration {
-    pub trusted_rp_required: bool,
-    pub trusted_issuer_required: bool,
-    pub trusted_wallet_provider_required: bool,
-}
-
-impl Default for OrganisationConfiguration {
-    fn default() -> Self {
-        Self {
-            trusted_rp_required: false,
-            trusted_issuer_required: false,
-            trusted_wallet_provider_required: true,
-        }
-    }
+    pub selected_ecosystems: Vec<EcosystemId>,
+    pub enforce_ecosystem_as_issuer: bool,
+    pub enforce_ecosystem_as_holder: bool,
+    pub enforce_ecosystem_as_verifier: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

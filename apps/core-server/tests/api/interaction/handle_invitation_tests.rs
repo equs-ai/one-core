@@ -2314,7 +2314,7 @@ async fn test_handle_invitation_trust_mandatory_without_identifier_returns_error
             verifier_provider: None,
             verifier_provider_issuer: None,
             configuration: Some(OrganisationConfiguration {
-                trusted_rp_required: true,
+                enforce_ecosystem_as_holder: true,
                 ..Default::default()
             }),
         })
@@ -2455,7 +2455,7 @@ async fn test_handle_invitation_trust_mandatory_with_x509_certificate_not_in_tru
             verifier_provider: None,
             verifier_provider_issuer: None,
             configuration: Some(OrganisationConfiguration {
-                trusted_rp_required: true,
+                enforce_ecosystem_as_holder: true,
                 ..Default::default()
             }),
         })

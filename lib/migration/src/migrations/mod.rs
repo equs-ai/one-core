@@ -34,3 +34,4 @@ pub mod m20260717_084043_common_json_ld_context;
 pub mod m20260720_091548_instance;
 pub mod m20260722_121557_drop_verifier_instance_history;
 pub mod m20260803_120000_add_ecosystem;
+pub mod m20260804_120000_organisation_ecosystem_configuration;

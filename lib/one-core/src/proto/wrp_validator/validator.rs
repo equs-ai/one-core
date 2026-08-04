@@ -329,7 +329,7 @@ impl WRPValidator for WRPValidatorImpl {
             .error_while("getting holder wallet instance")?
             .ok_or(WRPValidatorError::MissingOrganisation(organisation_id))?;
 
-        let trusted_rp_required = organisation.configuration.trusted_rp_required;
+        let enforce_ecosystem_as_holder = organisation.configuration.enforce_ecosystem_as_holder;
 
         let holder_wallet_instance = self
             .holder_wallet_instance_repository
@@ -349,7 +349,7 @@ impl WRPValidator for WRPValidatorImpl {
             }
         }
 
-        Ok(if trusted_rp_required {
+        Ok(if enforce_ecosystem_as_holder {
             TrustMode::TrustMandatory
         } else {
             TrustMode::TrustOptional
@@ -367,7 +367,8 @@ impl WRPValidator for WRPValidatorImpl {
             .error_while("getting holder wallet instance")?
             .ok_or(WRPValidatorError::MissingOrganisation(organisation_id))?;
 
-        let trusted_issuer_required = organisation.configuration.trusted_issuer_required;
+        let enforce_ecosystem_as_verifier =
+            organisation.configuration.enforce_ecosystem_as_verifier;
 
         let verifier_instance = self
             .holder_wallet_instance_repository
@@ -391,7 +392,7 @@ impl WRPValidator for WRPValidatorImpl {
             }
         }
 
-        Ok(if trusted_issuer_required {
+        Ok(if enforce_ecosystem_as_verifier {
             TrustMode::TrustMandatory
         } else {
             TrustMode::TrustOptional

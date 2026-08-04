@@ -284,21 +284,22 @@ impl OrganisationService {
             .as_ref()
             .map(|org| org.configuration.clone())
             .unwrap_or_default();
-        let configuration =
-            request
-                .configuration
-                .as_ref()
-                .map(|update| OrganisationConfiguration {
-                    trusted_issuer_required: update
-                        .trusted_issuer_required
-                        .unwrap_or(existing_configuration.trusted_issuer_required),
-                    trusted_rp_required: update
-                        .trusted_rp_required
-                        .unwrap_or(existing_configuration.trusted_rp_required),
-                    trusted_wallet_provider_required: update
-                        .trusted_wallet_provider_required
-                        .unwrap_or(existing_configuration.trusted_wallet_provider_required),
-                });
+        let configuration = request
+            .configuration
+            .as_ref()
+            // TODO ONE-9979: adapt to the new update params, take `selected_ecosystems` from them
+            .map(|update| OrganisationConfiguration {
+                selected_ecosystems: existing_configuration.selected_ecosystems.clone(),
+                enforce_ecosystem_as_verifier: update
+                    .trusted_issuer_required
+                    .unwrap_or(existing_configuration.enforce_ecosystem_as_verifier),
+                enforce_ecosystem_as_holder: update
+                    .trusted_rp_required
+                    .unwrap_or(existing_configuration.enforce_ecosystem_as_holder),
+                enforce_ecosystem_as_issuer: update
+                    .trusted_wallet_provider_required
+                    .unwrap_or(existing_configuration.enforce_ecosystem_as_issuer),
+            });
 
         let success_log = format!("Updated organisation {}", request.id);
         let mut update_request: UpdateOrganisationRequest = request.clone().into();

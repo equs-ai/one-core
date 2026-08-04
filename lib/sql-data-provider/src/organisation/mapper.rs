@@ -101,11 +101,10 @@ impl From<UpdateOrganisationRequest> for organisation::ActiveModel {
 impl From<Configuration> for OrganisationConfiguration {
     fn from(value: Configuration) -> Self {
         Self {
-            trusted_rp_required: value.trusted_rp_required.unwrap_or_default(),
-            trusted_issuer_required: value.trusted_issuer_required.unwrap_or_default(),
-            trusted_wallet_provider_required: value
-                .trusted_wallet_provider_required
-                .unwrap_or(true),
+            selected_ecosystems: value.selected_ecosystems.unwrap_or_default(),
+            enforce_ecosystem_as_issuer: value.enforce_ecosystem_as_issuer.unwrap_or_default(),
+            enforce_ecosystem_as_holder: value.enforce_ecosystem_as_holder.unwrap_or_default(),
+            enforce_ecosystem_as_verifier: value.enforce_ecosystem_as_verifier.unwrap_or_default(),
         }
     }
 }
@@ -113,9 +112,10 @@ impl From<Configuration> for OrganisationConfiguration {
 impl From<OrganisationConfiguration> for Configuration {
     fn from(value: OrganisationConfiguration) -> Self {
         Self {
-            trusted_rp_required: Some(value.trusted_rp_required),
-            trusted_issuer_required: Some(value.trusted_issuer_required),
-            trusted_wallet_provider_required: Some(value.trusted_wallet_provider_required),
+            selected_ecosystems: Some(value.selected_ecosystems),
+            enforce_ecosystem_as_issuer: Some(value.enforce_ecosystem_as_issuer),
+            enforce_ecosystem_as_holder: Some(value.enforce_ecosystem_as_holder),
+            enforce_ecosystem_as_verifier: Some(value.enforce_ecosystem_as_verifier),
         }
     }
 }
