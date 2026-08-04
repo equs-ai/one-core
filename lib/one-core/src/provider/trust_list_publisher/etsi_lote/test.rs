@@ -25,6 +25,7 @@ use crate::provider::credential_formatter::model::MockSignatureProvider;
 use crate::provider::key_algorithm::ecdsa::Ecdsa;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::provider::key_storage::provider::MockKeyProvider;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::trust_entry_repository::MockTrustEntryRepository;
 use crate::repository::trust_list_publication_repository::MockTrustListPublicationRepository;
@@ -191,7 +192,7 @@ fn mock_publication_repo(
             data: IdentifierData::Certificate(RelatedVec::from(vec![certificate.clone()])),
             ..dummy_identifier()
         });
-        Ok(Some(publication))
+        Ok(publication)
     });
 
     repo.expect_update().returning(move |_id, request| {
@@ -225,7 +226,14 @@ fn mock_entry_repo() -> MockTrustEntryRepository {
     let store = entries.clone();
     repo.expect_get().returning(move |id, _relations| {
         let entries = store.lock().unwrap();
-        Ok(entries.iter().find(|e| e.id == id).cloned())
+        entries
+            .iter()
+            .find(|e| e.id == id)
+            .cloned()
+            .ok_or(DataLayerError::EntityNotFound {
+                kind: EntityKind::TrustEntry,
+                id: id.into(),
+            })
     });
 
     let store = entries.clone();
@@ -706,7 +714,7 @@ async fn test_add_entry_includes_certificate_in_digital_identity() {
     let cert_for_get = signing_cert;
     let ident_clone = identifier.clone();
     pub_repo.expect_get().returning(move |id, _relations| {
-        Ok(Some(TrustListPublication {
+        Ok(TrustListPublication {
             id,
             metadata: serde_json::to_vec(&sample_list_params()).unwrap(),
             role: TrustListRoleEnum::PidProvider,
@@ -716,7 +724,7 @@ async fn test_add_entry_includes_certificate_in_digital_identity() {
             organisation: Some(dummy_organisation(Some(org_id))),
             identifier: Some(ident_clone.clone()),
             ..dummy_publication(TrustListRoleEnum::PidProvider, vec![])
-        }))
+        })
     });
     pub_repo.expect_update().returning(|_, _| Ok(()));
 

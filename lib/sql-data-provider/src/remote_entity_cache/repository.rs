@@ -4,7 +4,7 @@ use one_core::model::remote_entity_cache::{
     CacheType, RemoteEntityCacheEntry, RemoteEntityCacheRelations,
 };
 use one_core::proto::transaction_manager::IsolationLevel;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
@@ -125,13 +125,17 @@ impl RemoteEntityCacheRepository for RemoteEntityCacheProvider {
         &self,
         id: &RemoteEntityCacheEntryId,
         _relations: &RemoteEntityCacheRelations,
-    ) -> Result<Option<RemoteEntityCacheEntry>, DataLayerError> {
+    ) -> Result<RemoteEntityCacheEntry, DataLayerError> {
         let context = remote_entity_cache::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
+            .map_err(|e| DataLayerError::Db(e.into()))?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::RemoteEntityCache,
+                id: (*id).into(),
+            })?;
 
-        Ok(context.map(|context| context.try_into()).transpose()?)
+        Ok(context.try_into()?)
     }
 
     async fn get_by_key(

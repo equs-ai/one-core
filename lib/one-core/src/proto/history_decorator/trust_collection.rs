@@ -38,7 +38,7 @@ impl TrustCollectionRepository for TrustCollectionHistoryDecorator {
         &self,
         id: &TrustCollectionId,
         relations: &TrustCollectionRelations,
-    ) -> Result<Option<TrustCollection>, DataLayerError> {
+    ) -> Result<TrustCollection, DataLayerError> {
         self.inner.get(id, relations).await
     }
 
@@ -53,7 +53,7 @@ impl TrustCollectionRepository for TrustCollectionHistoryDecorator {
         let trust_collection = self.inner.get(&id, &Default::default()).await;
         self.inner.delete(id).await?;
 
-        let trust_collection = trust_collection?.ok_or(DataLayerError::RecordNotUpdated)?;
+        let trust_collection = trust_collection?;
         self.write_history(
             id,
             trust_collection.name,

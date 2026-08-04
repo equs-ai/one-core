@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::{OrganisationId, TrustListPublicationId};
 use uuid::Uuid;
 
@@ -90,7 +89,7 @@ impl TrustListPublicationRepository for TrustListPublicationHistoryDecorator {
         &self,
         id: TrustListPublicationId,
         relations: &TrustListPublicationRelations,
-    ) -> Result<Option<TrustListPublication>, DataLayerError> {
+    ) -> Result<TrustListPublication, DataLayerError> {
         self.inner.get(id, relations).await
     }
 }
@@ -100,8 +99,7 @@ impl TrustListPublicationHistoryDecorator {
         &self,
         id: TrustListPublicationId,
     ) -> Result<TrustListPublication, DataLayerError> {
-        let trust_list_publication = self
-            .inner
+        self.inner
             .get(
                 id,
                 &TrustListPublicationRelations {
@@ -109,10 +107,7 @@ impl TrustListPublicationHistoryDecorator {
                     ..Default::default()
                 },
             )
-            .await?
-            .context("trust list publication is missing")?;
-
-        Ok(trust_list_publication)
+            .await
     }
 
     async fn write_history(

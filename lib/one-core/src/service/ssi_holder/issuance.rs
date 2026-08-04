@@ -19,7 +19,7 @@ use super::validator::{
     validate_initiate_issuance_request,
 };
 use crate::config::core_config::{BlobStorageType, FormatType};
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::blob::{Blob, BlobType};
 use crate::model::credential::{
     Credential, CredentialRelations, CredentialStateEnum, UpdateCredentialRequest,
@@ -109,10 +109,7 @@ impl SSIHolderService {
             .interaction_repository
             .get_interaction(&interaction_id, None)
             .await
-            .error_while("getting interaction")?
-            .ok_or(HolderServiceError::MissingCredentialsForInteraction(
-                interaction_id,
-            ))?;
+            .error_while("getting interaction")?;
         throw_if_org_id_not_matching_session(
             interaction.organisation.id_ref(),
             &*self.session_provider,
@@ -264,10 +261,12 @@ impl SSIHolderService {
             .interaction_repository
             .get_interaction(&interaction_id, None)
             .await
-            .error_while("getting interaction")?
-            .ok_or(HolderServiceError::MissingCredentialsForInteraction(
-                interaction_id,
-            ))?;
+            .map_err(|error| match error {
+                crate::repository::error::DataLayerError::EntityNotFound { .. } => {
+                    HolderServiceError::MissingCredentialsForInteraction(interaction_id)
+                }
+                error => error.error_while("getting interaction").into(),
+            })?;
         throw_if_org_id_not_matching_session(
             interaction.organisation.id_ref(),
             &*self.session_provider,
@@ -576,8 +575,7 @@ impl SSIHolderService {
             .interaction_repository
             .get_interaction(&interaction_id, None)
             .await
-            .error_while("getting interaction")?
-            .ok_or(HolderServiceError::MissingInteraction(interaction_id))?;
+            .error_while("getting interaction")?;
 
         throw_if_org_id_not_matching_session(
             interaction.organisation.id_ref(),

@@ -166,7 +166,7 @@ async fn test_get_trust_entry_missing() {
         .provider
         .get(Uuid::new_v4().into(), &TrustEntryRelations::default())
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -183,7 +183,7 @@ async fn test_get_trust_entry_success() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert_eq!(found.id, id);
     assert_eq!(found.state, TrustEntryStateEnum::Active);
     assert_eq!(
@@ -207,7 +207,10 @@ async fn test_delete_trust_entry() {
         .provider
         .get(id, &TrustEntryRelations::default())
         .await;
-    assert!(matches!(get_result, Ok(None)));
+    assert!(matches!(
+        get_result,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 }
 
 #[tokio::test]
@@ -355,7 +358,6 @@ async fn test_update_trust_entry_status() {
         .provider
         .get(id, &TrustEntryRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(found.state, TrustEntryStateEnum::Suspended);
 }
@@ -385,7 +387,6 @@ async fn test_update_trust_entry_metadata() {
         .provider
         .get(id, &TrustEntryRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(found.metadata, new_metadata);
     assert_eq!(found.state, TrustEntryStateEnum::Active);
@@ -560,7 +561,7 @@ async fn test_get_trust_entry_with_publication_relation() {
 
     let mut mock_pub_repo = MockTrustListPublicationRepository::default();
     mock_pub_repo.expect_get().returning(move |id, _relations| {
-        Ok(Some(TrustListPublication {
+        Ok(TrustListPublication {
             id,
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -579,7 +580,7 @@ async fn test_get_trust_entry_with_publication_relation() {
             identifier: None,
             key: None,
             certificate: None,
-        }))
+        })
     });
 
     let provider = TrustEntryProvider {
@@ -608,7 +609,7 @@ async fn test_get_trust_entry_with_publication_relation() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert!(found.trust_list_publication.is_some());
     assert_eq!(
         found.trust_list_publication.unwrap().name,
@@ -652,7 +653,6 @@ async fn test_update_trust_entry_noop() {
         .provider
         .get(id, &TrustEntryRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(found.state, TrustEntryStateEnum::Active);
     assert_eq!(found.metadata, Vec::<u8>::new());

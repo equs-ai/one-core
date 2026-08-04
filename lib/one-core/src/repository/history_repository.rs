@@ -20,10 +20,7 @@ pub trait HistoryRepository: Send + Sync {
         query: HistoryListQuery,
     ) -> Result<GetHistoryList, DataLayerError>;
 
-    async fn get_history_entry(
-        &self,
-        history_id: HistoryId,
-    ) -> Result<Option<History>, DataLayerError>;
+    async fn get_history_entry(&self, history_id: HistoryId) -> Result<History, DataLayerError>;
 
     async fn organisation_stats(
         &self,

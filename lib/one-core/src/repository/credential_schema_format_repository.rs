@@ -14,7 +14,7 @@ pub trait CredentialSchemaFormatRepository: Send + Sync {
     async fn get_credential_schema_format(
         &self,
         id: &CredentialSchemaFormatId,
-    ) -> Result<Option<CredentialSchemaFormat>, DataLayerError>;
+    ) -> Result<CredentialSchemaFormat, DataLayerError>;
 
     async fn list_by_credential_schema_id(
         &self,

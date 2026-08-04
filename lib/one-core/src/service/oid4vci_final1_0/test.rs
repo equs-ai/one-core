@@ -1156,7 +1156,7 @@ async fn test_create_token() {
     interaction_repository
         .expect_get_interaction()
         .once()
-        .return_once(|_, _| Ok(Some(interaction)));
+        .return_once(|_, _| Ok(interaction));
 
     interaction_repository
         .expect_update_interaction()
@@ -1267,7 +1267,7 @@ async fn test_create_token_pre_authorized_code_used() {
     interaction_repository
         .expect_get_interaction()
         .once()
-        .return_once(|_, _| Ok(Some(interaction)));
+        .return_once(|_, _| Ok(interaction));
 
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
@@ -1327,7 +1327,7 @@ async fn test_create_token_wrong_credential_state() {
     interaction_repository
         .expect_get_interaction()
         .once()
-        .return_once(|_, _| Ok(Some(interaction)));
+        .return_once(|_, _| Ok(interaction));
 
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
@@ -1395,13 +1395,13 @@ async fn test_create_credential_success() {
             .expect_get_interaction()
             .times(2)
             .returning(move |_, _| {
-                Ok(Some(dummy_interaction(
+                Ok(dummy_interaction(
                     Some(interaction_id),
                     true,
                     None,
                     None,
                     None,
-                )))
+                ))
             });
         interaction_repository
             .expect_mark_nonce_as_used()
@@ -1586,13 +1586,13 @@ async fn test_create_credential_success_sd_jwt_vc() {
             .expect_get_interaction()
             .times(2)
             .returning(move |_, _| {
-                Ok(Some(dummy_interaction(
+                Ok(dummy_interaction(
                     Some(interaction_id),
                     true,
                     None,
                     None,
                     None,
-                )))
+                ))
             });
         interaction_repository
             .expect_mark_nonce_as_used()
@@ -1784,7 +1784,7 @@ async fn test_create_credential_success_mdoc() {
             .expect_get_interaction()
             .times(2)
             .returning(|_, _| {
-                Ok(Some(dummy_interaction(
+                Ok(dummy_interaction(
                     Some(
                         Uuid::from_str("3fa85f64-5717-4562-b3fc-2c963f66afa6")
                             .unwrap()
@@ -1794,7 +1794,7 @@ async fn test_create_credential_success_mdoc() {
                     None,
                     None,
                     None,
-                )))
+                ))
             });
         interaction_repository
             .expect_mark_nonce_as_used()
@@ -2044,7 +2044,7 @@ async fn test_create_credential_pre_authorized_code_not_used() {
         interaction_repository
             .expect_get_interaction()
             .once()
-            .return_once(|_, _| Ok(Some(dummy_interaction(None, false, None, None, None))));
+            .return_once(|_, _| Ok(dummy_interaction(None, false, None, None, None)));
     }
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
@@ -2097,7 +2097,7 @@ async fn test_create_credential_interaction_data_invalid() {
         interaction_repository
             .expect_get_interaction()
             .once()
-            .return_once(|_, _| Ok(Some(dummy_interaction(None, true, None, None, None))));
+            .return_once(|_, _| Ok(dummy_interaction(None, true, None, None, None)));
     }
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
@@ -2151,13 +2151,13 @@ async fn test_create_credential_access_token_expired() {
             .expect_get_interaction()
             .once()
             .return_once(|_, _| {
-                Ok(Some(dummy_interaction(
+                Ok(dummy_interaction(
                     None,
                     true,
                     Some("2022-10-28T07:03:38.4404734Z"),
                     None,
                     None,
-                )))
+                ))
             });
     }
     let service = setup_service(Mocks {
@@ -2229,13 +2229,13 @@ async fn test_create_credential_issuer_failed() {
             .expect_get_interaction()
             .times(2)
             .returning(move |_, _| {
-                Ok(Some(dummy_interaction(
+                Ok(dummy_interaction(
                     Some(interaction_id),
                     true,
                     None,
                     None,
                     None,
-                )))
+                ))
             });
         interaction_repository
             .expect_mark_nonce_as_used()
@@ -2391,7 +2391,7 @@ async fn test_create_credential_nonce_reused() {
             .expect_get_interaction()
             .once()
             .return_once(|_, _| {
-                Ok(Some(dummy_interaction(
+                Ok(dummy_interaction(
                     Some(
                         Uuid::from_str("3fa85f64-5717-4562-b3fc-2c963f66afa6")
                             .unwrap()
@@ -2401,7 +2401,7 @@ async fn test_create_credential_nonce_reused() {
                     None,
                     None,
                     None,
-                )))
+                ))
             });
         interaction_repository
             .expect_mark_nonce_as_used()
@@ -2556,7 +2556,7 @@ async fn test_for_mdoc_schema_pre_authorized_grant_type_creates_refresh_token() 
     interaction_repository
         .expect_get_interaction()
         .once()
-        .return_once(|_, _| Ok(Some(interaction)));
+        .return_once(|_, _| Ok(interaction));
     interaction_repository
         .expect_update_interaction()
         .once()
@@ -2650,7 +2650,7 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
     interaction_repository
         .expect_get_interaction()
         .once()
-        .return_once(|_, _| Ok(Some(interaction)));
+        .return_once(|_, _| Ok(interaction));
     interaction_repository
         .expect_update_interaction()
         .once()
@@ -2737,7 +2737,7 @@ async fn test_refresh_token_request_fails_if_refresh_token_is_expired() {
 
     interaction_repository
         .expect_get_interaction()
-        .return_once(|_, _| Ok(Some(interaction)));
+        .return_once(|_, _| Ok(interaction));
 
     credential_repository
         .expect_get_credentials_by_interaction_id()

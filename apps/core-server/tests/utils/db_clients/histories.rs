@@ -96,11 +96,7 @@ impl HistoriesDB {
     }
 
     pub async fn get_entry(&self, history_id: HistoryId) -> History {
-        self.repository
-            .get_history_entry(history_id)
-            .await
-            .unwrap()
-            .unwrap()
+        self.repository.get_history_entry(history_id).await.unwrap()
     }
 
     pub async fn get_by_entity_id(&self, entity_id: &EntityId) -> GetHistoryList {

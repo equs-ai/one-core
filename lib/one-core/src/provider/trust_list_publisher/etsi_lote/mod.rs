@@ -320,12 +320,7 @@ impl EtsiLotePublisher {
             .trust_list_publication_repository
             .get(publication_id, &relations)
             .await
-            .error_while("fetching trust list publication")?
-            .ok_or_else(|| {
-                TrustListPublisherError::PublicationNotFound(format!(
-                    "publication {publication_id} not found"
-                ))
-            })?;
+            .error_while("fetching trust list publication")?;
 
         let identifier_name = publication
             .identifier

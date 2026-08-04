@@ -7,7 +7,7 @@ use one_core::model::certificate::{
 };
 use one_core::model::relation::Related;
 use one_core::repository::certificate_repository::CertificateRepository;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, Unchanged,
 };
@@ -65,16 +65,17 @@ impl CertificateRepository for CertificateProvider {
         Ok(identifier.id)
     }
 
-    async fn get(&self, id: CertificateId) -> Result<Option<Certificate>, DataLayerError> {
+    async fn get(&self, id: CertificateId) -> Result<Certificate, DataLayerError> {
         let certificate = certificate::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Certificate,
+                id: id.into(),
+            })?;
 
-        Ok(match certificate {
-            None => None,
-            Some(model) => Some(self.model_to_certificate(model)?),
-        })
+        self.model_to_certificate(certificate)
     }
 
     async fn list(

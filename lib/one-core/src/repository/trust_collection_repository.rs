@@ -14,7 +14,7 @@ pub trait TrustCollectionRepository: Send + Sync {
         &self,
         id: &TrustCollectionId,
         relations: &TrustCollectionRelations,
-    ) -> Result<Option<TrustCollection>, DataLayerError>;
+    ) -> Result<TrustCollection, DataLayerError>;
 
     async fn list(
         &self,

@@ -52,7 +52,7 @@ impl TrustCollectionDB {
     }
 
     #[expect(unused)]
-    pub async fn get(&self, id: TrustCollectionId) -> Option<TrustCollection> {
+    pub async fn get(&self, id: TrustCollectionId) -> TrustCollection {
         self.repository
             .get(
                 &id,

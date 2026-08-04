@@ -15,7 +15,7 @@ use crate::repository::error::DataLayerError;
 pub trait InstanceRepository: Send + Sync {
     async fn create(&self, request: Instance) -> Result<InstanceId, DataLayerError>;
 
-    async fn get(&self, id: &InstanceId) -> Result<Option<Instance>, DataLayerError>;
+    async fn get(&self, id: &InstanceId) -> Result<Instance, DataLayerError>;
 
     async fn get_by_role(
         &self,

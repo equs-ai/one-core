@@ -1,4 +1,5 @@
 use similar_asserts::assert_eq;
+use uuid::Uuid;
 
 use crate::utils::context::TestContext;
 
@@ -19,4 +20,16 @@ async fn test_get_certificate_success() {
 
     let content = resp.text().await;
     assert_eq!(content, certificate.chain);
+}
+
+#[tokio::test]
+async fn test_get_certificate_not_found() {
+    // GIVEN
+    let context = TestContext::new(None).await;
+
+    // WHEN
+    let resp = context.api.ssi.get_certificate(Uuid::new_v4()).await;
+
+    // THEN
+    assert_eq!(resp.status(), 404);
 }

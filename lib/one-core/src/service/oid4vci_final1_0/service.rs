@@ -326,16 +326,16 @@ impl OID4VCIFinal1_0Service {
         let format = validate_credential_request_format(&schema, &request).await?;
 
         let interaction_id = parse_access_token(access_token)?;
-        let Some(interaction) = self
+        let interaction = self
             .interaction_repository
             .get_interaction(&interaction_id, None)
             .await
-            .error_while("getting interaction")?
-        else {
-            return Err(
-                OID4VCIFinal1_0ServiceError::MissingInteractionForAccessToken { interaction_id },
-            );
-        };
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    OID4VCIFinal1_0ServiceError::MissingInteractionForAccessToken { interaction_id }
+                }
+                error => error.error_while("getting interaction").into(),
+            })?;
 
         let interaction_data = interaction_data_to_dto(&interaction)?;
         throw_if_access_token_invalid(&interaction_data, access_token)?;
@@ -683,16 +683,11 @@ impl OID4VCIFinal1_0Service {
         format: CredentialSchemaFormat,
     ) -> Result<OpenID4VCICredentialResponseDTO, OID4VCIFinal1_0ServiceError> {
         // Lock interaction, so that the issuance process is done only by one thread
-        let Some(interaction) = self
+        let interaction = self
             .interaction_repository
             .get_interaction(&interaction_id, Some(LockType::Update))
             .await
-            .error_while("getting interaction")?
-        else {
-            return Err(
-                OID4VCIFinal1_0ServiceError::MissingInteractionForAccessToken { interaction_id },
-            );
-        };
+            .error_while("getting interaction")?;
         let mut interaction_data = interaction_data_to_dto(&interaction)?;
 
         let issuance_protocol = self.protocol_provider.get_protocol(&credential.protocol)?;
@@ -895,14 +890,16 @@ impl OID4VCIFinal1_0Service {
         request: NotificationRequest,
     ) -> Result<(), OID4VCIFinal1_0ServiceError> {
         let interaction_id = parse_access_token(access_token)?;
-        let Some(interaction) = self
+        let interaction = self
             .interaction_repository
             .get_interaction(&interaction_id, None)
             .await
-            .error_while("getting interaction")?
-        else {
-            return Err(OpenID4VCIError::InvalidNotificationRequest.into());
-        };
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    OID4VCIFinal1_0ServiceError::from(OpenID4VCIError::InvalidNotificationRequest)
+                }
+                error => error.error_while("getting interaction").into(),
+            })?;
 
         let interaction_data = interaction_data_to_dto(&interaction)?;
         throw_if_access_token_invalid(&interaction_data, access_token)?;
@@ -1048,11 +1045,7 @@ impl OID4VCIFinal1_0Service {
                 .interaction_repository
                 .get_interaction(&interaction_id, Some(LockType::Update))
                 .await
-                .error_while("getting interaction")?
-                .ok_or(OID4VCIFinal1_0ServiceError::MappingError(format!(
-                    "Interaction `{}` not found",
-                    interaction_id
-                )))?;
+                .error_while("getting interaction")?;
             let interaction_data = interaction_data_to_dto(&interaction)?;
 
             let mut response = oidc_issuer_create_token(

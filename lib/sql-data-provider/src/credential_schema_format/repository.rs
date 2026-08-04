@@ -3,7 +3,7 @@ use futures::FutureExt;
 use one_core::model::credential_schema_format::CredentialSchemaFormat;
 use one_core::proto::transaction_manager::IsolationLevel;
 use one_core::repository::credential_schema_format_repository::CredentialSchemaFormatRepository;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use shared_types::{CredentialSchemaFormatId, CredentialSchemaId};
 
@@ -55,13 +55,17 @@ impl CredentialSchemaFormatRepository for CredentialSchemaFormatProvider {
     async fn get_credential_schema_format(
         &self,
         id: &CredentialSchemaFormatId,
-    ) -> Result<Option<CredentialSchemaFormat>, DataLayerError> {
+    ) -> Result<CredentialSchemaFormat, DataLayerError> {
         let row = credential_schema_format::Entity::find_by_id(*id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::CredentialSchemaFormat,
+                id: (*id).into(),
+            })?;
 
-        Ok(row.map(|model| credential_schema_format_from_model(model, self.db.to_owned())))
+        Ok(credential_schema_format_from_model(row, self.db.to_owned()))
     }
 
     async fn list_by_credential_schema_id(

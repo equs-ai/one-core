@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use one_core::model::list_filter::ListFilterValue;
 use one_core::model::notification::{Notification, NotificationFilterValue, NotificationListQuery};
+use one_core::repository::error::DataLayerError;
 use one_core::repository::notification_repository::NotificationRepository;
 use shared_types::{NotificationId, OrganisationId, TaskId};
 use time::OffsetDateTime;
@@ -54,7 +55,11 @@ impl NotificationsDB {
     }
 
     pub async fn get(&self, id: impl Into<NotificationId>) -> Option<Notification> {
-        self.repository.get(&id.into(), None).await.unwrap()
+        match self.repository.get(&id.into(), None).await {
+            Ok(notification) => Some(notification),
+            Err(DataLayerError::EntityNotFound { .. }) => None,
+            Err(err) => panic!("get notification: {err}"),
+        }
     }
 
     #[expect(unused)]

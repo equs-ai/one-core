@@ -46,8 +46,6 @@ pub enum NotificationResult {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Notification {0} not found")]
-    NotificationNotFound(NotificationId),
     #[error(transparent)]
     Nested(#[from] NestedError),
 }
@@ -55,7 +53,6 @@ pub enum Error {
 impl ErrorCodeMixin for Error {
     fn error_code(&self) -> ErrorCode {
         match self {
-            Self::NotificationNotFound(_) => ErrorCode::BR_0377,
             Self::Nested(nested) => nested.error_code(),
         }
     }
@@ -221,8 +218,7 @@ impl NotificationSenderImpl {
             .notification_repository
             .get(&notification_id, Some(LockType::Update))
             .await
-            .error_while("getting notification")?
-            .ok_or(Error::NotificationNotFound(notification_id))?;
+            .error_while("getting notification")?;
         let retries = params.retries.clone();
 
         let (mut result, metadata) = self

@@ -6,12 +6,13 @@ use uuid::Uuid;
 
 use super::SignatureService;
 use crate::config::core_config::BlobStorageType;
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::blob::{Blob, BlobType};
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::revocation_list::RevocationListEntityInfo;
 use crate::proto::session_provider::SessionExt;
 use crate::provider::signer::dto::{CreateSignatureResponseDTO, Issuer};
+use crate::repository::error::DataLayerError;
 use crate::service::signature::dto::{CreateSignatureRequestDTO, SignatureStatusInfo};
 use crate::service::signature::error::SignatureServiceError;
 use crate::validator::permissions::RequiredPermissions;
@@ -91,8 +92,12 @@ impl SignatureService {
             .revocation_list_repository
             .get_revocation_list_by_entry_id(id.into())
             .await
-            .error_while("getting revocation list entries")?
-            .ok_or(SignatureServiceError::InvalidSignatureId(id))?;
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    SignatureServiceError::InvalidSignatureId(id)
+                }
+                error => error.error_while("getting revocation list entries").into(),
+            })?;
         let issuer = list.issuer_identifier.as_ref().await?;
         throw_if_org_id_not_matching_session(&issuer.organisation.id(), &*self.session_provider)
             .error_while("validating organisation")?;

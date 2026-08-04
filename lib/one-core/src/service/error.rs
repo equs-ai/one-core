@@ -1,8 +1,7 @@
 use one_crypto::CryptoProviderError;
 use shared_types::{
     CredentialId, CredentialSchemaId, DidId, DidMethodId, DidValue, IdentifierId, InteractionId,
-    OrganisationId, ProofId, RevocationListEntryId, RevocationMethodId, TaskId,
-    TrustListSubscriberId,
+    OrganisationId, ProofId, RevocationMethodId, TaskId, TrustListSubscriberId,
 };
 use thiserror::Error;
 
@@ -65,9 +64,6 @@ pub enum EntityNotFoundError {
 
     #[error("Identifier by did id `{0}` not found")]
     IdentifierByDidId(DidId),
-
-    #[error("Revocation list entry `{0}` not found")]
-    RevocationListEntry(RevocationListEntryId),
 
     #[error("Proof `{0}` not found")]
     Proof(ProofId),
@@ -230,7 +226,6 @@ impl ErrorCodeMixin for EntityNotFoundError {
             Self::Organisation(_) => ErrorCode::BR_0022,
             Self::CredentialSchema(_) => ErrorCode::BR_0006,
             Self::Identifier(_) | Self::IdentifierByDidId(_) => ErrorCode::BR_0207,
-            Self::RevocationListEntry(_) => ErrorCode::BR_0000,
         }
     }
 }

@@ -8,6 +8,7 @@ use one_core::model::managed_instance::{
 };
 use one_core::model::managed_instance_attested_key::ManagedInstanceAttestedKey;
 use one_core::model::organisation::Organisation;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::managed_instance_repository::ManagedInstanceRepository;
 use shared_types::{ManagedInstanceId, RevocationListEntryId};
 use standardized_types::jwk::PublicJwk;
@@ -99,10 +100,11 @@ impl ManagedInstancesDB {
         &self,
         wallet_instance_id: impl Into<ManagedInstanceId>,
     ) -> Option<ManagedInstance> {
-        self.repository
-            .get(&wallet_instance_id.into())
-            .await
-            .unwrap()
+        match self.repository.get(&wallet_instance_id.into()).await {
+            Ok(instance) => Some(instance),
+            Err(DataLayerError::EntityNotFound { .. }) => None,
+            Err(err) => panic!("get managed instance: {err}"),
+        }
     }
 
     pub async fn update(

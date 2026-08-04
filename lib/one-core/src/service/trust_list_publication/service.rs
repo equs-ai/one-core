@@ -295,8 +295,8 @@ impl TrustListPublicationService {
                 },
             )
             .await
-            .error_while("fetching trust list publication")?
-            .ok_or_else(|| TrustListPublicationServiceError::TrustListPublicationNotFound(list_id))
+            .error_while("fetching trust list publication")
+            .map_err(Into::into)
     }
 
     async fn fetch_trust_entry(
@@ -315,8 +315,8 @@ impl TrustListPublicationService {
                 },
             )
             .await
-            .error_while("fetching trust list publication")?
-            .ok_or_else(|| TrustListPublicationServiceError::TrustEntryNotFound(entry_id))
+            .error_while("fetching trust entry")
+            .map_err(Into::into)
     }
 
     async fn fetch_trust_list_provider(

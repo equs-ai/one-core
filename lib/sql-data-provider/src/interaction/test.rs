@@ -111,13 +111,11 @@ async fn test_create_interaction() {
 async fn test_get_interaction() {
     let setup = setup_with_interaction().await;
 
-    let result = setup
+    let interaction = setup
         .provider
         .get_interaction(&setup.interaction_id, None)
         .await
         .unwrap();
-
-    let interaction = result.unwrap();
 
     assert_eq!(interaction.data, Some(setup.data));
 }
@@ -150,7 +148,6 @@ async fn test_mark_nonce_as_used() {
         .provider
         .get_interaction(&interaction_id, None)
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(interaction.nonce_id, Some(nonce_id));
 }

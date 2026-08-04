@@ -3,7 +3,7 @@ use one_core::model::common::LockType;
 use one_core::model::notification::{
     Notification, NotificationList, NotificationListQuery, UpdateNotificationRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::notification_repository::NotificationRepository;
 use sea_orm::ActiveValue::Unchanged;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryOrder, QuerySelect};
@@ -32,7 +32,7 @@ impl NotificationRepository for NotificationProvider {
         &self,
         id: &NotificationId,
         lock: Option<LockType>,
-    ) -> Result<Option<Notification>, DataLayerError> {
+    ) -> Result<Notification, DataLayerError> {
         let select = notification::Entity::find_by_id(id);
         let select = match lock {
             None => select,
@@ -41,13 +41,13 @@ impl NotificationRepository for NotificationProvider {
         let notification = select
             .one(&self.db)
             .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
+            .map_err(|e| DataLayerError::Db(e.into()))?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Notification,
+                id: (*id).into(),
+            })?;
 
-        let Some(notification) = notification else {
-            return Ok(None);
-        };
-
-        Ok(Some(notification.into()))
+        Ok(notification.into())
     }
 
     async fn list(

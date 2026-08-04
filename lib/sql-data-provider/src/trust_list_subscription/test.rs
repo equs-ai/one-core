@@ -8,6 +8,7 @@ use one_core::model::trust_list_subscription::{
     TrustListSubscription, TrustListSubscriptionFilterValue, TrustListSubscriptionListQuery,
     TrustListSubscriptionRelations, TrustListSubscriptionState,
 };
+use one_core::repository::error::DataLayerError;
 use one_core::repository::trust_collection_repository::MockTrustCollectionRepository;
 use one_core::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 use sea_orm::DatabaseConnection;
@@ -88,7 +89,7 @@ async fn test_get_trust_list_subscription_missing() {
             &TrustListSubscriptionRelations::default(),
         )
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -108,7 +109,7 @@ async fn test_get_trust_list_subscription_success() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert_eq!(found.id, id);
     assert_eq!(found.name, "test-subscription");
     assert_eq!(found.reference, "https://example.com/trust-list");
@@ -134,7 +135,10 @@ async fn test_delete_trust_list_subscription() {
     let get_result = provider
         .get(&id, &TrustListSubscriptionRelations::default())
         .await;
-    assert!(matches!(get_result, Ok(None)));
+    assert!(matches!(
+        get_result,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 }
 
 #[tokio::test]
@@ -157,7 +161,6 @@ async fn test_update_trust_list_state_subscription() {
     let get_result = provider
         .get(&id, &TrustListSubscriptionRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(get_result.state, TrustListSubscriptionState::Error);
 }
@@ -521,7 +524,7 @@ async fn test_get_trust_list_subscription_with_trust_collection_relation() {
     mock_collection_repo
         .expect_get()
         .returning(move |id, _relations| {
-            Ok(Some(TrustCollection {
+            Ok(TrustCollection {
                 ecosystem: "EUDI".into(),
                 id: *id,
                 name: "test-collection".to_string(),
@@ -531,7 +534,7 @@ async fn test_get_trust_list_subscription_with_trust_collection_relation() {
                 organisation: None,
                 deactivated_at: None,
                 remote_trust_collection_url: None,
-            }))
+            })
         });
 
     let provider = TrustListSubscriptionProvider {
@@ -553,7 +556,7 @@ async fn test_get_trust_list_subscription_with_trust_collection_relation() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert!(found.trust_collection.is_some());
     assert_eq!(found.trust_collection.unwrap().name, "test-collection");
 }

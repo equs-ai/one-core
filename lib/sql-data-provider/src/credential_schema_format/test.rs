@@ -75,8 +75,7 @@ async fn test_create_and_get_credential_schema_format() {
     let fetched = provider
         .get_credential_schema_format(&format_id)
         .await
-        .expect("get should succeed")
-        .expect("format must exist");
+        .expect("get should succeed");
     assert_eq!(fetched.id, format_id);
     assert_eq!(fetched.schema_id, "https://example.com/schemas/example");
 

@@ -50,7 +50,7 @@ async fn test_get_revocation_list() {
             .expect_get_revocation_list()
             .times(1)
             .with(eq(revocation_id))
-            .returning(move |_| Ok(Some(revocation.clone())));
+            .returning(move |_| Ok(revocation.clone()));
     }
 
     let service = setup_service(Repositories {

@@ -26,8 +26,6 @@ pub enum HolderServiceError {
     MissingDid(DidId),
     #[error("Identifier `{0}` not found")]
     MissingIdentifier(IdentifierId),
-    #[error("Interaction `{0}` not found")]
-    MissingInteraction(InteractionId),
     #[error("Missing organisation: {0}")]
     MissingOrganisation(OrganisationId),
     #[error("Missing credentials for credential: {credential_id}")]
@@ -76,7 +74,6 @@ impl ErrorCodeMixin for HolderServiceError {
             Self::MissingDid(_) => ErrorCode::BR_0024,
             Self::InvalidInput(_) => ErrorCode::BR_0323,
             Self::MissingIdentifier(_) => ErrorCode::BR_0207,
-            Self::MissingInteraction(_) => ErrorCode::BR_0257,
             Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::RejectionNotSupported => ErrorCode::BR_0237,
             Self::OrganisationIsDeactivated(_) => ErrorCode::BR_0241,

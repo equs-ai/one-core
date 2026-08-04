@@ -255,10 +255,9 @@ pub(crate) async fn schedule_ble_verifier_flow(
                     return;
                 };
 
-                if let Ok(interaction_data) =
-                    deserialize_interaction_data::<BLEOpenID4VPInteractionDataVerifier>(
-                        interaction.as_ref().and_then(|i| i.data.as_ref()),
-                    )
+                if let Ok(interaction_data) = deserialize_interaction_data::<
+                    BLEOpenID4VPInteractionDataVerifier,
+                >(interaction.data.as_ref())
                 {
                     let result = peripheral
                         .notify_characteristic_data(

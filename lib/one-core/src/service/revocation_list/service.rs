@@ -4,22 +4,19 @@ use super::RevocationListService;
 use super::dto::RevocationListResponseDTO;
 use super::error::RevocationServiceError;
 use crate::config::core_config::RevocationType;
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use crate::repository::error::{DataLayerError, EntityKind};
 
 impl RevocationListService {
     pub async fn get_revocation_list_by_id(
         &self,
         id: &RevocationListId,
     ) -> Result<RevocationListResponseDTO, RevocationServiceError> {
-        let result = self
+        let list = self
             .revocation_list_repository
             .get_revocation_list(id)
             .await
             .error_while("getting revocation list")?;
-
-        let Some(list) = result else {
-            return Err(RevocationServiceError::NotFound(*id));
-        };
 
         let r#type = self
             .config
@@ -40,15 +37,11 @@ impl RevocationListService {
         &self,
         id: &RevocationListId,
     ) -> Result<Vec<u8>, RevocationServiceError> {
-        let result = self
+        let list = self
             .revocation_list_repository
             .get_revocation_list(id)
             .await
             .error_while("getting revocation list")?;
-
-        let Some(list) = result else {
-            return Err(RevocationServiceError::NotFound(*id));
-        };
 
         let r#type = self
             .config
@@ -57,7 +50,12 @@ impl RevocationListService {
             .error_while("getting revocation type")?;
         if r#type != RevocationType::CRL {
             tracing::warn!("Invalid CRL request, list_id: {id}");
-            return Err(RevocationServiceError::NotFound(*id));
+            return Err(DataLayerError::EntityNotFound {
+                kind: EntityKind::RevocationList,
+                id: (*id).into(),
+            }
+            .error_while("getting revocation type")
+            .into());
         }
 
         let revocation_method = self

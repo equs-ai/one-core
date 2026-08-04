@@ -1,4 +1,4 @@
-use shared_types::{InstanceId, KeyId, WalletInstanceAttestationId};
+use shared_types::{InstanceId, WalletInstanceAttestationId};
 
 use super::error::DataLayerError;
 use crate::model::wallet_instance_attestation::{
@@ -12,11 +12,6 @@ pub trait WalletInstanceAttestationRepository: Send + Sync + 'static {
         &self,
         wallet_unit_attestation: WalletInstanceAttestation,
     ) -> Result<WalletInstanceAttestationId, DataLayerError>;
-
-    async fn get_wallet_instance_attestation_by_key_id(
-        &self,
-        key_id: &KeyId,
-    ) -> Result<Option<WalletInstanceAttestation>, DataLayerError>;
 
     async fn get_wallet_instance_attestations_by_holder_wallet_unit(
         &self,

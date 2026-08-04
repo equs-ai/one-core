@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use one_core::model::managed_instance_attested_key::{
     ManagedInstanceAttestedKey, ManagedInstanceAttestedKeyUpsertRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::managed_instance_attested_key_repository::ManagedInstanceAttestedKeyRepository;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
@@ -68,20 +68,17 @@ impl ManagedInstanceAttestedKeyRepository for ManagedInstanceAttestedKeyProvider
     async fn get_attested_key(
         &self,
         id: &ManagedInstanceAttestedKeyId,
-    ) -> Result<Option<ManagedInstanceAttestedKey>, DataLayerError> {
+    ) -> Result<ManagedInstanceAttestedKey, DataLayerError> {
         let model = managed_instance_attested_key::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::ManagedInstanceAttestedKey,
+                id: (*id).into(),
+            })?;
 
-        Ok(match model {
-            Some(model) => Some(attested_key_from_model(
-                model,
-                &self.db,
-                &self.revocation_list_repository,
-            )?),
-            None => None,
-        })
+        attested_key_from_model(model, &self.db, &self.revocation_list_repository)
     }
 
     async fn get_by_instance_id(

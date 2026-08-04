@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::organisation::Organisation;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::interaction_repository::InteractionRepository;
 use shared_types::InteractionId;
 use time::OffsetDateTime;
@@ -45,9 +46,10 @@ impl InteractionsDB {
     }
 
     pub async fn get(&self, id: impl Into<InteractionId>) -> Option<Interaction> {
-        self.repository
-            .get_interaction(&id.into(), None)
-            .await
-            .unwrap()
+        match self.repository.get_interaction(&id.into(), None).await {
+            Ok(interaction) => Some(interaction),
+            Err(DataLayerError::EntityNotFound { .. }) => None,
+            Err(err) => panic!("get interaction: {err}"),
+        }
     }
 }

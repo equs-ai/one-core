@@ -1,5 +1,6 @@
 use one_core::model::revocation_list::StatusListCredentialFormat;
 use similar_asserts::assert_eq;
+use uuid::Uuid;
 
 use crate::utils::context::TestContext;
 use crate::utils::db_clients::revocation_lists::TestingRevocationListParams;
@@ -36,6 +37,18 @@ async fn test_get_revocation_list_success() {
 }
 
 #[tokio::test]
+async fn test_get_revocation_list_not_found() {
+    // GIVEN
+    let context = TestContext::new(None).await;
+
+    // WHEN
+    let resp = context.api.ssi.get_revocation_list(Uuid::new_v4()).await;
+
+    // THEN
+    assert_eq!(resp.status(), 404);
+}
+
+#[tokio::test]
 async fn test_get_crl_success() {
     let (context, _, identifier, certificate, _) =
         TestContext::new_with_certificate_identifier(None).await;
@@ -67,4 +80,16 @@ async fn test_get_crl_success() {
         "application/pkix-crl"
     );
     assert_eq!(resp.bytes().await, crl_content);
+}
+
+#[tokio::test]
+async fn test_get_crl_not_found() {
+    // GIVEN
+    let context = TestContext::new(None).await;
+
+    // WHEN
+    let resp = context.api.ssi.get_crl(Uuid::new_v4()).await;
+
+    // THEN
+    assert_eq!(resp.status(), 404);
 }

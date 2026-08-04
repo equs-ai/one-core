@@ -149,7 +149,6 @@ async fn test_get_revocation_list() {
         .provider
         .get_revocation_list(&setup.list_id)
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(setup.list_id, result.id);
 }

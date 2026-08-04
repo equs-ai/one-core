@@ -11,14 +11,13 @@ use crate::proto::session_provider::test::StaticSessionProvider;
 use crate::repository::certificate_repository::MockCertificateRepository;
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::service::certificate::CertificateService;
-use crate::service::certificate::error::CertificateServiceError;
 use crate::service::test_utilities::{dummy_identifier, dummy_organisation, get_dummy_date};
 
 #[tokio::test]
 async fn test_get_cert_fail_session_org_mismatch() {
     let mut cert_repo = MockCertificateRepository::new();
     cert_repo.expect_get().returning(|_| {
-        Ok(Some(Certificate {
+        Ok(Certificate {
             id: Uuid::new_v4().into(),
             identifier_id: Uuid::new_v4().into(),
             organisation: dummy_organisation(None).into(),
@@ -32,7 +31,7 @@ async fn test_get_cert_fail_session_org_mismatch() {
             state: CertificateState::NotYetActive,
             roles: vec![],
             key: None,
-        }))
+        })
     });
     let service = CertificateService {
         certificate_repository: Arc::new(cert_repo),
@@ -50,7 +49,7 @@ async fn test_get_certificate_authority_invalid_identifier() {
 
     let mut certificate_repository = MockCertificateRepository::new();
     certificate_repository.expect_get().returning(|id| {
-        Ok(Some(Certificate {
+        Ok(Certificate {
             id,
             identifier_id: Uuid::new_v4().into(),
             organisation: dummy_organisation(None).into(),
@@ -64,7 +63,7 @@ async fn test_get_certificate_authority_invalid_identifier() {
             state: CertificateState::Active,
             roles: vec![],
             key: None,
-        }))
+        })
     });
 
     let mut identifier_repository = MockIdentifierRepository::new();
@@ -82,7 +81,7 @@ async fn test_get_certificate_authority_invalid_identifier() {
     };
 
     let result = service.get_certificate_authority(id).await;
-    assert!(matches!(result, Err(CertificateServiceError::NotFound(_))));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0223);
 }
 
 const TEST_CERTIFICATE_PEM: &str = "-----BEGIN CERTIFICATE-----
@@ -101,7 +100,7 @@ async fn test_get_certificate_pem_success() {
 
     let mut certificate_repository = MockCertificateRepository::new();
     certificate_repository.expect_get().returning(|id| {
-        Ok(Some(Certificate {
+        Ok(Certificate {
             id,
             identifier_id: Uuid::new_v4().into(),
             organisation: dummy_organisation(None).into(),
@@ -115,7 +114,7 @@ async fn test_get_certificate_pem_success() {
             state: CertificateState::Active,
             roles: vec![],
             key: None,
-        }))
+        })
     });
 
     let mut identifier_repository = MockIdentifierRepository::new();
@@ -142,7 +141,7 @@ async fn test_get_certificate_pem_invalid_identifier() {
 
     let mut certificate_repository = MockCertificateRepository::new();
     certificate_repository.expect_get().returning(|id| {
-        Ok(Some(Certificate {
+        Ok(Certificate {
             id,
             identifier_id: Uuid::new_v4().into(),
             organisation: dummy_organisation(None).into(),
@@ -156,7 +155,7 @@ async fn test_get_certificate_pem_invalid_identifier() {
             state: CertificateState::Active,
             roles: vec![],
             key: None,
-        }))
+        })
     });
 
     let mut identifier_repository = MockIdentifierRepository::new();
@@ -174,5 +173,5 @@ async fn test_get_certificate_pem_invalid_identifier() {
     };
 
     let result = service.get_certificate_pem(id).await;
-    assert!(matches!(result, Err(CertificateServiceError::NotFound(_))));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0223);
 }

@@ -7,7 +7,7 @@ use one_core::model::history::{
     SystemManagementStatsQuery, SystemOperationsCount, SystemStats, VerifierStatsQuery,
 };
 use one_core::model::list_query::ListQuery;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::history_repository::HistoryRepository;
 use sea_orm::sea_query::SelectStatement;
 use sea_orm::{
@@ -115,16 +115,16 @@ impl HistoryRepository for HistoryProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(self), err(Debug))]
-    async fn get_history_entry(
-        &self,
-        history_id: HistoryId,
-    ) -> Result<Option<History>, DataLayerError> {
+    async fn get_history_entry(&self, history_id: HistoryId) -> Result<History, DataLayerError> {
         history::Entity::find_by_id(history_id)
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?
-            .map(TryInto::try_into)
-            .transpose()
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::History,
+                id: history_id.into(),
+            })?
+            .try_into()
     }
 
     async fn organisation_stats(

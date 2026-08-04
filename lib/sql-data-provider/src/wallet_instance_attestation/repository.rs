@@ -5,7 +5,7 @@ use one_core::repository::error::DataLayerError;
 use one_core::repository::wallet_instance_attestation_repository::WalletInstanceAttestationRepository;
 use sea_orm::sea_query::IntoCondition;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, Unchanged};
-use shared_types::{InstanceId, KeyId, WalletInstanceAttestationId};
+use shared_types::{InstanceId, WalletInstanceAttestationId};
 
 use super::mapper::wallet_instance_attestation_from_model;
 use crate::entity::wallet_instance_attestation;
@@ -24,22 +24,6 @@ impl WalletInstanceAttestationRepository for WalletInstanceAttestationProvider {
             .map_err(to_data_layer_error)?;
 
         Ok(wallet_unit_attestation.id)
-    }
-
-    async fn get_wallet_instance_attestation_by_key_id(
-        &self,
-        key_id: &KeyId,
-    ) -> Result<Option<WalletInstanceAttestation>, DataLayerError> {
-        Ok(wallet_instance_attestation::Entity::find()
-            .filter(
-                wallet_instance_attestation::Column::AttestedKeyId
-                    .eq(key_id)
-                    .into_condition(),
-            )
-            .one(&self.db)
-            .await
-            .map_err(to_data_layer_error)?
-            .map(|model| wallet_instance_attestation_from_model(model, &self.key_repository)))
     }
 
     async fn get_wallet_instance_attestations_by_holder_wallet_unit(

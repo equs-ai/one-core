@@ -97,7 +97,7 @@ async fn test_get_notification_success() {
         ..
     } = setup().await;
 
-    let result = provider.get(&notification_id, None).await.unwrap().unwrap();
+    let result = provider.get(&notification_id, None).await.unwrap();
 
     assert_eq!(notification_id, result.id);
 }
@@ -151,7 +151,7 @@ async fn test_update_notification() {
         .await
         .unwrap();
 
-    let updated = provider.get(&notification_id, None).await.unwrap().unwrap();
+    let updated = provider.get(&notification_id, None).await.unwrap();
     assert_eq!(updated.tries_count, 1);
     assert_eq!(updated.next_try_date, date);
 }
@@ -168,7 +168,10 @@ async fn test_delete_notification() {
 
     assert!(result.is_ok());
 
-    let result = provider.get(&notification_id, None).await.unwrap();
+    let result = provider.get(&notification_id, None).await;
 
-    assert!(result.is_none());
+    assert!(matches!(
+        result,
+        Err(one_core::repository::error::DataLayerError::EntityNotFound { .. })
+    ));
 }

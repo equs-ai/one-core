@@ -361,7 +361,7 @@ async fn test_accept_credential() {
     interaction_repository
         .expect_get_interaction()
         .return_once(move |_, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
@@ -371,7 +371,7 @@ async fn test_accept_credential() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let service = SSIHolderService {
@@ -498,7 +498,7 @@ async fn test_accept_credential_with_did() {
     interaction_repository
         .expect_get_interaction()
         .return_once(move |_, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
@@ -508,7 +508,7 @@ async fn test_accept_credential_with_did() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let service = SSIHolderService {
@@ -596,7 +596,7 @@ async fn test_accept_credential_batch() {
         .expect_get_interaction()
         .once()
         .return_once(move |_, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: interaction_id,
                 created_date: get_dummy_date(),
@@ -612,7 +612,7 @@ async fn test_accept_credential_batch() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let service = SSIHolderService {
@@ -704,7 +704,7 @@ async fn test_accept_credential_wrong_tx_code() {
     interaction_repository
         .expect_get_interaction()
         .return_once(move |_, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
@@ -714,7 +714,7 @@ async fn test_accept_credential_wrong_tx_code() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let service = SSIHolderService {
@@ -885,7 +885,7 @@ async fn test_continue_issuance() {
     interaction_repository
         .expect_get_interaction()
         .return_once(move |_, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
@@ -895,7 +895,7 @@ async fn test_continue_issuance() {
                 nonce_id: None,
                 interaction_type: InteractionType::Verification,
                 expires_at: None,
-            }))
+            })
         });
 
     let mut issuance_protocol = MockIssuanceProtocol::new();
@@ -1272,7 +1272,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
     interaction_repository
         .expect_get_interaction()
         .return_once(move |_, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
@@ -1282,7 +1282,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let service = SSIHolderService {

@@ -25,7 +25,7 @@ pub trait InteractionRepository: Send + Sync {
         &self,
         id: &InteractionId,
         lock: Option<LockType>,
-    ) -> Result<Option<Interaction>, DataLayerError>;
+    ) -> Result<Interaction, DataLayerError>;
 
     async fn mark_nonce_as_used(
         &self,

@@ -5,7 +5,7 @@ use one_core::model::managed_instance::{
     ManagedInstance, ManagedInstanceList, ManagedInstanceListQuery, UpdateManagedInstanceRequest,
 };
 use one_core::proto::transaction_manager::TransactionManager;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::managed_instance_repository::ManagedInstanceRepository;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryOrder, Set, Unchanged};
 use shared_types::ManagedInstanceId;
@@ -41,20 +41,21 @@ impl ManagedInstanceRepository for ManagedInstanceProvider {
             .await?
     }
 
-    async fn get(&self, id: &ManagedInstanceId) -> Result<Option<ManagedInstance>, DataLayerError> {
-        let Some(wallet_unit) = managed_instance::Entity::find_by_id(id)
+    async fn get(&self, id: &ManagedInstanceId) -> Result<ManagedInstance, DataLayerError> {
+        let wallet_unit = managed_instance::Entity::find_by_id(id)
             .one(&self.db)
             .await
             .map_err(to_data_layer_error)?
-        else {
-            return Ok(None);
-        };
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::ManagedInstance,
+                id: (*id).into(),
+            })?;
 
-        Ok(Some(managed_instance_from_model(
+        managed_instance_from_model(
             wallet_unit,
             &self.organisation_repository,
             &self.wallet_instance_attested_key_repository,
-        )?))
+        )
     }
 
     async fn get_list(

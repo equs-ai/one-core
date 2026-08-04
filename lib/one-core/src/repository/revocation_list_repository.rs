@@ -23,12 +23,12 @@ pub trait RevocationListRepository: Send + Sync {
     async fn get_revocation_list(
         &self,
         id: &RevocationListId,
-    ) -> Result<Option<RevocationList>, DataLayerError>;
+    ) -> Result<RevocationList, DataLayerError>;
 
     async fn get_revocation_list_by_entry_id(
         &self,
         entry_id: RevocationListEntryId,
-    ) -> Result<Option<RevocationList>, DataLayerError>;
+    ) -> Result<RevocationList, DataLayerError>;
 
     async fn get_revocation_by_issuer_identifier_id(
         &self,
@@ -67,7 +67,7 @@ pub trait RevocationListRepository: Send + Sync {
     async fn get_entry_by_id(
         &self,
         id: RevocationListEntryId,
-    ) -> Result<Option<RevocationListEntry>, DataLayerError>;
+    ) -> Result<RevocationListEntry, DataLayerError>;
 
     async fn get_entries(
         &self,
@@ -83,11 +83,6 @@ pub trait RevocationListRepository: Send + Sync {
 #[async_trait::async_trait]
 impl AsyncModelLoader<RevocationList> for Arc<dyn RevocationListRepository> {
     async fn load(&self, id: &RevocationListId) -> Result<RevocationList, DataLayerError> {
-        self.get_revocation_list(id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "revocation-list",
-                id: id.to_string(),
-            })
+        self.get_revocation_list(id).await
     }
 }

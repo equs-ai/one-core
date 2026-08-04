@@ -266,10 +266,7 @@ impl RevocationMethod for CRLRevocation {
             .revocation_list_repository
             .get_revocation_list_by_entry_id(signature_id)
             .await
-            .error_while("getting revocation list entry")?
-            .ok_or(RevocationError::MappingError(
-                "Missing revocation list".to_string(),
-            ))?;
+            .error_while("getting revocation list entry")?;
 
         self.update_list(list).await?;
 
@@ -284,10 +281,7 @@ impl RevocationMethod for CRLRevocation {
             .revocation_list_repository
             .get_revocation_list(&list_id)
             .await
-            .error_while("getting revocation list")?
-            .ok_or(RevocationError::MappingError(
-                "Missing revocation list".to_string(),
-            ))?;
+            .error_while("getting revocation list")?;
 
         if list.last_modified + self.params.refresh_interval_seconds > crate::clock::now_utc() {
             return Ok(list.formatted_list);

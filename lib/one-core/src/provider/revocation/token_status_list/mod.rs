@@ -349,10 +349,7 @@ impl RevocationMethod for TokenStatusList {
             .wallet_unit_repository
             .get(&attestation.instance_id)
             .await
-            .error_while("getting wallet instance")?
-            .ok_or(RevocationError::MappingError(
-                "Missing wallet unit".to_string(),
-            ))?;
+            .error_while("getting wallet instance")?;
 
         let issuer_id = wallet_instance
             .organisation
@@ -515,10 +512,7 @@ impl RevocationMethod for TokenStatusList {
                     .revocation_list_repository
                     .get_revocation_list_by_entry_id(signature_id)
                     .await
-                    .error_while("getting revocation list")?
-                    .ok_or(RevocationError::MappingError(
-                        "Missing list for revocation entry".to_owned(),
-                    ))?;
+                    .error_while("getting revocation list")?;
                 let current_entries = self
                     .revocation_list_repository
                     .get_entries(current_list.id)

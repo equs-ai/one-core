@@ -6,6 +6,7 @@ use one_core::model::certificate::{
 };
 use one_core::model::list_filter::ListFilterValue;
 use one_core::repository::certificate_repository::CertificateRepository;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::key_repository::MockKeyRepository;
 use one_core::repository::organisation_repository::MockOrganisationRepository;
 use one_core::service::test_utilities::dummy_organisation;
@@ -104,16 +105,12 @@ async fn test_get_certificate() {
     setup.provider.create(certificate.clone()).await.unwrap();
 
     let non_existent_id = Uuid::new_v4().into();
-    assert!(
-        setup
-            .provider
-            .get(non_existent_id,)
-            .await
-            .unwrap()
-            .is_none()
-    );
+    assert!(matches!(
+        setup.provider.get(non_existent_id).await,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 
-    let retrieved = setup.provider.get(certificate.id).await.unwrap().unwrap();
+    let retrieved = setup.provider.get(certificate.id).await.unwrap();
     assert_eq!(retrieved.id, certificate.id);
     assert_eq!(retrieved.identifier_id, certificate.identifier_id);
     assert_eq!(retrieved.name, certificate.name);
@@ -158,7 +155,7 @@ async fn test_update_certificate() {
         .await
         .unwrap();
 
-    let retrieved = setup.provider.get(certificate.id).await.unwrap().unwrap();
+    let retrieved = setup.provider.get(certificate.id).await.unwrap();
 
     assert_eq!(retrieved.state, CertificateState::Expired);
 }
@@ -189,7 +186,6 @@ async fn test_get_returns_soft_deleted_certificate() {
         .provider
         .get(id)
         .await
-        .unwrap()
         .expect("soft-deleted certificate should still be retrievable");
     assert_eq!(retrieved.id, id);
     assert!(retrieved.deleted_at.is_some());
@@ -222,7 +218,6 @@ async fn test_delete_certificate_sets_deleted_at() {
         .provider
         .get(id)
         .await
-        .unwrap()
         .expect("soft-deleted certificate should still be retrievable");
     assert!(retrieved.deleted_at.is_some());
 }

@@ -67,8 +67,7 @@ async fn test_post_trust_list_subscription() {
         .db
         .trust_list_subscriptions
         .get(&trust_list_subscription_id)
-        .await
-        .unwrap();
+        .await;
     assert_eq!(
         trust_list_subscription.role,
         Some(TrustListRoleEnum::PidProvider)

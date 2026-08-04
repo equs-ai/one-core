@@ -1,6 +1,4 @@
-use shared_types::{
-    OrganisationId, TrustCollectionId, TrustListSubscriberId, TrustListSubscriptionId,
-};
+use shared_types::{OrganisationId, TrustListSubscriberId};
 use thiserror::Error;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
@@ -16,10 +14,6 @@ pub enum TrustCollectionServiceError {
     MissingOrganisation(OrganisationId),
     #[error("Trust collection already exists")]
     TrustCollectionAlreadyExists,
-    #[error("Trust collection `{0}` not found: {0}")]
-    TrustCollectionNotFound(TrustCollectionId),
-    #[error("Trust list subscription `{0}` not found")]
-    TrustListSubscriptionNotFound(TrustListSubscriptionId),
     #[error("Missing provider for trust list `{0}`")]
     MissingTrustListSubscriber(TrustListSubscriberId),
     #[error("Unsupported trust list subscription role `{0:?}`: expected one of `{1:?}`")]
@@ -37,11 +31,9 @@ impl ErrorCodeMixin for TrustCollectionServiceError {
             Self::Nested(nested) => nested.error_code(),
             Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::TrustCollectionAlreadyExists => ErrorCode::BR_0398,
-            Self::TrustCollectionNotFound(_) => ErrorCode::BR_0391,
             Self::MissingTrustListSubscriber(_) => ErrorCode::BR_0400,
             Self::InvalidTrustListRole(_, _) => ErrorCode::BR_0386,
             Self::MissingTrustListRole(_) => ErrorCode::BR_0457,
-            Self::TrustListSubscriptionNotFound(_) => ErrorCode::BR_0402,
             Self::TrustListSubscriptionAlreadyExists => ErrorCode::BR_0403,
         }
     }

@@ -49,7 +49,7 @@ impl TrustListSubscriptionDB {
         trust_list_subscription
     }
 
-    pub async fn get(&self, id: &TrustListSubscriptionId) -> Option<TrustListSubscription> {
+    pub async fn get(&self, id: &TrustListSubscriptionId) -> TrustListSubscription {
         self.repository
             .get(
                 id,

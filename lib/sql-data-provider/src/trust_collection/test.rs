@@ -8,6 +8,7 @@ use one_core::model::organisation::{
 use one_core::model::trust_collection::{
     TrustCollection, TrustCollectionFilterValue, TrustCollectionListQuery, TrustCollectionRelations,
 };
+use one_core::repository::error::DataLayerError;
 use one_core::repository::organisation_repository::{
     MockOrganisationRepository, OrganisationRepository,
 };
@@ -82,7 +83,7 @@ async fn test_get_trust_collection_missing() {
     let result = provider
         .get(&Uuid::new_v4().into(), &TrustCollectionRelations::default())
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -100,7 +101,7 @@ async fn test_get_trust_collection_success() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert_eq!(found.id, id);
     assert_eq!(found.name, "test-collection");
 }
@@ -121,7 +122,10 @@ async fn test_delete_trust_collection() {
     let get_result = provider
         .get(&id, &TrustCollectionRelations::default())
         .await;
-    assert!(matches!(get_result, Ok(None)));
+    assert!(matches!(
+        get_result,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 }
 
 #[tokio::test]
@@ -458,7 +462,7 @@ async fn test_get_trust_collection_with_organisation_relation() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert!(found.organisation.is_some());
     assert_eq!(found.organisation.unwrap().id, org_id);
 }

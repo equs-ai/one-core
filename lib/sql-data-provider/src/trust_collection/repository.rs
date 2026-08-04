@@ -3,7 +3,7 @@ use futures::FutureExt;
 use one_core::model::trust_collection::{
     GetTrustCollectionList, TrustCollection, TrustCollectionListQuery, TrustCollectionRelations,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::trust_collection_repository::TrustCollectionRepository;
 use sea_orm::prelude::Expr;
 use sea_orm::{
@@ -31,16 +31,16 @@ impl TrustCollectionRepository for TrustCollectionProvider {
         &self,
         id: &TrustCollectionId,
         relations: &TrustCollectionRelations,
-    ) -> Result<Option<TrustCollection>, DataLayerError> {
+    ) -> Result<TrustCollection, DataLayerError> {
         let trust_collection = trust_collection::Entity::find_by_id(*id)
             .filter(trust_collection::Column::DeactivatedAt.is_null())
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
-
-        let Some(trust_collection) = trust_collection else {
-            return Ok(None);
-        };
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::TrustCollection,
+                id: (*id).into(),
+            })?;
 
         let organisation_id = trust_collection.organisation_id;
         let mut result = TrustCollection::try_from(trust_collection)?;
@@ -55,7 +55,7 @@ impl TrustCollectionRepository for TrustCollectionProvider {
                     })?,
             );
         }
-        Ok(Some(result))
+        Ok(result)
     }
 
     async fn list(

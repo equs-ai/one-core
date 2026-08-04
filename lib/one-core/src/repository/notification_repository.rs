@@ -23,7 +23,7 @@ pub trait NotificationRepository: Send + Sync {
         &self,
         id: &NotificationId,
         lock: Option<LockType>,
-    ) -> Result<Option<Notification>, DataLayerError>;
+    ) -> Result<Notification, DataLayerError>;
 
     async fn update(
         &self,

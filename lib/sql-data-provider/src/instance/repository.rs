@@ -3,7 +3,7 @@ use futures::FutureExt;
 use one_core::model::instance::{
     Instance, InstanceList, InstanceListQuery, InstanceRole, UpdateInstanceRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::instance_repository::InstanceRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, Unchanged,
@@ -28,19 +28,22 @@ impl InstanceRepository for InstanceProvider {
         Ok(model.id)
     }
 
-    async fn get(&self, id: &InstanceId) -> Result<Option<Instance>, DataLayerError> {
+    async fn get(&self, id: &InstanceId) -> Result<Instance, DataLayerError> {
         let model = instance::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
-        let Some(model) = model else { return Ok(None) };
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Instance,
+                id: (*id).into(),
+            })?;
 
-        Ok(Some(instance_from_model(
+        Ok(instance_from_model(
             model,
             &self.organisation_repository,
             &self.key_repository,
             &self.wallet_unit_attestation_repository,
-        )))
+        ))
     }
 
     async fn get_by_role(

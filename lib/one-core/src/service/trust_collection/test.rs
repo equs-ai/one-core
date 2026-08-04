@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use mockall::predicate::eq;
-use shared_types::OrganisationId;
+use shared_types::{OrganisationId, TrustCollectionId};
 use similar_asserts::assert_eq;
 use url::Url;
 use uuid::Uuid;
@@ -191,7 +191,7 @@ async fn test_delete_trust_collection_success() {
             eq(trust_collection_id),
             eq(TrustCollectionRelations::default()),
         )
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     trust_collection_repository
         .expect_delete()
@@ -227,11 +227,16 @@ async fn test_delete_trust_collection_success() {
 async fn test_delete_trust_collection_not_found() {
     // given
     let mut trust_collection_repository = MockTrustCollectionRepository::new();
-    let trust_collection_id = Uuid::new_v4().into();
+    let trust_collection_id: TrustCollectionId = Uuid::new_v4().into();
 
     trust_collection_repository
         .expect_get()
-        .returning(|_, _| Ok(None));
+        .returning(move |_, _| {
+            Err(DataLayerError::EntityNotFound {
+                kind: crate::repository::error::EntityKind::TrustCollection,
+                id: trust_collection_id.into(),
+            })
+        });
 
     let service = mock_service(Mocks {
         trust_collection_repository,
@@ -242,10 +247,7 @@ async fn test_delete_trust_collection_not_found() {
     let result = service.delete_trust_collection(trust_collection_id).await;
 
     // then
-    assert!(matches!(
-        result.unwrap_err(),
-        TrustCollectionServiceError::TrustCollectionNotFound(_)
-    ));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0391);
 }
 
 #[tokio::test]
@@ -263,7 +265,7 @@ async fn test_delete_trust_collection_org_mismatch() {
             eq(trust_collection_id),
             eq(TrustCollectionRelations::default()),
         )
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     let service = mock_service(Mocks {
         trust_collection_repository,
@@ -294,7 +296,7 @@ async fn test_get_trust_collection_success() {
             eq(trust_collection_id),
             eq(TrustCollectionRelations::default()),
         )
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     let service = mock_service(Mocks {
         trust_collection_repository,
@@ -338,7 +340,7 @@ async fn test_get_trust_collection_parent_org_success() {
             eq(trust_collection_id),
             eq(TrustCollectionRelations::default()),
         )
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     let service = mock_service(Mocks {
         organisation_repository,
@@ -465,7 +467,7 @@ async fn test_create_trust_list_subscription_success() {
             eq(trust_collection_id),
             eq(TrustCollectionRelations::default()),
         )
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     let mut trust_list_subscriber = MockTrustListSubscriber::new();
     trust_list_subscriber
@@ -523,7 +525,7 @@ async fn test_create_trust_list_subscription_org_mismatch() {
 
     trust_collection_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     let request = CreateTrustListSubscriptionRequestDTO {
         name: "test subscription".to_string(),
@@ -567,7 +569,7 @@ async fn test_create_trust_list_subscription_validation_fails() {
 
     trust_collection_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(trust_collection.clone())));
+        .returning(move |_, _| Ok(trust_collection.clone()));
 
     let mut trust_list_subscriber = MockTrustListSubscriber::new();
     trust_list_subscriber
@@ -603,11 +605,16 @@ async fn test_create_trust_list_subscription_validation_fails() {
 async fn test_create_trust_list_subscription_not_found() {
     // given
     let mut trust_collection_repository = MockTrustCollectionRepository::new();
-    let trust_collection_id = Uuid::new_v4().into();
+    let trust_collection_id: TrustCollectionId = Uuid::new_v4().into();
 
     trust_collection_repository
         .expect_get()
-        .returning(move |_, _| Ok(None));
+        .returning(move |_, _| {
+            Err(DataLayerError::EntityNotFound {
+                kind: crate::repository::error::EntityKind::TrustCollection,
+                id: trust_collection_id.into(),
+            })
+        });
 
     let request = CreateTrustListSubscriptionRequestDTO {
         name: "test subscription".to_string(),
@@ -627,10 +634,7 @@ async fn test_create_trust_list_subscription_not_found() {
         .await;
 
     // then
-    assert!(matches!(
-        result,
-        Err(TrustCollectionServiceError::TrustCollectionNotFound(_))
-    ));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0391);
 }
 
 #[tokio::test]
@@ -668,7 +672,7 @@ async fn test_delete_trust_list_subscription_success() {
                 trust_collection: Some(Default::default()),
             }),
         )
-        .returning(move |_, _| Ok(Some(trust_list_subscription.clone())));
+        .returning(move |_, _| Ok(trust_list_subscription.clone()));
 
     trust_list_subscription_repository
         .expect_delete()
@@ -695,11 +699,16 @@ async fn test_delete_trust_list_subscription_success() {
 async fn test_delete_trust_list_subscription_not_found() {
     // given
     let mut trust_list_subscription_repository = MockTrustListSubscriptionRepository::new();
-    let trust_list_subscription_id = Uuid::new_v4().into();
+    let trust_list_subscription_id: shared_types::TrustListSubscriptionId = Uuid::new_v4().into();
 
     trust_list_subscription_repository
         .expect_get()
-        .returning(|_, _| Ok(None));
+        .returning(move |_, _| {
+            Err(DataLayerError::EntityNotFound {
+                kind: crate::repository::error::EntityKind::TrustListSubscription,
+                id: trust_list_subscription_id.into(),
+            })
+        });
 
     let service = mock_service(Mocks {
         trust_list_subscription_repository,
@@ -712,12 +721,7 @@ async fn test_delete_trust_list_subscription_not_found() {
         .await;
 
     // then
-    assert!(matches!(
-        result,
-        Err(TrustCollectionServiceError::TrustListSubscriptionNotFound(
-            _
-        ))
-    ));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0402);
 }
 
 #[tokio::test]
@@ -728,10 +732,10 @@ async fn test_get_trust_list_subscription_list_success() {
     let mut trust_collection_repository = MockTrustCollectionRepository::new();
     trust_collection_repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(dummy_trust_collection(org_id))));
+        .returning(move |_, _| Ok(dummy_trust_collection(org_id)));
     let mut trust_list_subscription_repository = MockTrustListSubscriptionRepository::new();
 
-    let trust_collection_id = Uuid::new_v4().into();
+    let trust_collection_id: TrustCollectionId = Uuid::new_v4().into();
     let query = ListQueryDTO {
         page: 0,
         page_size: 30,

@@ -6,6 +6,7 @@ use one_core::model::trust_list_publication::{
     TrustListPublication, TrustListPublicationRelations,
 };
 use one_core::model::trust_list_role::TrustListRoleEnum;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::trust_list_publication_repository::TrustListPublicationRepository;
 use shared_types::{CertificateId, KeyId, TrustListPublicationId, TrustListPublisherId};
 use sql_data_provider::test_utilities::get_dummy_date;
@@ -62,7 +63,8 @@ impl TrustListPublicationDB {
     }
 
     pub async fn get(&self, id: TrustListPublicationId) -> Option<TrustListPublication> {
-        self.repository
+        match self
+            .repository
             .get(
                 id,
                 &TrustListPublicationRelations {
@@ -73,6 +75,10 @@ impl TrustListPublicationDB {
                 },
             )
             .await
-            .unwrap()
+        {
+            Ok(publication) => Some(publication),
+            Err(DataLayerError::EntityNotFound { .. }) => None,
+            Err(err) => panic!("get trust list publication: {err}"),
+        }
     }
 }

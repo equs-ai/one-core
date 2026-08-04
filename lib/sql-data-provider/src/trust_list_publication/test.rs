@@ -105,7 +105,7 @@ async fn test_get_trust_list_publication_missing() {
             &TrustListPublicationRelations::default(),
         )
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -126,7 +126,7 @@ async fn test_get_trust_list_publication_success() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert_eq!(found.id, id);
     assert_eq!(found.name, publication.name);
     assert_eq!(found.role, TrustListRoleEnum::Issuer);
@@ -152,7 +152,10 @@ async fn test_delete_trust_list_publication() {
     let get_result = provider
         .get(id, &TrustListPublicationRelations::default())
         .await;
-    assert!(matches!(get_result, Ok(None)));
+    assert!(matches!(
+        get_result,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 }
 
 #[tokio::test]
@@ -473,7 +476,6 @@ async fn test_update_trust_list_publication_content_and_sequence_number() {
     let found = provider
         .get(id, &TrustListPublicationRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(found.content, new_content);
     assert_eq!(found.sequence_number, 42);
@@ -526,7 +528,7 @@ async fn test_get_trust_list_publication_with_organisation_relation() {
         .await;
 
     assert!(result.is_ok());
-    let found = result.unwrap().unwrap();
+    let found = result.unwrap();
     assert!(found.organisation.is_some());
     assert_eq!(found.organisation.unwrap().id, org_id);
 }
@@ -569,7 +571,6 @@ async fn test_update_trust_list_publication_noop() {
     let found = provider
         .get(id, &TrustListPublicationRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert_eq!(found.name, publication.name);
     assert_eq!(found.role, TrustListRoleEnum::Issuer);

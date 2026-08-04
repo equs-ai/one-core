@@ -90,7 +90,7 @@ impl CertificatesDB {
     }
 
     pub async fn get(&self, certificate_id: CertificateId) -> Certificate {
-        self.repository.get(certificate_id).await.unwrap().unwrap()
+        self.repository.get(certificate_id).await.unwrap()
     }
 
     pub async fn update(&self, certificate_id: &CertificateId, request: UpdateCertificateRequest) {

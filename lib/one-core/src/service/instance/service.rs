@@ -263,8 +263,7 @@ impl InstanceService {
             .holder_wallet_instance_repository
             .get(&id)
             .await
-            .error_while("getting holder wallet instance")?
-            .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?;
+            .error_while("getting holder wallet instance")?;
 
         let organisation_id = holder_wallet_instance.organisation.id();
         throw_if_org_id_not_matching_session(&organisation_id, &*self.session_provider)
@@ -487,8 +486,7 @@ impl InstanceService {
             self.holder_wallet_instance_repository
                 .get(&id)
                 .await
-                .error_while("getting holder wallet unit")?
-                .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?,
+                .error_while("getting holder wallet unit")?,
         )
         .await
         .error_while("converting model")?)
@@ -524,8 +522,7 @@ impl InstanceService {
             .holder_wallet_instance_repository
             .get(&id)
             .await
-            .error_while("getting holder wallet unit")?
-            .ok_or(HolderInstanceError::HolderWalletUnitNotFound(id))?;
+            .error_while("getting holder wallet unit")?;
 
         if holder_wallet_unit.status != InstanceStatus::Active {
             return Ok(());

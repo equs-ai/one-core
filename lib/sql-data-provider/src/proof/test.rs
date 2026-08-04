@@ -518,7 +518,7 @@ async fn test_get_proof_with_relations() {
         .expect_get_interaction()
         .times(1)
         .returning(|id, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
@@ -528,7 +528,7 @@ async fn test_get_proof_with_relations() {
                 nonce_id: None,
                 interaction_type: InteractionType::Verification,
                 expires_at: None,
-            }))
+            })
         });
 
     let mut identifier_repository = MockIdentifierRepository::default();
@@ -812,7 +812,7 @@ async fn test_get_proof_by_interaction_id_success() {
         .expect_get_interaction()
         .times(1)
         .returning(|id, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
@@ -822,7 +822,7 @@ async fn test_get_proof_by_interaction_id_success() {
                 nonce_id: None,
                 interaction_type: InteractionType::Verification,
                 expires_at: None,
-            }))
+            })
         });
 
     let mut key_repository = MockKeyRepository::default();

@@ -134,7 +134,6 @@ async fn test_get_context_success() {
         .provider
         .get_by_id(&setup.id, &RemoteEntityCacheRelations::default())
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(setup.context, result.value);
@@ -151,10 +150,12 @@ async fn test_get_context_failed_wrong_id() {
             &Uuid::new_v4().into(),
             &RemoteEntityCacheRelations::default(),
         )
-        .await
-        .unwrap();
+        .await;
 
-    assert!(result.is_none());
+    assert!(matches!(
+        result,
+        Err(one_core::repository::error::DataLayerError::EntityNotFound { .. })
+    ));
 }
 
 #[tokio::test]

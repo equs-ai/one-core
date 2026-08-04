@@ -372,11 +372,7 @@ impl ProofProvider {
             let interaction = self
                 .interaction_repository
                 .get_interaction(&interaction_id, None)
-                .await?
-                .ok_or(DataLayerError::MissingRequiredRelation {
-                    relation: "proof-interaction",
-                    id: interaction_id.to_string(),
-                })?;
+                .await?;
 
             proof.interaction = Some(interaction);
         }
@@ -401,11 +397,7 @@ impl ProofProvider {
             let verifier_certificate = self
                 .certificate_repository
                 .get(verifier_certificate_id)
-                .await?
-                .ok_or(DataLayerError::MissingRequiredRelation {
-                    relation: "proof-verifierCertificate",
-                    id: verifier_certificate_id.to_string(),
-                })?;
+                .await?;
 
             proof.verifier_certificate = Some(verifier_certificate);
         }

@@ -3,7 +3,7 @@ use one_core::model::trust_entry::{
     GetTrustEntryList, TrustEntry, TrustEntryListQuery, TrustEntryRelations,
     UpdateTrustEntryRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::trust_entry_repository::TrustEntryRepository;
 use sea_orm::ActiveValue::{Set, Unchanged};
 use sea_orm::{
@@ -33,15 +33,15 @@ impl TrustEntryRepository for TrustEntryProvider {
         &self,
         id: TrustEntryId,
         relations: &TrustEntryRelations,
-    ) -> Result<Option<TrustEntry>, DataLayerError> {
+    ) -> Result<TrustEntry, DataLayerError> {
         let entity_model = trust_entry::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
-
-        let Some(entity_model) = entity_model else {
-            return Ok(None);
-        };
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::TrustEntry,
+                id: id.into(),
+            })?;
 
         let trust_list_publication_id = entity_model.trust_list_publication_id;
         let identifier_id = entity_model.identifier_id;
@@ -52,11 +52,7 @@ impl TrustEntryRepository for TrustEntryProvider {
             result.trust_list_publication = Some(
                 self.trust_list_publication_repository
                     .get(trust_list_publication_id, publication_relations)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "trust_entry-trust_list_publication",
-                        id: trust_list_publication_id.to_string(),
-                    })?,
+                    .await?,
             );
         }
 
@@ -69,7 +65,7 @@ impl TrustEntryRepository for TrustEntryProvider {
             )?);
         }
 
-        Ok(Some(result))
+        Ok(result)
     }
 
     async fn list(

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use one_core::model::remote_entity_cache::{RemoteEntityCacheEntry, RemoteEntityCacheRelations};
+use one_core::repository::error::DataLayerError;
 use one_core::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 use shared_types::RemoteEntityCacheEntryId;
 
@@ -18,10 +19,15 @@ impl RemoteEntityCacheDB {
     }
 
     pub async fn get(&self, id: &RemoteEntityCacheEntryId) -> Option<RemoteEntityCacheEntry> {
-        self.repository
+        match self
+            .repository
             .get_by_id(id, &RemoteEntityCacheRelations::default())
             .await
-            .expect("get entry")
+        {
+            Ok(entry) => Some(entry),
+            Err(DataLayerError::EntityNotFound { .. }) => None,
+            Err(err) => panic!("get entry: {err}"),
+        }
     }
 
     pub async fn get_by_key(&self, key: &str) -> Option<RemoteEntityCacheEntry> {

@@ -378,7 +378,7 @@ async fn holder_instance_status_check_still_valid() {
         .expect_get()
         .once()
         .return_once(move |_| {
-            Ok(Some(crate::model::instance::Instance {
+            Ok(crate::model::instance::Instance {
                 id: wallet_unit_id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -393,7 +393,7 @@ async fn holder_instance_status_check_still_valid() {
                 wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
-            }))
+            })
         });
 
     let mut wallet_unit_proto = MockHolderWalletUnitProto::new();
@@ -428,7 +428,7 @@ async fn holder_instance_status_check_revocation() {
         .expect_get()
         .once()
         .return_once(move |_| {
-            Ok(Some(Instance {
+            Ok(Instance {
                 id: wallet_unit_id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -448,7 +448,7 @@ async fn holder_instance_status_check_revocation() {
                 wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
-            }))
+            })
         });
 
     let mut wallet_unit_proto = MockHolderWalletUnitProto::new();
@@ -498,7 +498,12 @@ async fn holder_instance_status_check_not_found() {
     holder_wallet_unit_repository
         .expect_get()
         .once()
-        .return_once(|_| Ok(None));
+        .return_once(move |_| {
+            Err(crate::repository::error::DataLayerError::EntityNotFound {
+                kind: crate::repository::error::EntityKind::Instance,
+                id: wallet_unit_id.into(),
+            })
+        });
 
     let service = InstanceService {
         holder_wallet_instance_repository: Arc::new(holder_wallet_unit_repository),
@@ -522,7 +527,7 @@ async fn holder_instance_status_check_already_revoked() {
         .expect_get()
         .once()
         .return_once(move |_| {
-            Ok(Some(crate::model::instance::Instance {
+            Ok(crate::model::instance::Instance {
                 id: wallet_unit_id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -537,7 +542,7 @@ async fn holder_instance_status_check_already_revoked() {
                 wallet_unit_attestations: Default::default(),
                 nonce: None,
                 user_nonce: None,
-            }))
+            })
         });
 
     // wallet_unit_proto should NOT be called since wallet unit is already revoked

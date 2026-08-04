@@ -3,6 +3,7 @@ use std::sync::Arc;
 use one_core::model::identifier::Identifier;
 use one_core::model::trust_entry::{TrustEntry, TrustEntryRelations, TrustEntryStateEnum};
 use one_core::model::trust_list_publication::TrustListPublication;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::trust_entry_repository::TrustEntryRepository;
 use shared_types::TrustEntryId;
 use sql_data_provider::test_utilities::get_dummy_date;
@@ -42,7 +43,8 @@ impl TrustEntryDB {
     }
 
     pub async fn get(&self, id: TrustEntryId) -> Option<TrustEntry> {
-        self.repository
+        match self
+            .repository
             .get(
                 id,
                 &TrustEntryRelations {
@@ -51,6 +53,10 @@ impl TrustEntryDB {
                 },
             )
             .await
-            .unwrap()
+        {
+            Ok(entry) => Some(entry),
+            Err(DataLayerError::EntityNotFound { .. }) => None,
+            Err(err) => panic!("get trust entry: {err}"),
+        }
     }
 }

@@ -88,8 +88,7 @@ impl ManagedInstanceService {
             .wallet_instance_repository
             .get(id)
             .await
-            .error_while("getting wallet unit")?
-            .ok_or(ManagedInstanceError::MissingWalletUnit(*id))?;
+            .error_while("getting wallet unit")?;
         throw_if_org_id_not_matching_session(result.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -470,8 +469,7 @@ impl ManagedInstanceService {
             .wallet_instance_repository
             .get(&wallet_unit_id)
             .await
-            .error_while("getting wallet unit")?
-            .ok_or(ManagedInstanceError::MissingWalletUnit(wallet_unit_id))?;
+            .error_while("getting wallet unit")?;
 
         match wallet_unit.status {
             InstanceStatus::Pending => {} // OK
@@ -829,8 +827,7 @@ impl ManagedInstanceService {
             .wallet_instance_repository
             .get(&wallet_unit_id)
             .await
-            .error_while("getting wallet unit")?
-            .ok_or(ManagedInstanceError::MissingWalletUnit(wallet_unit_id))?;
+            .error_while("getting wallet unit")?;
 
         if wallet_unit.status != InstanceStatus::Active {
             return Err(ManagedInstanceError::WalletUnitRevoked
@@ -1342,8 +1339,7 @@ impl ManagedInstanceService {
             .wallet_instance_repository
             .get(id)
             .await
-            .error_while("getting wallet unit")?
-            .ok_or(ManagedInstanceError::MissingWalletUnit(*id))?;
+            .error_while("getting wallet unit")?;
 
         if wallet_unit.status != InstanceStatus::Active {
             return Err(ManagedInstanceError::WalletUnitMustBeActive
@@ -1456,8 +1452,7 @@ impl ManagedInstanceService {
             .wallet_instance_repository
             .get(id)
             .await
-            .error_while("getting wallet unit")?
-            .ok_or(ManagedInstanceError::MissingWalletUnit(*id))?;
+            .error_while("getting wallet unit")?;
 
         if wallet_unit.status != InstanceStatus::Pending {
             return Err(ManagedInstanceError::WalletUnitMustBePending

@@ -1,4 +1,4 @@
-use shared_types::{IdentifierId, ManagedInstanceId, TrustCollectionId};
+use shared_types::{IdentifierId, TrustCollectionId};
 use thiserror::Error;
 
 use crate::config::ConfigValidationError;
@@ -8,8 +8,6 @@ use crate::model::instance::InstanceRole;
 
 #[derive(Debug, Error)]
 pub enum ManagedInstanceError {
-    #[error("Wallet unit `{0}` not found")]
-    MissingWalletUnit(ManagedInstanceId),
     #[error("Wallet provider not enabled in config: `{0}`")]
     WalletProviderDisabled(ConfigValidationError),
     #[error("Missing proof")]
@@ -86,7 +84,6 @@ pub enum ManagedInstanceError {
 impl ErrorCodeMixin for ManagedInstanceError {
     fn error_code(&self) -> ErrorCode {
         match self {
-            Self::MissingWalletUnit(_) => ErrorCode::BR_0259,
             Self::WalletProviderDisabled(_) => ErrorCode::BR_0260,
             Self::CouldNotVerifyProof(_) => ErrorCode::BR_0071,
             Self::IssuerKeyWithAlgorithmNotFound(_) => ErrorCode::BR_0222,

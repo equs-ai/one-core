@@ -325,10 +325,8 @@ impl TrustCollectionService {
         self.trust_collection_repository
             .get(trust_collection_id, &TrustCollectionRelations::default())
             .await
-            .error_while("getting trust collection")?
-            .ok_or(TrustCollectionServiceError::TrustCollectionNotFound(
-                *trust_collection_id,
-            ))
+            .error_while("getting trust collection")
+            .map_err(Into::into)
     }
 
     async fn fetch_trust_list_subscription(
@@ -343,10 +341,8 @@ impl TrustCollectionService {
                 },
             )
             .await
-            .error_while("getting trust list subscription")?
-            .ok_or(TrustCollectionServiceError::TrustListSubscriptionNotFound(
-                *trust_list_subscription_id,
-            ))
+            .error_while("getting trust list subscription")
+            .map_err(Into::into)
     }
 }
 

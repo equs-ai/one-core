@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::{CertificateId, IdentifierId, OrganisationId};
 use uuid::Uuid;
 
@@ -83,7 +82,7 @@ impl CertificateHistoryDecorator {
 
 #[async_trait::async_trait]
 impl CertificateRepository for CertificateHistoryDecorator {
-    async fn get(&self, id: CertificateId) -> Result<Option<Certificate>, DataLayerError> {
+    async fn get(&self, id: CertificateId) -> Result<Certificate, DataLayerError> {
         self.inner.get(id).await
     }
 
@@ -123,11 +122,7 @@ impl CertificateRepository for CertificateHistoryDecorator {
             CertificateState::Expired => HistoryAction::Expired,
         };
 
-        let certificate = self
-            .inner
-            .get(*id)
-            .await?
-            .context("certificate is missing")?;
+        let certificate = self.inner.get(*id).await?;
 
         self.create_history(
             *id,

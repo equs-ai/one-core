@@ -50,11 +50,7 @@ impl CredentialProvider {
                 Some(interaction_id) => Some(
                     self.interaction_repository
                         .get_interaction(interaction_id, None)
-                        .await?
-                        .ok_or(DataLayerError::MissingRequiredRelation {
-                            relation: "credential-interaction",
-                            id: interaction_id.to_string(),
-                        })?,
+                        .await?,
                 ),
             }
         } else {

@@ -5,10 +5,22 @@ use super::CertificateService;
 use super::dto::CertificateResponseDTO;
 use super::error::CertificateServiceError;
 use super::mapper::certificate_to_response_dto;
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::identifier::IdentifierType;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::validator::throw_if_org_id_not_matching_session;
+
+/// Certificates are soft-deleted, so a "found but deleted" row must be reported the same way as
+/// a genuinely missing one (same `EntityNotFound`/BR_0223 shape the repository itself uses).
+fn certificate_not_found(id: CertificateId) -> CertificateServiceError {
+    DataLayerError::EntityNotFound {
+        kind: EntityKind::Certificate,
+        id: id.into(),
+    }
+    .error_while("getting certificate")
+    .into()
+}
 
 impl CertificateService {
     pub async fn get_certificate(
@@ -19,9 +31,11 @@ impl CertificateService {
             .certificate_repository
             .get(id)
             .await
-            .error_while("getting certificate")?
-            .filter(|c| c.deleted_at.is_none())
-            .ok_or(CertificateServiceError::NotFound(id))?;
+            .error_while("getting certificate")?;
+
+        if certificate.deleted_at.is_some() {
+            return Err(certificate_not_found(id));
+        }
 
         throw_if_org_id_not_matching_session(
             certificate.organisation.id_ref(),
@@ -40,9 +54,11 @@ impl CertificateService {
             .certificate_repository
             .get(id)
             .await
-            .error_while("getting certificate")?
-            .filter(|c| c.deleted_at.is_none())
-            .ok_or(CertificateServiceError::NotFound(id))?;
+            .error_while("getting certificate")?;
+
+        if certificate.deleted_at.is_some() {
+            return Err(certificate_not_found(id));
+        }
 
         let identifier = self
             .identifier_repository
@@ -56,7 +72,7 @@ impl CertificateService {
 
         if identifier.data.r#type() != IdentifierType::CertificateAuthority {
             tracing::info!("Invalid identifier type: {}", identifier.data.r#type());
-            return Err(CertificateServiceError::NotFound(id));
+            return Err(certificate_not_found(id));
         }
 
         let x5c = pem_chain_into_x5c(&certificate.chain).error_while("parsing PEM chain")?;
@@ -77,9 +93,11 @@ impl CertificateService {
             .certificate_repository
             .get(id)
             .await
-            .error_while("getting certificate")?
-            .filter(|c| c.deleted_at.is_none())
-            .ok_or(CertificateServiceError::NotFound(id))?;
+            .error_while("getting certificate")?;
+
+        if certificate.deleted_at.is_some() {
+            return Err(certificate_not_found(id));
+        }
 
         let identifier = self
             .identifier_repository
@@ -93,7 +111,7 @@ impl CertificateService {
 
         if identifier.data.r#type() != IdentifierType::Certificate {
             tracing::info!("Invalid identifier type: {}", identifier.data.r#type());
-            return Err(CertificateServiceError::NotFound(id));
+            return Err(certificate_not_found(id));
         }
         Ok(certificate.chain)
     }

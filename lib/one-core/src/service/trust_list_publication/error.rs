@@ -25,10 +25,6 @@ pub enum TrustListPublicationServiceError {
     UnknownKeyAlgorithm(String),
     #[error("Unsupported key type `{0}`: expected one of `{1:?}`")]
     InvalidKeyType(KeyAlgorithmType, Vec<KeyAlgorithmType>),
-    #[error("Trust list publication `{0}` not found")]
-    TrustListPublicationNotFound(TrustListPublicationId),
-    #[error("Trust entry `{0}` not found")]
-    TrustEntryNotFound(TrustEntryId),
     #[error("Content deserialization error: `{0}`")]
     ContentDeserialization(#[from] serde_json::Error),
     #[error("Identifier has to belong the same organisation as trust list")]
@@ -46,14 +42,12 @@ impl ErrorCodeMixin for TrustListPublicationServiceError {
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::MissingTrustListPublisher(_) => ErrorCode::BR_0388,
             Self::IdentifierNotFound(_) => ErrorCode::BR_0207,
-            Self::TrustEntryNotFound(_) => ErrorCode::BR_0387,
             Self::ContentDeserialization(_) => ErrorCode::BR_0189,
             Self::InvalidIdentifierType(_, _) => ErrorCode::BR_0382,
             Self::InvalidSelectedKey => ErrorCode::BR_0330,
             Self::InvalidTrustListRole(_, _) => ErrorCode::BR_0386,
             Self::UnknownKeyAlgorithm(_) => ErrorCode::BR_0043,
             Self::InvalidKeyType(_, _) => ErrorCode::BR_0389,
-            Self::TrustListPublicationNotFound(_) => ErrorCode::BR_0383,
             Self::OrganisationIdMismatch => ErrorCode::BR_0285,
             Self::TrustEntryNotInList(_, _) => ErrorCode::BR_0390,
             Self::UnsupportedAcceptType(_) => ErrorCode::BR_0425,

@@ -29,7 +29,7 @@ pub trait ManagedInstanceAttestedKeyRepository: Send + Sync {
     async fn get_attested_key(
         &self,
         id: &ManagedInstanceAttestedKeyId,
-    ) -> Result<Option<ManagedInstanceAttestedKey>, DataLayerError>;
+    ) -> Result<ManagedInstanceAttestedKey, DataLayerError>;
 
     async fn get_by_instance_id(
         &self,
@@ -45,12 +45,7 @@ impl AsyncModelLoader<ManagedInstanceAttestedKey>
         &self,
         id: &ManagedInstanceAttestedKeyId,
     ) -> Result<ManagedInstanceAttestedKey, DataLayerError> {
-        self.get_attested_key(id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "managed-instance-attested-key",
-                id: id.to_string(),
-            })
+        self.get_attested_key(id).await
     }
 }
 

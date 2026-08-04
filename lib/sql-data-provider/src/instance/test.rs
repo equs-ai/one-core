@@ -57,7 +57,7 @@ async fn get_holder_wallet_instance_success() {
         .await
         .unwrap();
 
-    let result = provider.get(&id).await.unwrap().unwrap();
+    let result = provider.get(&id).await.unwrap();
 
     assert_eq!(result.id, id);
     assert_eq!(result.organisation.id(), organisation.id);
@@ -98,7 +98,7 @@ async fn update_holder_wallet_instance_success() {
 
     provider.update(&id, update_request).await.unwrap();
 
-    let reloaded = provider.get(&id).await.unwrap().unwrap();
+    let reloaded = provider.get(&id).await.unwrap();
     assert_eq!(
         reloaded
             .wallet_unit_attestations

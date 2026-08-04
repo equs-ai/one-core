@@ -1043,7 +1043,7 @@ async fn test_update_credential_success() {
         .expect_get_interaction()
         .once()
         .returning(|id, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
@@ -1053,7 +1053,7 @@ async fn test_update_credential_success() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let provider = credential_repository(
@@ -1161,7 +1161,7 @@ async fn test_update_credential_success_no_claims() {
         .expect_get_interaction()
         .once()
         .returning(|id, _| {
-            Ok(Some(Interaction {
+            Ok(Interaction {
                 ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
@@ -1171,7 +1171,7 @@ async fn test_update_credential_success_no_claims() {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
-            }))
+            })
         });
 
     let provider = credential_repository(

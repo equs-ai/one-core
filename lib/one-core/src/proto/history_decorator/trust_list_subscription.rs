@@ -52,7 +52,7 @@ impl TrustListSubscriptionRepository for TrustListSubscriptionHistoryDecorator {
 
         self.inner.update_state(id, state).await?;
 
-        let existing_subscription = existing_subscription?.ok_or(DataLayerError::MappingError)?;
+        let existing_subscription = existing_subscription?;
         self.write_history(
             id,
             existing_subscription.name.to_owned(),
@@ -71,7 +71,7 @@ impl TrustListSubscriptionRepository for TrustListSubscriptionHistoryDecorator {
         &self,
         id: &TrustListSubscriptionId,
         relations: &TrustListSubscriptionRelations,
-    ) -> Result<Option<TrustListSubscription>, DataLayerError> {
+    ) -> Result<TrustListSubscription, DataLayerError> {
         self.inner.get(id, relations).await
     }
 
@@ -86,7 +86,7 @@ impl TrustListSubscriptionRepository for TrustListSubscriptionHistoryDecorator {
         let existing_subscription = self.fetch_existing_trust_list_subscription(&id).await;
         self.inner.delete(id).await?;
 
-        let existing_subscription = existing_subscription?.ok_or(DataLayerError::MappingError)?;
+        let existing_subscription = existing_subscription?;
         self.write_history(
             id,
             existing_subscription.name,
@@ -125,7 +125,7 @@ impl TrustListSubscriptionRepository for TrustListSubscriptionHistoryDecorator {
 
         self.inner.delete_many(ids).await?;
 
-        let first_subscription = first_subscription?.ok_or(DataLayerError::MappingError)?;
+        let first_subscription = first_subscription?;
         let existing_subscriptions = existing_subscriptions?.values;
         for existing_subscription in existing_subscriptions {
             self.write_history(
@@ -178,7 +178,7 @@ impl TrustListSubscriptionHistoryDecorator {
     async fn fetch_existing_trust_list_subscription(
         &self,
         id: &TrustListSubscriptionId,
-    ) -> Result<Option<TrustListSubscription>, DataLayerError> {
+    ) -> Result<TrustListSubscription, DataLayerError> {
         self.get(
             id,
             &TrustListSubscriptionRelations {

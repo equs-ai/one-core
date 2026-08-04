@@ -2,13 +2,48 @@ use std::convert::Infallible;
 
 use shared_types::ProofId;
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntityKind {
+    Certificate,
+    Credential,
+    CredentialByClaim,
+    CredentialSchema,
+    CredentialSchemaFormat,
+    Did,
+    DidByValue,
+    History,
+    Identifier,
+    IdentifierByDidId,
+    Instance,
+    Interaction,
+    Key,
+    ManagedInstance,
+    ManagedInstanceAttestedKey,
+    Notification,
+    Organisation,
+    Proof,
+    ProofByInteraction,
+    ProofSchema,
+    RemoteEntityCache,
+    RevocationList,
+    RevocationListEntry,
+    TrustCollection,
+    TrustEntry,
+    TrustListPublication,
+    TrustListSubscription,
+}
 
 #[derive(Debug, Error)]
 pub enum DataLayerError {
     #[error("Already exists")]
     AlreadyExists,
+
+    #[error("{kind:?} `{id}` not found")]
+    EntityNotFound { kind: EntityKind, id: Uuid },
 
     #[error("Wrong parameters")]
     IncorrectParameters,
@@ -58,7 +93,35 @@ impl ErrorCodeMixin for DataLayerError {
             | Self::MissingProofState { .. }
             | Self::MissingRequiredRelation { .. }
             | Self::TransactionError(_) => ErrorCode::BR_0000,
+            Self::EntityNotFound { kind, .. } => kind.error_code(),
             Self::Nested(nested) => nested.error_code(),
+        }
+    }
+}
+
+impl EntityKind {
+    pub fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::Certificate => ErrorCode::BR_0223,
+            Self::Credential | Self::CredentialByClaim => ErrorCode::BR_0001,
+            Self::CredentialSchema | Self::CredentialSchemaFormat => ErrorCode::BR_0006,
+            Self::Did | Self::DidByValue => ErrorCode::BR_0024,
+            Self::History => ErrorCode::BR_0100,
+            Self::Identifier | Self::IdentifierByDidId => ErrorCode::BR_0207,
+            Self::Instance => ErrorCode::BR_0296,
+            Self::Interaction => ErrorCode::BR_0257,
+            Self::Key => ErrorCode::BR_0037,
+            Self::ManagedInstance | Self::ManagedInstanceAttestedKey => ErrorCode::BR_0259,
+            Self::Notification => ErrorCode::BR_0377,
+            Self::Organisation => ErrorCode::BR_0022,
+            Self::Proof | Self::ProofByInteraction => ErrorCode::BR_0012,
+            Self::ProofSchema => ErrorCode::BR_0014,
+            Self::RevocationList | Self::RevocationListEntry => ErrorCode::BR_0034,
+            Self::TrustCollection => ErrorCode::BR_0391,
+            Self::TrustEntry => ErrorCode::BR_0387,
+            Self::TrustListPublication => ErrorCode::BR_0383,
+            Self::TrustListSubscription => ErrorCode::BR_0402,
+            Self::RemoteEntityCache => ErrorCode::BR_0354,
         }
     }
 }

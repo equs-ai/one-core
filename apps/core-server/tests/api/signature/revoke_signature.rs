@@ -78,7 +78,7 @@ async fn test_revoke_fail_on_missing_entry() {
         )
         .await;
     // FIXME: Missing error -> BR_XXXX mapping
-    assert_eq!(resp.status(), 500);
+    assert_eq!(resp.status(), 404);
 }
 
 #[tokio::test]

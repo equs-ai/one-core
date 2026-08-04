@@ -3,7 +3,7 @@ use one_core::model::trust_list_subscription::{
     GetTrustListSubscriptionList, TrustListSubscription, TrustListSubscriptionListQuery,
     TrustListSubscriptionRelations, TrustListSubscriptionState,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, Unchanged,
@@ -50,16 +50,16 @@ impl TrustListSubscriptionRepository for TrustListSubscriptionProvider {
         &self,
         id: &TrustListSubscriptionId,
         relations: &TrustListSubscriptionRelations,
-    ) -> Result<Option<TrustListSubscription>, DataLayerError> {
+    ) -> Result<TrustListSubscription, DataLayerError> {
         let subscription = trust_list_subscription::Entity::find_by_id(*id)
             .filter(trust_list_subscription::Column::DeactivatedAt.is_null())
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
-
-        let Some(subscription) = subscription else {
-            return Ok(None);
-        };
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::TrustListSubscription,
+                id: (*id).into(),
+            })?;
 
         let trust_collection_id = subscription.trust_collection_id;
         let mut result = TrustListSubscription::from(subscription);
@@ -68,14 +68,10 @@ impl TrustListSubscriptionRepository for TrustListSubscriptionProvider {
             result.trust_collection = Some(
                 self.trust_collection_repository
                     .get(&trust_collection_id, trust_collection_relations)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "trust_list_subscription-trust_collection",
-                        id: trust_collection_id.to_string(),
-                    })?,
+                    .await?,
             );
         }
-        Ok(Some(result))
+        Ok(result)
     }
 
     async fn list(

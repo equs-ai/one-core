@@ -163,7 +163,7 @@ async fn test_revoke_signature() {
         .expect_get_revocation_list_by_entry_id()
         .with(eq(signature_id))
         .return_once(move |_| {
-            Ok(Some(RevocationList {
+            Ok(RevocationList {
                 id: list_id,
                 created_date: crate::clock::now_utc(),
                 last_modified: crate::clock::now_utc(),
@@ -173,7 +173,7 @@ async fn test_revoke_signature() {
                 purpose: RevocationListPurpose::Revocation,
                 issuer_identifier: dummy_identifier().into(),
                 issuer_certificate: Some(certificate.into()),
-            }))
+            })
         });
 
     let serial = CertificateSerial::new_random();
@@ -281,7 +281,7 @@ async fn test_get_updated_list_no_update() {
         .return_once({
             let formatted_list = formatted_list.clone();
             move |_| {
-                Ok(Some(RevocationList {
+                Ok(RevocationList {
                     id: list_id,
                     created_date: crate::clock::now_utc(),
                     last_modified: crate::clock::now_utc(),
@@ -291,7 +291,7 @@ async fn test_get_updated_list_no_update() {
                     purpose: RevocationListPurpose::Revocation,
                     issuer_identifier: dummy_identifier().into(),
                     issuer_certificate: Some(certificate.into()),
-                }))
+                })
             }
         });
 
@@ -326,7 +326,7 @@ async fn test_get_updated_list_with_update() {
             let formatted_list = old_list.clone();
             move |_| {
                 let one_hour_ago = crate::clock::now_utc() - Duration::hours(1);
-                Ok(Some(RevocationList {
+                Ok(RevocationList {
                     id: list_id,
                     created_date: one_hour_ago,
                     last_modified: one_hour_ago,
@@ -336,7 +336,7 @@ async fn test_get_updated_list_with_update() {
                     purpose: RevocationListPurpose::Revocation,
                     issuer_identifier: dummy_identifier().into(),
                     issuer_certificate: Some(certificate.into()),
-                }))
+                })
             }
         });
 

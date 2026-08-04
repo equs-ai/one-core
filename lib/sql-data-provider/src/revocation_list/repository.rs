@@ -5,7 +5,7 @@ use one_core::model::revocation_list::{
     RevocationList, RevocationListEntityId, RevocationListEntityInfo, RevocationListEntry,
     RevocationListPurpose, UpdateRevocationListEntryId, UpdateRevocationListEntryRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::revocation_list_repository::RevocationListRepository;
 use sea_orm::sea_query::IntoCondition;
 use sea_orm::{
@@ -76,27 +76,32 @@ impl RevocationListRepository for RevocationListProvider {
     async fn get_revocation_list(
         &self,
         id: &RevocationListId,
-    ) -> Result<Option<RevocationList>, DataLayerError> {
+    ) -> Result<RevocationList, DataLayerError> {
         let revocation_list = revocation_list::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::RevocationList,
+                id: (*id).into(),
+            })?;
 
-        Ok(revocation_list.map(|list| self.entity_model_to_repository_model(list)))
+        Ok(self.entity_model_to_repository_model(revocation_list))
     }
 
     async fn get_revocation_list_by_entry_id(
         &self,
         entry_id: RevocationListEntryId,
-    ) -> Result<Option<RevocationList>, DataLayerError> {
-        match revocation_list_entry::Entity::find_by_id(entry_id)
+    ) -> Result<RevocationList, DataLayerError> {
+        let entry = revocation_list_entry::Entity::find_by_id(entry_id)
             .one(&self.db)
             .await
-        {
-            Ok(Some(entry)) => self.get_revocation_list(&entry.revocation_list_id).await,
-            Ok(None) => Ok(None),
-            Err(e) => Err(to_data_layer_error(e)),
-        }
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::RevocationList,
+                id: entry_id.into(),
+            })?;
+        self.get_revocation_list(&entry.revocation_list_id).await
     }
 
     async fn get_revocation_by_issuer_identifier_id(
@@ -312,7 +317,7 @@ impl RevocationListRepository for RevocationListProvider {
     async fn get_entry_by_id(
         &self,
         entry_id: RevocationListEntryId,
-    ) -> Result<Option<RevocationListEntry>, DataLayerError> {
+    ) -> Result<RevocationListEntry, DataLayerError> {
         let mut entries = self
             .get_filtered_entries(
                 revocation_list_entry::Column::Id
@@ -320,7 +325,10 @@ impl RevocationListRepository for RevocationListProvider {
                     .into_condition(),
             )
             .await?;
-        Ok(entries.pop())
+        entries.pop().ok_or_else(|| DataLayerError::EntityNotFound {
+            kind: EntityKind::RevocationListEntry,
+            id: entry_id.into(),
+        })
     }
 
     async fn get_entries(

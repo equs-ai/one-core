@@ -43,8 +43,7 @@ impl HistoryService {
             .history_repository
             .get_history_entry(history_id)
             .await
-            .error_while("getting history")?
-            .ok_or(HistoryServiceError::NotFound(history_id))?;
+            .error_while("getting history")?;
         Ok(history.into())
     }
 

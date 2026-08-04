@@ -354,10 +354,7 @@ impl HolderWalletUnitProto for HolderWalletUnitProtoImpl {
             .holder_wallet_instance_repository
             .get(holder_wallet_unit_id)
             .await
-            .error_while("getting holder wallet unit")?
-            .ok_or(Error::MappingError(
-                "holder wallet unit not found".to_string(),
-            ))?;
+            .error_while("getting holder wallet unit")?;
 
         let authentication_key =
             holder_wallet_instance

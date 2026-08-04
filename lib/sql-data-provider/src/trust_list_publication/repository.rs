@@ -4,7 +4,7 @@ use one_core::model::trust_list_publication::{
     GetTrustListPublicationList, TrustListPublication, TrustListPublicationListQuery,
     TrustListPublicationRelations, UpdateTrustListPublicationRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::trust_list_publication_repository::TrustListPublicationRepository;
 use sea_orm::ActiveValue::{Set, Unchanged};
 use sea_orm::prelude::Expr;
@@ -34,16 +34,16 @@ impl TrustListPublicationRepository for TrustListPublicationProvider {
         &self,
         id: TrustListPublicationId,
         relations: &TrustListPublicationRelations,
-    ) -> Result<Option<TrustListPublication>, DataLayerError> {
+    ) -> Result<TrustListPublication, DataLayerError> {
         let entity_model = trust_list_publication::Entity::find_by_id(id)
             .filter(trust_list_publication::Column::DeletedAt.is_null())
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
-
-        let Some(entity_model) = entity_model else {
-            return Ok(None);
-        };
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::TrustListPublication,
+                id: id.into(),
+            })?;
 
         let organisation_id = entity_model.organisation_id;
         let identifier_id = entity_model.identifier_id;
@@ -87,18 +87,10 @@ impl TrustListPublicationRepository for TrustListPublicationProvider {
         if let Some(certificate_id) = certificate_id
             && let Some(_certificate_relations) = &relations.certificate
         {
-            result.certificate = Some(
-                self.certificate_repository
-                    .get(certificate_id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "trust_list_publication-certificate",
-                        id: certificate_id.to_string(),
-                    })?,
-            );
+            result.certificate = Some(self.certificate_repository.get(certificate_id).await?);
         }
 
-        Ok(Some(result))
+        Ok(result)
     }
 
     async fn list(

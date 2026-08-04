@@ -14,7 +14,10 @@ use crate::repository::error::DataLayerError;
 pub trait CertificateRepository: Send + Sync {
     async fn create(&self, request: Certificate) -> Result<CertificateId, DataLayerError>;
 
-    async fn get(&self, id: CertificateId) -> Result<Option<Certificate>, DataLayerError>;
+    /// Returns the certificate by id, including soft-deleted ones — callers that must treat
+    /// soft-deleted certificates as not-found (e.g. public-facing lookups) need to check
+    /// `deleted_at` explicitly.
+    async fn get(&self, id: CertificateId) -> Result<Certificate, DataLayerError>;
 
     async fn update(
         &self,
@@ -33,11 +36,6 @@ pub trait CertificateRepository: Send + Sync {
 #[async_trait]
 impl AsyncModelLoader<Certificate> for Arc<dyn CertificateRepository> {
     async fn load(&self, id: &CertificateId) -> Result<Certificate, DataLayerError> {
-        self.get(*id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "certificate",
-                id: id.to_string(),
-            })
+        self.get(*id).await
     }
 }

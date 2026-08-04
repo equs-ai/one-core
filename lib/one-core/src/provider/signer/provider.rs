@@ -19,7 +19,7 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::provider_directory::{InitializationError, ProviderDirectory};
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::revocation_list_repository::RevocationListRepository;
-use crate::service::error::{EntityNotFoundError, ServiceError};
+use crate::service::error::ServiceError;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
@@ -47,10 +47,6 @@ impl SignerProvider for SignerProviderImpl {
             .revocation_list_repository
             .get_entry_by_id(id.into())
             .await
-            .error_while("getting revocation list entry")?
-            .ok_or(ServiceError::EntityNotFound(
-                EntityNotFoundError::RevocationListEntry(id.into()),
-            ))
             .error_while("getting revocation list entry")?;
 
         match entry.entity_info {

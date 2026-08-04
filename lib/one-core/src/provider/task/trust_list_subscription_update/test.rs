@@ -62,7 +62,7 @@ async fn test_trust_list_subscription_update_active() {
     });
     repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(subscription.clone())));
+        .returning(move |_, _| Ok(subscription.clone()));
 
     let task = TrustListSubscriptionUpdateTask::new(
         test_subscriber_provider(Some(validation_result)),
@@ -115,7 +115,7 @@ async fn test_trust_list_subscription_update_error() {
     });
     repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(subscription.clone())));
+        .returning(move |_, _| Ok(subscription.clone()));
 
     let task = TrustListSubscriptionUpdateTask::new(
         test_subscriber_provider(None),
@@ -168,7 +168,7 @@ async fn test_trust_list_subscription_update_active_to_error() {
     });
     repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(subscription.clone())));
+        .returning(move |_, _| Ok(subscription.clone()));
     repository
         .expect_update_state()
         .once()
@@ -232,7 +232,7 @@ async fn test_trust_list_subscription_update_error_to_active() {
     });
     repository
         .expect_get()
-        .returning(move |_, _| Ok(Some(subscription.clone())));
+        .returning(move |_, _| Ok(subscription.clone()));
     repository
         .expect_update_state()
         .once()

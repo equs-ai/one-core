@@ -65,10 +65,10 @@ impl HolderWalletInstancesDB {
 
         let id = self.repository.create(instance).await.unwrap();
 
-        self.repository.get(&id).await.unwrap().unwrap()
+        self.repository.get(&id).await.unwrap()
     }
 
-    pub async fn get(&self, id: impl Into<InstanceId>) -> Option<Instance> {
+    pub async fn get(&self, id: impl Into<InstanceId>) -> Instance {
         self.repository.get(&id.into()).await.unwrap()
     }
 }

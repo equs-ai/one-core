@@ -79,12 +79,7 @@ async fn test_holder_instance_status_already_revoked() {
     assert_eq!(resp.status(), 204);
 
     // Verify wallet unit status remains Revoked
-    let updated_wallet_unit = context
-        .db
-        .holder_wallet_units
-        .get(wallet_unit.id)
-        .await
-        .expect("wallet unit should exist");
+    let updated_wallet_unit = context.db.holder_wallet_units.get(wallet_unit.id).await;
 
     assert_eq!(updated_wallet_unit.status, InstanceStatus::Revoked);
 }

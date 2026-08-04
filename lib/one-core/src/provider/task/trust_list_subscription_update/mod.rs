@@ -145,10 +145,7 @@ impl Task for TrustListSubscriptionUpdateTask {
                         },
                     )
                     .await
-                    .error_while("getting trust list subscription")?
-                    .ok_or_else(|| {
-                        ServiceError::MappingError("trust list subscription missing".to_string())
-                    })?;
+                    .error_while("getting trust list subscription")?;
                 let Some(provider) = self.subscriber_provider.get(&subscription.r#type) else {
                     let err =
                         MissingProviderError::TrustListSubscriber(subscription.r#type.clone());

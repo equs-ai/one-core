@@ -9,9 +9,7 @@ use axum_extra::extract::WithRejection;
 use axum_extra::typed_header::TypedHeader;
 use headers::Mime;
 use one_core::error::{ErrorCode, ErrorCodeMixin};
-use one_core::service::certificate::error::CertificateServiceError;
 use one_core::service::did::error::DidServiceError;
-use one_core::service::revocation_list::error::RevocationServiceError;
 use one_core::service::ssi_issuer::error::IssuerServiceError;
 use one_core::service::trust_list_publication::dto::TrustListContentTypeDTO;
 use one_core::service::trust_list_publication::error::TrustListPublicationServiceError;
@@ -170,9 +168,9 @@ pub(crate) async fn get_revocation_list_by_id(
             tracing::error!("Config validation error: {}", error);
             StatusCode::BAD_REQUEST.into_response()
         }
-        Err(RevocationServiceError::NotFound(_)) => {
-            tracing::error!("Missing revocation list");
-            (StatusCode::NOT_FOUND, "Missing revocation list").into_response()
+        Err(error) if error.error_code() == ErrorCode::BR_0034 => {
+            tracing::warn!("Missing revocation list");
+            StatusCode::NOT_FOUND.into_response()
         }
         Err(e) => {
             tracing::error!("Error: {:?}", e);
@@ -212,9 +210,9 @@ pub(crate) async fn get_crl_by_id(
             result,
         )
             .into_response(),
-        Err(RevocationServiceError::NotFound(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0034 => {
             tracing::error!("Missing CRL");
-            (StatusCode::NOT_FOUND, "Missing CRL").into_response()
+            StatusCode::NOT_FOUND.into_response()
         }
         Err(e) => {
             tracing::error!("Error: {:?}", e);
@@ -556,7 +554,7 @@ pub(crate) async fn ssi_get_certificate_authority(
             result,
         )
             .into_response(),
-        Err(CertificateServiceError::NotFound(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0223 => {
             tracing::warn!("Missing CA");
             StatusCode::NOT_FOUND.into_response()
         }
@@ -598,7 +596,7 @@ pub(crate) async fn ssi_get_certificate(
             result,
         )
             .into_response(),
-        Err(CertificateServiceError::NotFound(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0223 => {
             tracing::warn!("Missing certificate");
             StatusCode::NOT_FOUND.into_response()
         }
@@ -664,7 +662,7 @@ pub(crate) async fn ssi_get_trust_list_publication(
             result.content,
         )
             .into_response(),
-        Err(TrustListPublicationServiceError::TrustListPublicationNotFound(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0383 => {
             tracing::warn!("Missing trust list publication");
             StatusCode::NOT_FOUND.into_response()
         }

@@ -594,7 +594,7 @@ async fn provider_get_wallet_unit_session_org_mismatch() {
     let mut wallet_unit_repository = MockManagedInstanceRepository::new();
     wallet_unit_repository
         .expect_get()
-        .returning(move |_| Ok(Some(wallet_unit.clone())));
+        .returning(move |_| Ok(wallet_unit.clone()));
 
     // given
     let service = ManagedInstanceService {

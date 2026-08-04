@@ -13,7 +13,7 @@ use crate::model::relation::AsyncModelLoader;
 pub trait ManagedInstanceRepository: Send + Sync {
     async fn create(&self, request: ManagedInstance) -> Result<ManagedInstanceId, DataLayerError>;
 
-    async fn get(&self, id: &ManagedInstanceId) -> Result<Option<ManagedInstance>, DataLayerError>;
+    async fn get(&self, id: &ManagedInstanceId) -> Result<ManagedInstance, DataLayerError>;
 
     async fn get_list(
         &self,
@@ -32,11 +32,6 @@ pub trait ManagedInstanceRepository: Send + Sync {
 #[async_trait::async_trait]
 impl AsyncModelLoader<ManagedInstance> for Arc<dyn ManagedInstanceRepository> {
     async fn load(&self, id: &ManagedInstanceId) -> Result<ManagedInstance, DataLayerError> {
-        self.get(id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "managed-instance",
-                id: id.to_string(),
-            })
+        self.get(id).await
     }
 }

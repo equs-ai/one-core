@@ -1,7 +1,7 @@
 use autometrics::autometrics;
 use one_core::model::common::LockType;
 use one_core::model::interaction::{Interaction, UpdateInteractionRequest};
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::interaction_repository::InteractionRepository;
 use sea_orm::ActiveValue::Unchanged;
 use sea_orm::prelude::Expr;
@@ -49,7 +49,7 @@ impl InteractionRepository for InteractionProvider {
         &self,
         id: &InteractionId,
         lock: Option<LockType>,
-    ) -> Result<Option<Interaction>, DataLayerError> {
+    ) -> Result<Interaction, DataLayerError> {
         let select = interaction::Entity::find_by_id(id);
         let select = match lock {
             None => select,
@@ -58,16 +58,16 @@ impl InteractionRepository for InteractionProvider {
         let interaction = select
             .one(&self.db)
             .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
+            .map_err(|e| DataLayerError::Db(e.into()))?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Interaction,
+                id: (*id).into(),
+            })?;
 
-        let Some(interaction) = interaction else {
-            return Ok(None);
-        };
-
-        Ok(Some(interaction_from_model(
+        Ok(interaction_from_model(
             interaction,
             &self.organisation_repository,
-        )))
+        ))
     }
 
     async fn mark_nonce_as_used(
