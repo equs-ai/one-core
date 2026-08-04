@@ -86,6 +86,7 @@ async fn test_create_interaction() {
     let id = Uuid::new_v4().into();
     let nonce_id = Uuid::new_v4().into();
     let interaction = Interaction {
+        ecosystem: None,
         id,
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
@@ -223,6 +224,7 @@ async fn test_update_interaction() {
         .update_interaction(
             setup.interaction_id,
             UpdateInteractionRequest {
+                ecosystem: None,
                 data: Some(Some(data.clone())),
             },
         )

@@ -306,6 +306,7 @@ impl MigratorTrait for Migrator {
             Box::new(
                 migrations::m20260804_120000_organisation_ecosystem_configuration::Migration,
             ),
+            Box::new(migrations::m20260804_140000_add_ecosystem_to_interaction::Migration),
         ]
     }
 }

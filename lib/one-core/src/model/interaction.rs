@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shared_types::{InteractionId, NonceId};
+use shared_types::{EcosystemId, InteractionId, NonceId};
 use strum::{AsRefStr, EnumString};
 use time::OffsetDateTime;
 
@@ -17,11 +17,13 @@ pub struct Interaction {
     pub nonce_id: Option<NonceId>,
     pub interaction_type: InteractionType,
     pub expires_at: Option<OffsetDateTime>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct UpdateInteractionRequest {
     pub data: Option<Option<Vec<u8>>>,
+    pub ecosystem: Option<Option<EcosystemId>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -39,6 +41,7 @@ impl From<Interaction> for UpdateInteractionRequest {
     fn from(value: Interaction) -> Self {
         Self {
             data: Some(value.data),
+            ecosystem: Some(value.ecosystem),
         }
     }
 }

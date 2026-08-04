@@ -25,6 +25,7 @@ impl InteractionsDB {
         expires_at: Option<OffsetDateTime>,
     ) -> Interaction {
         let interaction = Interaction {
+            ecosystem: None,
             id: id.unwrap_or(Uuid::new_v4().into()),
             created_date: one_core::clock::now_utc(),
             last_modified: one_core::clock::now_utc(),

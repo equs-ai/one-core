@@ -518,6 +518,7 @@ async fn test_get_proof_with_relations() {
         .times(1)
         .returning(|id, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -801,6 +802,7 @@ async fn test_get_proof_by_interaction_id_success() {
         .times(1)
         .returning(|id, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),

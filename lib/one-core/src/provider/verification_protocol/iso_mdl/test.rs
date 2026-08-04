@@ -209,6 +209,7 @@ async fn test_presentation_reject_ok() {
         verifier_key: None,
         verifier_certificate: None,
         interaction: Some(Interaction {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             data: Some(interaction_data),
@@ -289,6 +290,7 @@ async fn test_get_presentation_definition_v2() {
         verifier_key: None,
         verifier_certificate: None,
         interaction: Some(Interaction {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),

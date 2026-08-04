@@ -112,6 +112,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
     let interaction_data_serialized = serde_json::to_vec(&interaction_data).unwrap();
     let now = crate::clock::now_utc();
     let interaction = Interaction {
+        ecosystem: None,
         id: interaction_id,
         created_date: now,
         last_modified: now,
@@ -249,6 +250,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
     let interaction_data_serialized = serde_json::to_vec(&interaction_data).unwrap();
     let now = crate::clock::now_utc();
     let interaction = Interaction {
+        ecosystem: None,
         id: interaction_id,
         created_date: now,
         last_modified: now,

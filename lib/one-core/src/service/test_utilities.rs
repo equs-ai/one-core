@@ -371,6 +371,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
         }
         .into(),
         interaction: Some(Interaction {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),

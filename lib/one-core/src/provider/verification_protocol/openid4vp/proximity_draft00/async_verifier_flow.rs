@@ -252,6 +252,7 @@ async fn verifier_flow_internal<C: WithProtocolVersion>(
         .update_interaction(
             params.interaction_id,
             UpdateInteractionRequest {
+                ecosystem: None,
                 data: Some(Some(interaction_data)),
             },
         )

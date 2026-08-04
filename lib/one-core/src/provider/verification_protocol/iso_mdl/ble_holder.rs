@@ -269,6 +269,7 @@ pub(crate) async fn receive_mdl_request(
                         .update_interaction(
                             interaction.id,
                             UpdateInteractionRequest {
+                                ecosystem: None,
                                 data: Some(Some(interaction_data)),
                             },
                         )

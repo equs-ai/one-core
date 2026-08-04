@@ -85,6 +85,7 @@ async fn test_reject_proof_request_succeeds_and_sets_state_to_rejected_when_late
                 protocol: protocol.to_string(),
                 state: ProofStateEnum::Requested,
                 interaction: Some(Interaction {
+                    ecosystem: None,
                     id: interaction_id,
                     created_date: crate::clock::now_utc(),
                     last_modified: crate::clock::now_utc(),
@@ -153,6 +154,7 @@ async fn test_reject_proof_request_fails_when_latest_state_is_not_requested() {
                     protocol: protocol.to_string(),
                     state,
                     interaction: Some(Interaction {
+                        ecosystem: None,
                         id: interaction_id,
                         created_date: crate::clock::now_utc(),
                         last_modified: crate::clock::now_utc(),
@@ -203,6 +205,7 @@ async fn test_reject_proof_request_suceeds_when_holder_reject_proof_errors_state
                 protocol: protocol.to_string(),
                 state: ProofStateEnum::Requested,
                 interaction: Some(Interaction {
+                    ecosystem: None,
                     id: interaction_id,
                     created_date: crate::clock::now_utc(),
                     last_modified: crate::clock::now_utc(),
@@ -359,6 +362,7 @@ async fn test_accept_credential() {
         .expect_get_interaction()
         .return_once(move |_, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -495,6 +499,7 @@ async fn test_accept_credential_with_did() {
         .expect_get_interaction()
         .return_once(move |_, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -592,6 +597,7 @@ async fn test_accept_credential_batch() {
         .once()
         .return_once(move |_, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: interaction_id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -699,6 +705,7 @@ async fn test_accept_credential_wrong_tx_code() {
         .expect_get_interaction()
         .return_once(move |_, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -879,6 +886,7 @@ async fn test_continue_issuance() {
         .expect_get_interaction()
         .return_once(move |_, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -1141,6 +1149,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
         }
         .into(),
         interaction: Some(Interaction {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
@@ -1264,6 +1273,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
         .expect_get_interaction()
         .return_once(move |_, _| {
             Ok(Some(Interaction {
+                ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),

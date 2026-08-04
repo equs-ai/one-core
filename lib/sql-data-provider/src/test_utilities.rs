@@ -621,6 +621,7 @@ pub async fn insert_interaction(
     let now = one_core::clock::now_utc();
 
     let interaction = interaction::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(now),
         last_modified: Set(now),

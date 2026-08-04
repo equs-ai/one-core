@@ -1,6 +1,6 @@
 use one_dto_mapper::{From, Into};
 use sea_orm::entity::prelude::*;
-use shared_types::{InteractionId, NonceId, OrganisationId};
+use shared_types::{EcosystemId, InteractionId, NonceId, OrganisationId};
 use time::OffsetDateTime;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -16,6 +16,7 @@ pub struct Model {
     pub nonce_id: Option<NonceId>,
     pub interaction_type: InteractionType,
     pub expires_at: Option<OffsetDateTime>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

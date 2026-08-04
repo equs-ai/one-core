@@ -694,6 +694,7 @@ pub(super) async fn create_interaction_and_proof(
 ) -> Result<(InteractionId, Proof), VerificationProtocolError> {
     let now = crate::clock::now_utc();
     let interaction = Interaction {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: now,
         last_modified: now,

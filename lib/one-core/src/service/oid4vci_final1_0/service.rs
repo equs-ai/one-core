@@ -813,6 +813,7 @@ impl OID4VCIFinal1_0Service {
                     .update_interaction(
                         interaction.id,
                         UpdateInteractionRequest {
+                            ecosystem: None,
                             data: Some(Some(data)),
                         },
                     )
