@@ -208,7 +208,7 @@ pub(crate) struct CreateCertificateContentRestDTO {
     #[serde(default, with = "time::serde::rfc3339::option")]
     pub validity_start: Option<OffsetDateTime>,
     /// End of the CA certificate validity period (RFC 3339). Must not
-    /// exceed the `maxValidityDuration` set in the referenced `signer`
+    /// exceed the `maxValidityDurationSeconds` set in the referenced `signer`
     /// configuration.
     #[serde(default, with = "time::serde::rfc3339::option")]
     pub validity_end: Option<OffsetDateTime>,
@@ -269,7 +269,7 @@ pub(crate) struct CreateSelfSignedCertificateAuthorityRequestRestDTO {
     #[serde(default, with = "time::serde::rfc3339::option")]
     pub validity_start: Option<OffsetDateTime>,
     /// End of the CA validity period (RFC 3339). Must not exceed the
-    /// `maxValidityDuration` set in the referenced `signer`
+    /// `maxValidityDurationSeconds` set in the referenced `signer`
     /// configuration.
     #[serde(default, with = "time::serde::rfc3339::option")]
     pub validity_end: Option<OffsetDateTime>,
