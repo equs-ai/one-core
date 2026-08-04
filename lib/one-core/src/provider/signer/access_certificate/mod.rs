@@ -10,6 +10,10 @@ use rcgen::{
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use shared_types::{CertificateId, Permission, RevocationMethodId, SignerId};
+use standardized_types::etsi_119_475::access_certificate::{
+    CertificatePolicy, OID_MDL_READER_AUTH, OID_MDOC_READER_AUTH,
+};
+use standardized_types::x509::oid;
 use time::Duration;
 use yasna::Tag;
 use yasna::models::ObjectIdentifier;
@@ -19,7 +23,9 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::RevocationMethod;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::provider::signer::Signer;
-use crate::provider::signer::access_certificate::mapper::{to_ia5, validated_pubkey_from_csr};
+use crate::provider::signer::access_certificate::mapper::{
+    certificate_policies_extension, to_ia5, validated_pubkey_from_csr,
+};
 use crate::provider::signer::dto::{CreateSignatureRequest, CreateSignatureResponseDTO, Issuer};
 use crate::provider::signer::error::SignerError;
 use crate::provider::signer::model::SignerCapabilities;
@@ -52,41 +58,8 @@ struct RequestData {
     common_name: Option<String>,
     given_name: Option<String>,
     family_name: Option<String>,
-    policy: AccessCertificatePolicy,
+    policy: CertificatePolicy,
     national_registry_url: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-enum AccessCertificatePolicy {
-    NaturalPerson,
-    LegalPerson,
-}
-
-impl AccessCertificatePolicy {
-    fn to_certificate_policies_extension(&self) -> CustomExtension {
-        const OID_CERTIFICATE_POLICIES_EXTENSION: [u64; 4] = [2, 5, 29, 32];
-        const OID_CERTIFICATE_POLICY_NATURAL_PERSON: [u64; 6] = [0, 4, 0, 194112, 1, 0];
-        const OID_CERTIFICATE_POLICY_LEGAL_PERSON: [u64; 6] = [0, 4, 0, 194112, 1, 1];
-
-        let oid = match self {
-            AccessCertificatePolicy::NaturalPerson => OID_CERTIFICATE_POLICY_NATURAL_PERSON,
-            AccessCertificatePolicy::LegalPerson => OID_CERTIFICATE_POLICY_LEGAL_PERSON,
-        };
-
-        let certificate_policy_ext_content = yasna::construct_der(|writer| {
-            writer.write_sequence(|writer| {
-                writer.next().write_sequence(|writer| {
-                    writer.next().write_oid(&ObjectIdentifier::from_slice(&oid));
-                });
-            });
-        });
-        // Not critical according to ETSI EN 319 412-2
-        CustomExtension::from_oid_content(
-            &OID_CERTIFICATE_POLICIES_EXTENSION,
-            certificate_policy_ext_content,
-        )
-    }
 }
 
 #[derive(Provider)]
@@ -166,15 +139,14 @@ impl Signer for AccessCertificateSigner {
 
         cert_params
             .custom_extensions
-            .push(request_data.policy.to_certificate_policies_extension());
+            .push(certificate_policies_extension(&request_data.policy));
         add_extended_key_usages(&mut cert_params);
         cert_params
             .subject_alt_names
             .push(SanType::URI(to_ia5(request_data.san_uri.clone())?));
         if let Some(phone_nr) = &request_data.other_name_phone_nr {
-            const OID_TELEPHONE_NR: [u64; 4] = [2, 5, 4, 20];
             cert_params.subject_alt_names.push(SanType::OtherName((
-                OID_TELEPHONE_NR.to_vec(),
+                oid::attribute::TELEPHONE_NUMBER.to_vec(),
                 OtherNameValue::Utf8String(phone_nr.clone()),
             )));
         }
@@ -248,15 +220,12 @@ fn authority_information_access_extension(
     core_base_url: &str,
     certificate_id: CertificateId,
 ) -> CustomExtension {
-    const OID_AUTHORITY_INFORMATION_ACCESS: [u64; 9] = [1, 3, 6, 1, 5, 5, 7, 1, 1];
-    const OID_ID_AD_CA_ISSUERS: [u64; 9] = [1, 3, 6, 1, 5, 5, 7, 48, 2];
-
     let authority_info_access = yasna::construct_der(|writer| {
         writer.write_sequence(|writer| {
             writer.next().write_sequence(|writer| {
-                writer
-                    .next()
-                    .write_oid(&ObjectIdentifier::from_slice(&OID_ID_AD_CA_ISSUERS));
+                writer.next().write_oid(&ObjectIdentifier::from_slice(
+                    oid::access_description::CA_ISSUERS,
+                ));
                 writer
                     .next()
                     .write_tagged_implicit(Tag::context(6), |writer| {
@@ -269,12 +238,13 @@ fn authority_information_access_extension(
         });
     });
     // Non-critical
-    CustomExtension::from_oid_content(&OID_AUTHORITY_INFORMATION_ACCESS, authority_info_access)
+    CustomExtension::from_oid_content(
+        oid::extension::AUTHORITY_INFORMATION_ACCESS,
+        authority_info_access,
+    )
 }
 
 fn add_extended_key_usages(params: &mut CertificateParams) {
-    const OID_MDL_READER_AUTH: [u64; 6] = [1, 0, 18013, 5, 1, 6];
-    const OID_MDOC_READER_AUTH: [u64; 6] = [1, 0, 23220, 4, 1, 6];
     params
         .extended_key_usages
         .push(ExtendedKeyUsagePurpose::ClientAuth);

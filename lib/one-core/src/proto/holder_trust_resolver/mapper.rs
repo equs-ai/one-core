@@ -1,9 +1,6 @@
 use dcql::{CredentialFormat, CredentialQuery, MsoMdocMeta, PathSegment, SdJwtVcMeta, W3cVcMeta};
-use one_dto_mapper::convert_inner_of_inner;
+use standardized_types::etsi_119_475::{Claim, Credential};
 use standardized_types::openid4vp::dcql;
-
-use crate::proto::wrp_validator;
-use crate::provider::signer::registration_certificate::model::{Claim, Credential};
 
 pub(super) fn credential_query_matches_reg_cert_credential(
     credential_query: &CredentialQuery,
@@ -121,13 +118,4 @@ fn query_claim_matches_reg_cert_claim(query: &dcql::ClaimQuery, claim: &Claim) -
     }
 
     true
-}
-
-impl From<wrp_validator::model::Credential> for Credential {
-    fn from(value: wrp_validator::model::Credential) -> Self {
-        Self {
-            format: value.format,
-            claim: convert_inner_of_inner(value.claim),
-        }
-    }
 }

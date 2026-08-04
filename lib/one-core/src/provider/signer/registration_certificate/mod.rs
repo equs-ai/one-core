@@ -1,6 +1,5 @@
+mod mapper;
 pub mod model;
-#[cfg(test)]
-mod test;
 
 use std::sync::Arc;
 
@@ -10,6 +9,7 @@ use serde::Deserialize;
 use serde::de::Error;
 use serde_with::{DurationSeconds, serde_as};
 use shared_types::{Permission, RevocationMethodId, SignerId};
+use standardized_types::etsi_119_475::registration_certificate::Status;
 use time::Duration;
 use url::Url;
 use uuid::Uuid;
@@ -30,8 +30,9 @@ use crate::provider::signer::Signer;
 use crate::provider::signer::dto::{CreateSignatureRequest, CreateSignatureResponseDTO, Issuer};
 use crate::provider::signer::error::SignerError;
 use crate::provider::signer::model::SignerCapabilities;
+use crate::provider::signer::registration_certificate::mapper::payload_from_request_data;
 use crate::provider::signer::registration_certificate::model::{
-    Status, WRPRegistrationCertificate, WRPRegistrationCertificatePayload,
+    WRPRegistrationCertificate, WRPRegistrationCertificatePayload,
 };
 use crate::provider::signer::validity::{SignatureValidity, calculate_signature_validity};
 use crate::util::key_selection::{CertificateFilter, KeyFilter, KeySelection, SelectedKey};
@@ -177,7 +178,7 @@ impl Signer for RegistrationCertificate {
             audience: self.params.payload.audience.clone(),
             jwt_id: Some(jwt_id.to_string()),
             proof_of_possession_key: None,
-            custom: model::Payload::from_request_data_and_status(payload, status),
+            custom: payload_from_request_data(payload, status),
         };
         let signed_jwt = self
             .create_and_sign_jwt(*key, pubkey_info, jwt_payload)

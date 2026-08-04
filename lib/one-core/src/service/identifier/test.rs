@@ -3,6 +3,10 @@ use std::sync::Arc;
 
 use shared_types::TrustCollectionId;
 use similar_asserts::assert_eq;
+use standardized_types::etsi_119_475::Credential;
+use standardized_types::etsi_119_475::registration_certificate::{
+    Payload, Status, SupervisoryAuthority,
+};
 use standardized_types::jwk::{JwkUse, PublicJwk, PublicJwkEc};
 use standardized_types::openid4vp::dcql::{CredentialFormat, SdJwtVcMeta};
 use url::Url;
@@ -29,9 +33,7 @@ use crate::proto::wrp_validator::model::{AccessCertificateResult, RegistrationCe
 use crate::provider::blob_storage::MockBlobStorage;
 use crate::provider::blob_storage::provider::MockBlobStorageProvider;
 use crate::provider::credential_formatter::model::IdentifierDetails;
-use crate::provider::signer::registration_certificate::model::{
-    Credential, Payload, Status, SupervisoryAuthority, WRPRegistrationCertificatePayload,
-};
+use crate::provider::signer::registration_certificate::model::WRPRegistrationCertificatePayload;
 use crate::provider::trust_list_subscriber::provider::MockTrustListSubscriberProvider;
 use crate::provider::trust_list_subscriber::{
     Feature, MockTrustListSubscriber, TrustEntityMetadata, TrustEntityResponse,

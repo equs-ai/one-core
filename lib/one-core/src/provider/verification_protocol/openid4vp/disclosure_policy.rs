@@ -1,14 +1,15 @@
-use asn1_rs::{Oid, oid};
+use asn1_rs::Oid;
+use standardized_types::etsi_119_475::registration_certificate::Payload;
+use standardized_types::x509::oid;
 use time::Duration;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::pem::Pem;
 use x509_parser::x509::X509Name;
 
 use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::CertificateParsingError;
+use crate::mapper::x509::{CertificateParsingError, parse_oid};
 use crate::proto::jwt::Jwt;
 use crate::proto::wrp_validator::WRPValidator;
-use crate::provider::signer::registration_certificate::model::Payload;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::util::access_cert_parser::etsi_access_cert_from_pem_chain;
 
@@ -135,8 +136,6 @@ pub(crate) struct DNEntry {
     value: String,
 }
 
-const OID_ORG_ID: Oid<'static> = oid!(2.5.4.97);
-
 pub(crate) fn parse_dn(dn: &str) -> Result<Vec<DNEntry>, VerificationProtocolError> {
     let mut result = vec![];
 
@@ -151,7 +150,8 @@ pub(crate) fn parse_dn(dn: &str) -> Result<Vec<DNEntry>, VerificationProtocolErr
             let oid = match attr_type.to_uppercase().as_str() {
                 // ISS-MDATA-EBD-4.2.5.2-07 Note 2
                 "SN" | "SERIALNUMBER" => OID_X509_SERIALNUMBER,
-                "ORGID" => OID_ORG_ID,
+                "ORGID" => parse_oid(oid::attribute::ORGANIZATION_IDENTIFIER)
+                    .error_while("parsing organizationIdentifier OID")?,
 
                 "C" | "COUNTRYNAME" => OID_X509_COUNTRY_NAME,
                 "O" | "ORGANIZATIONNAME" => OID_X509_ORGANIZATION_NAME,

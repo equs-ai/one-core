@@ -13,6 +13,10 @@ use serde_json::{Value, json};
 use shared_types::CredentialFormat;
 use similar_asserts::assert_eq;
 use standardized_types::etsi_119_472::disclosure_policy::{DisclosurePolicy, PolicyType};
+use standardized_types::etsi_119_475::Credential as RegistrationCertificateCredential;
+use standardized_types::etsi_119_475::registration_certificate::{
+    Payload as RegistrationCertificatePayload, Status, SupervisoryAuthority,
+};
 use standardized_types::iana::{EncryptionAlgorithm, EncryptionKeyManagementAlgorithm};
 use standardized_types::jwe::CompressionAlgorithm;
 use standardized_types::jwk::{Jwks, PublicJwk, PublicJwkEc};
@@ -94,8 +98,6 @@ use crate::provider::key_storage::MockKeyStorage;
 use crate::provider::key_storage::model::{KeyStorageCapabilities, StorageGeneratedKey};
 use crate::provider::key_storage::provider::MockKeyProvider;
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
-use crate::provider::signer::registration_certificate;
-use crate::provider::signer::registration_certificate::model::{Status, SupervisoryAuthority};
 use crate::repository::credential_repository::MockCredentialRepository;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
 use crate::repository::history_repository::MockHistoryRepository;
@@ -2763,7 +2765,7 @@ async fn test_handle_invitation_signed_metadata() {
                     audience: None,
                     jwt_id: None,
                     proof_of_possession_key: None,
-                    custom: registration_certificate::model::Payload {
+                    custom: RegistrationCertificatePayload {
                         name: "".to_string(),
                         sub_ln: None,
                         sub_gn: None,
@@ -2784,14 +2786,12 @@ async fn test_handle_invitation_signed_metadata() {
                         status: Status {
                             status_list: HashMap::new(),
                         },
-                        provides_attestations: Some(vec![
-                            registration_certificate::model::Credential {
-                                format: dcql::CredentialFormat::MsoMdoc(MsoMdocMeta {
-                                    doctype_value: "doctype".to_string(),
-                                }),
-                                claim: None,
-                            },
-                        ]),
+                        provides_attestations: Some(vec![RegistrationCertificateCredential {
+                            format: dcql::CredentialFormat::MsoMdoc(MsoMdocMeta {
+                                doctype_value: "doctype".to_string(),
+                            }),
+                            claim: None,
+                        }]),
                         credentials: None,
                         purpose: None,
                         intended_use_id: Some("intended_use_id".to_string()),

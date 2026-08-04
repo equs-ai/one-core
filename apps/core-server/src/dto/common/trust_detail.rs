@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use one_core::provider::signer::registration_certificate::model::SupervisoryAuthority;
 use one_core::service::common_dto::{
     EudiIntermediaryResponseDTO, EudiTrustInformationResponseDTO, TrustInformationDetailResponseDTO,
 };
 use one_dto_mapper::{From, convert_inner};
 use proc_macros::options_not_nullable;
 use serde::Serialize;
+use standardized_types::etsi_119_475::registration_certificate::SupervisoryAuthority;
 use url::Url;
 use utoipa::ToSchema;
 
@@ -34,20 +34,10 @@ pub(crate) struct EudiTrustInformationResponseRestDTO {
     pub identifier: String,
     #[schema(example = json!([{ "de": "Demo Dienstleistung", "en": "Demo Service" }]))]
     pub service_description: Vec<HashMap<String, String>>,
-    pub supervisory_authority: EudiSupervisoryAuthorityResponseRestDTO,
+    pub supervisory_authority: SupervisoryAuthority,
     #[from(with_fn = convert_inner)]
     pub intermediary: Option<EudiIntermediaryResponseRestDTO>,
     pub is_public_sector: bool,
-}
-
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(SupervisoryAuthority)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct EudiSupervisoryAuthorityResponseRestDTO {
-    pub email: String,
-    pub phone: String,
-    pub uri: String,
 }
 
 #[options_not_nullable]

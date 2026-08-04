@@ -1,5 +1,6 @@
-use one_dto_mapper::{convert_inner, try_convert_inner};
+use one_dto_mapper::convert_inner;
 use shared_types::{CredentialSchemaId, OrganisationId, ProofSchemaId};
+use standardized_types::etsi_119_475::Credential;
 use standardized_types::openid4vp::dcql;
 
 use super::dto::{
@@ -29,7 +30,6 @@ use crate::model::proof_schema::ProofSchemaRelations;
 use crate::model::relation::RelatedVec;
 use crate::model::trust_list_subscription::TrustListSubscription;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
-use crate::provider::signer::registration_certificate::model::Credential;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
 use crate::repository::proof_schema_repository::ProofSchemaRepository;
 use crate::service::certificate::dto::CertificateResponseDTO;
@@ -439,30 +439,31 @@ async fn filter_value_from_credential_schema(
 pub(super) fn map_dcql_credentials(
     credentials: Vec<Credential>,
 ) -> Result<Vec<SchemaFormat>, IdentifierServiceError> {
-    let schema_formats: Vec<Vec<SchemaFormat>> = try_convert_inner(credentials)?;
+    let schema_formats = credentials
+        .into_iter()
+        .map(credential_to_schema_formats)
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(schema_formats.into_iter().flatten().collect())
 }
 
-impl TryFrom<Credential> for Vec<SchemaFormat> {
-    type Error = IdentifierServiceError;
-
-    fn try_from(value: Credential) -> Result<Self, Self::Error> {
-        let dcql_format = value.format.dcql_format().to_owned();
-        let schema_ids = match value.format {
-            dcql::CredentialFormat::MsoMdoc(meta) => vec![meta.doctype_value],
-            dcql::CredentialFormat::SdJwt(meta) => meta.vct_values,
-            _ => {
-                return Err(IdentifierServiceError::InvalidTrustInformation(
-                    "W3C credentials are not supported in trust information".to_string(),
-                ));
-            }
-        };
-        Ok(schema_ids
-            .into_iter()
-            .map(|c| SchemaFormat {
-                format: dcql_format.to_owned(),
-                schema_id: c,
-            })
-            .collect())
-    }
+fn credential_to_schema_formats(
+    value: Credential,
+) -> Result<Vec<SchemaFormat>, IdentifierServiceError> {
+    let dcql_format = value.format.dcql_format().to_owned();
+    let schema_ids = match value.format {
+        dcql::CredentialFormat::MsoMdoc(meta) => vec![meta.doctype_value],
+        dcql::CredentialFormat::SdJwt(meta) => meta.vct_values,
+        _ => {
+            return Err(IdentifierServiceError::InvalidTrustInformation(
+                "W3C credentials are not supported in trust information".to_string(),
+            ));
+        }
+    };
+    Ok(schema_ids
+        .into_iter()
+        .map(|c| SchemaFormat {
+            format: dcql_format.to_owned(),
+            schema_id: c,
+        })
+        .collect())
 }

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use asn1_rs::Oid;
 use ct_codecs::{Base64, Decoder, Encoder};
 use futures::executor::block_on;
 use one_crypto::signer::ecdsa::ECDSASigner;
@@ -16,6 +17,14 @@ use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::key::Key;
 use crate::provider::key_storage::KeyStorage;
+
+/// Converts the arc-slice OID constants of [`standardized_types::x509::oid`] into the
+/// representation the certificate parser works with.
+///
+/// The builder side (`rcgen` / `yasna`) consumes those constants directly.
+pub(crate) fn parse_oid(arcs: &[u64]) -> Result<Oid<'static>, CertificateParsingError> {
+    Ok(Oid::from(arcs)?)
+}
 
 pub fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, CertificateParsingError> {
     Pem::iter_from_buffer(pem_chain.as_bytes())
@@ -59,6 +68,8 @@ pub enum CertificateParsingError {
     X509ParserError(#[from] x509_parser::error::X509Error),
     #[error("Encoding error: `{0}`")]
     Encoding(#[from] ct_codecs::Error),
+    #[error("OID error: `{0}`")]
+    Oid(#[from] asn1_rs::OidParseError),
 }
 
 impl ErrorCodeMixin for CertificateParsingError {

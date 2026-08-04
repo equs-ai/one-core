@@ -5,6 +5,7 @@ use error::ErrorCode;
 use rcgen::{
     CertificateParams, CustomExtension, DistinguishedName, DnType, KeyUsagePurpose, SanType,
 };
+use standardized_types::x509::oid;
 use yasna::models::ObjectIdentifier;
 
 use crate::config::core_config::KeyAlgorithmType;
@@ -201,8 +202,6 @@ pub(crate) fn prepare_distinguished_name(subject: CsrRequestSubject) -> Distingu
 /// ISO 18013-5, B.1.4 Document signer certificate
 pub(crate) const OID_EXTENDED_KEY_USAGE_ISO_MDL_DS: [u64; 6] = [1, 0, 18013, 5, 1, 2];
 pub(crate) fn prepare_extended_key_usage_extension_iso_mdl_ds() -> CustomExtension {
-    const OID_EXTENDED_KEY_USAGE: [u64; 4] = [2, 5, 29, 37];
-
     let mdlds_extended_key_usage = yasna::construct_der(|writer| {
         writer.write_sequence(|writer| {
             writer.next().write_oid(&ObjectIdentifier::from_slice(
@@ -210,8 +209,10 @@ pub(crate) fn prepare_extended_key_usage_extension_iso_mdl_ds() -> CustomExtensi
             ));
         });
     });
-    let mut extended_key_usage_extension =
-        CustomExtension::from_oid_content(&OID_EXTENDED_KEY_USAGE, mdlds_extended_key_usage);
+    let mut extended_key_usage_extension = CustomExtension::from_oid_content(
+        oid::extension::EXTENDED_KEY_USAGE,
+        mdlds_extended_key_usage,
+    );
     extended_key_usage_extension.set_criticality(true);
     extended_key_usage_extension
 }

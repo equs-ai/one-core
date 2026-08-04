@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 use shared_types::CredentialId;
 use shared_types::i18n::I18nString;
+use standardized_types::etsi_119_475::registration_certificate::Payload;
 use time::OffsetDateTime;
 
 use crate::model::history::TrustResolutionResult;
 use crate::proto::jwt::model::JWTPayload;
 use crate::proto::wrp_validator::model::WRPPayload;
-use crate::provider::signer::registration_certificate::model::Payload;
 use crate::util::access_cert_parser::EtsiParsedAccessCert;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

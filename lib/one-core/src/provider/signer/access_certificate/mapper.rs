@@ -1,8 +1,31 @@
 use rcgen::string::Ia5String;
-use rcgen::{CertificateSigningRequestParams, DistinguishedName, DnType, PublicKey};
+use rcgen::{
+    CertificateSigningRequestParams, CustomExtension, DistinguishedName, DnType, PublicKey,
+};
+use standardized_types::etsi_119_475::access_certificate::CertificatePolicy;
+use standardized_types::x509::oid;
+use yasna::models::ObjectIdentifier;
 
-use crate::provider::signer::access_certificate::{AccessCertificatePolicy, RequestData};
+use crate::provider::signer::access_certificate::RequestData;
 use crate::provider::signer::error::SignerError;
+
+/// ETSI TS 119 475 clause 5.1: asserts the certificate policy the WRPAC is issued under.
+pub(super) fn certificate_policies_extension(policy: &CertificatePolicy) -> CustomExtension {
+    let certificate_policy_ext_content = yasna::construct_der(|writer| {
+        writer.write_sequence(|writer| {
+            writer.next().write_sequence(|writer| {
+                writer
+                    .next()
+                    .write_oid(&ObjectIdentifier::from_slice(policy.oid()));
+            });
+        });
+    });
+    // Not critical according to ETSI EN 319 412-2
+    CustomExtension::from_oid_content(
+        oid::extension::CERTIFICATE_POLICIES,
+        certificate_policy_ext_content,
+    )
+}
 
 pub(super) fn validated_pubkey_from_csr(csr: &str) -> Result<PublicKey, SignerError> {
     let csr = CertificateSigningRequestParams::from_pem(csr)
@@ -14,15 +37,10 @@ pub(super) fn request_to_distinguished_name(
     request: RequestData,
 ) -> Result<DistinguishedName, SignerError> {
     let mut dn = DistinguishedName::new();
-    const OID_SURNAME: [u64; 4] = [2, 5, 4, 4];
-    const OID_SERIAL_NUMBER: [u64; 4] = [2, 5, 4, 5];
-    const OID_GIVEN_NAME: [u64; 4] = [2, 5, 4, 42];
-    const OID_ORG_ID: [u64; 4] = [2, 5, 4, 97];
-    const OID_CONTENT_URL: [u64; 4] = [2, 5, 4, 81];
 
     dn.push(DnType::CountryName, request.country_name);
     dn.push(
-        DnType::CustomDnType(OID_CONTENT_URL.to_vec()),
+        DnType::CustomDnType(oid::attribute::CONTENT_URL.to_vec()),
         request.national_registry_url,
     );
     if let Some(cn) = request.common_name {
@@ -30,10 +48,10 @@ pub(super) fn request_to_distinguished_name(
     }
 
     match &request.policy {
-        AccessCertificatePolicy::NaturalPerson => {
+        CertificatePolicy::NaturalPerson => {
             // ETSI 119 475 Table 3: identifier → serialNumber (clause 5.1.5)
             dn.push(
-                DnType::CustomDnType(OID_SERIAL_NUMBER.to_vec()),
+                DnType::CustomDnType(oid::attribute::SERIAL_NUMBER.to_vec()),
                 request.organization_identifier,
             );
             if request.organization_name.is_some() {
@@ -50,7 +68,10 @@ pub(super) fn request_to_distinguished_name(
                         .into(),
                 ));
             };
-            dn.push(DnType::CustomDnType(OID_GIVEN_NAME.to_vec()), given_name);
+            dn.push(
+                DnType::CustomDnType(oid::attribute::GIVEN_NAME.to_vec()),
+                given_name,
+            );
             let Some(family_name) = request.family_name else {
                 return Err(SignerError::InvalidPayload(
                     "familyName is required for natural person"
@@ -58,12 +79,15 @@ pub(super) fn request_to_distinguished_name(
                         .into(),
                 ));
             };
-            dn.push(DnType::CustomDnType(OID_SURNAME.to_vec()), family_name)
+            dn.push(
+                DnType::CustomDnType(oid::attribute::SURNAME.to_vec()),
+                family_name,
+            )
         }
-        AccessCertificatePolicy::LegalPerson => {
+        CertificatePolicy::LegalPerson => {
             // ETSI 119 475 Table 1: identifier → organizationIdentifier (clause 5.1.3)
             dn.push(
-                DnType::CustomDnType(OID_ORG_ID.to_vec()),
+                DnType::CustomDnType(oid::attribute::ORGANIZATION_IDENTIFIER.to_vec()),
                 request.organization_identifier,
             );
             if request.given_name.is_some() {

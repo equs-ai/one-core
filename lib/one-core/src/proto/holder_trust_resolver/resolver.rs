@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use one_dto_mapper::convert_inner;
 use shared_types::{OrganisationId, ProofId};
+use standardized_types::etsi_119_475::registration_certificate;
+use standardized_types::etsi_119_475::registry::IntendedUse;
 use standardized_types::etsi_119_602::MultiLangString;
 use standardized_types::openid4vp::VerifierInfoAttestation;
 use standardized_types::openid4vp::dcql::{CredentialQuery, CredentialQueryId, DcqlQuery};
@@ -21,10 +23,9 @@ use crate::model::history::{
 use crate::proto::holder_trust_resolver::mapper::credential_query_matches_reg_cert_credential;
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::proto::wrp_validator::WRPValidator;
-use crate::proto::wrp_validator::model::{AccessCertificateResult, IntendedUse, TrustMode};
+use crate::proto::wrp_validator::model::{AccessCertificateResult, TrustMode};
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::model::{CertificateDetails, IdentifierDetails};
-use crate::provider::signer::registration_certificate;
 use crate::repository::history_repository::HistoryRepository;
 
 pub(crate) struct HolderTrustResolverProto {
@@ -211,9 +212,9 @@ impl HolderTrustResolverProto {
     ) -> Result<(), HolderTrustResolverError> {
         #[derive(Clone)]
         struct RefCertCredentialInfo<'a> {
-            credential_def: registration_certificate::model::Credential,
+            credential_def: standardized_types::etsi_119_475::Credential,
             reg_cert: &'a VerifierInfoAttestation,
-            purpose: Vec<registration_certificate::model::MultiLangString>,
+            purpose: Vec<standardized_types::etsi_119_475::MultiLangString>,
             relying_party_name: String,
         }
 
@@ -221,7 +222,7 @@ impl HolderTrustResolverProto {
             Option<CredentialQueryId>,
             Vec<RefCertCredentialInfo>,
         > = HashMap::new();
-        let mut last_reg_cert_jwt: Option<registration_certificate::model::Payload> = None;
+        let mut last_reg_cert_jwt: Option<registration_certificate::Payload> = None;
         for reg_cert in verifier_info {
             let trusted = match self
                 .wrp_validator
@@ -461,9 +462,11 @@ fn find_matching_intended_use(
     among_uses: &[IntendedUse],
 ) -> Option<Vec<MultiLangString>> {
     for intended_use in among_uses {
-        if intended_use.credential.iter().any(|c| {
-            credential_query_matches_reg_cert_credential(credential_query, &c.clone().into())
-        }) {
+        if intended_use
+            .credential
+            .iter()
+            .any(|c| credential_query_matches_reg_cert_credential(credential_query, c))
+        {
             return Some(convert_inner(intended_use.purpose.to_owned()));
         }
     }

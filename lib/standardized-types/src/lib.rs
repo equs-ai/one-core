@@ -13,12 +13,18 @@
 //!   * if there are multiple versions of the standard, keep the common types in the module with the
 //!     standard name and have submodules for each version with the types that differ
 //! * may contain only a subset of what the relevant standard defines
-//! * must not contain any non-standard elements (e.g. EUDI / swiyu adjustments)
+//! * must not contain any non-standard elements
+//!   * a *published specification* belongs here and gets its own top-level module, even when it
+//!     originates from an ecosystem rather than a standards body (e.g. `eudi_ts2`)
+//!   * an ecosystem's *adjustment* of another standard does not (e.g. EUDI / swiyu flavours of
+//!     OpenID4VCI); those stay in `one-core` next to the provider implementing them
 
 pub mod csc;
 pub mod etsi_119_472;
+pub mod etsi_119_475;
 pub mod etsi_119_602;
 pub mod etsi_119_612;
+pub mod eudi_ts2;
 pub mod iana;
 pub mod jades;
 pub mod jwe;

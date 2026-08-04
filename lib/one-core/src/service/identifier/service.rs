@@ -436,7 +436,7 @@ impl IdentifierService {
 
         let rp_id = self.etsi_rp_id_for_identifier(identifier).await?;
         let mut last_reg_cert_jwt: Option<
-            crate::provider::signer::registration_certificate::model::Payload,
+            standardized_types::etsi_119_475::registration_certificate::Payload,
         > = None;
         for trust_info in trust_information {
             let reg_cert_info = self

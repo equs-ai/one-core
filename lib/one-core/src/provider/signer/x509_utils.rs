@@ -7,6 +7,7 @@ use rcgen::{
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::pem::PemObject;
 use shared_types::{CertificateId, KeyId, SignerId};
+use standardized_types::x509::oid;
 use uuid::Uuid;
 use x509_parser::prelude::{GeneralName, ParsedExtension, X509Certificate};
 
@@ -192,8 +193,6 @@ async fn handle_x509_revocation(
 pub(super) fn prepare_issuer_alternative_name_extension(
     data: &IssuerAlternativeNameRequest,
 ) -> CustomExtension {
-    const OID_ISSUER_ALTERNATIVE_NAME: [u64; 4] = [2, 5, 29, 18];
-
     let names = yasna::construct_der(|writer| {
         writer.write_sequence(|writer| {
             // https://datatracker.ietf.org/doc/html/rfc5280#appendix-A.2
@@ -210,5 +209,5 @@ pub(super) fn prepare_issuer_alternative_name_extension(
                 });
         })
     });
-    CustomExtension::from_oid_content(&OID_ISSUER_ALTERNATIVE_NAME, names)
+    CustomExtension::from_oid_content(oid::extension::ISSUER_ALTERNATIVE_NAME, names)
 }

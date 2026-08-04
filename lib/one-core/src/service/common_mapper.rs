@@ -1,11 +1,11 @@
 use ct_codecs::{Base64, Decoder};
+use standardized_types::etsi_119_475::registration_certificate::{Payload, SupervisoryAuthority};
 
 use crate::model::list_filter::ListFilterCondition;
 use crate::model::list_query::{ListPagination, ListQuery, ListSorting};
 use crate::proto::jwt::model::JWTPayload;
 use crate::proto::trust_information::dto::{TrustDetails, WalletRelyingPartyDetails};
 use crate::proto::wrp_validator::model::WRPPayload;
-use crate::provider::signer::registration_certificate::model::{Payload, SupervisoryAuthority};
 use crate::service::common_dto::{
     BoundedB64Image, EudiIntermediaryResponseDTO, EudiTrustInformationResponseDTO, ListQueryDTO,
     TrustInformationDetailResponseDTO,

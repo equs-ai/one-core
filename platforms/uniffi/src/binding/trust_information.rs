@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use one_core::provider::signer::registration_certificate::model::SupervisoryAuthority;
 use one_core::service::common_dto::{
     EudiIntermediaryResponseDTO, EudiTrustInformationResponseDTO, TrustInformationDetailResponseDTO,
 };
 use one_dto_mapper::{From, convert_inner};
+use standardized_types::etsi_119_475::registration_certificate::SupervisoryAuthority;
 
 #[derive(Clone, Debug, From, uniffi::Record)]
 #[from(TrustInformationDetailResponseDTO)]

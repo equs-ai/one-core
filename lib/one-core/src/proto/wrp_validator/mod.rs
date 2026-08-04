@@ -3,13 +3,13 @@ use model::{
     AccessCertificateResult, FetchRegistryResult, RegistrationCertificateResult, TrustMode,
 };
 use shared_types::OrganisationId;
+use standardized_types::etsi_119_475::registration_certificate::Payload;
 use time::Duration;
 use url::Url;
 
 use crate::model::claim::Claim;
 use crate::model::credential_schema::CredentialSchema;
 use crate::provider::credential_formatter::model::{PublicKeySource, X5References};
-use crate::provider::signer::registration_certificate::model::Payload;
 use crate::provider::trust_list_subscriber::TrustEntityResponse;
 
 pub(crate) mod error;

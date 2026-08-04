@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use shared_types::OrganisationId;
+use standardized_types::etsi_119_475::registration_certificate::{Payload, Status};
 use standardized_types::jwk::PublicJwk;
 use time::Duration;
 use url::Url;
@@ -42,7 +43,6 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::model::RevocationState;
 use crate::provider::revocation::provider::RevocationMethodProvider;
-use crate::provider::signer::registration_certificate::model::{Payload, Status};
 use crate::provider::trust_list_subscriber::TrustEntityResponse;
 use crate::provider::trust_list_subscriber::provider::TrustListSubscriberProvider;
 use crate::repository::instance_repository::InstanceRepository;
@@ -699,6 +699,10 @@ mod tests {
 
     use shared_types::{DidValue, OrganisationId, TrustCollectionId, TrustListSubscriberId};
     use similar_asserts::assert_eq;
+    use standardized_types::etsi_119_475::registration_certificate::{
+        Payload, Status, SupervisoryAuthority,
+    };
+    use standardized_types::etsi_119_475::registry::LegalEntity;
     use standardized_types::jwk::{PublicJwk, PublicJwkEc};
     use time::OffsetDateTime;
     use url::Url;
@@ -718,15 +722,12 @@ mod tests {
     use crate::proto::wallet_provider_client::MockWalletProviderClient;
     use crate::proto::wrp_validator::WRPValidator;
     use crate::proto::wrp_validator::error::WRPValidatorError;
-    use crate::proto::wrp_validator::model::{LegalEntity, WRPPayload, WRPPayloadData};
+    use crate::proto::wrp_validator::model::{WRPPayload, WRPPayloadData};
     use crate::provider::credential_formatter::model::{PublicKeySource, X5References};
     use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
     use crate::provider::did_method::provider::MockDidMethodProvider;
     use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
     use crate::provider::revocation::provider::MockRevocationMethodProvider;
-    use crate::provider::signer::registration_certificate::model::{
-        Payload, Status, SupervisoryAuthority,
-    };
     use crate::provider::trust_list_subscriber::etsi_lotl::model::TslServiceEntry;
     use crate::provider::trust_list_subscriber::provider::MockTrustListSubscriberProvider;
     use crate::provider::trust_list_subscriber::{

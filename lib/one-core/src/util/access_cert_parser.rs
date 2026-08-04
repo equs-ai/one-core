@@ -1,4 +1,6 @@
-use asn1_rs::{FromDer, Oid, Tag, TaggedExplicit, oid};
+use asn1_rs::{FromDer, Tag, TaggedExplicit};
+use standardized_types::etsi_119_475::access_certificate::CertificatePolicy;
+use standardized_types::x509::oid;
 use url::Url;
 use x509_parser::extensions::GeneralName;
 use x509_parser::oid_registry::{
@@ -7,7 +9,8 @@ use x509_parser::oid_registry::{
 use x509_parser::pem::Pem;
 use x509_parser::prelude::ParsedExtension;
 
-use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use crate::mapper::x509::parse_oid;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum AccessCertParsingError {
@@ -56,12 +59,6 @@ impl ErrorCodeMixin for AccessCertParsingError {
     }
 }
 
-const OID_CONTENT_URL: Oid<'static> = oid!(2.5.4.81);
-const OID_PHONE_NR: Oid<'static> = oid!(2.5.4.20);
-const OID_ORG_ID: Oid<'static> = oid!(2.5.4.97);
-const OID_CERTIFICATE_POLICY_NATURAL_PERSON: Oid<'static> = oid!(0.4.0.194112.1.0);
-const OID_CERTIFICATE_POLICY_LEGAL_PERSON: Oid<'static> = oid!(0.4.0.194112.1.1);
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EtsiParsedAccessCert {
     pub rp_id: String,
@@ -88,20 +85,26 @@ pub(crate) fn etsi_access_cert_from_pem_chain(
     let ParsedExtension::CertificatePolicies(policies) = policies.parsed_extension() else {
         return Err(AccessCertParsingError::MissingOrganisationIdentifier);
     };
-    let policies: Vec<_> = policies
-        .iter()
-        .map(|policy| policy.policy_id.to_owned())
-        .collect();
+    let policy = policies.iter().find_map(|policy| {
+        CertificatePolicy::from_oid(&policy.policy_id.iter()?.collect::<Vec<_>>())
+    });
 
     let subject = certificate.subject();
-    let rp_id = if policies.contains(&OID_CERTIFICATE_POLICY_NATURAL_PERSON) {
+    let rp_id = match policy {
         // ETSI 119 475 Table 3: identifier (natural person) → serialNumber (clause 5.1.5)
-        subject.iter_by_oid(&OID_X509_SERIALNUMBER).next()
-    } else if policies.contains(&OID_CERTIFICATE_POLICY_LEGAL_PERSON) {
+        Some(CertificatePolicy::NaturalPerson) => {
+            subject.iter_by_oid(&OID_X509_SERIALNUMBER).next()
+        }
         // ETSI 119 475 Table 1: identifier (legal person) → organizationIdentifier (clause 5.1.3)
-        subject.iter_by_oid(&OID_ORG_ID).next()
-    } else {
-        return Err(AccessCertParsingError::MissingOrganisationIdentifier);
+        Some(CertificatePolicy::LegalPerson) => subject
+            .iter_by_oid(
+                &parse_oid(oid::attribute::ORGANIZATION_IDENTIFIER)
+                    .error_while("parsing organizationIdentifier OID")?,
+            )
+            .next(),
+        None => {
+            return Err(AccessCertParsingError::MissingOrganisationIdentifier);
+        }
     }
     .ok_or(AccessCertParsingError::MissingOrganisationIdentifier)?
     .as_str()?
@@ -143,16 +146,20 @@ pub(crate) fn etsi_access_cert_from_pem_chain(
             GeneralName::RFC822Name(email) => Some(email.to_string()),
             _ => None,
         });
+    let phone_oid =
+        parse_oid(oid::attribute::TELEPHONE_NUMBER).error_while("parsing telephoneNumber OID")?;
     let phone = san
         .general_names
         .iter()
         .find_map(|general_name| match general_name {
-            GeneralName::OtherName(oid, data) if *oid == OID_PHONE_NR => Some(parse_phone_nr(data)),
+            GeneralName::OtherName(oid, data) if *oid == phone_oid => Some(parse_phone_nr(data)),
             _ => None,
         })
         .transpose()?;
 
-    let registry_url = if let Some(entry) = subject.iter_by_oid(&OID_CONTENT_URL).next() {
+    let content_url_oid =
+        parse_oid(oid::attribute::CONTENT_URL).error_while("parsing contentUrl OID")?;
+    let registry_url = if let Some(entry) = subject.iter_by_oid(&content_url_oid).next() {
         Some(Url::parse(entry.as_str()?)?)
     } else {
         None

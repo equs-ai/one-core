@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use standardized_types::etsi_119_475::registration_certificate::SupervisoryAuthority;
 use url::Url;
 
 use crate::model::common::SortDirection;
 use crate::model::list_query::NoInclude;
-use crate::provider::signer::registration_certificate::model::SupervisoryAuthority;
 
 pub const KB: usize = 1 << 10;
 pub const MB: usize = KB << 10;

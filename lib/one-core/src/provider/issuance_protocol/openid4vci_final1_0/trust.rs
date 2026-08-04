@@ -1,4 +1,5 @@
 use shared_types::{CredentialId, OrganisationId, SerializedCredential};
+use standardized_types::etsi_119_475;
 use standardized_types::openid4vci::IssuerInfoAttestation;
 use standardized_types::openid4vp::dcql;
 use url::Url;
@@ -27,7 +28,6 @@ use crate::proto::wrp_validator::{QUALIFIED_EAA_CATEGORY, credential_category};
 use crate::provider::credential_formatter::CredentialFormatter;
 use crate::provider::credential_formatter::model::{Features, IdentifierDetails, X5References};
 use crate::provider::issuance_protocol::error::IssuanceProtocolError;
-use crate::provider::signer::registration_certificate;
 
 pub(super) struct TrustInfo {
     pub registration_certificate: Option<String>,
@@ -193,10 +193,7 @@ impl OpenID4VCIFinal1_0 {
             .provides_attestations
             .iter()
             .any(|attestation| {
-                credential_config_matches_reg_cert_attestation(
-                    credential_config,
-                    &attestation.to_owned().into(),
-                )
+                credential_config_matches_reg_cert_attestation(credential_config, attestation)
             })
         {
             return Err(IssuanceProtocolError::DisallowedCredentialConfiguration);
@@ -456,7 +453,7 @@ fn formatter_requires_namespaces(formatter: &dyn CredentialFormatter) -> bool {
 
 fn credential_config_matches_reg_cert_attestation(
     credential_config: &CredentialConfigurationData,
-    reg_cert_attestation: &registration_certificate::model::Credential,
+    reg_cert_attestation: &etsi_119_475::Credential,
 ) -> bool {
     if credential_config.format != reg_cert_attestation.format.dcql_format() {
         return false;
