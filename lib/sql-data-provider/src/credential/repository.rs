@@ -19,7 +19,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, Select, Set, SqlErr, Unchanged,
 };
-use shared_types::{ClaimId, CredentialId, IdentifierId, InteractionId};
+use shared_types::{CredentialId, IdentifierId, InteractionId};
 
 use super::CredentialProvider;
 use super::entity_model::CredentialListEntityModel;
@@ -235,7 +235,6 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
         )
         .column_as(identifier::Column::DidId, "issuer_identifier_did_id")
         .column_as(identifier::Column::KeyId, "issuer_identifier_key_id")
-        .filter(credential::Column::DeletedAt.is_null())
         // list query
         .with_filter_join(&query_params)
         .with_list_query(&query_params);
@@ -537,36 +536,6 @@ impl CredentialRepository for CredentialProvider {
             .map_err(|e| DataLayerError::Db(e.into()))?;
 
         self.credentials_to_repository(credentials, relations).await
-    }
-
-    async fn get_credential_by_claim_id(
-        &self,
-        claim_id: &ClaimId,
-        relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError> {
-        let claim_id = claim_id.to_string();
-        let credential = credential::Entity::find()
-            .join(
-                JoinType::InnerJoin,
-                credential::Relation::Claim
-                    .def()
-                    .on_condition(move |_left, _right| {
-                        Expr::col((claim::Entity, claim::Column::Id))
-                            .eq(&claim_id)
-                            .into_condition()
-                    }),
-            )
-            .one(&self.db)
-            .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
-
-        Ok(match credential {
-            None => None,
-            Some(credential) => Some(
-                self.credential_model_to_repository_model(credential, relations)
-                    .await?,
-            ),
-        })
     }
 
     async fn delete_credential_blobs(

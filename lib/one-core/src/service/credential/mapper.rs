@@ -121,7 +121,8 @@ pub(crate) async fn credential_detail_response_from_model(
                             direction: Some(SortDirection::Descending),
                         }),
                         filtering: Some(
-                            CredentialFilterValue::ParentCredential(value.id).condition(),
+                            CredentialFilterValue::ParentCredential(value.id).condition()
+                                & CredentialFilterValue::Deleted(false),
                         ),
                         ..Default::default()
                     })
@@ -863,6 +864,7 @@ impl From<CredentialFilterParamsDTO> for ListFilterCondition<CredentialFilterVal
             & issuance_date_before
             & revocation_date_after
             & revocation_date_before
+            & CredentialFilterValue::Deleted(false)
     }
 }
 
@@ -883,7 +885,8 @@ pub(crate) async fn get_remaining_batch_item_count(
                                 & CredentialFilterValue::Types(vec![CredentialType::BatchItem])
                                 & CredentialFilterValue::States(vec![
                                     CredentialStateEnum::Accepted,
-                                ]),
+                                ])
+                                & CredentialFilterValue::Deleted(false),
                         ),
                         ..Default::default()
                     })

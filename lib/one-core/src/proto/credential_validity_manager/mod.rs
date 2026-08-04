@@ -489,7 +489,8 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                                 .get_credential_list(ListQuery {
                                     filtering: Some(
                                         CredentialFilterValue::ParentCredential(parent.id)
-                                            .condition(),
+                                            .condition()
+                                            & CredentialFilterValue::Deleted(false),
                                     ),
                                     ..Default::default()
                                 })
@@ -524,7 +525,8 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                     .credential_repository
                     .get_credential_list(ListQuery {
                         filtering: Some(
-                            CredentialFilterValue::ParentCredential(credential.id).condition(),
+                            CredentialFilterValue::ParentCredential(credential.id).condition()
+                                & CredentialFilterValue::Deleted(false),
                         ),
                         ..Default::default()
                     })
@@ -647,7 +649,8 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                     .credential_repository
                     .get_credential_list(ListQuery {
                         filtering: Some(
-                            CredentialFilterValue::ParentCredential(credential.id).condition(),
+                            CredentialFilterValue::ParentCredential(credential.id).condition()
+                                & CredentialFilterValue::Deleted(false),
                         ),
                         ..Default::default()
                     })
@@ -736,7 +739,8 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                             .credential_repository
                             .get_credential_list(ListQuery {
                                 filtering: Some(
-                                    CredentialFilterValue::ParentCredential(parent.id).condition(),
+                                    CredentialFilterValue::ParentCredential(parent.id).condition()
+                                        & CredentialFilterValue::Deleted(false),
                                 ),
                                 ..Default::default()
                             })

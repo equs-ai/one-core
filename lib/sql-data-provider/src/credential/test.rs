@@ -39,7 +39,7 @@ use one_core::repository::organisation_repository::{
     MockOrganisationRepository, OrganisationRepository,
 };
 use one_dto_mapper::convert_inner;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use shared_types::CredentialId;
 use similar_asserts::assert_eq;
 use time::Duration;
@@ -623,7 +623,8 @@ async fn test_get_credential_list_success() {
             sorting: None,
             filtering: Some(
                 CredentialFilterValue::OrganisationId(credential_schema.organisation.id())
-                    .condition(),
+                    .condition()
+                    & CredentialFilterValue::Deleted(false),
             ),
             include: None,
         })
@@ -1241,81 +1242,6 @@ async fn test_update_credential_success_no_claims() {
         credential_after_update.interaction.unwrap().id
     );
     assert_eq!(credential_after_update.state, CredentialStateEnum::Pending);
-}
-
-#[tokio::test]
-async fn test_get_credential_by_claim_id_success() {
-    let TestSetup {
-        credential_schema,
-        db,
-        identifier,
-        ..
-    } = setup_empty().await;
-
-    // an unrelated credential
-    insert_credential(
-        &db,
-        &credential_schema.id,
-        CredentialStateEnum::Created,
-        "OPENID4VCI_DRAFT13",
-        identifier.id,
-        None,
-        None,
-        Uuid::new_v4().into(),
-        credential::CredentialRole::Issuer,
-    )
-    .await
-    .unwrap();
-
-    let credential = insert_credential(
-        &db,
-        &credential_schema.id,
-        CredentialStateEnum::Created,
-        "OPENID4VCI_DRAFT13",
-        identifier.id,
-        None,
-        None,
-        Uuid::new_v4().into(),
-        credential::CredentialRole::Issuer,
-    )
-    .await
-    .unwrap();
-
-    let claim_schema = credential_schema.claim_schemas.as_ref().await.unwrap()[0].to_owned();
-    let claim = Claim {
-        id: Uuid::new_v4().into(),
-        credential_id: credential.id,
-        created_date: get_dummy_date(),
-        last_modified: get_dummy_date(),
-        value: Some("value1".to_string()),
-        path: claim_schema.key.clone(),
-        schema: claim_schema.clone().into(),
-        selectively_disclosable: false,
-    };
-
-    claim::ActiveModel {
-        id: Set(claim.id),
-        credential_id: Set(credential.id),
-        claim_schema_id: Set(claim.schema.id()),
-        value: Set(convert_inner(claim.value.to_owned())),
-        created_date: Set(get_dummy_date()),
-        last_modified: Set(get_dummy_date()),
-        path: Set(claim.path),
-        selectively_disclosable: Set(false),
-    }
-    .insert(&db)
-    .await
-    .unwrap();
-
-    let provider = credential_repository(db, None);
-
-    let expected_credential = provider
-        .get_credential_by_claim_id(&claim.id, &CredentialRelations::default())
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(credential.id, expected_credential.id);
 }
 
 #[tokio::test]

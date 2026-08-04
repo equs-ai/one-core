@@ -20,6 +20,7 @@ use crate::error::{ContextWithErrorCode, NestedError};
 use crate::mapper::{NESTED_CLAIM_MARKER, NESTED_CLAIM_MARKER_STR};
 use crate::model::certificate::Certificate;
 use crate::model::claim_schema::ClaimSchema;
+use crate::model::credential::Credential;
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::history::History;
 use crate::model::identifier::Identifier;
@@ -216,6 +217,7 @@ pub(super) async fn get_verifier_proof_detail(
         CredentialDetailResponseDTO<DetailCredentialClaimResponseDTO>,
     > = HashMap::new();
 
+    let mut credential_for_schema_model: HashMap<CredentialSchemaId, Credential> = HashMap::new();
     for proof_claim in claims.iter() {
         let credential = match proof_claim.credential.clone() {
             Some(cred) => cred,
@@ -227,8 +229,10 @@ pub(super) async fn get_verifier_proof_detail(
             }
         };
 
-        let credential_schema_id = credential.schema.id();
+        credential_for_schema_model.insert(credential.schema.id(), credential);
+    }
 
+    for (credential_schema_id, credential) in credential_for_schema_model {
         let credential_trust_information = trust_information
             .iter()
             .find(|info| info.credential_id == Some(credential.id))

@@ -151,6 +151,8 @@ impl IntoFilterCondition for CredentialFilterValue {
             Self::HasUnconsumedBatchItems(false) => credential::Column::Id
                 .not_in_subquery(unconsumed_item_select())
                 .into_condition(),
+            Self::Deleted(false) => credential::Column::DeletedAt.is_null().into_condition(),
+            Self::Deleted(true) => credential::Column::DeletedAt.is_not_null().into_condition(),
         }
     }
 }

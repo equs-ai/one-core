@@ -1,8 +1,12 @@
+use std::collections::{HashMap, HashSet};
+
 use anyhow::anyhow;
 use autometrics::autometrics;
 use one_core::model::claim::Claim;
 use one_core::model::common::LockType;
+use one_core::model::credential::{Credential, CredentialFilterValue, CredentialListQuery};
 use one_core::model::history::HistoryErrorMetadata;
+use one_core::model::list_filter::ListFilterValue;
 use one_core::model::proof::{
     GetProofList, Proof, ProofClaim, ProofClaimRelations, ProofListQuery, ProofRelations,
     ProofStateEnum, UpdateProofRequest,
@@ -13,7 +17,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, Select, Set, SqlErr, Unchanged,
 };
-use shared_types::{ClaimId, InteractionId, ProofId};
+use shared_types::{ClaimId, CredentialId, InteractionId, ProofId};
 
 use super::ProofProvider;
 use super::mapper::{
@@ -435,13 +439,34 @@ impl ProofProvider {
                 })
                 .collect();
 
-            if let Some(credential_relations) = &relations.credential {
+            if relations.credential.is_some() {
+                let credential_ids: HashSet<CredentialId> = claims
+                    .iter()
+                    .map(|claim| claim.claim.credential_id)
+                    .collect();
+
+                let credentials: HashMap<CredentialId, Credential> = self
+                    .credential_repository
+                    .get_credential_list(CredentialListQuery {
+                        filtering: Some(
+                            CredentialFilterValue::CredentialIds(
+                                credential_ids.into_iter().collect(),
+                            )
+                            .condition(),
+                        ),
+                        ..Default::default()
+                    })
+                    .await?
+                    .values
+                    .into_iter()
+                    .map(|credential| (credential.id, credential))
+                    .collect();
+
                 for claim in claims.iter_mut() {
-                    let credential = self
-                        .credential_repository
-                        .get_credential_by_claim_id(&claim.claim.id, credential_relations)
-                        .await?
-                        .ok_or(DataLayerError::Db(anyhow!("Credential not found")))?;
+                    let credential = credentials
+                        .get(&claim.claim.credential_id)
+                        .ok_or_else(|| DataLayerError::Db(anyhow!("Credential not found")))?
+                        .clone();
                     claim.credential = Some(credential);
                 }
             }

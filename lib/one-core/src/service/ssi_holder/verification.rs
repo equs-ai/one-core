@@ -502,7 +502,8 @@ impl SSIHolderService {
                                 & CredentialFilterValue::ParentCredential(credential_id)
                                 & CredentialFilterValue::States(vec![
                                     CredentialStateEnum::Accepted,
-                                ]),
+                                ])
+                                & CredentialFilterValue::Deleted(false),
                         ),
                         include: None,
                     })

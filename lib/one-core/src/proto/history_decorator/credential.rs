@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use shared_types::{ClaimId, CredentialId, InteractionId};
+use shared_types::{CredentialId, InteractionId};
 use uuid::Uuid;
 
 use crate::model::credential::{
@@ -228,16 +228,6 @@ impl CredentialRepository for CredentialHistoryDecorator {
     ) -> Result<Vec<Credential>, DataLayerError> {
         self.inner
             .get_credentials_by_claim_names(claim_names, relations)
-            .await
-    }
-
-    async fn get_credential_by_claim_id(
-        &self,
-        claim_id: &ClaimId,
-        relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError> {
-        self.inner
-            .get_credential_by_claim_id(claim_id, relations)
             .await
     }
 }

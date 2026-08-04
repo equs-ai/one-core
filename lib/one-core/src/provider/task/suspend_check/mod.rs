@@ -49,7 +49,8 @@ impl Task for SuspendCheckProvider {
                         & CredentialFilterValue::SuspendEndDate(ValueComparison {
                             comparison: ComparisonType::LessThan,
                             value: crate::clock::now_utc(),
-                        }),
+                        })
+                        & CredentialFilterValue::Deleted(false),
                 ),
                 ..Default::default()
             })

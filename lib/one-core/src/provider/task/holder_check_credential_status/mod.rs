@@ -67,7 +67,8 @@ impl Task for HolderCheckCredentialStatus {
                             CredentialType::Single,
                             CredentialType::BatchParent,
                         ])
-                        & organisation_id,
+                        & organisation_id
+                        & CredentialFilterValue::Deleted(false),
                 ),
                 ..Default::default()
             })

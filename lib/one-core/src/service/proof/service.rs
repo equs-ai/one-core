@@ -765,7 +765,8 @@ impl ProofService {
             .get_credential_list(CredentialListQuery {
                 filtering: Some(
                     CredentialFilterValue::CredentialIds(Vec::from_iter(credential_ids.clone()))
-                        .condition(),
+                        .condition()
+                        & CredentialFilterValue::Deleted(false),
                 ),
                 ..Default::default()
             })

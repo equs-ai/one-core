@@ -99,6 +99,7 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
                         CredentialStateEnum::Revoked,
                     ])
                     & CredentialFilterValue::Roles(vec![CredentialRole::Holder])
+                    & CredentialFilterValue::Deleted(false)
                     & (CredentialFilterValue::Types(vec![CredentialType::Single]).condition()
                         | (CredentialFilterValue::Types(vec![CredentialType::BatchParent])
                             .condition()

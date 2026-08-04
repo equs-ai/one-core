@@ -162,7 +162,8 @@ impl Task for RetainProofCheck {
                             CredentialFilterValue::CredentialIds(Vec::from_iter(
                                 credential_ids.clone(),
                             ))
-                            .condition(),
+                            .condition()
+                                & CredentialFilterValue::Deleted(false),
                         ),
                         ..CredentialListQuery::default()
                     })

@@ -97,7 +97,8 @@ impl CredentialValidityManagerImpl {
                 .credential_repository
                 .get_credential_list(ListQuery {
                     filtering: Some(
-                        CredentialFilterValue::ParentCredential(credential.id).condition(),
+                        CredentialFilterValue::ParentCredential(credential.id).condition()
+                            & CredentialFilterValue::Deleted(false),
                     ),
                     sorting: Some(ListSorting {
                         column: SortableCredentialColumn::CreatedDate,

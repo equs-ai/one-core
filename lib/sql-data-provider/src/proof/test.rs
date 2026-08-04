@@ -4,7 +4,8 @@ use mockall::predicate::eq;
 use one_core::model::claim::Claim;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
-    Credential, CredentialRelations, CredentialRole, CredentialStateEnum, CredentialType,
+    Credential, CredentialFilterValue, CredentialRole, CredentialStateEnum, CredentialType,
+    GetCredentialList,
 };
 use one_core::model::did::{Did, DidType};
 use one_core::model::identifier::{
@@ -12,7 +13,7 @@ use one_core::model::identifier::{
 };
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::key::Key;
-use one_core::model::list_filter::ListFilterValue;
+use one_core::model::list_filter::{ListFilterCondition, ListFilterValue};
 use one_core::model::list_query::ListPagination;
 use one_core::model::proof::{
     Proof, ProofClaimRelations, ProofListQuery, ProofRelations, ProofRole, ProofStateEnum,
@@ -584,40 +585,50 @@ async fn test_get_proof_with_relations() {
 
     let mut credential_repository = MockCredentialRepository::default();
     credential_repository
-        .expect_get_credential_by_claim_id()
+        .expect_get_credential_list()
         .once()
-        .with(eq(claim_id), eq(CredentialRelations::default()))
-        .returning(move |_, _| {
-            Ok(Some(Credential {
-                ecosystem: None,
-                id: credential_id,
-                created_date: get_dummy_date(),
-                issuance_date: None,
-                last_modified: get_dummy_date(),
-                deleted_at: None,
-                consumed_at: None,
-                protocol: "protocol".to_string(),
-                redirect_uri: None,
-                role: CredentialRole::Verifier,
-                r#type: CredentialType::Single,
-                state: CredentialStateEnum::Accepted,
-                suspend_end_date: None,
-                claims: Default::default(),
-                issuer_identifier: None,
-                issuer_certificate: None,
-                holder_identifier: None,
-                schema: dummy_credential_schema().into(),
-                interaction: None,
-                key: None,
-                profile: None,
-                credential_blob_id: Some(Uuid::new_v4().into()),
-                wallet_unit_attestation_blob_id: None,
-                wallet_instance_attestation_blob_id: None,
-                webhook_url: None,
-                embedded_disclosure_policy: None,
-                subscriber_information: None,
-                parent: None,
-            }))
+        .withf(move |query| {
+            matches!(
+                &query.filtering,
+                Some(ListFilterCondition::Value(CredentialFilterValue::CredentialIds(ids)))
+                    if *ids == vec![credential_id]
+            )
+        })
+        .returning(move |_| {
+            Ok(GetCredentialList {
+                total_pages: 1,
+                total_items: 1,
+                values: vec![Credential {
+                    ecosystem: None,
+                    id: credential_id,
+                    created_date: get_dummy_date(),
+                    issuance_date: None,
+                    last_modified: get_dummy_date(),
+                    deleted_at: None,
+                    consumed_at: None,
+                    protocol: "protocol".to_string(),
+                    redirect_uri: None,
+                    role: CredentialRole::Verifier,
+                    r#type: CredentialType::Single,
+                    state: CredentialStateEnum::Accepted,
+                    suspend_end_date: None,
+                    claims: Default::default(),
+                    issuer_identifier: None,
+                    issuer_certificate: None,
+                    holder_identifier: None,
+                    schema: dummy_credential_schema().into(),
+                    interaction: None,
+                    key: None,
+                    profile: None,
+                    credential_blob_id: Some(Uuid::new_v4().into()),
+                    wallet_unit_attestation_blob_id: None,
+                    wallet_instance_attestation_blob_id: None,
+                    webhook_url: None,
+                    embedded_disclosure_policy: None,
+                    subscriber_information: None,
+                    parent: None,
+                }],
+            })
         });
 
     let mut key_repository = MockKeyRepository::default();

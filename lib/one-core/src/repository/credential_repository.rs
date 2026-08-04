@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use shared_types::{ClaimId, CredentialId, InteractionId};
+use shared_types::{CredentialId, InteractionId};
 
 use super::error::DataLayerError;
 use crate::model::credential::{
@@ -50,12 +50,6 @@ pub trait CredentialRepository: Send + Sync {
         claim_names: Vec<String>,
         relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError>;
-
-    async fn get_credential_by_claim_id(
-        &self,
-        claim_id: &ClaimId,
-        relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError>;
 }
 
 #[async_trait::async_trait]
