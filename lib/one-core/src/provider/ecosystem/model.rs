@@ -7,7 +7,7 @@ use crate::service::common_dto::EudiTrustInformationResponseDTO;
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct EcosystemCapabilities {
-    ecosystem_roles: Vec<EcosystemRole>,
+    pub ecosystem_roles: Vec<EcosystemRole>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]

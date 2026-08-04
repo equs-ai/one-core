@@ -20,6 +20,8 @@ pub(crate) mod directory;
 pub mod error;
 pub mod model;
 
+pub(crate) mod eudi;
+
 #[provider_mock]
 #[async_trait]
 pub trait Ecosystem: Provider + Send + Sync {
