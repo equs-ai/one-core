@@ -320,6 +320,7 @@ async fn test_create_proof_success() {
 
     let proof_id = Uuid::new_v4().into();
     let proof = Proof {
+        ecosystem: None,
         id: proof_id,
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
@@ -331,6 +332,7 @@ async fn test_create_proof_success() {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: proof_schema_id,
             imported_source_url: Some("CORE_URL".to_string()),
             created_date: get_dummy_date(),
@@ -497,6 +499,7 @@ async fn test_get_proof_with_relations() {
         .times(1)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: get_dummy_date(),
@@ -585,6 +588,7 @@ async fn test_get_proof_with_relations() {
         .with(eq(claim_id), eq(CredentialRelations::default()))
         .returning(move |_, _| {
             Ok(Some(Credential {
+                ecosystem: None,
                 id: credential_id,
                 created_date: get_dummy_date(),
                 issuance_date: None,
@@ -778,6 +782,7 @@ async fn test_get_proof_by_interaction_id_success() {
         .times(1)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: get_dummy_date(),

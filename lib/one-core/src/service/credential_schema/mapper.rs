@@ -515,6 +515,7 @@ pub(super) fn from_create_v2_request_with_id(
     };
 
     Ok(CredentialSchema {
+        ecosystem: None,
         id,
         allow_revocation: request.allow_revocation.unwrap_or(false),
         deleted_at: None,

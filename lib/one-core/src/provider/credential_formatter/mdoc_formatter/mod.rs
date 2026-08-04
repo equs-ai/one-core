@@ -544,6 +544,7 @@ impl CredentialFormatter for MdocFormatter {
 
         let credential_schema_id = Uuid::new_v4().into();
         let credential_schema = crate::model::credential_schema::CredentialSchema {
+            ecosystem: None,
             id: credential_schema_id,
             deleted_at: None,
             created_date: now,
@@ -590,6 +591,7 @@ impl CredentialFormatter for MdocFormatter {
         )?;
 
         Ok(Credential {
+            ecosystem: None,
             id: credential_id,
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),

@@ -33,6 +33,7 @@ async fn test_db_schema_credential() {
             "webhook_url",
             "embedded_disclosure_policy",
             "subscriber_information",
+            "ecosystem",
         ])
         .index("index-Credential-CreatedDate", false, &["created_date"])
         .index("index-Credential-Role", false, &["role"])
@@ -44,7 +45,8 @@ async fn test_db_schema_credential() {
             "index-Credential-SuspendEndDate",
             false,
             &["suspend_end_date"],
-        );
+        )
+        .index("index-Credential-Ecosystem", false, &["ecosystem"]);
     credential
         .column("id")
         .r#type(ColumnType::Uuid)
@@ -179,6 +181,10 @@ async fn test_db_schema_credential() {
     credential
         .column("subscriber_information")
         .r#type(ColumnType::Text)
+        .nullable(true);
+    credential
+        .column("ecosystem")
+        .r#type(ColumnType::String(None))
         .nullable(true);
 }
 

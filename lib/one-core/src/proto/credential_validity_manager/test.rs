@@ -1458,6 +1458,7 @@ fn generic_credential() -> Credential {
 
     let credential_schema_id = Uuid::new_v4().into();
     Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: now,
         issuance_date: None,
@@ -1496,6 +1497,7 @@ fn generic_credential() -> Credential {
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: true,
             id: credential_schema_id,

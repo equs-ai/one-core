@@ -91,6 +91,7 @@ fn generic_credential_schema() -> CredentialSchema {
     let credential_schema_id = Uuid::new_v4().into();
     let claim_schema_id = Uuid::new_v4().into();
     CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation: false,
         id: credential_schema_id,

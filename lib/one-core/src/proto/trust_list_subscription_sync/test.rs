@@ -123,6 +123,7 @@ async fn test_sync_subscriptions() {
 fn test_collection(is_remote: bool) -> TrustCollection {
     let now = crate::clock::now_utc();
     TrustCollection {
+        ecosystem: "EUDI".into(),
         id: uuid::Uuid::new_v4().into(),
         name: "test".into(),
         created_date: now,

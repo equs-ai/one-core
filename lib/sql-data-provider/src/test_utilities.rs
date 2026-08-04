@@ -87,6 +87,7 @@ pub async fn insert_credential(
     .await?;
 
     let credential = credential::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         credential_schema_id: Set(*credential_schema_id),
         created_date: Set(now),
@@ -118,6 +119,7 @@ pub async fn insert_credential(
     .await?;
 
     Ok(Credential {
+        ecosystem: None,
         id: credential.id,
         created_date: credential.created_date,
         issuance_date: credential.issuance_date,
@@ -178,6 +180,7 @@ pub async fn insert_credential_schema_to_database(
 ) -> Result<CredentialSchemaId, DbErr> {
     let new_id: CredentialSchemaId = Uuid::new_v4().into();
     let schema = credential_schema::ActiveModel {
+        ecosystem: Set(None),
         batch_size: Set(None),
         allow_revocation: Set(allow_revocation),
         id: Set(new_id.to_owned()),
@@ -294,6 +297,7 @@ pub async fn insert_proof_request_to_database(
     role: ProofRole,
 ) -> Result<ProofId, DbErr> {
     let proof = proof::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(get_dummy_date()),
         last_modified: Set(get_dummy_date()),
@@ -343,6 +347,7 @@ pub async fn insert_proof_schema_with_claims_to_database(
     name: &str,
 ) -> Result<ProofSchemaId, DbErr> {
     let schema = proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         imported_source_url: Set(Some("CORE_URL".to_string())),
         created_date: Set(get_dummy_date()),
@@ -389,6 +394,7 @@ pub async fn insert_proof_schema_to_database(
     name: &str,
 ) -> Result<ProofSchemaId, DbErr> {
     let schema = proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(get_dummy_date()),
         imported_source_url: Set(Some("CORE_URL".to_string())),
@@ -825,6 +831,7 @@ pub async fn insert_trust_collection_to_database(
 ) -> Result<TrustCollectionId, DbErr> {
     let id = Uuid::new_v4().into();
     let collection = trust_collection::ActiveModel {
+        ecosystem: Set("EUDI".into()),
         id: Set(id),
         name: Set(id.to_string()),
         created_date: Set(get_dummy_date()),

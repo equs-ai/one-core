@@ -1,7 +1,7 @@
 use proc_macros::Model;
 use shared_types::{
-    BlobId, CertificateId, CredentialId, CredentialSchemaId, IdentifierId, InteractionId, KeyId,
-    OrganisationId,
+    BlobId, CertificateId, CredentialId, CredentialSchemaId, EcosystemId, IdentifierId,
+    InteractionId, KeyId, OrganisationId,
 };
 use strum::{Display, EnumString};
 use time::OffsetDateTime;
@@ -40,6 +40,7 @@ pub struct Credential {
     pub webhook_url: Option<String>,
     pub embedded_disclosure_policy: Option<String>,
     pub subscriber_information: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 
     // Relations:
     pub claims: RelatedVec<Claim>,

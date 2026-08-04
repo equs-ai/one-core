@@ -492,6 +492,7 @@ impl CredentialFormatter for JsonLdBbsplus {
             now,
         );
         let schema = CredentialSchema {
+            ecosystem: None,
             id: credential_schema_id,
             deleted_at: None,
             created_date: now,
@@ -540,6 +541,7 @@ impl CredentialFormatter for JsonLdBbsplus {
             .transpose()?;
 
         Ok(Credential {
+            ecosystem: None,
             id: credential_id,
             created_date: now,
             issuance_date: vcdm.issuance_date,

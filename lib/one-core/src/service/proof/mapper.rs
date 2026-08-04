@@ -718,6 +718,7 @@ pub(super) fn proof_from_create_request(
     interaction: Option<Interaction>,
 ) -> Proof {
     Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: now,
         last_modified: now,

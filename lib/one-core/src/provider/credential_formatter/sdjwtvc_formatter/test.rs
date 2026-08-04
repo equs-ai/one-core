@@ -659,6 +659,7 @@ async fn test_extract_credentials_swiyu() {
     let now = crate::clock::now_utc();
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = crate::model::credential_schema::CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation: false,
         id: credential_schema_id,

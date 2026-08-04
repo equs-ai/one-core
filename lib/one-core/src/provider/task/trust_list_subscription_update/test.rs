@@ -27,6 +27,7 @@ async fn test_trust_list_subscription_update_active() {
     };
     let now = crate::clock::now_utc();
     let collection = TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name: "test collection".to_string(),
         created_date: now,
@@ -79,6 +80,7 @@ async fn test_trust_list_subscription_update_active() {
 async fn test_trust_list_subscription_update_error() {
     let now = crate::clock::now_utc();
     let collection = TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name: "test collection".to_string(),
         created_date: now,
@@ -131,6 +133,7 @@ async fn test_trust_list_subscription_update_error() {
 async fn test_trust_list_subscription_update_active_to_error() {
     let now = crate::clock::now_utc();
     let collection = TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name: "test collection".to_string(),
         created_date: now,
@@ -194,6 +197,7 @@ async fn test_trust_list_subscription_update_error_to_active() {
     };
     let now = crate::clock::now_utc();
     let collection = TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name: "test collection".to_string(),
         created_date: now,

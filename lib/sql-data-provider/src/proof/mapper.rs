@@ -177,6 +177,7 @@ fn proof_from_list_item_model(
                 .schema_expire_duration
                 .ok_or(DataLayerError::MappingError)? as u32,
             imported_source_url: value.schema_imported_source_url,
+            ecosystem: value.schema_ecosystem,
             organisation: None,
             input_schemas: None,
         }),
@@ -204,6 +205,7 @@ fn proof_from_list_item_model(
         engagement: value.engagement,
         webhook_url: value.webhook_url,
         subscriber_information: value.subscriber_information,
+        ecosystem: value.ecosystem,
     })
 }
 
@@ -231,6 +233,7 @@ impl From<proof::Model> for Proof {
             interaction: None,
             webhook_url: value.webhook_url,
             subscriber_information: value.subscriber_information,
+            ecosystem: value.ecosystem,
         }
     }
 }
@@ -261,6 +264,7 @@ impl TryFrom<Proof> for proof::ActiveModel {
             engagement: Set(value.engagement),
             webhook_url: Set(value.webhook_url),
             subscriber_information: Set(value.subscriber_information),
+            ecosystem: Set(value.ecosystem),
         })
     }
 }

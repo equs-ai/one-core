@@ -485,6 +485,7 @@ pub(super) fn from_create_request(
     };
 
     Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: now,
         issuance_date: None,

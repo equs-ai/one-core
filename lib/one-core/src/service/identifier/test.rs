@@ -122,6 +122,7 @@ fn dummy_trust_list_subscription(
     let now = get_dummy_date();
     let organisation_id = Uuid::new_v4().into();
     let trust_collection = TrustCollection {
+        ecosystem: "EUDI".into(),
         id: trust_collection_id,
         name: "test trust collection".to_string(),
         created_date: now,

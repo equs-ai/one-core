@@ -67,6 +67,7 @@ impl ProofService {
 
         let now = crate::clock::now_utc();
         let proof = Proof {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: now,
             last_modified: now,

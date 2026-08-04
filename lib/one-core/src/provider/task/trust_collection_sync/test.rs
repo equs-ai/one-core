@@ -213,6 +213,7 @@ fn setup_mocks(
 
 fn dummy_collection(name: String) -> TrustCollection {
     TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name,
         created_date: crate::clock::now_utc(),

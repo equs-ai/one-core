@@ -254,6 +254,7 @@ fn get_proof_list_query(query_params: &ProofListQuery) -> Select<crate::entity::
             proof::Column::WebhookUrl,
             proof::Column::Protocol,
             proof::Column::Transport,
+            proof::Column::Ecosystem,
         ])
         // add related verifierIdentifier
         .join(
@@ -302,7 +303,8 @@ fn get_proof_list_query(query_params: &ProofListQuery) -> Select<crate::entity::
         .column_as(
             proof_schema::Column::OrganisationId,
             "schema_organisation_id",
-        );
+        )
+        .column_as(proof_schema::Column::Ecosystem, "schema_ecosystem");
 
     if needs_interaction_table_for_filter(query_params.filtering.as_ref()) {
         query = query.join(

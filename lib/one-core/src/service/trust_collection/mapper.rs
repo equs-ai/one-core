@@ -18,6 +18,7 @@ use crate::model::trust_list_subscription::{
     TrustListSubscription, TrustListSubscriptionFilterValue, TrustListSubscriptionState,
 };
 use crate::proto::clock::Clock;
+use crate::proto::trust_collection::EUDI_ECOSYSTEM;
 use crate::service::trust_collection::error::TrustCollectionServiceError;
 
 pub(super) fn map_create_trust_collection_request(
@@ -26,6 +27,7 @@ pub(super) fn map_create_trust_collection_request(
 ) -> TrustCollection {
     let now = clock.now_utc();
     TrustCollection {
+        ecosystem: EUDI_ECOSYSTEM.into(),
         id: Uuid::new_v4().into(),
         name: request.name,
         created_date: now,

@@ -19,6 +19,7 @@ impl TryFrom<trust_collection::Model> for TrustCollection {
     fn try_from(value: trust_collection::Model) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.id,
+            ecosystem: value.ecosystem,
             created_date: value.created_date,
             last_modified: value.last_modified,
             name: value.name,
@@ -38,6 +39,7 @@ impl From<TrustCollection> for trust_collection::ActiveModel {
     fn from(value: TrustCollection) -> Self {
         Self {
             id: Set(value.id),
+            ecosystem: Set(value.ecosystem),
             created_date: Set(value.created_date),
             last_modified: Set(value.last_modified),
             name: Set(value.name),

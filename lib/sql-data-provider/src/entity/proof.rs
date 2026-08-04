@@ -2,7 +2,8 @@ use one_core::model::proof::{ProofRole as ModelProofRole, ProofStateEnum};
 use one_dto_mapper::{From, Into};
 use sea_orm::entity::prelude::*;
 use shared_types::{
-    BlobId, CertificateId, DidId, IdentifierId, InteractionId, KeyId, ProofId, ProofSchemaId,
+    BlobId, CertificateId, DidId, EcosystemId, IdentifierId, InteractionId, KeyId, ProofId,
+    ProofSchemaId,
 };
 use time::OffsetDateTime;
 
@@ -26,6 +27,7 @@ pub struct Model {
     pub engagement: Option<String>,
     pub webhook_url: Option<String>,
     pub subscriber_information: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 
     pub verifier_identifier_id: Option<IdentifierId>,
     pub proof_schema_id: Option<ProofSchemaId>,

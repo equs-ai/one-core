@@ -15,6 +15,7 @@ async fn test_db_schema_proof_schema() {
         "expire_duration",
         "organisation_id",
         "imported_source_url",
+        "ecosystem",
     ];
     if schema.backend() == DbBackend::MySql {
         columns.push("deleted_at_materialized");
@@ -34,7 +35,8 @@ async fn test_db_schema_proof_schema() {
             true,
             &index_columns,
         )
-        .index("index-ProofSchema-CreatedDate", false, &["created_date"]);
+        .index("index-ProofSchema-CreatedDate", false, &["created_date"])
+        .index("index-ProofSchema-Ecosystem", false, &["ecosystem"]);
     proof_schema
         .column("id")
         .r#type(ColumnType::Uuid)

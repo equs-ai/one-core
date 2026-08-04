@@ -144,6 +144,7 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             credential::Column::WalletInstanceAttestationBlobId,
             credential::Column::WebhookUrl,
             credential::Column::EmbeddedDisclosurePolicy,
+            credential::Column::Ecosystem,
         ])
         .join(
             sea_orm::JoinType::InnerJoin,
@@ -206,6 +207,10 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
         .column_as(
             credential_schema::Column::EmbeddedDisclosurePolicy,
             "credential_schema_embedded_disclosure_policy",
+        )
+        .column_as(
+            credential_schema::Column::Ecosystem,
+            "credential_schema_ecosystem",
         )
         .join(
             JoinType::LeftJoin,

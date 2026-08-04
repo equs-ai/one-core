@@ -490,6 +490,7 @@ fn credential_schema(
 ) -> CredentialSchema {
     let now = now_utc();
     CredentialSchema {
+        ecosystem: None,
         id,
         deleted_at: None,
         created_date: now,
@@ -524,6 +525,7 @@ fn credential_schema(
 fn credential(parsed_schema: CredentialSchema, claims: Vec<Claim>) -> Credential {
     let now = now_utc();
     Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: now,
         issuance_date: None,

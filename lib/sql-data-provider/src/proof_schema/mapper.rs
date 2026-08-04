@@ -27,6 +27,7 @@ impl From<proof_schema::Model> for ProofSchema {
             organisation: None,
             input_schemas: None,
             imported_source_url: value.imported_source_url,
+            ecosystem: value.ecosystem,
         }
     }
 }
@@ -107,6 +108,7 @@ impl TryFrom<&ProofSchema> for proof_schema::ActiveModel {
                 .id),
             deleted_at: Set(None),
             expire_duration: Set(value.expire_duration as i64),
+            ecosystem: Set(value.ecosystem.clone()),
         })
     }
 }

@@ -176,6 +176,7 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
         .unwrap_or_else(|| test_key("ECDSA"));
 
     Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -187,6 +188,7 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
@@ -293,6 +295,7 @@ fn test_holder_proof(
     };
 
     Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -304,6 +307,7 @@ fn test_holder_proof(
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),

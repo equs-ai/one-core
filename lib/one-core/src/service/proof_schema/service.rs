@@ -441,6 +441,7 @@ pub(crate) async fn create_imported_proof_schema(
     let input_schemas: Vec<ProofInputSchema> = future::try_join_all(input_schemas).await?;
 
     let proof_schema = ProofSchema {
+        ecosystem: None,
         id,
         created_date: now,
         last_modified: now,

@@ -1,4 +1,4 @@
-use shared_types::{OrganisationId, TrustCollectionId};
+use shared_types::{EcosystemId, OrganisationId, TrustCollectionId};
 use time::OffsetDateTime;
 use url::Url;
 
@@ -16,6 +16,7 @@ pub struct TrustCollection {
     pub last_modified: OffsetDateTime,
     pub deactivated_at: Option<OffsetDateTime>,
     pub remote_trust_collection_url: Option<Url>,
+    pub ecosystem: EcosystemId,
     pub organisation_id: OrganisationId,
 
     // Relations

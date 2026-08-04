@@ -32,6 +32,7 @@ impl TrustCollectionDB {
         params: TestTrustCollectionParams,
     ) -> TrustCollection {
         let trust_collection = TrustCollection {
+            ecosystem: "EUDI".into(),
             id: params.id.unwrap_or(Uuid::new_v4().into()),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),

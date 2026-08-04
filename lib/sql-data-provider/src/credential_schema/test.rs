@@ -119,6 +119,7 @@ async fn setup_with_schema(repositories: Repositories) -> TestSetupWithCredentia
 
     TestSetupWithCredentialSchema {
         credential_schema: CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -205,6 +206,7 @@ async fn test_create_credential_schema_success() {
 
     let result = repository
         .create_credential_schema(CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -425,6 +427,7 @@ async fn test_delete_credential_schema_not_found() {
     let credential_schema_id = Uuid::new_v4().into();
     let result = repository
         .delete_credential_schema(&CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,

@@ -1,5 +1,5 @@
 use serde::Serialize;
-use shared_types::{BlobId, IdentifierId, InteractionId, ProofId};
+use shared_types::{BlobId, EcosystemId, IdentifierId, InteractionId, ProofId};
 use strum::Display;
 use time::OffsetDateTime;
 
@@ -33,6 +33,7 @@ pub struct Proof {
     pub engagement: Option<String>,
     pub webhook_url: Option<String>,
     pub subscriber_information: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 
     // Relations
     pub schema: Option<ProofSchema>,

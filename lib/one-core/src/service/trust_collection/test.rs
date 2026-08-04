@@ -57,6 +57,7 @@ fn mock_service(mocks: Mocks) -> TrustCollectionService {
 fn dummy_trust_collection(organisation_id: OrganisationId) -> TrustCollection {
     let now = get_dummy_date();
     TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name: "test trust collection".to_string(),
         created_date: now,

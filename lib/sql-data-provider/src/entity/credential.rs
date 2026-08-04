@@ -6,8 +6,8 @@ use one_dto_mapper::{From, Into};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use shared_types::{
-    BlobId, CertificateId, CredentialId, CredentialSchemaId, DidId, IdentifierId, InteractionId,
-    KeyId,
+    BlobId, CertificateId, CredentialId, CredentialSchemaId, DidId, EcosystemId, IdentifierId,
+    InteractionId, KeyId,
 };
 use time::OffsetDateTime;
 
@@ -55,6 +55,7 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub embedded_disclosure_policy: Option<String>,
     pub subscriber_information: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

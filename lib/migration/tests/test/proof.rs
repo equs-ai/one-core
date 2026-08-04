@@ -27,8 +27,10 @@ async fn test_db_schema_proof() {
             "engagement",
             "webhook_url",
             "subscriber_information",
+            "ecosystem",
         ])
-        .index("index-Proof-CreatedDate", false, &["created_date"]);
+        .index("index-Proof-CreatedDate", false, &["created_date"])
+        .index("index-Proof-Ecosystem", false, &["ecosystem"]);
     proof
         .column("id")
         .r#type(ColumnType::Uuid)
@@ -122,6 +124,10 @@ async fn test_db_schema_proof() {
     proof
         .column("subscriber_information")
         .r#type(ColumnType::Text)
+        .nullable(true);
+    proof
+        .column("ecosystem")
+        .r#type(ColumnType::String(None))
         .nullable(true);
 }
 

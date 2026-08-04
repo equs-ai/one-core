@@ -522,6 +522,7 @@ async fn test_get_trust_list_subscription_with_trust_collection_relation() {
         .expect_get()
         .returning(move |id, _relations| {
             Ok(Some(TrustCollection {
+                ecosystem: "EUDI".into(),
                 id: *id,
                 name: "test-collection".to_string(),
                 created_date: get_dummy_date(),

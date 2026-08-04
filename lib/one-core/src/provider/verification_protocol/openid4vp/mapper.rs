@@ -314,6 +314,7 @@ pub(crate) fn extracted_credential_to_model(
 
     Ok(ProvedCredential {
         credential: Credential {
+            ecosystem: None,
             id: credential_id,
             created_date: now,
             issuance_date,

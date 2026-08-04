@@ -59,6 +59,7 @@ pub(super) fn credential_from_unexportable_model(
     });
 
     Ok(Credential {
+        ecosystem: None,
         id: value.id,
         created_date: value.created_date,
         issuance_date: value.issuance_date,
@@ -77,6 +78,7 @@ pub(super) fn credential_from_unexportable_model(
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {
+            ecosystem: None,
             id: value.credential_schema_id,
             deleted_at: value.credential_schema_deleted_at,
             created_date: value.credential_schema_created_date,

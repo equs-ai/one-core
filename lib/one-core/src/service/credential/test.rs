@@ -143,6 +143,7 @@ async fn generic_credential() -> Credential {
 
     let credential_schema_id = Uuid::new_v4().into();
     Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: now,
         issuance_date: None,
@@ -182,6 +183,7 @@ async fn generic_credential() -> Credential {
         holder_identifier: None,
         schema: (backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: credential_schema_id,
@@ -236,6 +238,7 @@ async fn generic_credential_list_entity() -> Credential {
     let credential_schema_id = Uuid::new_v4().into();
     let organisation = dummy_organisation(None);
     Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: now,
         issuance_date: None,
@@ -281,6 +284,7 @@ async fn generic_credential_list_entity() -> Credential {
         holder_identifier: None,
         schema: (backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: credential_schema_id,
@@ -3006,6 +3010,7 @@ fn generate_credential_schema_with_claim_schemas(
     let now = crate::clock::now_utc();
     let credential_schema_id = Uuid::new_v4().into();
     CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation: false,
         id: credential_schema_id,
@@ -3546,6 +3551,7 @@ async fn test_get_credential_success_array_complex_nested_all() {
 
     let credential_schema_id = Uuid::new_v4().into();
     let credential = Credential {
+        ecosystem: None,
         id,
         created_date: now,
         issuance_date: None,
@@ -3606,6 +3612,7 @@ async fn test_get_credential_success_array_complex_nested_all() {
         holder_identifier: None,
         schema: (backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: credential_schema_id,
@@ -4325,6 +4332,7 @@ async fn test_get_credential_success_array_index_sorting() {
 
     let credential_schema_id = Uuid::new_v4().into();
     let credential = Credential {
+        ecosystem: None,
         id,
         created_date: now,
         issuance_date: None,
@@ -4385,6 +4393,7 @@ async fn test_get_credential_success_array_index_sorting() {
         holder_identifier: None,
         schema: (backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: credential_schema_id,
@@ -4741,6 +4750,7 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
 
     let credential_schema_id = Uuid::new_v4().into();
     let credential = Credential {
+        ecosystem: None,
         id,
         created_date: now,
         issuance_date: None,
@@ -4801,6 +4811,7 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
         holder_identifier: None,
         schema: (backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: credential_schema_id,
@@ -5012,6 +5023,7 @@ async fn test_get_credential_success_array_single_element() {
 
     let credential_schema_id = Uuid::new_v4().into();
     let credential = Credential {
+        ecosystem: None,
         id,
         created_date: now,
         issuance_date: None,
@@ -5072,6 +5084,7 @@ async fn test_get_credential_success_array_single_element() {
         holder_identifier: None,
         schema: (backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: credential_schema_id,
@@ -5242,6 +5255,7 @@ async fn test_create_credential_array(
 
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = CredentialSchema {
+        ecosystem: None,
         allow_revocation: false,
         id: credential_schema_id,
         deleted_at: None,
@@ -5638,6 +5652,7 @@ async fn test_create_credential_invalid_certificate_role() {
     let claim_schemas = vec![schema_root.to_owned(), schema_00.to_owned()];
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation: false,
         id: credential_schema_id,

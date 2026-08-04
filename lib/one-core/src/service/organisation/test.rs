@@ -294,6 +294,7 @@ fn local_trust_collection(
     organisation_id: OrganisationId,
 ) -> TrustCollection {
     TrustCollection {
+        ecosystem: "EUDI".into(),
         id: id.into(),
         name: name.to_string(),
         created_date: crate::clock::now_utc(),

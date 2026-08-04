@@ -41,6 +41,7 @@ pub(crate) async fn credential_from_proved(
         .error_while("creating remote holder identifier")?;
 
     Ok(Credential {
+        ecosystem: None,
         id: proved_credential.credential.id,
         created_date: proved_credential.credential.created_date,
         issuance_date: proved_credential.credential.issuance_date,

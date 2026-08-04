@@ -133,6 +133,7 @@ async fn test_create_proof_schema_invalid_params() {
 
     let result = repository
         .create_proof_schema(ProofSchema {
+            ecosystem: None,
             id: proof_schema_id,
             imported_source_url: Some("CORE_URL".to_string()),
             created_date: get_dummy_date(),
@@ -165,6 +166,7 @@ async fn test_create_proof_schema_already_exists() {
     let credential_schema_id = Uuid::new_v4().into();
     let result = repository
         .create_proof_schema(ProofSchema {
+            ecosystem: None,
             id: proof_schema_id,
             created_date: get_dummy_date(),
             imported_source_url: Some("CORE_URL".to_string()),
@@ -190,6 +192,7 @@ async fn test_create_proof_schema_already_exists() {
                     order: 0,
                 }]),
                 credential_schema: Some(CredentialSchema {
+                    ecosystem: None,
                     batch_size: None,
                     allow_revocation: false,
                     id: credential_schema_id,
@@ -279,6 +282,7 @@ async fn test_create_proof_schema_success() {
     let id = Uuid::new_v4().into();
     let result = repository
         .create_proof_schema(ProofSchema {
+            ecosystem: None,
             id,
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -304,6 +308,7 @@ async fn test_create_proof_schema_success() {
                     order: 0,
                 }]),
                 credential_schema: Some(CredentialSchema {
+                    ecosystem: None,
                     batch_size: None,
                     allow_revocation: false,
                     id: credential_schema_id,
@@ -526,6 +531,7 @@ async fn test_get_proof_schema_with_relations() {
         .times(1)
         .returning(|id| {
             Ok(Some(CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: id.to_owned(),
@@ -679,6 +685,7 @@ async fn test_get_proof_schema_with_input_proof_relations() {
         .expect_get_credential_schema()
         .returning(|id| {
             Ok(Some(CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
                 id: id.to_owned(),
@@ -932,6 +939,7 @@ async fn test_get_proof_schema_list_sorting_filtering_pagination() {
 
     let date_now = one_core::clock::now_utc();
     let schema1_id = crate::entity::proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(date_now),
         last_modified: Set(date_now),
@@ -948,6 +956,7 @@ async fn test_get_proof_schema_list_sorting_filtering_pagination() {
 
     let date_later = date_now + time::Duration::seconds(1);
     let schema2_id = crate::entity::proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(date_later),
         imported_source_url: Set(Some("CORE_URL".to_string())),
@@ -1154,6 +1163,7 @@ async fn test_get_proof_schema_list_filter_formats() {
 
     let date_now = one_core::clock::now_utc();
     let cred_schema_jwt_id = crate::entity::credential_schema::ActiveModel {
+        ecosystem: Set(None),
         batch_size: Set(None),
         allow_revocation: Set(false),
         id: Set(Uuid::new_v4().into()),
@@ -1191,6 +1201,7 @@ async fn test_get_proof_schema_list_filter_formats() {
     .unwrap();
 
     let cred_schema_mdoc_id = crate::entity::credential_schema::ActiveModel {
+        ecosystem: Set(None),
         batch_size: Set(None),
         allow_revocation: Set(false),
         id: Set(Uuid::new_v4().into()),
@@ -1228,6 +1239,7 @@ async fn test_get_proof_schema_list_filter_formats() {
     .unwrap();
 
     let schema_jwt_only_id = crate::entity::proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(date_now),
         last_modified: Set(date_now),
@@ -1255,6 +1267,7 @@ async fn test_get_proof_schema_list_filter_formats() {
     .unwrap();
 
     let schema_mdoc_only_id = crate::entity::proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(date_now),
         last_modified: Set(date_now),
@@ -1282,6 +1295,7 @@ async fn test_get_proof_schema_list_filter_formats() {
     .unwrap();
 
     let schema_mdoc_and_jwt_id = crate::entity::proof_schema::ActiveModel {
+        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(date_now),
         last_modified: Set(date_now),

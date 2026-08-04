@@ -49,6 +49,7 @@ async fn setup() -> TestSetup {
 
 fn dummy_trust_collection(org_id: OrganisationId) -> TrustCollection {
     TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),

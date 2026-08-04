@@ -196,6 +196,7 @@ fn construct_proof_with_state(proof_id: &ProofId, state: ProofStateEnum) -> Proo
     };
 
     Proof {
+        ecosystem: None,
         id: proof_id.to_owned(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -207,6 +208,7 @@ fn construct_proof_with_state(proof_id: &ProofId, state: ProofStateEnum) -> Proo
         requested_date,
         completed_date,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
@@ -261,6 +263,7 @@ fn generic_proof_input_schema() -> ProofInputSchema {
     ProofInputSchema {
         claim_schemas: None,
         credential_schema: Some(CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -300,6 +303,7 @@ async fn test_get_proof_exists() {
 
     let credential_schema_id = Uuid::new_v4().into();
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -310,6 +314,7 @@ async fn test_get_proof_exists() {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             imported_source_url: Some("CORE_URL".to_string()),
             created_date: crate::clock::now_utc(),
@@ -337,6 +342,7 @@ async fn test_get_proof_exists() {
                 credential_schema: Some(
                     backfill_default_translations(
                         CredentialSchema {
+                            ecosystem: None,
                             batch_size: None,
                             allow_revocation: false,
                             id: credential_schema_id,
@@ -492,6 +498,7 @@ async fn test_get_proof_with_array_holder() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -527,6 +534,7 @@ async fn test_get_proof_with_array_holder() {
     .unwrap();
 
     let credential = Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -591,6 +599,7 @@ async fn test_get_proof_with_array_holder() {
     let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -754,6 +763,7 @@ async fn test_get_proof_with_array_in_object_holder() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -789,6 +799,7 @@ async fn test_get_proof_with_array_in_object_holder() {
     .unwrap();
 
     let credential = Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -863,6 +874,7 @@ async fn test_get_proof_with_array_in_object_holder() {
     let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -1031,6 +1043,7 @@ async fn test_get_proof_with_object_array_holder() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -1066,6 +1079,7 @@ async fn test_get_proof_with_object_array_holder() {
     .unwrap();
 
     let credential = Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -1150,6 +1164,7 @@ async fn test_get_proof_with_object_array_holder() {
     let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -1313,6 +1328,7 @@ async fn test_get_proof_with_array() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -1348,6 +1364,7 @@ async fn test_get_proof_with_array() {
     .unwrap();
 
     let credential = Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -1412,6 +1429,7 @@ async fn test_get_proof_with_array() {
     let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -1422,6 +1440,7 @@ async fn test_get_proof_with_array() {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             imported_source_url: Some("CORE_URL".to_string()),
             created_date: crate::clock::now_utc(),
@@ -1582,6 +1601,7 @@ async fn test_get_proof_with_array_in_object() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -1617,6 +1637,7 @@ async fn test_get_proof_with_array_in_object() {
     .unwrap();
 
     let credential = Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -1691,6 +1712,7 @@ async fn test_get_proof_with_array_in_object() {
     let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -1701,6 +1723,7 @@ async fn test_get_proof_with_array_in_object() {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             imported_source_url: Some("CORE_URL".to_string()),
             created_date: crate::clock::now_utc(),
@@ -1867,6 +1890,7 @@ async fn test_get_proof_with_object_array() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -1902,6 +1926,7 @@ async fn test_get_proof_with_object_array() {
     .unwrap();
 
     let credential = Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -1986,6 +2011,7 @@ async fn test_get_proof_with_object_array() {
     let credential_claims = credential.claims.as_ref().await.unwrap().to_owned();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -1996,6 +2022,7 @@ async fn test_get_proof_with_object_array() {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             imported_source_url: Some("CORE_URL".to_string()),
             created_date: crate::clock::now_utc(),
@@ -2159,6 +2186,7 @@ async fn test_get_proof_list_success() {
     let mut history_repository = MockHistoryRepository::default();
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -2170,6 +2198,7 @@ async fn test_get_proof_list_success() {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             imported_source_url: Some("CORE_URL".to_string()),
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
@@ -2306,6 +2335,7 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -2402,6 +2432,7 @@ async fn test_create_proof_using_invalid_did_method() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -2532,6 +2563,7 @@ async fn test_create_proof_using_identifier() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -2669,6 +2701,7 @@ async fn test_create_proof_without_related_key() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -2811,6 +2844,7 @@ async fn test_create_proof_with_related_key() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -2956,6 +2990,7 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .return_once(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -3112,6 +3147,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .return_once(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -3240,6 +3276,7 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -3350,6 +3387,7 @@ async fn test_create_proof_failed_incompatible_exchange() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -3415,6 +3453,7 @@ async fn test_create_proof_did_deactivated_error() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -3505,6 +3544,7 @@ async fn test_create_proof_schema_deleted() {
         .once()
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -3575,6 +3615,7 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),
@@ -4579,6 +4620,7 @@ async fn test_create_proof_session_org_mismatch() {
         .once()
         .returning(|id, _| {
             Ok(Some(ProofSchema {
+                ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
                 created_date: crate::clock::now_utc(),

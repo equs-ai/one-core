@@ -1,5 +1,7 @@
 use sea_orm::FromQueryResult;
-use shared_types::{BlobId, DidId, IdentifierId, KeyId, OrganisationId, ProofId, ProofSchemaId};
+use shared_types::{
+    BlobId, DidId, EcosystemId, IdentifierId, KeyId, OrganisationId, ProofId, ProofSchemaId,
+};
 use time::OffsetDateTime;
 
 use crate::entity::identifier::{IdentifierState, IdentifierType};
@@ -24,6 +26,7 @@ pub(super) struct ProofListItemModel {
     pub engagement: Option<String>,
     pub webhook_url: Option<String>,
     pub subscriber_information: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 
     // verifier_identifier
     pub verifier_identifier_id: Option<IdentifierId>,
@@ -44,4 +47,5 @@ pub(super) struct ProofListItemModel {
     pub schema_last_modified: Option<OffsetDateTime>,
     pub schema_expire_duration: Option<i64>,
     pub schema_imported_source_url: Option<String>,
+    pub schema_ecosystem: Option<EcosystemId>,
 }

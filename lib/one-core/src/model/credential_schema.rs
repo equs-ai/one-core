@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use shared_types::{CredentialFormat, CredentialSchemaId, RevocationMethodId};
+use shared_types::{CredentialFormat, CredentialSchemaId, EcosystemId, RevocationMethodId};
 use strum::Display;
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -46,6 +46,8 @@ pub struct CredentialSchema {
 
     pub allow_revocation: bool,
     pub allow_suspension: bool,
+
+    pub ecosystem: Option<EcosystemId>,
 
     pub claim_schemas: RelatedVec<ClaimSchema>,
     pub organisation: Related<Organisation>,

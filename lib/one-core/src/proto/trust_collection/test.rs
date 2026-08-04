@@ -103,6 +103,7 @@ fn test_collection(
 ) -> TrustCollection {
     let now = crate::clock::now_utc();
     TrustCollection {
+        ecosystem: "EUDI".into(),
         id: Uuid::new_v4().into(),
         name: name.to_owned(),
         created_date: now,

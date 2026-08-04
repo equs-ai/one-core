@@ -1,4 +1,4 @@
-use shared_types::ProofSchemaId;
+use shared_types::{EcosystemId, ProofSchemaId};
 use time::OffsetDateTime;
 
 use super::claim_schema::ClaimSchema;
@@ -18,6 +18,7 @@ pub struct ProofSchema {
     pub name: String,
     pub expire_duration: u32,
     pub imported_source_url: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 
     // Relations
     pub organisation: Option<Organisation>,

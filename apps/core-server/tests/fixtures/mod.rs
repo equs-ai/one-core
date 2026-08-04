@@ -672,6 +672,7 @@ pub async fn create_credential_schema(
         namespace: None,
     };
     let mut credential_schema = CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation: params.allow_revocation.unwrap_or(true),
         id,
@@ -740,6 +741,7 @@ pub async fn create_credential_schema_with_claims(
     let id = Uuid::new_v4();
     let format_id = Uuid::new_v4().into();
     let mut credential_schema = CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation,
         id: id.into(),
@@ -834,6 +836,7 @@ pub async fn create_proof_schema(
         .collect();
 
     let proof_schema = ProofSchema {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         imported_source_url: Some("CORE_URL".to_string()),
         created_date: get_dummy_date(),
@@ -961,6 +964,7 @@ pub async fn create_credential(
         .collect();
 
     let credential = Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
@@ -1031,6 +1035,7 @@ pub async fn create_proof(
     };
 
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),

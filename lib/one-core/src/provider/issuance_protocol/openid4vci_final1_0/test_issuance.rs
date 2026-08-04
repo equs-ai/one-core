@@ -740,6 +740,7 @@ async fn dummy_credential() -> Credential {
     let credential_id = Uuid::new_v4().into();
     let credential_schema_id = Uuid::new_v4().into();
     Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -779,6 +780,7 @@ async fn dummy_credential() -> Credential {
         holder_identifier: None,
         schema: backfill_default_translations(
             CredentialSchema {
+                ecosystem: None,
                 batch_size: None,
                 allow_revocation: true,
                 id: credential_schema_id,

@@ -4,7 +4,7 @@ use one_dto_mapper::{From, Into, convert_inner};
 use sea_orm::FromJsonQueryResult;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use shared_types::{CredentialSchemaId, OrganisationId};
+use shared_types::{CredentialSchemaId, EcosystemId, OrganisationId};
 use time::OffsetDateTime;
 
 use crate::common::bool_from_int;
@@ -36,6 +36,7 @@ pub struct Model {
     pub allow_revocation: bool,
     #[sea_orm(column_type = "Text")]
     pub embedded_disclosure_policy: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(

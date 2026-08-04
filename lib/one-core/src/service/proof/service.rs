@@ -955,6 +955,7 @@ impl ProofService {
         let proof_id = self
             .proof_repository
             .create_proof(Proof {
+                ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: now,
                 last_modified: now,

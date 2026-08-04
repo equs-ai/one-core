@@ -781,6 +781,7 @@ mod tests {
         collection_repo.expect_list().returning(|_| {
             Ok(GetTrustCollectionList {
                 values: vec![TrustCollection {
+                    ecosystem: "EUDI".into(),
                     id: TrustCollectionId::from(uuid::Uuid::new_v4()),
                     name: "collection".to_string(),
                     created_date: OffsetDateTime::now_utc(),

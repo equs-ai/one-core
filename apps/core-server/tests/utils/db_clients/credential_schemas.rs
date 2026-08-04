@@ -127,6 +127,7 @@ impl CredentialSchemasDB {
 
         let id = params.id.unwrap_or(Uuid::new_v4().into());
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),
             id,
@@ -215,6 +216,7 @@ impl CredentialSchemasDB {
 
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),
             id,
@@ -341,6 +343,7 @@ impl CredentialSchemasDB {
         let id = Uuid::new_v4().into();
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),
             id,
@@ -467,6 +470,7 @@ impl CredentialSchemasDB {
         let id = Uuid::new_v4().into();
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),
             id,
@@ -605,6 +609,7 @@ impl CredentialSchemasDB {
         let id = Uuid::new_v4().into();
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),
             id,
@@ -885,6 +890,7 @@ impl CredentialSchemasDB {
         let id = Uuid::new_v4().into();
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),
             id,
@@ -960,6 +966,7 @@ impl CredentialSchemasDB {
         let id = Uuid::new_v4().into();
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: true,
             id,
@@ -1040,6 +1047,7 @@ impl CredentialSchemasDB {
 
         let format_id = Uuid::new_v4().into();
         let mut credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: true,
             id: id.to_owned().into(),
@@ -1140,6 +1148,7 @@ impl CredentialSchemasDB {
         let sd_jwt_vc_format_id = Uuid::new_v4().into();
         let mdoc_format_id = Uuid::new_v4().into();
         let credential_schema = CredentialSchema {
+            ecosystem: None,
             batch_size,
             allow_revocation: false,
             id,

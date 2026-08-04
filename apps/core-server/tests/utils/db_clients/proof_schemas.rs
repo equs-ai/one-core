@@ -70,6 +70,7 @@ impl ProofSchemasDB {
         }
 
         let proof_schema = ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: get_dummy_date(),
             imported_source_url: Some("CORE_URL".to_string()),

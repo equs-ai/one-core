@@ -1,5 +1,5 @@
 use sea_orm::entity::prelude::*;
-use shared_types::{OrganisationId, TrustCollectionId};
+use shared_types::{EcosystemId, OrganisationId, TrustCollectionId};
 use time::OffsetDateTime;
 use url::Url;
 
@@ -13,6 +13,7 @@ pub struct Model {
     pub last_modified: OffsetDateTime,
     pub remote_trust_collection_url: Option<String>,
     pub deactivated_at: Option<OffsetDateTime>,
+    pub ecosystem: EcosystemId,
 
     pub organisation_id: OrganisationId,
 }

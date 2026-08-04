@@ -302,6 +302,7 @@ impl MigratorTrait for Migrator {
             Box::new(migrations::m20260717_084043_common_json_ld_context::Migration),
             Box::new(migrations::m20260720_091548_instance::Migration),
             Box::new(migrations::m20260722_121557_drop_verifier_instance_history::Migration),
+            Box::new(migrations::m20260803_120000_add_ecosystem::Migration),
         ]
     }
 }

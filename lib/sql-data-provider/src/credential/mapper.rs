@@ -241,6 +241,7 @@ pub(crate) fn model_to_credential(
         webhook_url: credential.webhook_url,
         embedded_disclosure_policy: credential.embedded_disclosure_policy,
         subscriber_information: credential.subscriber_information,
+        ecosystem: credential.ecosystem,
         parent: credential
             .parent_id
             .map(|id| Related::new(id, credential_repository.clone())),
@@ -285,6 +286,7 @@ pub(super) fn request_to_active_model(
         webhook_url: Set(request.webhook_url.to_owned()),
         embedded_disclosure_policy: Set(request.embedded_disclosure_policy.clone()),
         subscriber_information: Set(request.subscriber_information.clone()),
+        ecosystem: Set(request.ecosystem.clone()),
         r#type: Set(request.r#type.into()),
     }
 }
@@ -321,6 +323,7 @@ pub(super) fn credential_list_model_to_repository_model(
     });
     let schema = CredentialSchema {
         id: credential.credential_schema_id,
+        ecosystem: credential.credential_schema_ecosystem,
         deleted_at: credential.credential_schema_deleted_at,
         created_date: credential.credential_schema_created_date,
         last_modified: credential.credential_schema_last_modified,
@@ -433,6 +436,7 @@ pub(super) fn credential_list_model_to_repository_model(
         webhook_url: credential.webhook_url,
         embedded_disclosure_policy: credential.embedded_disclosure_policy,
         subscriber_information: credential.subscriber_information,
+        ecosystem: credential.ecosystem,
         parent: credential
             .parent_id
             .map(|id| Related::new(id, credential_repository.clone())),

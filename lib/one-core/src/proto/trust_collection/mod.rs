@@ -8,6 +8,8 @@ pub(crate) mod manager;
 #[cfg(test)]
 mod test;
 
+pub(crate) const EUDI_ECOSYSTEM: &str = "EUDI";
+
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
 pub trait TrustCollectionManager: Send + Sync {

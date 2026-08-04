@@ -285,6 +285,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
 
     let credential_schema_id = Uuid::new_v4().into();
     Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -327,6 +328,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: true,
             id: credential_schema_id,
@@ -459,6 +461,7 @@ pub fn dummy_proof() -> Proof {
 
 pub fn dummy_proof_with_protocol(protocol: &str) -> Proof {
     Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -470,6 +473,7 @@ pub fn dummy_proof_with_protocol(protocol: &str) -> Proof {
         requested_date: None,
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
@@ -524,6 +528,7 @@ pub fn dummy_organisation(id: Option<OrganisationId>) -> Organisation {
 
 pub fn dummy_proof_schema() -> ProofSchema {
     ProofSchema {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -543,6 +548,7 @@ pub fn dummy_credential_schema() -> CredentialSchema {
 pub fn dummy_credential_schema_with_format(format: &str) -> CredentialSchema {
     let credential_schema_id = Uuid::new_v4().into();
     CredentialSchema {
+        ecosystem: None,
         id: credential_schema_id,
         deleted_at: None,
         created_date: crate::clock::now_utc(),

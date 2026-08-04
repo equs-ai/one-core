@@ -428,6 +428,7 @@ async fn test_get_client_metadata_success() {
         organisation: dummy_organisation(None).into(),
     };
     let proof = Proof {
+        ecosystem: None,
         id: proof_id,
         created_date: now,
         last_modified: now,

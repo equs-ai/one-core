@@ -48,6 +48,7 @@ pub(crate) fn proof_from_handle_invitation(
     state: ProofStateEnum,
 ) -> Proof {
     Proof {
+        ecosystem: None,
         id: proof_id.to_owned(),
         created_date: now,
         last_modified: now,

@@ -1052,6 +1052,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
     };
     let credential_schema_format_id = Uuid::new_v4().into();
     Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,
@@ -1097,6 +1098,7 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
         issuer_certificate: None,
         holder_identifier: None,
         schema: crate::model::credential_schema::CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,

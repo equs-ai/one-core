@@ -227,6 +227,7 @@ fn generic_credential_schema() -> CredentialSchema {
 
     let format_id = Uuid::new_v4().into();
     CredentialSchema {
+        ecosystem: None,
         batch_size: None,
         allow_revocation: false,
         id: credential_schema_id,
@@ -316,6 +317,7 @@ fn dummy_credential(
     schema: CredentialSchema,
 ) -> Credential {
     Credential {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         issuance_date: None,

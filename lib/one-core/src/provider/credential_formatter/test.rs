@@ -88,6 +88,7 @@ fn generate_credential_matching_detail(
 ) -> Credential {
     let detail = detail.clone();
     Credential {
+        ecosystem: None,
         id: detail.id,
         created_date: detail.created_date,
         issuance_date: detail.issuance_date,
@@ -162,6 +163,7 @@ fn generate_credential_matching_detail(
             .into(),
         ),
         schema: CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: detail.schema.revocation_method.is_some(),
             id: detail.schema.id,

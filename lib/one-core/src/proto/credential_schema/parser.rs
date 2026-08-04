@@ -199,6 +199,7 @@ impl CredentialSchemaImportParser for CredentialSchemaImportParserImpl {
         claim_schemas.extend(metadata_claim_schemas.into_values());
 
         Ok(CredentialSchema {
+            ecosystem: None,
             id: credential_schema_id,
             deleted_at: None,
             created_date: now,

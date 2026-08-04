@@ -366,6 +366,7 @@ impl CredentialFormatter for SDJWTFormatter {
             now,
         );
         let schema = CredentialSchema {
+            ecosystem: None,
             id: credential_schema_id,
             deleted_at: None,
             created_date: now,
@@ -395,6 +396,7 @@ impl CredentialFormatter for SDJWTFormatter {
         )?;
 
         Ok(Credential {
+            ecosystem: None,
             id: credential_id,
             created_date: now,
             issuance_date: parsed_credential.payload.issued_at,

@@ -179,6 +179,7 @@ impl CredentialsDB {
         };
 
         Credential {
+            ecosystem: None,
             id: credential_id,
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),

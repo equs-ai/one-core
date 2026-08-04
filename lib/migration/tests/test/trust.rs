@@ -195,6 +195,7 @@ async fn test_db_schema_trust_collection() {
         "name",
         "organisation_id",
         "remote_trust_collection_url",
+        "ecosystem",
     ];
     if schema.backend() == DbBackend::MySql {
         columns.push("deactivated_at_materialized");
@@ -246,6 +247,11 @@ async fn test_db_schema_trust_collection() {
         .nullable(false)
         .default(None)
         .foreign_key("fk-TrustCollection-OrganisationId", "organisation", "id");
+    trust_entry
+        .column("ecosystem")
+        .r#type(ColumnType::String(None))
+        .nullable(false)
+        .default(None);
 }
 
 #[tokio::test]

@@ -148,6 +148,7 @@ async fn test_presentation_reject_ok() {
     .unwrap();
     let credential_schema_id = Uuid::new_v4().into();
     let proof = Proof {
+        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -159,6 +160,7 @@ async fn test_presentation_reject_ok() {
         requested_date: Some(crate::clock::now_utc()),
         completed_date: None,
         schema: Some(ProofSchema {
+            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             imported_source_url: Some("CORE_URL".to_string()),
@@ -169,6 +171,7 @@ async fn test_presentation_reject_ok() {
             input_schemas: Some(vec![ProofInputSchema {
                 claim_schemas: None,
                 credential_schema: Some(CredentialSchema {
+                    ecosystem: None,
                     batch_size: None,
                     allow_revocation: false,
                     id: credential_schema_id,
@@ -269,6 +272,7 @@ async fn test_get_presentation_definition_v2() {
 
     let proof_id = Uuid::new_v4().into();
     let proof = Proof {
+        ecosystem: None,
         id: proof_id,
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -431,6 +435,7 @@ async fn test_get_presentation_definition_v2() {
     ];
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            ecosystem: None,
             batch_size: None,
             allow_revocation: false,
             id: credential_schema_id,
@@ -535,6 +540,7 @@ async fn test_get_presentation_definition_v2() {
     ];
 
     let credential = Credential {
+        ecosystem: None,
         id: credential_id,
         created_date: crate::clock::now_utc(),
         issuance_date: None,
