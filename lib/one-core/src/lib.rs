@@ -54,6 +54,7 @@ use crate::provider::credential_formatter::provider::credential_formatter_provid
 use crate::provider::data_type::provider::data_type_provider_from_config;
 use crate::provider::did_method::provider::did_method_provider_from_config;
 use crate::provider::document_signer::provider::document_signer_provider_from_config;
+use crate::provider::ecosystem::directory::ecosystem_directory_from_config;
 use crate::provider::issuance_protocol::provider::issuance_protocol_provider_from_config;
 use crate::provider::key_algorithm::provider::{
     KeyAlgorithmProvider, key_algorithm_provider_from_config,
@@ -358,6 +359,9 @@ impl OneCore {
 
         let document_signer_provider =
             document_signer_provider_from_config(&mut config, csc_client)?;
+
+        // TODO ONE-9974: pass into the ecosystem-aware services once they exist
+        let _ecosystem_directory = ecosystem_directory_from_config(&mut config)?;
 
         let identifier_creator = Arc::new(IdentifierCreatorProto::new(
             did_method_provider.clone(),

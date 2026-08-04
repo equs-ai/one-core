@@ -6,6 +6,7 @@ use shared_types::{CredentialSchemaId, EcosystemId, ProofSchemaId};
 use crate::service::common_dto::EudiTrustInformationResponseDTO;
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct EcosystemCapabilities {
     pub ecosystem_roles: Vec<EcosystemRole>,
 }

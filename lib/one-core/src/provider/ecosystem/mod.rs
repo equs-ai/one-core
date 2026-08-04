@@ -16,6 +16,7 @@ use crate::provider::ecosystem::model::{
     VerifierTrustDetails,
 };
 
+pub(crate) mod decorators;
 pub(crate) mod directory;
 pub mod error;
 pub mod model;
