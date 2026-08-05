@@ -11,8 +11,8 @@ use one_dto_mapper::{From, Into, TryInto, convert_inner, convert_inner_of_inner}
 use proc_macros::{ModifySchema, options_not_nullable};
 use serde::{Deserialize, Serialize};
 use shared_types::{
-    CredentialId, DidId, IdentifierId, InstanceId, InteractionId, KeyId, OrganisationId, ProofId,
-    TransactionDataId,
+    CredentialId, DidId, EcosystemId, IdentifierId, InstanceId, InteractionId, KeyId,
+    OrganisationId, ProofId, TransactionDataId,
 };
 use standardized_types::openid4vci::{AuthorizationDetail, TxCode, TxCodeInputMode};
 use strum::Display;
@@ -73,6 +73,7 @@ pub(crate) struct HandleInvitationResponseRestDTO {
     pub key_algorithms: Option<Vec<String>>,
     pub requires_wallet_instance_attestation: Option<bool>,
     pub protocol: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
@@ -96,8 +97,7 @@ pub(crate) struct ContinueIssuanceResponseRestDTO {
     pub key_algorithms: Option<Vec<String>>,
     pub requires_wallet_instance_attestation: bool,
     pub protocol: String,
-    #[from(with_fn = convert_inner)]
-    pub ecosystem: Option<String>,
+    pub ecosystem: Option<EcosystemId>,
 }
 
 #[options_not_nullable]

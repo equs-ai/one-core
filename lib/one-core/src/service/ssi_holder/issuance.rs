@@ -418,6 +418,7 @@ impl SSIHolderService {
                 key_algorithms,
                 protocol: exchange,
                 requires_wallet_instance_attestation,
+                ecosystem: None, // TODO: ONE-9974
             }),
             InvitationResponseEnum::AuthorizationFlow {
                 organisation_id,
@@ -451,6 +452,7 @@ impl SSIHolderService {
                     interaction_id,
                     authorization_code_flow_url: url,
                     protocol: exchange,
+                    ecosystem: None, // TODO: ONE-9974
                 })
             }
         }

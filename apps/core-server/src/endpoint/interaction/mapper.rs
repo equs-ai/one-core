@@ -19,6 +19,7 @@ impl From<HandleInvitationResultDTO> for HandleInvitationResponseRestDTO {
                 key_algorithms,
                 protocol,
                 requires_wallet_instance_attestation,
+                ecosystem,
             } => Self {
                 interaction_id,
                 proof_id: None,
@@ -29,11 +30,13 @@ impl From<HandleInvitationResultDTO> for HandleInvitationResponseRestDTO {
                 key_algorithms,
                 requires_wallet_instance_attestation: Some(requires_wallet_instance_attestation),
                 protocol: Some(protocol),
+                ecosystem,
             },
             HandleInvitationResultDTO::AuthorizationCodeFlow {
                 interaction_id,
                 authorization_code_flow_url,
                 protocol,
+                ecosystem,
             } => Self {
                 interaction_id,
                 interaction_type: InteractionTypeRestEnum::Issuance,
@@ -44,11 +47,13 @@ impl From<HandleInvitationResultDTO> for HandleInvitationResponseRestDTO {
                 key_algorithms: None,
                 requires_wallet_instance_attestation: None,
                 protocol: Some(protocol),
+                ecosystem,
             },
             HandleInvitationResultDTO::ProofRequest {
                 proof_id,
                 interaction_id,
                 protocol,
+                ecosystem,
             } => Self {
                 interaction_id,
                 interaction_type: InteractionTypeRestEnum::Verification,
@@ -59,6 +64,7 @@ impl From<HandleInvitationResultDTO> for HandleInvitationResponseRestDTO {
                 key_algorithms: None,
                 requires_wallet_instance_attestation: None,
                 protocol: Some(protocol),
+                ecosystem,
             },
         }
     }

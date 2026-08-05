@@ -406,6 +406,7 @@ impl SSIHolderService {
             interaction_id,
             proof_id: proof.id,
             protocol: verification_exchange,
+            ecosystem: None, // TODO: ONE-9974
         })
     }
 

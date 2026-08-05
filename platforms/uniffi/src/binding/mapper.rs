@@ -268,6 +268,7 @@ impl From<HandleInvitationResultDTO> for HandleInvitationResponseBindingEnum {
                 key_algorithms,
                 protocol,
                 requires_wallet_instance_attestation,
+                ecosystem,
             } => Self::CredentialIssuance {
                 interaction_id: interaction_id.to_string(),
                 tx_code: convert_inner(tx_code),
@@ -275,24 +276,29 @@ impl From<HandleInvitationResultDTO> for HandleInvitationResponseBindingEnum {
                 key_storage_security_levels: convert_inner_of_inner(key_storage_security_levels),
                 key_algorithms,
                 requires_wallet_instance_attestation,
+                ecosystem: convert_inner(ecosystem),
             },
             HandleInvitationResultDTO::AuthorizationCodeFlow {
                 interaction_id,
                 authorization_code_flow_url,
                 protocol,
+                ecosystem,
             } => Self::AuthorizationCodeFlow {
                 interaction_id: interaction_id.to_string(),
                 authorization_code_flow_url,
                 protocol,
+                ecosystem: convert_inner(ecosystem),
             },
             HandleInvitationResultDTO::ProofRequest {
                 interaction_id,
                 proof_id,
                 protocol,
+                ecosystem,
             } => Self::ProofRequest {
                 interaction_id: interaction_id.to_string(),
                 proof_id: proof_id.to_string(),
                 protocol,
+                ecosystem: convert_inner(ecosystem),
             },
         }
     }

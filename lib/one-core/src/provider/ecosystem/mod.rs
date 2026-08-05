@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 
 use async_trait::async_trait;
 use proc_macros::provider_mock;
-use shared_types::EcosystemId;
+use shared_types::{EcosystemId, OrganisationId};
 
 use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierFilterValue;
@@ -32,9 +32,10 @@ pub trait Ecosystem: Provider + Send + Sync {
 
     fn is_ecosystem_interaction(&self, protocol_artifact: &ProtocolArtifact) -> bool;
 
-    fn validate_interaction(
+    async fn validate_interaction(
         &self,
         interaction_artifact: &ProtocolArtifact,
+        organisation_id: OrganisationId,
     ) -> Result<(), EcosystemError>;
 
     fn identifier_filter(

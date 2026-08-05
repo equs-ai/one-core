@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use proc_macros::Provider;
 use serde::Deserialize;
-use shared_types::EcosystemId;
+use shared_types::{EcosystemId, OrganisationId};
 
 use super::Ecosystem;
 use super::error::EcosystemError;
@@ -64,9 +64,10 @@ impl Ecosystem for EudiEcosystem {
         todo!()
     }
 
-    fn validate_interaction(
+    async fn validate_interaction(
         &self,
         _interaction_artifact: &ProtocolArtifact,
+        _organisation_id: OrganisationId,
     ) -> Result<(), EcosystemError> {
         todo!()
     }

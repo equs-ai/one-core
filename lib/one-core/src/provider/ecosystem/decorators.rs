@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use shared_types::EcosystemId;
+use shared_types::{EcosystemId, OrganisationId};
 
 use super::Ecosystem;
 use super::error::EcosystemError;
@@ -36,9 +36,10 @@ impl<T: Ecosystem + Display + ?Sized> Ecosystem for DisabledProvider<T> {
         false
     }
 
-    fn validate_interaction(
+    async fn validate_interaction(
         &self,
         _interaction_artifact: &ProtocolArtifact,
+        _organisation_id: OrganisationId,
     ) -> Result<(), EcosystemError> {
         self.disabled_error()
     }

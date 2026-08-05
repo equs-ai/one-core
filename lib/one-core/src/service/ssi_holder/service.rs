@@ -66,6 +66,7 @@ fn success_log(result: &HandleInvitationResultDTO) {
             interaction_id,
             proof_id,
             protocol,
+            ..
         } => tracing::info!(
             "Handled invitation and created interaction {interaction_id} for proof request {proof_id}: verification protocol `{protocol}`"
         ),

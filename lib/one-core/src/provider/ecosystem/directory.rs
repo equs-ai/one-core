@@ -118,7 +118,7 @@ mod test {
 
         let directory = ecosystem_directory_from_config(&mut config).unwrap();
 
-        let Err(error) = directory.auto_detect(&ProtocolArtifact::HolderIssuance {}) else {
+        let Err(error) = directory.auto_detect(&ProtocolArtifact::IssuerIssuance {}) else {
             panic!("expected no suitable provider error");
         };
         assert_eq!(error.error_code(), ErrorCode::BR_0478);

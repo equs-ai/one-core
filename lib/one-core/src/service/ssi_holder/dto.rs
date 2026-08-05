@@ -46,16 +46,19 @@ pub enum HandleInvitationResultDTO {
         key_algorithms: Option<Vec<String>>,
         protocol: String,
         requires_wallet_instance_attestation: bool,
+        ecosystem: Option<EcosystemId>,
     },
     AuthorizationCodeFlow {
         interaction_id: InteractionId,
         authorization_code_flow_url: String,
         protocol: String,
+        ecosystem: Option<EcosystemId>,
     },
     ProofRequest {
         interaction_id: InteractionId,
         proof_id: ProofId,
         protocol: String,
+        ecosystem: Option<EcosystemId>,
     },
 }
 

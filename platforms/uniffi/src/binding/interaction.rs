@@ -148,6 +148,7 @@ pub enum HandleInvitationResponseBindingEnum {
         protocol: String,
         /// Whether a valid WIA is required to complete issuance.
         requires_wallet_instance_attestation: bool,
+        ecosystem: Option<String>,
     },
     AuthorizationCodeFlow {
         /// For reference.
@@ -157,6 +158,7 @@ pub enum HandleInvitationResponseBindingEnum {
         authorization_code_flow_url: String,
         /// Protocol used for issuance.
         protocol: String,
+        ecosystem: Option<String>,
     },
     ProofRequest {
         /// For reference.
@@ -165,6 +167,7 @@ pub enum HandleInvitationResponseBindingEnum {
         proof_id: String,
         /// Protocol used for issuance.
         protocol: String,
+        ecosystem: Option<String>,
     },
 }
 
