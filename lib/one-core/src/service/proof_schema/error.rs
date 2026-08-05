@@ -19,8 +19,6 @@ pub enum ProofSchemaServiceError {
     UnsupportedDatatype(String),
     #[error("Unsupported format: {0}")]
     UnsupportedFormat(CredentialFormat),
-    #[error("Missing organisation: {0}")]
-    MissingOrganisation(OrganisationId),
     #[error("Organisation {0} is deactivated")]
     OrganisationIsDeactivated(OrganisationId),
 
@@ -65,7 +63,6 @@ impl ErrorCodeMixin for ProofSchemaServiceError {
             Self::MissingClaims => ErrorCode::BR_0164,
             Self::NoRequiredClaim => ErrorCode::BR_0017,
             Self::DuplicitClaim => ErrorCode::BR_0018,
-            Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::OrganisationIsDeactivated(_) => ErrorCode::BR_0241,
             Self::UnsupportedDatatype(_) | Self::UnsupportedFormat(_) => ErrorCode::BR_0135,
             Self::SharingNotSupported => ErrorCode::BR_0163,

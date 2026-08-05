@@ -176,7 +176,7 @@ async fn test_register_wallet_unit() {
     let issuer_public_clone = issuer_public.clone();
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().return_once(move |id| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id,
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -197,7 +197,7 @@ async fn test_register_wallet_unit() {
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: Default::default(),
-        }))
+        })
     });
 
     let issuer_key_handle = Ecdsa
@@ -283,7 +283,7 @@ async fn test_register_wallet_unit_integrity_check() {
     let issuer_public_clone = issuer_public.clone();
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().return_once(move |id| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id,
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -304,7 +304,7 @@ async fn test_register_wallet_unit_integrity_check() {
             deleted_at: None,
             organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
             trust_information: Default::default(),
-        }))
+        })
     });
 
     let issuer_key_handle = Ecdsa

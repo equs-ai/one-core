@@ -1,4 +1,4 @@
-use shared_types::{IdentifierId, TrustCollectionId};
+use shared_types::TrustCollectionId;
 use thiserror::Error;
 
 use crate::config::ConfigValidationError;
@@ -54,8 +54,6 @@ pub enum ManagedInstanceError {
     WalletUnitMustBePending,
     #[error("Insufficient security level")]
     InsufficientSecurityLevel,
-    #[error("Identifier `{0}` not found")]
-    MissingIdentifier(IdentifierId),
     #[error("Trust collection `{0}` not found")]
     MissingTrustCollection(TrustCollectionId),
     #[error("User ID token not expected: userAuthentication not configured")]
@@ -110,7 +108,6 @@ impl ErrorCodeMixin for ManagedInstanceError {
             Self::WalletUnitMustBeActive => ErrorCode::BR_0081,
             Self::WalletUnitMustBePending => ErrorCode::BR_0168,
             Self::InsufficientSecurityLevel => ErrorCode::BR_0297,
-            Self::MissingIdentifier(_) => ErrorCode::BR_0207,
             Self::MissingTrustCollection(_) => ErrorCode::BR_0391,
             Self::UserIdTokenNotExpected => ErrorCode::BR_0446,
             Self::MissingUserIdToken => ErrorCode::BR_0447,

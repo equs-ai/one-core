@@ -120,13 +120,11 @@ impl OID4VCIFinal1_0Service {
         &self,
         identifier_id: &IdentifierId,
     ) -> Result<Identifier, OID4VCIFinal1_0ServiceError> {
-        self.identifier_repository
+        Ok(self
+            .identifier_repository
             .get(*identifier_id)
             .await
-            .error_while("getting issuer identifier")?
-            .ok_or(OID4VCIFinal1_0ServiceError::IdentifierNotFound(
-                *identifier_id,
-            ))
+            .error_while("getting issuer identifier")?)
     }
 
     pub async fn oauth_authorization_server(
@@ -145,16 +143,11 @@ impl OID4VCIFinal1_0Service {
                     "Missing base_url".to_owned(),
                 ))?;
 
-        let Some(credential_schema) = self
+        let credential_schema = self
             .credential_schema_repository
             .get_credential_schema(credential_schema_id)
             .await
-            .error_while("getting credential schema")?
-        else {
-            return Err(OID4VCIFinal1_0ServiceError::MissingCredentialSchema(
-                *credential_schema_id,
-            ));
-        };
+            .error_while("getting credential schema")?;
 
         let token_endpoint_auth_methods_supported =
             if credential_schema.requires_wallet_instance_attestation {
@@ -238,12 +231,6 @@ impl OID4VCIFinal1_0Service {
             .await
             .error_while("getting credential")?;
 
-        let Some(credential) = credential else {
-            return Err(OID4VCIFinal1_0ServiceError::MissingCredential(
-                credential_id,
-            ));
-        };
-
         if credential.r#type == CredentialType::BatchItem {
             return Err(OID4VCIFinal1_0ServiceError::UnsupportedCredentialType {
                 id: credential.id,
@@ -312,16 +299,11 @@ impl OID4VCIFinal1_0Service {
         access_token: &str,
         request: CredentialRequest,
     ) -> Result<OpenID4VCICredentialResponseDTO, OID4VCIFinal1_0ServiceError> {
-        let Some(schema) = self
+        let schema = self
             .credential_schema_repository
             .get_credential_schema(credential_schema_id)
             .await
-            .error_while("getting credential schema")?
-        else {
-            return Err(OID4VCIFinal1_0ServiceError::MissingCredentialSchema(
-                *credential_schema_id,
-            ));
-        };
+            .error_while("getting credential schema")?;
 
         let format = validate_credential_request_format(&schema, &request).await?;
 
@@ -957,10 +939,7 @@ impl OID4VCIFinal1_0Service {
             .credential_schema_repository
             .get_credential_schema(credential_schema_id)
             .await
-            .error_while("getting credential schema")?
-            .ok_or(OID4VCIFinal1_0ServiceError::MissingCredentialSchema(
-                *credential_schema_id,
-            ))?;
+            .error_while("getting credential schema")?;
 
         let interaction_id = match &request {
             TokenRequest::PreAuthorizedCode {
@@ -1311,10 +1290,7 @@ impl OID4VCIFinal1_0Service {
                 },
             )
             .await
-            .error_while("loading credential")?
-            .ok_or(OID4VCIFinal1_0ServiceError::MappingError(
-                "Missing credential".to_string(),
-            ))?;
+            .error_while("loading credential")?;
 
         Ok(Credential {
             id: Uuid::new_v4().into(),

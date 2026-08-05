@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use shared_types::{OrganisationId, ProofSchemaId};
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -75,10 +74,7 @@ impl ProofSchemaRepository for ProofSchemaHistoryDecorator {
                     ..Default::default()
                 },
             )
-            .await?
-            .ok_or_else(|| {
-                DataLayerError::Db(anyhow!("We cannot find proof schema we just updated: {id}"))
-            })?;
+            .await?;
         let organisation = proof_schema
             .organisation
             .ok_or_else(|| anyhow::anyhow!("organisation is None"))?;
@@ -100,7 +96,7 @@ impl ProofSchemaRepository for ProofSchemaHistoryDecorator {
         &self,
         id: &ProofSchemaId,
         relations: &ProofSchemaRelations,
-    ) -> Result<Option<ProofSchema>, DataLayerError> {
+    ) -> Result<ProofSchema, DataLayerError> {
         self.inner.get_proof_schema(id, relations).await
     }
 

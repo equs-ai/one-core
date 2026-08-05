@@ -29,8 +29,7 @@ impl SignatureService {
             .identifier_repository
             .get(request.issuer)
             .await
-            .error_while("Loading issuer identifier")?
-            .ok_or(SignatureServiceError::IdentifierNotFound(request.issuer))?;
+            .error_while("Loading issuer identifier")?;
         let organisation_id = issuer.organisation.id();
         throw_if_org_id_not_matching_session(&organisation_id, &*self.session_provider)
             .error_while("validating organisation")?;

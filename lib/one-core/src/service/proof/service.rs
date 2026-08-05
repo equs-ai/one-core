@@ -33,7 +33,7 @@ use crate::config::validator::protocol::{
 use crate::config::validator::transport::{
     SelectedTransportType, validate_and_select_transport_type,
 };
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_try_into;
 use crate::model::certificate::CertificateRole;
 use crate::model::claim::ClaimRelations;
@@ -74,6 +74,7 @@ use crate::provider::verification_protocol::openid4vp::model::{
     CommonVerifierInteractionContent, OpenID4VPHolderInteractionData, TransactionDataRequest,
 };
 use crate::provider::verification_protocol::{FormatMapper, deserialize_interaction_data};
+use crate::repository::error::DataLayerError;
 use crate::service::common_dto::{ListQueryDTO, TrustInformationDetailResponseDTO};
 use crate::service::credential_schema::validator::validate_key_storage_security_supported;
 use crate::util::interactions::{add_new_interaction, clear_previous_interaction};
@@ -117,10 +118,6 @@ impl ProofService {
             )
             .await
             .error_while("getting proof")?;
-
-        let Some(proof) = proof else {
-            return Err(ProofServiceError::NotFound(*id));
-        };
 
         throw_if_proof_not_in_session_org(&proof, &*self.session_provider)?;
 
@@ -206,8 +203,8 @@ impl ProofService {
                 None,
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(ProofServiceError::NotFound(*id))
+            .error_while("getting proof")
+            .map_err(Into::into)
     }
 
     /// Returns the details of a single (holder-side) transaction data entry of a proof request.
@@ -324,8 +321,12 @@ impl ProofService {
                 },
             )
             .await
-            .error_while("getting proof schema")?
-            .ok_or(ProofServiceError::MissingProofSchema(proof_schema_id))?;
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    ProofServiceError::MissingProofSchema(proof_schema_id)
+                }
+                error => error.error_while("getting proof schema").into(),
+            })?;
         throw_if_org_not_matching_session(
             proof_schema.organisation.as_ref(),
             &*self.session_provider,
@@ -377,8 +378,7 @@ impl ProofService {
                 .identifier_repository
                 .get(verifier_identifier_id)
                 .await
-                .error_while("getting identifier")?
-                .ok_or(ProofServiceError::MissingIdentifier(verifier_identifier_id))?,
+                .error_while("getting identifier")?,
             None => {
                 let verifier_did_id = request
                     .verifier_did_id
@@ -727,8 +727,7 @@ impl ProofService {
                 None,
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(ProofServiceError::NotFound(proof_id))?;
+            .error_while("getting proof")?;
         throw_if_proof_not_in_session_org(&proof, &*self.session_provider)?;
 
         let credential_ids = proof
@@ -836,10 +835,7 @@ impl ProofService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(ProofServiceError::MappingError(
-                "Missing organisation".to_string(),
-            ))?;
+            .error_while("getting organisation")?;
 
         let transport = self
             .config
@@ -1010,7 +1006,7 @@ impl ProofService {
     }
 
     pub async fn delete_proof(&self, proof_id: ProofId) -> Result<(), ProofServiceError> {
-        let Some(proof) = self
+        let proof = self
             .proof_repository
             .get_proof(
                 &proof_id,
@@ -1025,10 +1021,7 @@ impl ProofService {
                 None,
             )
             .await
-            .error_while("getting proof")?
-        else {
-            return Err(ProofServiceError::NotFound(proof_id));
-        };
+            .error_while("getting proof")?;
         throw_if_proof_not_in_session_org(&proof, &*self.session_provider)?;
 
         match proof.state {
@@ -1086,7 +1079,6 @@ impl ProofService {
             )
             .await
             .error_while("getting credential")?;
-        let proof = proof.ok_or(ProofServiceError::NotFound(id))?;
 
         throw_if_proof_not_in_session_org(&proof, &*self.session_provider)?;
         let Some(trust_details) = self
@@ -1158,8 +1150,7 @@ impl ProofService {
                 None,
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(ProofServiceError::NotFound(*id))?;
+            .error_while("getting proof")?;
 
         Ok(proof)
     }

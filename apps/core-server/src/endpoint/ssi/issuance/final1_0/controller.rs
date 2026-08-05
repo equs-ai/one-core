@@ -210,10 +210,7 @@ pub(crate) async fn oid4vci_final1_0_get_credential_offer(
             )
                 .into_response()
         }
-        Err(
-            err @ OID4VCIFinal1_0ServiceError::MissingCredential(_)
-            | err @ OID4VCIFinal1_0ServiceError::UnsupportedCredentialType { .. },
-        ) => {
+        Err(err) if matches!(err.error_code(), ErrorCode::BR_0001 | ErrorCode::BR_0442) => {
             tracing::warn!("Unsupported credential: {err}");
             StatusCode::NOT_FOUND.into_response()
         }

@@ -228,7 +228,7 @@ pub(crate) async fn oid4vci_final1_0_swiyu_get_credential_offer(
             )
                 .into_response()
         }
-        Err(OID4VCIFinal1_0ServiceError::MissingCredential(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0001 => {
             tracing::error!("Missing credential");
             StatusCode::NOT_FOUND.into_response()
         }

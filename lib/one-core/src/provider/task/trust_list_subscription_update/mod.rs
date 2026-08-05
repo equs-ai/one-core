@@ -29,7 +29,7 @@ use crate::provider::task::trust_list_subscription_update::model::{
 use crate::provider::trust_list_subscriber::provider::TrustListSubscriberProvider;
 use crate::repository::history_repository::HistoryRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
-use crate::service::error::{MissingProviderError, ServiceError};
+use crate::service::error::ServiceError;
 
 pub(crate) struct TrustListSubscriptionUpdateTask {
     subscriber_provider: Arc<dyn TrustListSubscriberProvider>,
@@ -146,16 +146,17 @@ impl Task for TrustListSubscriptionUpdateTask {
                     )
                     .await
                     .error_while("getting trust list subscription")?;
-                let Some(provider) = self.subscriber_provider.get(&subscription.r#type) else {
-                    let err =
-                        MissingProviderError::TrustListSubscriber(subscription.r#type.clone());
-                    self.set_subscription_state(
-                        &subscription,
-                        err.into(),
-                        &mut result.updated_subscriptions,
-                    )
-                    .await?;
-                    continue;
+                let provider = match self.subscriber_provider.get(&subscription.r#type) {
+                    Ok(provider) => provider,
+                    Err(err) => {
+                        self.set_subscription_state(
+                            &subscription,
+                            err.into(),
+                            &mut result.updated_subscriptions,
+                        )
+                        .await?;
+                        continue;
+                    }
                 };
                 let url = match Url::parse(&subscription.reference) {
                     Ok(url) => url,

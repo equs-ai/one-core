@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::{DidId, IdentifierId, OrganisationId};
 use uuid::Uuid;
 
@@ -53,7 +52,7 @@ impl IdentifierHistoryDecorator {
 
 #[async_trait::async_trait]
 impl IdentifierRepository for IdentifierHistoryDecorator {
-    async fn get(&self, id: IdentifierId) -> Result<Option<Identifier>, DataLayerError> {
+    async fn get(&self, id: IdentifierId) -> Result<Identifier, DataLayerError> {
         self.inner.get(id).await
     }
     async fn get_from_did_id(&self, did_id: DidId) -> Result<Option<Identifier>, DataLayerError> {
@@ -85,11 +84,7 @@ impl IdentifierRepository for IdentifierHistoryDecorator {
         self.inner.update(id, request.clone()).await?;
 
         if let Some(state) = request.state {
-            let identifier = self
-                .inner
-                .get(*id)
-                .await?
-                .context("identifier is missing")?;
+            let identifier = self.inner.get(*id).await?;
 
             self.create_history(
                 identifier.id,
@@ -112,7 +107,7 @@ impl IdentifierRepository for IdentifierHistoryDecorator {
 
         self.inner.delete(id).await?;
 
-        let identifier = identifier?.context("identifier is missing")?;
+        let identifier = identifier?;
 
         self.create_history(
             identifier.id,

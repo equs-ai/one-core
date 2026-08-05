@@ -133,7 +133,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
         })
         .once()
         .return_once(move |_, _| {
-            Ok(Some(Proof {
+            Ok(Proof {
                 id: proof_id,
                 verifier_identifier: Some(Identifier {
                     data: IdentifierData::Did(
@@ -177,7 +177,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
                 }),
                 interaction: Some(interaction),
                 ..dummy_proof_with_protocol("OPENID4VP_FINAL1")
-            }))
+            })
         });
 
     proof_repository
@@ -273,7 +273,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
         })
         .once()
         .return_once(move |_, _| {
-            Ok(Some(Proof {
+            Ok(Proof {
                 id: proof_id,
                 verifier_identifier: Some(Identifier {
                     data: IdentifierData::Did(
@@ -317,7 +317,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
                 }),
                 interaction: Some(interaction),
                 ..dummy_proof_with_protocol("OPENID4VP_FINAL1")
-            }))
+            })
         });
 
     proof_repository
@@ -492,7 +492,7 @@ async fn test_get_client_metadata_success() {
         proof_repository
             .expect_get_proof()
             .times(1)
-            .return_once(move |_, _, _| Ok(Some(proof)));
+            .return_once(move |_, _, _| Ok(proof));
 
         key_algorithm
             .expect_reconstruct_key()

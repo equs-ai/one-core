@@ -115,7 +115,7 @@ async fn test_issuer_submit_succeeds() {
         .return_once(move |_, _| {
             let mut credential = credential_copy;
             credential.schema = updated_schema.into();
-            Ok(Some(credential))
+            Ok(credential)
         });
 
     credential_repository
@@ -324,7 +324,7 @@ async fn test_issue_credential_for_mdoc_succeeds() {
         .return_once(move |_, _| {
             let mut credential = credential_copy;
             credential.schema = updated_schema.into();
-            Ok(Some(credential))
+            Ok(credential)
         });
 
     credential_repository
@@ -453,7 +453,7 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
         .returning(move |_, _| {
             let mut credential = credential_copy.clone();
             credential.schema = updated_schema.clone().into();
-            Ok(Some(credential))
+            Ok(credential)
         });
     credential_repository
         .expect_get_credential_list()
@@ -604,7 +604,7 @@ async fn test_issue_credential_for_existing_mdoc_with_expected_update_in_the_fut
             true
         })
         .times(2)
-        .returning(move |_, _| Ok(Some(credential_copy.clone())));
+        .returning(move |_, _| Ok(credential_copy.clone()));
 
     let mut config = dummy_config();
     config.format.insert(

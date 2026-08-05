@@ -142,9 +142,12 @@ async fn test_get_identifier() {
     setup.provider.create(identifier.clone()).await.unwrap();
 
     let non_existent_id = Uuid::new_v4().into();
-    assert!(setup.provider.get(non_existent_id).await.unwrap().is_none());
+    assert!(matches!(
+        setup.provider.get(non_existent_id).await,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 
-    let retrieved = setup.provider.get(id).await.unwrap().unwrap();
+    let retrieved = setup.provider.get(id).await.unwrap();
     assert_eq!(retrieved.id, identifier.id);
     assert_eq!(retrieved.name, identifier.name);
     assert_eq!(retrieved.data, identifier.data);
@@ -200,7 +203,7 @@ async fn test_get_identifier_of_type_key_resolves_key_lazily() {
     setup.provider.create(identifier).await.unwrap();
 
     // No relation request is needed: `key` is now lazily populated from the FK.
-    let retrieved = setup.provider.get(id).await.unwrap().unwrap();
+    let retrieved = setup.provider.get(id).await.unwrap();
 
     let_assert!(IdentifierData::Key(retrieved_key) = &retrieved.data);
     let loaded = retrieved_key.as_ref().await.unwrap();
@@ -388,7 +391,7 @@ async fn test_get_identifier_with_trust_info() {
         .await
         .unwrap();
 
-    let identifier = setup.provider.get(id).await.unwrap().unwrap();
+    let identifier = setup.provider.get(id).await.unwrap();
 
     assert_eq!(
         identifier.trust_information.as_ref().await.unwrap().len(),
@@ -642,7 +645,6 @@ async fn test_get_returns_soft_deleted_certificates_in_relation() {
         .provider
         .get(identifier_id)
         .await
-        .unwrap()
         .expect("identifier should still be retrievable");
 
     let_assert!(IdentifierData::Certificate(certs) = &resolved.data);

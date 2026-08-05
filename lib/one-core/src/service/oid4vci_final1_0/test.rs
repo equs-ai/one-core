@@ -419,7 +419,7 @@ async fn test_get_issuer_metadata_jwt() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let issuance_protocol = setup_protocol(ProtocolMocks {
@@ -436,7 +436,7 @@ async fn test_get_issuer_metadata_jwt() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(identifier.clone()));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -563,7 +563,7 @@ async fn test_get_issuer_metadata_sd_jwt() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let issuance_protocol = setup_protocol(ProtocolMocks {
@@ -580,7 +580,7 @@ async fn test_get_issuer_metadata_sd_jwt() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(identifier.clone()));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -734,7 +734,7 @@ async fn test_get_issuer_metadata_mdoc() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
     let issuance_protocol = setup_protocol(ProtocolMocks {
         credential_schema_repository,
@@ -750,7 +750,7 @@ async fn test_get_issuer_metadata_mdoc() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(identifier.clone()));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -891,7 +891,7 @@ async fn test_get_issuer_metadata_includes_schema_translations() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let issuance_protocol = setup_protocol(ProtocolMocks {
@@ -908,7 +908,7 @@ async fn test_get_issuer_metadata_includes_schema_translations() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(identifier.clone()));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -1052,7 +1052,7 @@ async fn test_get_issuer_metadata_includes_claim_translations() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let issuance_protocol = setup_protocol(ProtocolMocks {
@@ -1069,7 +1069,7 @@ async fn test_get_issuer_metadata_includes_claim_translations() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository
         .expect_get()
-        .returning(move |_| Ok(Some(identifier.clone())));
+        .returning(move |_| Ok(identifier.clone()));
 
     let mut issuance_protocol_provider = MockIssuanceProtocolProvider::default();
     issuance_protocol_provider
@@ -1134,7 +1134,7 @@ async fn test_create_token() {
         .expect_get_credential_schema()
         .times(1)
         .with(eq(schema.id.to_owned()))
-        .returning(move |_| Ok(Some(clone.clone())));
+        .returning(move |_| Ok(clone.clone()));
 
     let credential = dummy_credential(
         "OPENID4VCI_FINAL1",
@@ -1209,7 +1209,7 @@ async fn test_create_token_empty_pre_authorized_code() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let service = setup_service(Mocks {
@@ -1250,7 +1250,7 @@ async fn test_create_token_pre_authorized_code_used() {
         .expect_get_credential_schema()
         .times(1)
         .with(eq(schema.id.to_owned()))
-        .returning(move |_| Ok(Some(clone.clone())));
+        .returning(move |_| Ok(clone.clone()));
 
     let clone = schema.clone();
     let credential = dummy_credential(
@@ -1311,7 +1311,7 @@ async fn test_create_token_wrong_credential_state() {
         .expect_get_credential_schema()
         .times(1)
         .with(eq(schema.id.to_owned()))
-        .returning(move |_| Ok(Some(clone.clone())));
+        .returning(move |_| Ok(clone.clone()));
 
     let clone = schema.clone();
     let credential = dummy_credential(
@@ -1381,7 +1381,7 @@ async fn test_create_credential_success() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         let clone = credential.clone();
         credential_repository
@@ -1572,7 +1572,7 @@ async fn test_create_credential_success_sd_jwt_vc() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         let clone = credential.clone();
         credential_repository
@@ -1764,7 +1764,7 @@ async fn test_create_credential_success_mdoc() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         credential_repository
             .expect_get_credentials_by_interaction_id()
@@ -1778,7 +1778,7 @@ async fn test_create_credential_success_mdoc() {
             .once()
             .return_once({
                 let clone = credential.clone();
-                move |_, _| Ok(Some(clone))
+                move |_, _| Ok(clone)
             });
 
         interaction_repository
@@ -1953,7 +1953,7 @@ async fn test_create_credential_configuration_id_invalid() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
@@ -1995,7 +1995,7 @@ async fn test_create_credential_format_invalid_bearer_token() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
@@ -2040,7 +2040,7 @@ async fn test_create_credential_pre_authorized_code_not_used() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         interaction_repository
             .expect_get_interaction()
@@ -2093,7 +2093,7 @@ async fn test_create_credential_interaction_data_invalid() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         interaction_repository
             .expect_get_interaction()
@@ -2146,7 +2146,7 @@ async fn test_create_credential_access_token_expired() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         interaction_repository
             .expect_get_interaction()
@@ -2215,7 +2215,7 @@ async fn test_create_credential_issuer_failed() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         let clone = credential.clone();
         credential_repository
@@ -2380,7 +2380,7 @@ async fn test_create_credential_nonce_reused() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
 
         let clone = credential.clone();
         credential_repository
@@ -2533,7 +2533,7 @@ async fn test_for_mdoc_schema_pre_authorized_grant_type_creates_refresh_token() 
         .with(eq(schema.id.to_owned()))
         .return_once({
             let schema = schema.clone();
-            move |_| Ok(Some(schema))
+            move |_| Ok(schema)
         });
 
     let credential = dummy_credential(
@@ -2617,7 +2617,7 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
         .with(eq(schema.id.to_owned()))
         .return_once({
             let schema = schema.clone();
-            move |_| Ok(Some(schema))
+            move |_| Ok(schema)
         });
 
     let interaction_id = Uuid::from_str("c62f4237-3c74-42f2-a5ff-c72489e025f7")
@@ -2710,7 +2710,7 @@ async fn test_refresh_token_request_fails_if_refresh_token_is_expired() {
         .with(eq(schema.id.to_owned()))
         .return_once({
             let schema = schema.clone();
-            move |_| Ok(Some(schema))
+            move |_| Ok(schema)
         });
 
     let interaction_id = Uuid::from_str("c62f4237-3c74-42f2-a5ff-c72489e025f7")
@@ -2783,7 +2783,7 @@ async fn test_create_token_eudi_compliant_without_attestation_fails() {
         .with(eq(schema.id.to_owned()))
         .return_once({
             let schema = schema.clone();
-            move |_| Ok(Some(schema))
+            move |_| Ok(schema)
         });
 
     let mut credential_repository = MockCredentialRepository::default();
@@ -2839,7 +2839,7 @@ async fn test_create_token_eudi_compliant_with_only_attestation_fails() {
         .with(eq(schema.id.to_owned()))
         .return_once({
             let schema = schema.clone();
-            move |_| Ok(Some(schema))
+            move |_| Ok(schema)
         });
 
     let mut credential_repository = MockCredentialRepository::default();
@@ -2894,7 +2894,7 @@ async fn test_create_token_non_eudi_with_attestation_fails() {
         .with(eq(schema.id.to_owned()))
         .return_once({
             let schema = schema.clone();
-            move |_| Ok(Some(schema))
+            move |_| Ok(schema)
         });
 
     let mut credential_repository = MockCredentialRepository::default();

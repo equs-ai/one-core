@@ -327,8 +327,7 @@ impl IdentifierCreatorProto {
             .key_repository
             .get_key(&request.key_id)
             .await
-            .error_while("getting key")?
-            .ok_or(Error::KeyNotFound(request.key_id))?;
+            .error_while("getting key")?;
 
         if organisation.id != key.organisation.id() {
             return Err(Error::OrganisationMismatch);
@@ -353,10 +352,7 @@ impl IdentifierCreatorProto {
                     .identifier_repository
                     .get(content.certificate_authority.identifier_id)
                     .await
-                    .error_while("getting CA identifier")?
-                    .ok_or(Error::IdentifierNotFound(
-                        content.certificate_authority.identifier_id,
-                    ))?;
+                    .error_while("getting CA identifier")?;
 
                 if !matches!(identifier.data, IdentifierData::CertificateAuthority(_)) {
                     return Err(Error::InvalidIdentifierType(identifier.data.r#type()));
@@ -462,8 +458,7 @@ impl IdentifierCreatorProto {
             .key_repository
             .get_key(&request.key_id)
             .await
-            .error_while("getting key")?
-            .ok_or(Error::KeyNotFound(request.key_id))?;
+            .error_while("getting key")?;
 
         let self_signing = request.self_signed.is_some();
         let chain = match (request.chain, request.self_signed) {

@@ -14,7 +14,7 @@ use crate::model::list_filter::{ComparisonType, ListFilterValue, ValueComparison
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
-use crate::service::error::{EntityNotFoundError, ServiceError};
+use crate::service::error::ServiceError;
 
 pub mod dto;
 
@@ -61,8 +61,7 @@ impl Task for CertificateCheck {
                 .identifier_repository
                 .get(identifier_id)
                 .await
-                .error_while("getting identifier")?
-                .ok_or(EntityNotFoundError::Identifier(identifier_id))?;
+                .error_while("getting identifier")?;
 
             let (IdentifierData::Certificate(certificates)
             | IdentifierData::CertificateAuthority(certificates)) = &identifier.data

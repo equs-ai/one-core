@@ -38,7 +38,6 @@ use crate::provider::key_storage::KeyStorage;
 use crate::provider::key_storage::error::KeyStorageError;
 use crate::repository::error::DataLayerError;
 use crate::service::certificate::dto::CreateCertificateRequestDTO;
-use crate::service::error::MissingProviderError;
 use crate::service::managed_instance::dto::{
     ActivateWalletUnitRequestDTO, RegisterWalletUnitRequestDTO, RegisterWalletUnitResponseDTO,
     UserAuthenticationDTO, WalletUnitAttestationMetadataDTO,
@@ -87,10 +86,7 @@ impl InstanceService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(HolderInstanceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(HolderInstanceError::OrganisationIsDeactivated(
@@ -273,8 +269,7 @@ impl InstanceService {
             .organisation_repository
             .get_organisation(&organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(HolderInstanceError::MissingOrganisation(organisation_id))?;
+            .error_while("getting organisation")?;
 
         if holder_wallet_instance.status != InstanceStatus::Pending {
             return Err(HolderInstanceError::WalletUnitNotPending);
@@ -931,10 +926,11 @@ impl InstanceService {
             .filter(|(_, v)| v.enabled && v.r#type == key_storage_type)
             .map(|(k, _)| k)
             .next()
-            .ok_or(MissingProviderError::KeyStorage(format!(
-                "No enabled key storage of type {key_storage_type}"
-            )))
-            .error_while("finding key storage")?;
+            .ok_or_else(|| {
+                HolderInstanceError::NoMatchingKeyStorage(format!(
+                    "No enabled key storage of type {key_storage_type}"
+                ))
+            })?;
         Ok((os, key_storage_id))
     }
 
@@ -1109,10 +1105,11 @@ impl InstanceService {
                     .then_some((k.to_string(), key_storage))
             })
             .next()
-            .ok_or(MissingProviderError::KeyStorage(format!(
-                "No enabled key storage for key algorithm: {key_type}"
-            )))
-            .error_while("finding key storage")?;
+            .ok_or_else(|| {
+                HolderInstanceError::NoMatchingKeyStorage(format!(
+                    "No enabled key storage for key algorithm: {key_type}"
+                ))
+            })?;
 
         let key_id = Uuid::new_v4().into();
         let key = key_storage

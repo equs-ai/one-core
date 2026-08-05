@@ -15,10 +15,7 @@ impl SSIHolderService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(HolderServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(HolderServiceError::OrganisationIsDeactivated(

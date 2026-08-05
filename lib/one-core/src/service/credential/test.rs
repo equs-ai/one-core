@@ -50,6 +50,7 @@ use crate::provider::issuance_protocol::model::ShareResponse;
 use crate::provider::issuance_protocol::provider::MockIssuanceProtocolProvider;
 use crate::repository::credential_repository::MockCredentialRepository;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::service::common_dto::ListQueryDTO;
@@ -342,7 +343,7 @@ async fn test_delete_credential_success() {
     credential_repository
         .expect_get_credential()
         .once()
-        .returning(move |_, _| Ok(Some(credential.clone())));
+        .returning(move |_, _| Ok(credential.clone()));
     credential_repository
         .expect_get_credential_list()
         .once()
@@ -378,7 +379,12 @@ async fn test_delete_credential_failed_credential_missing() {
 
     credential_repository
         .expect_get_credential()
-        .returning(|_, _| Ok(None));
+        .returning(|id, _| {
+            Err(DataLayerError::EntityNotFound {
+                kind: EntityKind::Credential,
+                id: (*id).into(),
+            })
+        });
 
     let service = setup_service(Repositories {
         credential_repository,
@@ -389,7 +395,7 @@ async fn test_delete_credential_failed_credential_missing() {
     let result = service
         .delete_credential(&generic_credential().await.id)
         .await;
-    assert!(matches!(result, Err(CredentialServiceError::NotFound(_))));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0001);
 }
 
 #[tokio::test]
@@ -404,7 +410,7 @@ async fn test_delete_credential_incorrect_state() {
     let copy = credential.clone();
     credential_repository
         .expect_get_credential()
-        .returning(move |_, _| Ok(Some(copy.clone())));
+        .returning(move |_, _| Ok(copy.clone()));
 
     let service = setup_service(Repositories {
         credential_repository,
@@ -430,7 +436,7 @@ async fn test_delete_credential_invalid_type() {
     let copy = credential.clone();
     credential_repository
         .expect_get_credential()
-        .returning(move |_, _| Ok(Some(copy.clone())));
+        .returning(move |_, _| Ok(copy.clone()));
 
     let service = setup_service(Repositories {
         credential_repository,
@@ -534,7 +540,7 @@ async fn test_get_credential_success() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -578,7 +584,7 @@ async fn test_get_credential_success_suspended_credential_with_end_date() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -622,7 +628,7 @@ async fn test_get_credential_deleted() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -650,7 +656,7 @@ async fn test_get_revoked_credential_success() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -715,7 +721,7 @@ async fn test_share_credential_success() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut interaction_repository = MockInteractionRepository::default();
@@ -763,7 +769,7 @@ async fn test_share_credential_failed_invalid_state() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -788,7 +794,7 @@ async fn test_share_credential_failed_invalid_type() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -813,7 +819,7 @@ async fn test_share_credential_failed_inactive_identifier() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -856,7 +862,7 @@ async fn test_create_credential_based_on_issuer_did_success() {
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
 
         credential_repository
             .expect_create_credential()
@@ -952,12 +958,12 @@ async fn test_create_credential_based_on_issuer_identifier_success() {
 
         identifier_repository
             .expect_get()
-            .return_once(|_| Ok(Some(issuer_identifier)));
+            .return_once(|_| Ok(issuer_identifier));
 
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
 
         credential_repository
             .expect_create_credential()
@@ -1062,12 +1068,12 @@ async fn test_create_credential_failed_unsupported_wallet_storage_type() {
 
         identifier_repository
             .expect_get()
-            .return_once(|_| Ok(Some(issuer_identifier)));
+            .return_once(|_| Ok(issuer_identifier));
 
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -1120,7 +1126,7 @@ async fn test_create_credential_failed_formatter_doesnt_support_did_identifiers(
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
 
         identifier_repository
             .expect_get_from_did_id()
@@ -1230,7 +1236,7 @@ async fn test_create_credential_failed_issuance_did_method_incompatible() {
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
 
         identifier_repository
             .expect_get_from_did_id()
@@ -1355,7 +1361,7 @@ async fn test_create_credential_fails_if_did_is_deactivated() {
     let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_credential_schema()
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     formatter
@@ -1466,7 +1472,7 @@ async fn test_create_credential_one_required_claim_missing_success() {
 
         credential_schema_repository
             .expect_get_credential_schema()
-            .returning(move |_| Ok(Some(credential_schema_clone.clone())));
+            .returning(move |_| Ok(credential_schema_clone.clone()));
 
         credential_repository
             .expect_create_credential()
@@ -1603,7 +1609,7 @@ async fn test_create_credential_one_required_claim_missing_fail_required_claim_n
 
         credential_schema_repository
             .expect_get_credential_schema()
-            .returning(move |_| Ok(Some(credential_schema_clone.clone())));
+            .returning(move |_| Ok(credential_schema_clone.clone()));
     }
 
     let mut formatter = MockCredentialFormatter::default();
@@ -1732,7 +1738,7 @@ async fn test_create_credential_namespace_optional() {
         .expect_get_credential_schema()
         .returning({
             let credential_schema = credential_schema.clone();
-            move |_| Ok(Some(credential_schema.clone()))
+            move |_| Ok(credential_schema.clone())
         });
 
     identifier_repository.expect_get_from_did_id().returning({
@@ -1873,7 +1879,7 @@ async fn test_create_credential_schema_deleted() {
 
         credential_schema_repository
             .expect_get_credential_schema()
-            .returning(move |_| Ok(Some(credential_schema_clone.clone())));
+            .returning(move |_| Ok(credential_schema_clone.clone()));
 
         identifier_repository
             .expect_get_from_did_id()
@@ -1975,7 +1981,7 @@ async fn test_create_credential_key_with_issuer_key() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     credential_repository
         .expect_create_credential()
@@ -2134,7 +2140,7 @@ async fn test_create_credential_key_with_issuer_key_and_repeating_key() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     credential_repository
         .expect_create_credential()
@@ -2264,7 +2270,7 @@ async fn test_fail_to_create_credential_no_assertion_key() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     formatter
@@ -2366,7 +2372,7 @@ async fn test_fail_to_create_credential_unknown_key_id() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     formatter
@@ -2487,7 +2493,7 @@ async fn test_fail_to_create_credential_key_id_points_to_wrong_key_role() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     formatter
@@ -2608,7 +2614,7 @@ async fn test_fail_to_create_credential_key_id_points_to_unsupported_key_algorit
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     formatter
@@ -2700,7 +2706,7 @@ async fn test_create_credential_fail_incompatible_format_and_tranposrt_protocol(
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
     }
 
     let issuer_did = issuer_identifier_did.clone();
@@ -2820,7 +2826,7 @@ async fn test_create_credential_fail_invalid_redirect_uri() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     formatter
@@ -2921,12 +2927,12 @@ async fn test_create_credential_fail_webhook_not_allowed() {
 
         identifier_repository
             .expect_get()
-            .return_once(|_| Ok(Some(issuer_identifier)));
+            .return_once(|_| Ok(issuer_identifier));
 
         credential_schema_repository
             .expect_get_credential_schema()
             .times(1)
-            .returning(move |_| Ok(Some(credential_schema.clone())));
+            .returning(move |_| Ok(credential_schema.clone()));
     }
 
     let mut formatter = MockCredentialFormatter::default();
@@ -3427,7 +3433,7 @@ async fn test_get_credential_success_with_non_required_nested_object() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -3665,7 +3671,7 @@ async fn test_get_credential_success_array_complex_nested_all() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -4446,7 +4452,7 @@ async fn test_get_credential_success_array_index_sorting() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -4864,7 +4870,7 @@ async fn test_get_credential_success_array_complex_nested_first_case() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
 
         credential_repository
             .expect_get_credential_list()
@@ -5137,7 +5143,7 @@ async fn test_get_credential_success_array_single_element() {
             .expect_get_credential()
             .times(1)
             .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(Some(clone.clone())));
+            .returning(move |_, _| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -5298,7 +5304,7 @@ async fn test_create_credential_array(
         let credential_schema = credential_schema.clone();
         credential_schema_repository
             .expect_get_credential_schema()
-            .return_once(move |_| Ok(Some(credential_schema)));
+            .return_once(move |_| Ok(credential_schema));
         formatter_provider
             .expect_get_credential_formatter()
             .once()
@@ -5605,12 +5611,12 @@ async fn test_create_credential_session_org_mismatch() {
     let credential = generic_credential().await;
     identifier_repository
         .expect_get()
-        .return_once(|_| Ok(Some(credential.issuer_identifier.unwrap())));
+        .return_once(|_| Ok(credential.issuer_identifier.unwrap()));
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
     let credential_schema = credential.schema.as_ref().await.unwrap().to_owned();
     credential_schema_repository
         .expect_get_credential_schema()
-        .return_once(move |_| Ok(Some(credential_schema)));
+        .return_once(move |_| Ok(credential_schema));
     let service = setup_service(Repositories {
         credential_schema_repository,
         config: generic_config().core,
@@ -5695,7 +5701,7 @@ async fn test_create_credential_invalid_certificate_role() {
         let credential_schema = credential_schema.clone();
         credential_schema_repository
             .expect_get_credential_schema()
-            .return_once(move |_| Ok(Some(credential_schema)));
+            .return_once(move |_| Ok(credential_schema));
         formatter_provider
             .expect_get_credential_formatter()
             .once()
@@ -5723,11 +5729,11 @@ async fn test_create_credential_invalid_certificate_role() {
         key: Some(dummy_key().into()),
     };
     identifier_repository.expect_get().return_once(move |_| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id: identifier_id,
             data: IdentifierData::Certificate(RelatedVec::from(vec![certificate])),
             ..dummy_identifier()
-        }))
+        })
     });
 
     let mut dummy_protocol = MockIssuanceProtocol::default();
@@ -5823,7 +5829,7 @@ async fn test_credential_ops_session_org_mismatch() {
     let credential = generic_credential().await;
     credential_repository
         .expect_get_credential()
-        .returning(move |_, _| Ok(Some(credential.clone())));
+        .returning(move |_, _| Ok(credential.clone()));
     let service = setup_service(Repositories {
         credential_repository,
         config: generic_config().core,

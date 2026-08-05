@@ -1,6 +1,4 @@
-use shared_types::{
-    CredentialSchemaId, DidId, IdentifierId, ProofId, ProofSchemaId, TransactionDataId,
-};
+use shared_types::{CredentialSchemaId, DidId, ProofSchemaId, TransactionDataId};
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::did::KeyRole;
@@ -10,8 +8,6 @@ use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProofServiceError {
-    #[error("Proof `{0}` not found")]
-    NotFound(ProofId),
     #[error("Invalid proof state: {0}")]
     InvalidState(ProofStateEnum),
     #[error("Invalid proof role: {0}")]
@@ -54,8 +50,6 @@ pub enum ProofServiceError {
     ProofSchemaDeleted(ProofSchemaId),
     #[error("Did `{0}` not found")]
     MissingDid(DidId),
-    #[error("Identifier `{0}` not found")]
-    MissingIdentifier(IdentifierId),
     #[error("BBS not supported")]
     BBSNotSupported,
 
@@ -84,7 +78,6 @@ pub enum ProofServiceError {
 impl ErrorCodeMixin for ProofServiceError {
     fn error_code(&self) -> ErrorCode {
         match self {
-            Self::NotFound(_) => ErrorCode::BR_0012,
             Self::InvalidState(_) => ErrorCode::BR_0013,
             Self::InvalidRole(_) => ErrorCode::BR_0198,
             Self::NoVerifier | Self::InvalidIdentifierType(_) => ErrorCode::BR_0323,
@@ -104,7 +97,6 @@ impl ErrorCodeMixin for ProofServiceError {
             Self::ProofSchemaDeleted(_) => ErrorCode::BR_0019,
             Self::MissingProofSchema(_) => ErrorCode::BR_0020,
             Self::MissingDid(_) => ErrorCode::BR_0024,
-            Self::MissingIdentifier(_) => ErrorCode::BR_0207,
             Self::DuplicitTransactionData => ErrorCode::BR_0458,
             Self::TransactionDataFormatUnsupported(_) => ErrorCode::BR_0460,
             Self::TransactionDataUnknownCredentialSchema(_) => ErrorCode::BR_0461,

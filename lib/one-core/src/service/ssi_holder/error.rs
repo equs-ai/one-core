@@ -1,4 +1,4 @@
-use shared_types::{CredentialId, DidId, IdentifierId, InteractionId, OrganisationId};
+use shared_types::{CredentialId, DidId, InteractionId, OrganisationId};
 use thiserror::Error;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
@@ -20,14 +20,8 @@ pub enum HolderServiceError {
     MissingCredentialsForInteraction(InteractionId),
     #[error("Missing exchange protocol `{0}`")]
     MissingExchangeProtocol(String),
-    #[error("Credential `{0}` not found")]
-    MissingCredential(CredentialId),
     #[error("Did `{0}` not found")]
     MissingDid(DidId),
-    #[error("Identifier `{0}` not found")]
-    MissingIdentifier(IdentifierId),
-    #[error("Missing organisation: {0}")]
-    MissingOrganisation(OrganisationId),
     #[error("Missing credentials for credential: {credential_id}")]
     MissingCredentialData { credential_id: CredentialId },
     #[error("Presentation submission must contain at least one credential")]
@@ -67,14 +61,11 @@ impl ErrorCodeMixin for HolderServiceError {
             Self::MissingCredentialsForInteraction(_) => ErrorCode::BR_0004,
             Self::MissingExchangeProtocol(_) => ErrorCode::BR_0046,
             Self::EmptyPresentationSubmission => ErrorCode::BR_0246,
-            Self::MissingCredential(_) => ErrorCode::BR_0001,
             Self::MissingCredentialData { .. } => ErrorCode::BR_0005,
             Self::InvalidPresentationSubmission { .. } => ErrorCode::BR_0291,
             Self::TransportNotAllowedForExchange => ErrorCode::BR_0160,
             Self::MissingDid(_) => ErrorCode::BR_0024,
             Self::InvalidInput(_) => ErrorCode::BR_0323,
-            Self::MissingIdentifier(_) => ErrorCode::BR_0207,
-            Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::RejectionNotSupported => ErrorCode::BR_0237,
             Self::OrganisationIsDeactivated(_) => ErrorCode::BR_0241,
             Self::MappingError(_) => ErrorCode::BR_0047,

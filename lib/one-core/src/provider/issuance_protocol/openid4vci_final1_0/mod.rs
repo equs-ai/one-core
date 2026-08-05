@@ -311,12 +311,7 @@ impl OpenID4VCIFinal1_0 {
                     .credential_repository
                     .get_credential(credential_id, &Default::default())
                     .await
-                    .error_while("getting credential")?
-                    .ok_or_else(|| {
-                        IssuanceProtocolError::Failed(format!(
-                            "Missing verifiable credential for MDOC: {credential_id}"
-                        ))
-                    })?;
+                    .error_while("getting credential")?;
 
                 let can_be_updated_at =
                     credential.last_modified + self.mso_minimum_refresh_time(format)?;
@@ -1448,12 +1443,6 @@ impl OpenID4VCIFinal1_0 {
             .await
             .error_while("getting credential schema")?;
 
-        let Some(schema) = schema else {
-            return Err(IssuanceProtocolError::MissingCredentialSchema(
-                *credential_schema_id,
-            ));
-        };
-
         let mut credential_configurations_supported: IndexMap<String, CredentialConfigurationData> =
             Default::default();
         {
@@ -1950,7 +1939,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         holder_identifier: Identifier,
         holder_key_id: String,
     ) -> Result<SerializedCredential, IssuanceProtocolError> {
-        let Some(mut credential) = self
+        let mut credential = self
             .credential_repository
             .get_credential(
                 credential_id,
@@ -1960,12 +1949,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 },
             )
             .await
-            .error_while("getting credential")?
-        else {
-            return Err(IssuanceProtocolError::Failed(
-                "Credential not found".to_string(),
-            ));
-        };
+            .error_while("getting credential")?;
 
         if credential.r#type == CredentialType::BatchItem {
             // backfill claims for batch items, as these are only stored on the parent
@@ -2235,10 +2219,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                         },
                     )
                     .await
-                    .error_while("getting credential")?
-                    .ok_or(IssuanceProtocolError::Failed(
-                        "Missing credential".to_string(),
-                    ))?;
+                    .error_while("getting credential")?;
 
                 // reusing old key for holder binding
                 let identifier = credential

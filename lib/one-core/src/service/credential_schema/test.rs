@@ -46,6 +46,7 @@ use crate::provider::credential_formatter::model::{Features, FormatterCapabiliti
 use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::common_dto::ListQueryDTO;
 use crate::service::test_utilities::{
@@ -164,7 +165,7 @@ async fn test_get_credential_schema_success() {
             .expect_get_credential_schema()
             .times(1)
             .with(eq(schema.id.to_owned()))
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
@@ -200,7 +201,7 @@ async fn test_get_credential_schema_deleted() {
         let clone = schema.clone();
         repository
             .expect_get_credential_schema()
-            .returning(move |_| Ok(Some(clone.clone())));
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let service = setup_service(
@@ -302,7 +303,7 @@ async fn test_delete_credential_schema() {
 
     repository
         .expect_get_credential_schema()
-        .returning(move |_| Ok(Some(credential_schema.clone())));
+        .returning(move |_| Ok(credential_schema.clone()));
 
     repository
         .expect_delete_credential_schema()
@@ -348,7 +349,7 @@ async fn test_create_credential_schema_success() {
             .expect_get_organisation()
             .times(1)
             .with(eq(organisation.id.to_owned()))
-            .returning(move |_| Ok(Some(organisation.clone())));
+            .returning(move |_| Ok(organisation.clone()));
         repository
             .expect_create_credential_schema()
             .times(1)
@@ -438,7 +439,7 @@ async fn test_create_credential_schema_success_mdoc_with_custom_schema_id() {
             .expect_get_organisation()
             .times(1)
             .with(eq(organisation.id.to_owned()))
-            .returning(move |_| Ok(Some(organisation.clone())));
+            .returning(move |_| Ok(organisation.clone()));
         repository
             .expect_create_credential_schema()
             .times(1)
@@ -537,7 +538,7 @@ async fn test_create_credential_schema_success_nested_claims() {
             .expect_get_organisation()
             .times(1)
             .with(eq(organisation.id.to_owned()))
-            .returning(move |_| Ok(Some(organisation.clone())));
+            .returning(move |_| Ok(organisation.clone()));
         repository
             .expect_create_credential_schema()
             .times(1)
@@ -1196,7 +1197,12 @@ async fn test_create_credential_schema_fail_missing_organisation() {
         organisation_repository
             .expect_get_organisation()
             .times(1)
-            .returning(move |_| Ok(None));
+            .returning(move |_| {
+                Err(DataLayerError::EntityNotFound {
+                    kind: EntityKind::Organisation,
+                    id: Uuid::nil(),
+                })
+            });
         let clone = response.clone();
         repository
             .expect_get_credential_schema_list()
@@ -1249,7 +1255,7 @@ async fn test_create_credential_schema_fail_missing_organisation() {
         })
         .await;
 
-    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0088);
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0022);
 }
 
 #[tokio::test]
@@ -1414,7 +1420,7 @@ async fn test_create_credential_schema_failed_schema_id_not_allowed() {
     organisation_repository
         .expect_get_organisation()
         .once()
-        .return_once(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .return_once(|id| Ok(dummy_organisation(Some(*id))));
 
     let service = setup_service(
         credential_schema_repository,
@@ -2651,7 +2657,7 @@ async fn test_share_credential_schema_success() {
 
     repository
         .expect_get_credential_schema()
-        .returning(|_| Ok(Some(generic_credential_schema())));
+        .returning(|_| Ok(generic_credential_schema()));
 
     let service = setup_service(
         repository,
@@ -2674,7 +2680,7 @@ async fn test_share_credential_schema_v2_success() {
 
     repository
         .expect_get_credential_schema()
-        .returning(|_| Ok(Some(generic_credential_schema())));
+        .returning(|_| Ok(generic_credential_schema()));
 
     let service = setup_service(
         repository,
@@ -2697,9 +2703,12 @@ async fn test_share_credential_schema_v2_not_found() {
 
     let schema_id: CredentialSchemaId = Uuid::new_v4().into();
 
-    repository
-        .expect_get_credential_schema()
-        .returning(|_| Ok(None));
+    repository.expect_get_credential_schema().returning(|id| {
+        Err(DataLayerError::EntityNotFound {
+            kind: EntityKind::CredentialSchema,
+            id: (*id).into(),
+        })
+    });
 
     let service = setup_service(
         repository,
@@ -2725,7 +2734,7 @@ async fn test_import_credential_schema_success() {
     let organisation = dummy_organisation(Some(own_organisation_id.into()));
     organisation_repository
         .expect_get_organisation()
-        .return_once(|_| Ok(Some(organisation)));
+        .return_once(|_| Ok(organisation));
 
     formatter
         .expect_get_capabilities()
@@ -2820,7 +2829,7 @@ async fn test_import_credential_schema_rehosts_source_url_when_enabled() {
     let organisation = dummy_organisation(Some(own_organisation_id.into()));
     organisation_repository
         .expect_get_organisation()
-        .return_once(|_| Ok(Some(organisation)));
+        .return_once(|_| Ok(organisation));
 
     formatter
         .expect_get_capabilities()
@@ -3180,7 +3189,7 @@ async fn test_credential_schema_ops_session_org_mismatch() {
     let mut schema_repository = MockCredentialSchemaRepository::default();
     schema_repository
         .expect_get_credential_schema()
-        .returning(|_| Ok(Some(generic_credential_schema())));
+        .returning(|_| Ok(generic_credential_schema()));
     let service = CredentialSchemaService {
         credential_schema_repository: Arc::new(schema_repository),
         organisation_repository: Arc::new(MockOrganisationRepository::default()),

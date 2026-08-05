@@ -26,7 +26,7 @@ pub trait CredentialRepository: Send + Sync {
         &self,
         id: &CredentialId,
         relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError>;
+    ) -> Result<Credential, DataLayerError>;
 
     async fn get_credentials_by_interaction_id(
         &self,
@@ -56,10 +56,6 @@ pub trait CredentialRepository: Send + Sync {
 impl AsyncModelLoader<Credential> for Arc<dyn CredentialRepository> {
     async fn load(&self, id: &CredentialId) -> Result<Credential, DataLayerError> {
         self.get_credential(id, &CredentialRelations::default())
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "credential",
-                id: id.to_string(),
-            })
+            .await
     }
 }

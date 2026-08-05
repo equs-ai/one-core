@@ -22,6 +22,7 @@ use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::did_method::{DidUpdate, MockDidMethod};
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::repository::did_repository::MockDidRepository;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::common_dto::ListQueryDTO;
@@ -93,7 +94,7 @@ async fn test_get_did_exists() {
             .expect_get_did()
             .once()
             .with(eq(did.id.to_owned()))
-            .returning(move |_| Ok(Some(did_clone.clone())));
+            .returning(move |_| Ok(did_clone.clone()));
     }
 
     let service = setup_service(
@@ -117,7 +118,12 @@ async fn test_get_did_exists() {
 #[tokio::test]
 async fn test_get_did_missing() {
     let mut repository = MockDidRepository::default();
-    repository.expect_get_did().once().returning(|_| Ok(None));
+    repository.expect_get_did().once().returning(|id| {
+        Err(DataLayerError::EntityNotFound {
+            kind: EntityKind::Did,
+            id: (*id).into(),
+        })
+    });
 
     let service = setup_service(
         repository,
@@ -227,7 +233,7 @@ async fn test_create_did_success() {
     organisation_repository
         .expect_get_organisation()
         .once()
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let mut identifier_creator = MockIdentifierCreator::new();
     identifier_creator
@@ -294,7 +300,7 @@ async fn test_update_did() {
     let mut did_repository = MockDidRepository::default();
     did_repository.expect_get_did().once().returning({
         let clone = did.to_owned();
-        move |_| Ok(Some(clone.to_owned()))
+        move |_| Ok(clone.to_owned())
     });
     did_repository
         .expect_update_did()
@@ -358,7 +364,7 @@ async fn test_update_did_fail_reactivation() {
     let mut did_repository = MockDidRepository::default();
     did_repository.expect_get_did().once().returning({
         let clone = did.to_owned();
-        move |_| Ok(Some(clone.to_owned()))
+        move |_| Ok(clone.to_owned())
     });
 
     let service = setup_service(
@@ -433,7 +439,7 @@ async fn test_did_ops_session_org_mismatch() {
     let mut did_repository = MockDidRepository::default();
     did_repository
         .expect_get_did()
-        .returning(move |_| Ok(Some(did.clone())));
+        .returning(move |_| Ok(did.clone()));
     let service = DidService {
         did_repository: Arc::new(did_repository),
         identifier_creator: Arc::new(MockIdentifierCreator::default()),

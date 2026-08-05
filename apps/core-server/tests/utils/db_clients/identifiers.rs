@@ -45,6 +45,6 @@ impl IdentifiersDB {
     }
 
     pub async fn get(&self, identifier_id: IdentifierId) -> Identifier {
-        self.repository.get(identifier_id).await.unwrap().unwrap()
+        self.repository.get(identifier_id).await.unwrap()
     }
 }

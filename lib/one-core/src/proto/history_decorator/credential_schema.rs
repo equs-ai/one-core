@@ -74,7 +74,7 @@ impl CredentialSchemaRepository for CredentialSchemaHistoryDecorator {
     async fn get_credential_schema(
         &self,
         id: &CredentialSchemaId,
-    ) -> Result<Option<CredentialSchema>, DataLayerError> {
+    ) -> Result<CredentialSchema, DataLayerError> {
         self.inner.get_credential_schema(id).await
     }
 

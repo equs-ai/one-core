@@ -364,10 +364,7 @@ impl RevocationMethod for TokenStatusList {
             .identifier_repository
             .get(issuer_id)
             .await
-            .error_while("getting identifier")?
-            .ok_or(RevocationError::MappingError(
-                "Missing issuer_identifier".to_string(),
-            ))?;
+            .error_while("getting identifier")?;
 
         let issuer_certificate = if let IdentifierData::Certificate(certificates)
         | IdentifierData::CertificateAuthority(certificates) =

@@ -113,7 +113,7 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
 
     Ok(
         join_all(credentials.into_iter().map(|credential| async move {
-            credential_repository
+            match credential_repository
                 .get_credential(
                     &credential.id,
                     &CredentialRelations {
@@ -122,6 +122,11 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
                     },
                 )
                 .await
+            {
+                Ok(credential) => Ok(Some(credential)),
+                Err(DataLayerError::EntityNotFound { .. }) => Ok(None),
+                Err(error) => Err(error),
+            }
         }))
         .await
         .into_iter()

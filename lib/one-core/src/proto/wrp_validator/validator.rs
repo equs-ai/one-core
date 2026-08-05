@@ -326,8 +326,7 @@ impl WRPValidator for WRPValidatorImpl {
             .organisation_repository
             .get_organisation(&organisation_id)
             .await
-            .error_while("getting holder wallet instance")?
-            .ok_or(WRPValidatorError::MissingOrganisation(organisation_id))?;
+            .error_while("getting holder wallet instance")?;
 
         let enforce_ecosystem_as_holder = organisation.configuration.enforce_ecosystem_as_holder;
 
@@ -364,8 +363,7 @@ impl WRPValidator for WRPValidatorImpl {
             .organisation_repository
             .get_organisation(&organisation_id)
             .await
-            .error_while("getting holder wallet instance")?
-            .ok_or(WRPValidatorError::MissingOrganisation(organisation_id))?;
+            .error_while("getting holder wallet instance")?;
 
         let enforce_ecosystem_as_verifier =
             organisation.configuration.enforce_ecosystem_as_verifier;
@@ -491,9 +489,6 @@ impl WRPValidatorImpl {
             let subscriber = self
                 .trust_list_subscriber_provider
                 .get(&subscription.r#type)
-                .ok_or(MissingProviderError::TrustListSubscriber(
-                    subscription.r#type,
-                ))
                 .error_while("getting trust list subscriber")?;
 
             let reference = subscription.reference.parse()?;
@@ -816,7 +811,7 @@ mod tests {
         let mut subscriber_provider = MockTrustListSubscriberProvider::default();
         subscriber_provider
             .expect_get()
-            .returning(move |_| Some(subscriber.clone()));
+            .returning(move |_| Ok(subscriber.clone()));
 
         WRPValidatorImpl::new(
             Arc::new(collection_repo),

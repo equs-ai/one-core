@@ -3,9 +3,11 @@ use std::sync::Arc;
 
 use serde_json::json;
 use shared_types::TrustListSubscriberId;
+use thiserror::Error;
 
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CacheEntityCacheType, CoreConfig, TrustListSubscriberType};
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::clock::Clock;
 use crate::proto::http_client::HttpClient;
@@ -24,9 +26,26 @@ use crate::provider::trust_list_subscriber::etsi_lotl::resolver::EtsiLotlResolve
 use crate::provider::trust_list_subscriber::etsi_lotl::{EtsiLotlParams, EtsiLotlSubscriber};
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 
+#[derive(Debug, Error)]
+pub enum TrustListSubscriberProviderError {
+    #[error("Cannot find trust list subscriber provider `{0}`")]
+    NotFound(TrustListSubscriberId),
+}
+
+impl ErrorCodeMixin for TrustListSubscriberProviderError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::NotFound(_) => ErrorCode::BR_0400,
+        }
+    }
+}
+
 #[cfg_attr(test, mockall::automock)]
 pub trait TrustListSubscriberProvider: Send + Sync {
-    fn get(&self, subscriber_id: &TrustListSubscriberId) -> Option<Arc<dyn TrustListSubscriber>>;
+    fn get(
+        &self,
+        subscriber_id: &TrustListSubscriberId,
+    ) -> Result<Arc<dyn TrustListSubscriber>, TrustListSubscriberProviderError>;
 }
 
 struct TrustListSubscriberProviderImpl {
@@ -34,8 +53,14 @@ struct TrustListSubscriberProviderImpl {
 }
 
 impl TrustListSubscriberProvider for TrustListSubscriberProviderImpl {
-    fn get(&self, subscriber_id: &TrustListSubscriberId) -> Option<Arc<dyn TrustListSubscriber>> {
-        self.subscribers.get(subscriber_id).cloned()
+    fn get(
+        &self,
+        subscriber_id: &TrustListSubscriberId,
+    ) -> Result<Arc<dyn TrustListSubscriber>, TrustListSubscriberProviderError> {
+        self.subscribers
+            .get(subscriber_id)
+            .cloned()
+            .ok_or_else(|| TrustListSubscriberProviderError::NotFound(subscriber_id.to_owned()))
     }
 }
 

@@ -436,7 +436,7 @@ async fn test_get_proof_schema_missing() {
     let result = repository
         .get_proof_schema(&Uuid::new_v4().into(), &ProofSchemaRelations::default())
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -456,7 +456,6 @@ async fn test_get_proof_schema_no_relations() {
     let result = repository
         .get_proof_schema(&proof_schema_id, &ProofSchemaRelations::default())
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(result.id, proof_schema_id);
@@ -490,7 +489,6 @@ async fn test_get_proof_schema_deleted() {
     let result = repository
         .get_proof_schema(&proof_schema_id, &ProofSchemaRelations::default())
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(result.id, proof_schema_id);
@@ -524,7 +522,7 @@ async fn test_get_proof_schema_with_relations() {
     organisation_repository
         .expect_get_organisation()
         .times(1)
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let TestSetup {
         repository,
@@ -593,7 +591,6 @@ async fn test_get_proof_schema_with_relations() {
             },
         )
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(result.id, proof_schema_id);
@@ -640,13 +637,13 @@ async fn test_get_proof_schema_with_input_proof_relations() {
     let mut organisation_repository = MockOrganisationRepository::default();
     organisation_repository
         .expect_get_organisation()
-        .returning(|id| Ok(Some(dummy_organisation(Some(id.to_owned())))));
+        .returning(|id| Ok(dummy_organisation(Some(id.to_owned()))));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
     credential_schema_repository
         .expect_get_credential_schema()
         .returning(|id| {
-            Ok(Some(CredentialSchema {
+            Ok(CredentialSchema {
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -676,7 +673,7 @@ async fn test_get_proof_schema_with_input_proof_relations() {
                 transaction_code: None,
                 translations: Default::default(),
                 embedded_disclosure_policy: None,
-            }))
+            })
         });
 
     let TestSetup {
@@ -782,7 +779,6 @@ async fn test_get_proof_schema_with_input_proof_relations() {
             },
         )
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(result.id, proof_schema_id);

@@ -1093,7 +1093,6 @@ pub async fn get_proof(db_conn: &DbConn, proof_id: &ProofId) -> Proof {
         )
         .await
         .unwrap()
-        .unwrap()
 }
 
 pub async fn get_blob(db_conn: &DbConn, blob_id: &BlobId) -> Blob {

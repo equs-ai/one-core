@@ -10,7 +10,7 @@ use one_core::model::credential::{
 use one_core::model::identifier::{Identifier, IdentifierRelations};
 use one_core::proto::transaction_manager::IsolationLevel;
 use one_core::repository::credential_repository::CredentialRepository;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::identifier_repository::IdentifierRepository;
 use one_dto_mapper::convert_inner;
 use sea_orm::ActiveValue::NotSet;
@@ -345,22 +345,18 @@ impl CredentialRepository for CredentialProvider {
         &self,
         id: &CredentialId,
         relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError> {
+    ) -> Result<Credential, DataLayerError> {
         let credential = credential::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(|err| DataLayerError::Db(err.into()))?;
+            .map_err(|err| DataLayerError::Db(err.into()))?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Credential,
+                id: (*id).into(),
+            })?;
 
-        match credential {
-            None => Ok(None),
-            Some(credential) => {
-                let credential = self
-                    .credential_model_to_repository_model(credential, relations)
-                    .await?;
-
-                Ok(Some(credential))
-            }
-        }
+        self.credential_model_to_repository_model(credential, relations)
+            .await
     }
 
     async fn get_credentials_by_interaction_id(
@@ -559,13 +555,7 @@ async fn get_related_identifier(
     let identifier = match id.zip(relations) {
         None => None,
         Some((id, _relations)) => {
-            let identifier =
-                repo.get(*id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "credential-identifier",
-                        id: id.to_string(),
-                    })?;
+            let identifier = repo.get(*id).await?;
 
             Some(identifier)
         }

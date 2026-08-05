@@ -1,6 +1,6 @@
 use autometrics::autometrics;
 use one_core::model::key::{GetKeyList, Key, KeyListQuery};
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::key_repository::KeyRepository;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
@@ -36,7 +36,7 @@ impl KeyRepository for KeyProvider {
         Ok(request.id)
     }
 
-    async fn get_key(&self, id: &KeyId) -> Result<Option<Key>, DataLayerError> {
+    async fn get_key(&self, id: &KeyId) -> Result<Key, DataLayerError> {
         let key = key::Entity::find_by_id(*id)
             .filter(key::Column::DeletedAt.is_null())
             .one(&self.db)
@@ -44,13 +44,13 @@ impl KeyRepository for KeyProvider {
             .map_err(|e| {
                 tracing::error!("Error while fetching key {}. Error: {}", id, e.to_string());
                 DataLayerError::Db(e.into())
+            })?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Key,
+                id: (*id).into(),
             })?;
 
-        let Some(key) = key else {
-            return Ok(None);
-        };
-
-        Ok(Some(key_from_model(key, &self.organisation_repository)))
+        Ok(key_from_model(key, &self.organisation_repository))
     }
 
     async fn get_keys(&self, ids: &[KeyId]) -> Result<Vec<Key>, DataLayerError> {

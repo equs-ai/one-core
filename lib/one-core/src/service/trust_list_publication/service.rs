@@ -336,11 +336,11 @@ impl TrustListPublicationService {
         &self,
         identifier_id: IdentifierId,
     ) -> Result<Identifier, TrustListPublicationServiceError> {
-        self.identifier_repository
+        Ok(self
+            .identifier_repository
             .get(identifier_id)
             .await
-            .error_while("fetching identifier")?
-            .ok_or_else(|| TrustListPublicationServiceError::IdentifierNotFound(identifier_id))
+            .error_while("fetching identifier")?)
     }
 }
 
@@ -573,7 +573,7 @@ mod tests {
         identifier_repository
             .expect_get()
             .with(predicate::eq(identifier_id))
-            .returning(move |_| Ok(Some(identifier.clone())));
+            .returning(move |_| Ok(identifier.clone()));
 
         trust_list_publisher
             .expect_get_capabilities()

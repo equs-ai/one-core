@@ -81,7 +81,7 @@ async fn test_reject_proof_request_succeeds_and_sets_state_to_rejected_when_late
         .expect_get_proof_by_interaction_id()
         .once()
         .return_once(move |_, _| {
-            Ok(Some(Proof {
+            Ok(Proof {
                 id: proof_id,
                 protocol: protocol.to_string(),
                 state: ProofStateEnum::Requested,
@@ -98,7 +98,7 @@ async fn test_reject_proof_request_succeeds_and_sets_state_to_rejected_when_late
                     ecosystem_data: None,
                 }),
                 ..dummy_proof()
-            }))
+            })
         });
 
     proof_repository
@@ -151,7 +151,7 @@ async fn test_reject_proof_request_fails_when_latest_state_is_not_requested() {
             .expect_get_proof_by_interaction_id()
             .once()
             .return_once(move |_, _| {
-                Ok(Some(Proof {
+                Ok(Proof {
                     id: proof_id,
                     protocol: protocol.to_string(),
                     state,
@@ -168,7 +168,7 @@ async fn test_reject_proof_request_fails_when_latest_state_is_not_requested() {
                         ecosystem_data: None,
                     }),
                     ..dummy_proof()
-                }))
+                })
             });
 
         let service = SSIHolderService {
@@ -203,7 +203,7 @@ async fn test_reject_proof_request_suceeds_when_holder_reject_proof_errors_state
         .expect_get_proof_by_interaction_id()
         .once()
         .return_once(move |_, _| {
-            Ok(Some(Proof {
+            Ok(Proof {
                 id: proof_id,
                 protocol: protocol.to_string(),
                 state: ProofStateEnum::Requested,
@@ -220,7 +220,7 @@ async fn test_reject_proof_request_suceeds_when_holder_reject_proof_errors_state
                     ecosystem_data: None,
                 }),
                 ..dummy_proof()
-            }))
+            })
         });
 
     proof_repository
@@ -268,7 +268,7 @@ async fn test_accept_credential() {
 
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().return_once(move |_| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
                 (Did {
@@ -285,7 +285,7 @@ async fn test_accept_credential() {
             ),
             organisation: dummy_organisation(None).into(),
             ..dummy_identifier()
-        }))
+        })
     });
 
     let mut key_algorithm_provider = MockKeyAlgorithmProvider::new();
@@ -648,7 +648,7 @@ async fn test_accept_credential_wrong_tx_code() {
         .expect_get()
         .once()
         .return_once(move |_| {
-            Ok(Some(Identifier {
+            Ok(Identifier {
                 id: identifier_id,
                 data: IdentifierData::Did(
                     (Did {
@@ -665,7 +665,7 @@ async fn test_accept_credential_wrong_tx_code() {
                 ),
                 organisation: dummy_organisation(None).into(),
                 ..dummy_identifier()
-            }))
+            })
         });
 
     let mut key_algorithm_provider = MockKeyAlgorithmProvider::new();
@@ -790,7 +790,7 @@ async fn test_initiate_issuance() {
     let mut organisation_repository = MockOrganisationRepository::new();
     organisation_repository
         .expect_get_organisation()
-        .return_once(|_| Ok(Some(dummy_organisation(None))));
+        .return_once(|_| Ok(dummy_organisation(None)));
 
     let mut interaction_repository = MockInteractionRepository::new();
     interaction_repository
@@ -964,7 +964,7 @@ async fn test_initiate_issuance_pkce() {
     let mut organisation_repository = MockOrganisationRepository::new();
     organisation_repository
         .expect_get_organisation()
-        .return_once(|_| Ok(Some(dummy_organisation(None))));
+        .return_once(|_| Ok(dummy_organisation(None)));
 
     let mut interaction_repository = MockInteractionRepository::new();
     interaction_repository
@@ -1213,7 +1213,7 @@ async fn test_accept_credential_identifier_org_mismatch() {
 
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().return_once(move |_| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
                 (Did {
@@ -1230,7 +1230,7 @@ async fn test_accept_credential_identifier_org_mismatch() {
             ),
             organisation: dummy_organisation(Some(organisation_id)).into(),
             ..dummy_identifier()
-        }))
+        })
     });
     let service = SSIHolderService {
         identifier_repository: Arc::new(identifier_repository),
@@ -1257,7 +1257,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
 
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().return_once(move |_| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
                 (Did {
@@ -1274,7 +1274,7 @@ async fn test_accept_interaction_credential_org_mismatch() {
             ),
             organisation: dummy_organisation(Some(session_organisation_id)).into(),
             ..dummy_identifier()
-        }))
+        })
     });
     let organisation = dummy_organisation(Some(organisation_id));
     let interaction_id = Uuid::new_v4().into();
@@ -1323,7 +1323,7 @@ async fn test_reject_credential_credential_org_mismatch() {
 
     let mut identifier_repository = MockIdentifierRepository::new();
     identifier_repository.expect_get().return_once(move |_| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id: identifier_id,
             data: IdentifierData::Did(
                 (Did {
@@ -1340,7 +1340,7 @@ async fn test_reject_credential_credential_org_mismatch() {
             ),
             organisation: dummy_organisation(Some(session_organisation_id)).into(),
             ..dummy_identifier()
-        }))
+        })
     });
     let mut credential_repository = MockCredentialRepository::new();
     credential_repository

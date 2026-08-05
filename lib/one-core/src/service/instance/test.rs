@@ -83,11 +83,11 @@ async fn holder_register_success() {
         .once()
         .return_once(move |id| {
             check!(id == &organisation_id);
-            Ok(Some(Organisation {
+            Ok(Organisation {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 ..dummy_organisation(Some(*id))
-            }))
+            })
         });
 
     let mut key_repository = MockKeyRepository::new();
@@ -252,11 +252,11 @@ async fn holder_register_key_attestation_not_supported() {
         .once()
         .return_once(move |id| {
             check!(id == &organisation_id);
-            Ok(Some(Organisation {
+            Ok(Organisation {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 ..dummy_organisation(Some(*id))
-            }))
+            })
         });
 
     let mut key_storage = MockKeyStorage::new();
@@ -577,11 +577,11 @@ async fn holder_register_already_exists() {
         .once()
         .return_once(move |id| {
             check!(id == &organisation_id);
-            Ok(Some(Organisation {
+            Ok(Organisation {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 ..dummy_organisation(Some(*id))
-            }))
+            })
         });
 
     let mut holder_wallet_unit_repository = MockInstanceRepository::new();

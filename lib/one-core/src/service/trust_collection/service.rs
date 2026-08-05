@@ -311,7 +311,7 @@ impl TrustCollectionService {
     ) -> Result<Arc<dyn TrustListSubscriber>, TrustCollectionServiceError> {
         self.trust_list_subscriber_provider
             .get(trust_list_subscriber_id)
-            .ok_or_else(|| {
+            .map_err(|_| {
                 TrustCollectionServiceError::MissingTrustListSubscriber(
                     trust_list_subscriber_id.clone(),
                 )

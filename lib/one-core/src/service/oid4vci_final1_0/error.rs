@@ -1,6 +1,6 @@
 use std::string::FromUtf8Error;
 
-use shared_types::{CredentialId, CredentialSchemaId, IdentifierId, InteractionId};
+use shared_types::{CredentialId, IdentifierId, InteractionId};
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential::{CredentialStateEnum, CredentialType};
@@ -12,10 +12,6 @@ pub enum OID4VCIFinal1_0ServiceError {
     MissingInteractionForAccessToken { interaction_id: InteractionId },
     #[error("Missing credentials for interaction: {interaction_id}")]
     MissingCredentialsForInteraction { interaction_id: InteractionId },
-    #[error("Credential schema `{0}` not found")]
-    MissingCredentialSchema(CredentialSchemaId),
-    #[error("Credential `{0}` not found")]
-    MissingCredential(CredentialId),
     #[error("Credential {id} has type `{type}`, which is not supported by this operation")]
     UnsupportedCredentialType {
         id: CredentialId,
@@ -37,9 +33,6 @@ pub enum OID4VCIFinal1_0ServiceError {
     #[error(transparent)]
     Nested(#[from] NestedError),
 
-    #[error("Identifier not found: {0}")]
-    IdentifierNotFound(IdentifierId),
-
     #[error("Identifier missing Authentication capable certificate: {0}")]
     MissingAuthenticationCapableCertificate(IdentifierId),
 }
@@ -49,14 +42,11 @@ impl ErrorCodeMixin for OID4VCIFinal1_0ServiceError {
         match self {
             Self::MissingInteractionForAccessToken { .. } => ErrorCode::BR_0033,
             Self::MissingCredentialsForInteraction { .. } => ErrorCode::BR_0004,
-            Self::MissingCredential(_) => ErrorCode::BR_0001,
             Self::InvalidCredentialState(_) => ErrorCode::BR_0002,
-            Self::MissingCredentialSchema(_) => ErrorCode::BR_0006,
             Self::ValidationError(_) => ErrorCode::BR_0323,
             Self::FromUtf8Error(_) | Self::MappingError(_) => ErrorCode::BR_0047,
             Self::OpenID4VCIError(_) => ErrorCode::BR_0048,
             Self::Nested(nested) => nested.error_code(),
-            Self::IdentifierNotFound(_) => ErrorCode::BR_0207,
             Self::MissingAuthenticationCapableCertificate(_) => ErrorCode::BR_0418,
             Self::UnsupportedCredentialType { .. } => ErrorCode::BR_0442,
         }

@@ -310,10 +310,7 @@ impl CredentialSchemaService {
             .organisation_repository
             .get_organisation(&organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(CredentialSchemaServiceError::MissingOrganisation(
-                organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(CredentialSchemaServiceError::OrganisationIsDeactivated(
@@ -357,10 +354,7 @@ impl CredentialSchemaService {
             .credential_schema_repository
             .get_credential_schema(credential_schema_id)
             .await
-            .error_while("getting credential schema")?
-            .ok_or(CredentialSchemaServiceError::NotFound(
-                *credential_schema_id,
-            ))?;
+            .error_while("getting credential schema")?;
 
         throw_if_org_id_not_matching_session(
             credential_schema.organisation.id_ref(),
@@ -401,12 +395,6 @@ impl CredentialSchemaService {
             .await
             .error_while("getting credential schema")?;
 
-        let Some(schema) = schema else {
-            return Err(CredentialSchemaServiceError::NotFound(
-                *credential_schema_id,
-            ));
-        };
-
         throw_if_org_id_not_matching_session(schema.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -429,12 +417,6 @@ impl CredentialSchemaService {
             .get_credential_schema(credential_schema_id)
             .await
             .error_while("getting credential schema")?;
-
-        let Some(schema) = schema else {
-            return Err(CredentialSchemaServiceError::NotFound(
-                *credential_schema_id,
-            ));
-        };
 
         throw_if_org_id_not_matching_session(schema.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
@@ -558,20 +540,7 @@ impl CredentialSchemaService {
     ) -> Result<CredentialSchemaId, CredentialSchemaServiceError> {
         throw_if_org_id_not_matching_session(&request.organisation_id, &*self.session_provider)
             .error_while("checking session")?;
-        let organisation = self
-            .organisation_repository
-            .get_organisation(&request.organisation_id)
-            .await
-            .error_while("getting organisation")?
-            .ok_or(CredentialSchemaServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
-
-        if organisation.deactivated_at.is_some() {
-            return Err(CredentialSchemaServiceError::OrganisationIsDeactivated(
-                request.organisation_id,
-            ));
-        }
+        let organisation = self.get_organisation(request.organisation_id).await?;
 
         let credential_schema = self
             .import_parser
@@ -607,19 +576,7 @@ impl CredentialSchemaService {
     ) -> Result<CredentialSchemaId, CredentialSchemaServiceError> {
         throw_if_org_id_not_matching_session(&request.organisation_id, &*self.session_provider)
             .error_while("checking session")?;
-        let organisation = self
-            .organisation_repository
-            .get_organisation(&request.organisation_id)
-            .await
-            .error_while("getting organisation")?
-            .ok_or(CredentialSchemaServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
-        if organisation.deactivated_at.is_some() {
-            return Err(CredentialSchemaServiceError::OrganisationIsDeactivated(
-                request.organisation_id,
-            ));
-        }
+        let organisation = self.get_organisation(request.organisation_id).await?;
 
         let credential_schema = self
             .import_parser
@@ -660,10 +617,7 @@ impl CredentialSchemaService {
             .credential_schema_repository
             .get_credential_schema(credential_schema_id)
             .await
-            .error_while("getting credential schema")?
-            .ok_or(CredentialSchemaServiceError::NotFound(
-                *credential_schema_id,
-            ))?;
+            .error_while("getting credential schema")?;
 
         throw_if_org_id_not_matching_session(
             credential_schema.organisation.id_ref(),

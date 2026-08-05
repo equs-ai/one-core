@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::{InteractionId, OrganisationId, ProofId};
 use uuid::Uuid;
 
@@ -27,8 +26,7 @@ pub struct ProofHistoryDecorator {
 
 impl ProofHistoryDecorator {
     async fn fetch_proof(&self, proof_id: &ProofId) -> Result<Proof, DataLayerError> {
-        let proof = self
-            .inner
+        self.inner
             .get_proof(
                 proof_id,
                 &ProofRelations {
@@ -42,10 +40,7 @@ impl ProofHistoryDecorator {
                 },
                 None,
             )
-            .await?
-            .context("proof is missing")?;
-
-        Ok(proof)
+            .await
     }
 
     async fn write_history(
@@ -174,7 +169,7 @@ impl ProofRepository for ProofHistoryDecorator {
         id: &ProofId,
         relations: &ProofRelations,
         lock: Option<LockType>,
-    ) -> Result<Option<Proof>, DataLayerError> {
+    ) -> Result<Proof, DataLayerError> {
         self.inner.get_proof(id, relations, lock).await
     }
 
@@ -182,7 +177,7 @@ impl ProofRepository for ProofHistoryDecorator {
         &self,
         interaction_id: &InteractionId,
         relations: &ProofRelations,
-    ) -> Result<Option<Proof>, DataLayerError> {
+    ) -> Result<Proof, DataLayerError> {
         self.inner
             .get_proof_by_interaction_id(interaction_id, relations)
             .await

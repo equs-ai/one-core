@@ -11,8 +11,6 @@ pub enum DidServiceError {
     #[error("DID {0} is deactivated")]
     Deactivated(DidId),
 
-    #[error("Organisation `{0}` not found")]
-    MissingOrganisation(OrganisationId),
     #[error("Organisation `{0}` is deactivated")]
     OrganisationDeactivated(OrganisationId),
     #[error("Key `{0}` not found")]
@@ -45,7 +43,6 @@ impl ErrorCodeMixin for DidServiceError {
             Self::Deactivated(_) | Self::DeactivatedSameValue { .. } => ErrorCode::BR_0027,
             Self::CannotBeDeactivated { .. } | Self::RemoteDid => ErrorCode::BR_0029,
             Self::CannotBeReactivated { .. } => ErrorCode::BR_0256,
-            Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::OrganisationDeactivated(_) => ErrorCode::BR_0241,
             Self::MissingKey(_) => ErrorCode::BR_0037,
             Self::InvalidKeyStorage(_) => ErrorCode::BR_0040,

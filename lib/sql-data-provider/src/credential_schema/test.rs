@@ -350,7 +350,7 @@ async fn test_get_credential_schema_success() {
         .await;
 
     assert!(result.is_ok());
-    let result = result.unwrap().unwrap();
+    let result = result.unwrap();
     assert_eq!(credential_schema.id, result.id);
     let claim_schemas = result.claim_schemas.as_ref().await.unwrap();
     assert_eq!(claim_schemas.len(), 2);
@@ -386,7 +386,7 @@ async fn test_get_credential_schema_deleted() {
         .await;
 
     assert!(result.is_ok());
-    let result = result.unwrap().unwrap();
+    let result = result.unwrap();
     assert_eq!(result.id, credential_schema.id);
     assert_eq!(result.deleted_at.unwrap(), delete_date);
 }
@@ -398,7 +398,7 @@ async fn test_get_credential_schema_not_found() {
     let result = repository
         .get_credential_schema(&Uuid::new_v4().into())
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]

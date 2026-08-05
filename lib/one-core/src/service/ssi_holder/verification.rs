@@ -19,7 +19,7 @@ use crate::config::core_config::BlobStorageType;
 use crate::config::validator::transport::{
     SelectedTransportType, validate_and_select_transport_type,
 };
-use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::mapper::credential_schema_claim::presented_paths_to_disclosed_keys;
 use crate::mapper::oidc::detect_format_with_crypto_suite;
 use crate::model::claim::Claim;
@@ -46,6 +46,7 @@ use crate::provider::verification_protocol::dto::{
     PresentationDefinitionV2ResponseDTO, PresentationDefinitionVersion, UpdateResponse,
 };
 use crate::provider::verification_protocol::openid4vp::model::OpenID4VPHolderInteractionData;
+use crate::repository::error::DataLayerError;
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, DetailCredentialClaimValueResponseDTO,
 };
@@ -67,13 +68,12 @@ impl SSIHolderService {
                 },
             )
             .await
-            .error_while("getting proof")?;
-
-        let Some(proof) = proof else {
-            return Err(HolderServiceError::MissingProofForInteraction(
-                *interaction_id,
-            ));
-        };
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    HolderServiceError::MissingProofForInteraction(*interaction_id)
+                }
+                error => error.error_while("getting proof").into(),
+            })?;
 
         throw_if_proof_state_not_eq(&proof, ProofStateEnum::Requested)
             .error_while("checking proof state")?;
@@ -206,7 +206,7 @@ impl SSIHolderService {
             return Err(HolderServiceError::EmptyPresentationSubmission);
         }
 
-        let Some(proof) = self
+        let proof = self
             .proof_repository
             .get_proof_by_interaction_id(
                 &request.interaction_id,
@@ -216,12 +216,12 @@ impl SSIHolderService {
                 },
             )
             .await
-            .error_while("getting proof")?
-        else {
-            return Err(HolderServiceError::MissingProofForInteraction(
-                request.interaction_id,
-            ));
-        };
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    HolderServiceError::MissingProofForInteraction(request.interaction_id)
+                }
+                error => error.error_while("getting proof").into(),
+            })?;
 
         let verification_protocol = self
             .verification_protocol_provider
@@ -474,8 +474,7 @@ impl SSIHolderService {
                 },
             )
             .await
-            .error_while("getting credential")?
-            .ok_or(HolderServiceError::MissingCredential(credential_id))?;
+            .error_while("getting credential")?;
         let (blob_id, consumed_item) = match credential.r#type {
             CredentialType::Single => {
                 let blob_id =
@@ -523,8 +522,7 @@ impl SSIHolderService {
                         },
                     )
                     .await
-                    .error_while("loading batch item")?
-                    .ok_or(HolderServiceError::MissingCredential(item.id))?;
+                    .error_while("loading batch item")?;
                 let blob_id = item
                     .credential_blob_id
                     .ok_or(HolderServiceError::MappingError(format!(

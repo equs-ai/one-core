@@ -20,7 +20,7 @@ use crate::repository::claim_repository::ClaimRepository;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::history_repository::HistoryRepository;
 use crate::repository::proof_repository::ProofRepository;
-use crate::service::error::{EntityNotFoundError, ServiceError};
+use crate::service::error::ServiceError;
 use crate::service::proof::dto::ProofFilterValue;
 
 pub struct RetainProofCheck {
@@ -124,9 +124,6 @@ impl Task for RetainProofCheck {
                     )
                     .await
                     .error_while("getting proof")?
-                    .ok_or(ServiceError::EntityNotFound(EntityNotFoundError::Proof(
-                        proof.id,
-                    )))?
                     .claims
                     .ok_or(ServiceError::MappingError("claims are None".to_string()))?
                     .into_iter()

@@ -29,8 +29,7 @@ impl OID4VPFinal1_0SwiyuService {
                 None,
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(OID4VPFinal1_0ServiceError::MissingProof(id))?;
+            .error_while("getting proof")?;
 
         let mut decomposed: DecomposedJwt<serde_json::Value> =
             Jwt::decompose_token(&request).error_while("decomposing token")?;

@@ -3,7 +3,7 @@ use futures::FutureExt;
 use one_core::model::did::{Did, DidListQuery, GetDidList, UpdateDidRequest};
 use one_core::proto::transaction_manager::IsolationLevel;
 use one_core::repository::did_repository::DidRepository;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, Unchanged,
 };
@@ -19,20 +19,22 @@ use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
 #[autometrics]
 #[async_trait::async_trait]
 impl DidRepository for DidProvider {
-    async fn get_did(&self, id: &DidId) -> Result<Option<Did>, DataLayerError> {
+    async fn get_did(&self, id: &DidId) -> Result<Did, DataLayerError> {
         let did = did::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
+            .map_err(|e| DataLayerError::Db(e.into()))?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Did,
+                id: (*id).into(),
+            })?;
 
-        Ok(did.map(|did| {
-            did_from_model(
-                did,
-                &self.db,
-                &self.organisation_repository,
-                &self.key_repository,
-            )
-        }))
+        Ok(did_from_model(
+            did,
+            &self.db,
+            &self.organisation_repository,
+            &self.key_repository,
+        ))
     }
 
     async fn get_did_by_value(

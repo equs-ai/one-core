@@ -16,7 +16,7 @@ impl OrganisationsDB {
     }
 
     pub async fn get(&self, id: &OrganisationId) -> Organisation {
-        self.repository.get_organisation(id).await.unwrap().unwrap()
+        self.repository.get_organisation(id).await.unwrap()
     }
 
     pub async fn create(&self) -> Organisation {

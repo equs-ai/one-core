@@ -171,6 +171,5 @@ impl ProofsDB {
             )
             .await
             .unwrap()
-            .unwrap()
     }
 }

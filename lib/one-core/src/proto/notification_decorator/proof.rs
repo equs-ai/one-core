@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::{InteractionId, OrganisationId, ProofId};
 
 use crate::config::core_config::CoreConfig;
@@ -44,8 +43,7 @@ impl ProofNotificationDecorator {
                 },
                 None,
             )
-            .await?
-            .context("proof is missing")?;
+            .await?;
 
         let Some(webhook_url) = &proof.webhook_url else {
             return Ok(());
@@ -129,7 +127,7 @@ impl ProofRepository for ProofNotificationDecorator {
         id: &ProofId,
         relations: &ProofRelations,
         lock: Option<LockType>,
-    ) -> Result<Option<Proof>, DataLayerError> {
+    ) -> Result<Proof, DataLayerError> {
         self.inner.get_proof(id, relations, lock).await
     }
 
@@ -137,7 +135,7 @@ impl ProofRepository for ProofNotificationDecorator {
         &self,
         interaction_id: &InteractionId,
         relations: &ProofRelations,
-    ) -> Result<Option<Proof>, DataLayerError> {
+    ) -> Result<Proof, DataLayerError> {
         self.inner
             .get_proof_by_interaction_id(interaction_id, relations)
             .await

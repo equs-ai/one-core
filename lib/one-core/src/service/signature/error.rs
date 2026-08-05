@@ -1,4 +1,3 @@
-use shared_types::IdentifierId;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -9,8 +8,6 @@ use crate::model::identifier::IdentifierType;
 pub enum SignatureServiceError {
     #[error("Invalid signature id {0}")]
     InvalidSignatureId(Uuid),
-    #[error("Identifier {0} not found")]
-    IdentifierNotFound(IdentifierId),
     #[error("Identifier type `{0}` not supported")]
     UnsupportedIdentifierType(IdentifierType),
     #[error("Revocation not supported")]
@@ -26,7 +23,6 @@ impl ErrorCodeMixin for SignatureServiceError {
         match self {
             Self::InvalidSignatureId(_) => ErrorCode::BR_0327,
             Self::UnsupportedIdentifierType(_) => ErrorCode::BR_0330,
-            Self::IdentifierNotFound(_) => ErrorCode::BR_0207,
             Self::RevocationNotSupported => ErrorCode::BR_0101,
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::Nested(nested) => nested.error_code(),

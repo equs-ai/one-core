@@ -6,7 +6,7 @@ use one_core::model::organisation::{
     GetOrganisationList, Organisation, OrganisationListQuery, UpdateOrganisationRequest,
 };
 use one_core::proto::transaction_manager::IsolationLevel;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use shared_types::OrganisationId;
@@ -57,16 +57,17 @@ impl OrganisationRepository for OrganisationProvider {
         Ok(())
     }
 
-    async fn get_organisation(
-        &self,
-        id: &OrganisationId,
-    ) -> Result<Option<Organisation>, DataLayerError> {
+    async fn get_organisation(&self, id: &OrganisationId) -> Result<Organisation, DataLayerError> {
         let organisation = organisation::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Organisation,
+                id: (*id).into(),
+            })?;
 
-        Ok(organisation.map(|org| organisation_from_model(org, &self.cloned())))
+        Ok(organisation_from_model(organisation, &self.cloned()))
     }
 
     async fn get_organisation_for_wallet_provider(

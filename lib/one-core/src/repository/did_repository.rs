@@ -11,7 +11,7 @@ use crate::repository::error::DataLayerError;
 pub trait DidRepository: Send + Sync {
     async fn create_did(&self, request: Did) -> Result<DidId, DataLayerError>;
 
-    async fn get_did(&self, id: &DidId) -> Result<Option<Did>, DataLayerError>;
+    async fn get_did(&self, id: &DidId) -> Result<Did, DataLayerError>;
 
     async fn get_did_by_value(
         &self,
@@ -33,11 +33,6 @@ pub trait DidRepository: Send + Sync {
 #[async_trait::async_trait]
 impl AsyncModelLoader<Did> for Arc<dyn DidRepository> {
     async fn load(&self, id: &DidId) -> Result<Did, DataLayerError> {
-        self.get_did(id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "did",
-                id: id.to_string(),
-            })
+        self.get_did(id).await
     }
 }

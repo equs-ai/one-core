@@ -257,7 +257,7 @@ pub(crate) async fn get_json_ld_context(
             Json(JsonLDContextResponseRestDTO::from(value)),
         )
             .into_response(),
-        Err(IssuerServiceError::MissingCredentialSchema(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0006 => {
             tracing::error!("Missing credential schema");
             (StatusCode::NOT_FOUND, "Missing credential schema").into_response()
         }
@@ -312,7 +312,7 @@ pub(crate) async fn get_json_ld_context_by_format(
             Json(JsonLDContextResponseRestDTO::from(value)),
         )
             .into_response(),
-        Err(IssuerServiceError::MissingCredentialSchema(_)) => {
+        Err(error) if error.error_code() == ErrorCode::BR_0006 => {
             tracing::error!("Missing credential schema");
             (StatusCode::NOT_FOUND, "Missing credential schema").into_response()
         }

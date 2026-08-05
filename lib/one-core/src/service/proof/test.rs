@@ -449,7 +449,7 @@ async fn test_get_proof_exists() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -686,7 +686,7 @@ async fn test_get_proof_with_array_holder() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -960,7 +960,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -1249,7 +1249,7 @@ async fn test_get_proof_with_object_array_holder() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -1520,7 +1520,7 @@ async fn test_get_proof_with_array() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -1801,7 +1801,7 @@ async fn test_get_proof_with_array_in_object() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -2098,7 +2098,7 @@ async fn test_get_proof_with_object_array() {
                 }),
                 eq(None),
             )
-            .returning(move |_, _, _| Ok(Some(res_clone.clone())));
+            .returning(move |_, _, _| Ok(res_clone.clone()));
     }
 
     history_repository.expect_get_history_list().returning(|_| {
@@ -2156,10 +2156,16 @@ async fn test_get_proof_with_object_array() {
 #[tokio::test]
 async fn test_get_proof_missing() {
     let mut proof_repository = MockProofRepository::default();
+    let proof_id: ProofId = Uuid::new_v4().into();
     proof_repository
         .expect_get_proof()
         .once()
-        .returning(|_, _, _| Ok(None));
+        .returning(move |_, _, _| {
+            Err(crate::repository::error::DataLayerError::EntityNotFound {
+                kind: crate::repository::error::EntityKind::Proof,
+                id: proof_id.into(),
+            })
+        });
 
     let service = setup_service(Repositories {
         proof_repository,
@@ -2167,8 +2173,8 @@ async fn test_get_proof_missing() {
         ..Default::default()
     });
 
-    let result = service.get_proof(&Uuid::new_v4().into()).await;
-    assert!(matches!(result, Err(ProofServiceError::NotFound(_))));
+    let result = service.get_proof(&proof_id).await;
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0012);
 }
 
 #[tokio::test]
@@ -2325,7 +2331,7 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -2336,7 +2342,7 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let mut identifier_repository = MockIdentifierRepository::default();
@@ -2422,7 +2428,7 @@ async fn test_create_proof_using_invalid_did_method() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -2433,7 +2439,7 @@ async fn test_create_proof_using_invalid_did_method() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let verifier_key_id = Uuid::new_v4();
@@ -2553,7 +2559,7 @@ async fn test_create_proof_using_identifier() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -2564,7 +2570,7 @@ async fn test_create_proof_using_identifier() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let verifier_did = Did {
@@ -2599,10 +2605,10 @@ async fn test_create_proof_using_identifier() {
 
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository.expect_get().return_once(|_| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             data: IdentifierData::Did((verifier_did).into()),
             ..dummy_identifier()
-        }))
+        })
     });
 
     let mut formatter = MockCredentialFormatter::default();
@@ -2691,7 +2697,7 @@ async fn test_create_proof_without_related_key() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -2702,7 +2708,7 @@ async fn test_create_proof_without_related_key() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let verifier_key_id = Uuid::new_v4();
@@ -2834,7 +2840,7 @@ async fn test_create_proof_with_related_key() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -2845,7 +2851,7 @@ async fn test_create_proof_with_related_key() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let request_clone = request.clone();
@@ -2980,7 +2986,7 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .return_once(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -2991,7 +2997,7 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let verifier_did = Did {
@@ -3138,7 +3144,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .return_once(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -3149,7 +3155,7 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![proof_input_schema]),
-            }))
+            })
         });
 
     let verifier_did = Did {
@@ -3267,7 +3273,7 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -3278,7 +3284,7 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let request_clone = request.clone();
@@ -3378,7 +3384,7 @@ async fn test_create_proof_failed_incompatible_exchange() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -3389,7 +3395,7 @@ async fn test_create_proof_failed_incompatible_exchange() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let mut formatter = MockCredentialFormatter::default();
@@ -3444,7 +3450,7 @@ async fn test_create_proof_did_deactivated_error() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -3455,7 +3461,7 @@ async fn test_create_proof_did_deactivated_error() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let request_clone = request.clone();
@@ -3535,7 +3541,7 @@ async fn test_create_proof_schema_deleted() {
         .expect_get_proof_schema()
         .once()
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -3546,7 +3552,7 @@ async fn test_create_proof_schema_deleted() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: None,
-            }))
+            })
         });
 
     let service = setup_service(Repositories {
@@ -3606,7 +3612,7 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
         .once()
         .withf(move |id, _| &request.proof_schema_id == id)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -3617,7 +3623,7 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: Some(vec![generic_proof_input_schema()]),
-            }))
+            })
         });
 
     let verifier_key_id = Uuid::new_v4();
@@ -3852,7 +3858,7 @@ async fn test_share_proof_created_success() {
             .once()
             .in_sequence(&mut seq)
             .withf(move |id, _, _| id == &proof_id)
-            .returning(move |_, _, _| Ok(Some(res_clone.to_owned())));
+            .returning(move |_, _, _| Ok(res_clone.to_owned()));
     }
 
     let mut interaction_repository = MockInteractionRepository::new();
@@ -3956,7 +3962,7 @@ async fn test_share_proof_pending_success() {
             .expect_get_proof()
             .once()
             .withf(move |id, _, _| id == &proof_id)
-            .returning(move |_, _, _| Ok(Some(res_clone.to_owned())));
+            .returning(move |_, _, _| Ok(res_clone.to_owned()));
     }
 
     let mut interaction_repository = MockInteractionRepository::new();
@@ -4068,7 +4074,7 @@ async fn test_share_proof_interaction_expired_success() {
             .expect_get_proof()
             .once()
             .withf(move |id, _, _| id == &proof_id)
-            .returning(move |_, _, _| Ok(Some(res_clone.to_owned())));
+            .returning(move |_, _, _| Ok(res_clone.to_owned()));
     }
 
     let mut interaction_repository = MockInteractionRepository::new();
@@ -4129,10 +4135,10 @@ async fn test_share_proof_invalid_state() {
         .expect_get_proof()
         .once()
         .returning(move |_, _, _| {
-            Ok(Some(construct_proof_with_state(
+            Ok(construct_proof_with_state(
                 &proof_id,
                 ProofStateEnum::Rejected,
-            )))
+            ))
         });
 
     let service = setup_service(Repositories {
@@ -4159,7 +4165,7 @@ async fn test_share_proof_fails_when_engagement_is_present() {
         .expect_get_proof()
         .once()
         .withf(move |id, _, _| id == &proof_id)
-        .returning(move |_, _, _| Ok(Some(proof.to_owned())));
+        .returning(move |_, _, _| Ok(proof.to_owned()));
 
     let service = setup_service(Repositories {
         proof_repository,
@@ -4236,7 +4242,7 @@ async fn test_delete_proof_ok_for_allowed_state(
         })
         .returning({
             let proof = proof.clone();
-            move |_, _, _| Ok(Some(proof.clone()))
+            move |_, _, _| Ok(proof.clone())
         });
 
     proof_repository
@@ -4315,7 +4321,7 @@ async fn test_delete_proof_ok_for_requested_state() {
         })
         .returning({
             let proof = proof.clone();
-            move |_, _, _| Ok(Some(proof.clone()))
+            move |_, _, _| Ok(proof.clone())
         });
 
     proof_repository
@@ -4387,7 +4393,7 @@ async fn test_delete_proof_fails_for_invalid_state(
         })
         .returning({
             let proof = proof.clone();
-            move |_, _, _| Ok(Some(proof.clone()))
+            move |_, _, _| Ok(proof.clone())
         });
 
     let service = setup_service(Repositories {
@@ -4495,7 +4501,7 @@ async fn test_retract_proof_with_bluetooth_ok() {
         })
         .returning({
             let proof = proof.clone();
-            move |_, _, _| Ok(Some(proof.clone()))
+            move |_, _, _| Ok(proof.clone())
         });
     proof_repository
         .expect_delete_proof()
@@ -4588,7 +4594,7 @@ async fn test_retract_proof_success_holder_iso_mdl() {
         })
         .returning({
             let proof = proof.clone();
-            move |_, _, _| Ok(Some(proof.clone()))
+            move |_, _, _| Ok(proof.clone())
         });
     proof_repository
         .expect_delete_proof()
@@ -4621,7 +4627,7 @@ async fn test_create_proof_session_org_mismatch() {
         .expect_get_proof_schema()
         .once()
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -4632,7 +4638,7 @@ async fn test_create_proof_session_org_mismatch() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: None,
-            }))
+            })
         });
     let service = setup_service(Repositories {
         session_provider: Some(Arc::new(StaticSessionProvider::new_random())),
@@ -4708,7 +4714,7 @@ async fn test_proof_ops_session_org_mismatch() {
     let mut proof_repository = MockProofRepository::default();
     proof_repository
         .expect_get_proof()
-        .returning(move |_, _, _| Ok(Some(proof.clone())));
+        .returning(move |_, _, _| Ok(proof.clone()));
     let mut protocol_provider = MockVerificationProtocolProvider::default();
     protocol_provider
         .expect_get_protocol()

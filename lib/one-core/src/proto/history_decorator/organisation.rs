@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::OrganisationId;
 use uuid::Uuid;
 
@@ -65,11 +64,7 @@ impl OrganisationRepository for OrganisationHistoryDecorator {
     ) -> Result<(), DataLayerError> {
         self.inner.update_organisation(request.clone()).await?;
 
-        let updated_entry = self
-            .inner
-            .get_organisation(&request.id)
-            .await?
-            .context("organisation missing")?;
+        let updated_entry = self.inner.get_organisation(&request.id).await?;
 
         if request.wallet_provider_issuer.is_some()
             || request.wallet_provider.is_some()
@@ -96,10 +91,7 @@ impl OrganisationRepository for OrganisationHistoryDecorator {
         Ok(())
     }
 
-    async fn get_organisation(
-        &self,
-        id: &OrganisationId,
-    ) -> Result<Option<Organisation>, DataLayerError> {
+    async fn get_organisation(&self, id: &OrganisationId) -> Result<Organisation, DataLayerError> {
         self.inner.get_organisation(id).await
     }
 

@@ -160,8 +160,6 @@ impl CredentialValidityManagerImpl {
                 },
             )
             .await
-            .error_while("getting credential")?
-            .ok_or(EntityNotFoundError::Credential(credential_id))
             .error_while("getting credential")?;
 
         revocation_method
@@ -408,8 +406,6 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 },
             )
             .await
-            .error_while("getting credential")?
-            .ok_or(EntityNotFoundError::Credential(*credential_id))
             .error_while("getting credential")?;
 
         if credential.deleted_at.is_some() {
@@ -592,10 +588,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 },
             )
             .await
-            .error_while("getting credential")?
-            .ok_or(
-                EntityNotFoundError::Credential(credential_id).error_while("getting credential"),
-            )?;
+            .error_while("getting credential")?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
             .await
             .error_while("verifying credential schema organisation")?;
@@ -679,11 +672,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                             },
                         )
                         .await
-                        .error_while("getting batch item")?
-                        .ok_or(
-                            EntityNotFoundError::Credential(batch_item.id)
-                                .error_while("getting batch item"),
-                        )?;
+                        .error_while("getting batch item")?;
 
                     let (result, suspend_end_date) = self
                         .check_status_for_single_credential(

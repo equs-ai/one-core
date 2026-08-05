@@ -1,4 +1,4 @@
-use shared_types::{DidMethodId, DidValue, IdentifierId, KeyId};
+use shared_types::{DidMethodId, DidValue, IdentifierId};
 use strum::Display;
 
 use crate::config::core_config::SignerType;
@@ -125,10 +125,6 @@ pub(crate) enum Error {
     MissingCertificateCommonName,
     #[error("Invalid signer type: `{0}`")]
     InvalidSignerType(SignerType),
-    #[error("Key `{0}` not found")]
-    KeyNotFound(KeyId),
-    #[error("Identifier `{0}` not found")]
-    IdentifierNotFound(IdentifierId),
     #[error("Identifier type `{0}` not supported")]
     InvalidIdentifierType(IdentifierType),
     #[error("Identifier does not belong to this organisation")]
@@ -155,8 +151,6 @@ impl ErrorCodeMixin for Error {
             Self::InvalidSignerType(_) => ErrorCode::BR_0381,
             Self::CertificateKeyNotMatching => ErrorCode::BR_0214,
             Self::MissingCertificateCommonName => ErrorCode::BR_0224,
-            Self::KeyNotFound(_) => ErrorCode::BR_0037,
-            Self::IdentifierNotFound(_) => ErrorCode::BR_0207,
             Self::InvalidIdentifierType(_) => ErrorCode::BR_0330,
             Self::OrganisationMismatch => ErrorCode::BR_0285,
             Self::InvalidCSRProfile => ErrorCode::BR_0323,

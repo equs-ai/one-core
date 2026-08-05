@@ -47,7 +47,7 @@ use crate::provider::credential_formatter::model::{
 use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
-use crate::repository::error::DataLayerError;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::repository::proof_schema_repository::MockProofSchemaRepository;
 use crate::service::common_dto::ListQueryDTO;
@@ -130,7 +130,7 @@ async fn test_get_proof_schema_deleted() {
         let res_clone = proof_schema.clone();
         proof_schema_repository
             .expect_get_proof_schema()
-            .returning(move |_id, _relations| Ok(Some(res_clone.clone())));
+            .returning(move |_id, _relations| Ok(res_clone.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -149,7 +149,12 @@ async fn test_get_proof_schema_missing() {
     proof_schema_repository
         .expect_get_proof_schema()
         .times(1)
-        .returning(|_id, _relations| Ok(None));
+        .returning(|id, _relations| {
+            Err(DataLayerError::EntityNotFound {
+                kind: EntityKind::ProofSchema,
+                id: (*id).into(),
+            })
+        });
 
     let service = setup_service(Repositories {
         proof_schema_repository,
@@ -157,7 +162,7 @@ async fn test_get_proof_schema_missing() {
     });
 
     let result = service.get_proof_schema(&Uuid::new_v4().into()).await;
-    assert!(result.is_err_and(|e| matches!(e, ProofSchemaServiceError::NotFound(_))));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0014);
 }
 
 #[tokio::test]
@@ -272,7 +277,7 @@ async fn test_delete_proof_schema_success() {
     proof_schema_repository
         .expect_get_proof_schema()
         .returning(|_, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -283,7 +288,7 @@ async fn test_delete_proof_schema_success() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: None,
-            }))
+            })
         });
 
     let proof_schema_id: ProofSchemaId = Uuid::new_v4().into();
@@ -313,7 +318,7 @@ async fn test_delete_proof_schema_failure() {
     proof_schema_repository
         .expect_get_proof_schema()
         .returning(|_, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
                 created_date: crate::clock::now_utc(),
@@ -324,7 +329,7 @@ async fn test_delete_proof_schema_failure() {
                 expire_duration: 0,
                 organisation: Some(dummy_organisation(None)),
                 input_schemas: None,
-            }))
+            })
         });
 
     proof_schema_repository
@@ -374,7 +379,7 @@ async fn test_create_proof_schema_success() {
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation_id))
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let credential_schema_id: CredentialSchemaId = Uuid::new_v4().into();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
@@ -494,7 +499,7 @@ async fn test_create_proof_schema_success_mixed_key_storage_security_types() {
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation_id))
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let claim_schema_software_id = Uuid::new_v4().into();
     let claim_schema_software = ClaimSchema {
@@ -657,7 +662,7 @@ async fn test_create_proof_schema_fail_unsupported_wallet_storage_type() {
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation_id))
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let credential_schema_id: CredentialSchemaId = Uuid::new_v4().into();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
@@ -814,7 +819,7 @@ async fn test_create_proof_schema_array_object_fail() {
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation_id))
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let credential_schema_id: CredentialSchemaId = Uuid::new_v4().into();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
@@ -983,7 +988,7 @@ async fn test_create_proof_schema_array_success() {
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation_id))
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let credential_schema_id: CredentialSchemaId = Uuid::new_v4().into();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();
@@ -1219,7 +1224,7 @@ async fn test_create_proof_schema_claims_dont_exist() {
     organisation_repository
         .expect_get_organisation()
         .times(1)
-        .returning(move |_| Ok(Some(dummy_organisation(None))));
+        .returning(move |_| Ok(dummy_organisation(None)));
 
     let service = setup_service(Repositories {
         proof_schema_repository,
@@ -1333,7 +1338,7 @@ async fn test_import_proof_schema_ok_for_new_credential_schema() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let mut proof_schema_repository = MockProofSchemaRepository::new();
     proof_schema_repository
@@ -1524,7 +1529,7 @@ async fn test_import_proof_schema_ok_for_new_credential_schema_v2_url() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let mut proof_schema_repository = MockProofSchemaRepository::new();
     proof_schema_repository
@@ -1717,7 +1722,7 @@ async fn test_import_proof_ok_existing_but_deleted_credential_schema() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let mut proof_schema_repository = MockProofSchemaRepository::new();
     proof_schema_repository
@@ -1911,7 +1916,7 @@ async fn test_import_proof_ok_existing_credential_schema_all_claims_present() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let mut proof_schema_repository = MockProofSchemaRepository::new();
     proof_schema_repository
@@ -2085,7 +2090,7 @@ async fn test_import_proof_schema_rehosts_source_url_when_enabled() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let mut proof_schema_repository = MockProofSchemaRepository::new();
     proof_schema_repository
@@ -2271,7 +2276,7 @@ async fn test_import_proof_failed_existing_proof_schema() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let mut proof_schema_repository = MockProofSchemaRepository::new();
     proof_schema_repository
@@ -2354,7 +2359,7 @@ async fn test_import_proof_schema_fails_validation_for_unsupported_datatype() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let schema = ImportProofSchemaDTO {
         id: Uuid::new_v4().into(),
@@ -2420,7 +2425,7 @@ async fn test_import_proof_schema_fails_validation_for_unsupported_format() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .return_once(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .return_once(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let schema = ImportProofSchemaDTO {
         id: Uuid::new_v4().into(),
@@ -2725,7 +2730,7 @@ fn proof_schema_repo_expecting_get(proof_schema: ProofSchema) -> MockProofSchema
                 proof_inputs: Some(Default::default()),
             }),
         )
-        .returning(move |_id, _relations| Ok(Some(proof_schema.clone())));
+        .returning(move |_id, _relations| Ok(proof_schema.clone()));
     proof_schema_repository
 }
 
@@ -2909,7 +2914,7 @@ async fn test_proof_schema_ops_failure_session_org_mismatch() {
     let mut proof_schema_repository = MockProofSchemaRepository::default();
     proof_schema_repository
         .expect_get_proof_schema()
-        .returning(move |_id, _relations| Ok(Some(proof_schema.clone())));
+        .returning(move |_id, _relations| Ok(proof_schema.clone()));
 
     let service = setup_service(Repositories {
         proof_schema_repository,
@@ -2968,7 +2973,7 @@ async fn test_create_proof_schema_verify_nested_generic(
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation_id))
-        .returning(|id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(|id| Ok(dummy_organisation(Some(*id))));
 
     let credential_schema_id: CredentialSchemaId = Uuid::new_v4().into();
     let mut credential_schema_repository = MockCredentialSchemaRepository::default();

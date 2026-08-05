@@ -2,7 +2,8 @@ use serde_json::Value;
 use shared_types::TaskId;
 
 use super::TaskService;
-use crate::service::error::{MissingProviderError, ServiceError};
+use crate::error::ContextWithErrorCode;
+use crate::service::error::ServiceError;
 
 impl TaskService {
     pub async fn run(
@@ -13,7 +14,7 @@ impl TaskService {
         let task = self
             .task_provider
             .get_task(task_id)
-            .ok_or(MissingProviderError::Task(task_id.to_owned()))?;
+            .error_while("getting task")?;
 
         let result = task.run(params).await?;
         tracing::info!("Executed task `{task_id}`");

@@ -90,7 +90,7 @@ async fn test_create_trust_collection_success() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .returning(move |id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(move |id| Ok(dummy_organisation(Some(*id))));
 
     trust_collection_repository
         .expect_create()
@@ -149,7 +149,7 @@ async fn test_create_trust_collection_already_exists() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .returning(move |id| Ok(Some(dummy_organisation(Some(*id)))));
+        .returning(move |id| Ok(dummy_organisation(Some(*id))));
 
     trust_collection_repository
         .expect_create()
@@ -328,7 +328,7 @@ async fn test_get_trust_collection_parent_org_success() {
         .returning(move |id| {
             let mut child_org = dummy_organisation(Some(*id));
             child_org.parent_organisation = Some(dummy_organisation(Some(parent_org_id)).into());
-            Ok(Some(child_org))
+            Ok(child_org)
         });
 
     let trust_collection = dummy_trust_collection(parent_org_id);
@@ -491,7 +491,7 @@ async fn test_create_trust_list_subscription_success() {
     trust_list_subscriber_provider
         .expect_get()
         .with(eq(type_id))
-        .returning(move |_| Some(trust_list_subscriber_arc.clone()));
+        .returning(move |_| Ok(trust_list_subscriber_arc.clone()));
 
     trust_list_subscription_repository
         .expect_create()
@@ -583,7 +583,7 @@ async fn test_create_trust_list_subscription_validation_fails() {
     > = Arc::new(trust_list_subscriber);
     trust_list_subscriber_provider
         .expect_get()
-        .returning(move |_| Some(trust_list_subscriber_arc.clone()));
+        .returning(move |_| Ok(trust_list_subscriber_arc.clone()));
 
     let service = mock_service(Mocks {
         trust_collection_repository,

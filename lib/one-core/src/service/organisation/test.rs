@@ -19,7 +19,7 @@ use crate::model::trust_collection::TrustCollection;
 use crate::proto::trust_list_subscription_sync::MockTrustListSubscriptionSync;
 use crate::proto::verifier_provider_client::MockVerifierProviderClient;
 use crate::proto::wallet_provider_client::MockWalletProviderClient;
-use crate::repository::error::DataLayerError;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::instance_repository::MockInstanceRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
@@ -130,7 +130,7 @@ async fn test_get_organisation_success() {
         .expect_get_organisation()
         .times(1)
         .with(eq(organisation.id.to_owned()))
-        .returning(move |_| Ok(Some(org_clone.clone())));
+        .returning(move |_| Ok(org_clone.clone()));
 
     let mut instance_repository = MockInstanceRepository::new();
     instance_repository
@@ -156,12 +156,17 @@ async fn test_get_organisation_failure() {
     organisation_repository
         .expect_get_organisation()
         .times(1)
-        .returning(|_| Ok(None));
+        .returning(|id| {
+            Err(DataLayerError::EntityNotFound {
+                kind: EntityKind::Organisation,
+                id: (*id).into(),
+            })
+        });
 
     let service = setup_service(organisation_repository);
     let result = service.get_organisation(&Uuid::new_v4().into()).await;
 
-    assert!(matches!(result, Err(OrganisationServiceError::NotFound(_))));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0022);
 }
 
 #[tokio::test]
@@ -328,7 +333,7 @@ async fn test_get_trust_collections_from_verifier_provider_only() {
     organisation_repository
         .expect_get_organisation()
         .with(eq(organisation_id))
-        .returning(move |_| Ok(Some(org_clone.clone())));
+        .returning(move |_| Ok(org_clone.clone()));
 
     let mut instance_repository = MockInstanceRepository::new();
     instance_repository
@@ -433,7 +438,7 @@ async fn test_upsert_organisation_rejects_trust_collections_spanning_multiple_pr
     let org_clone = organisation.clone();
     organisation_repository
         .expect_get_organisation()
-        .returning(move |_| Ok(Some(org_clone.clone())));
+        .returning(move |_| Ok(org_clone.clone()));
     organisation_repository
         .expect_update_organisation()
         .returning(|_| Ok(()));

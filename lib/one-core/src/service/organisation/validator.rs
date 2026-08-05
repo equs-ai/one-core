@@ -2,10 +2,11 @@ use shared_types::{IdentifierId, OrganisationId};
 
 use super::error::OrganisationServiceError;
 use crate::config::core_config::{ConfigExt, CoreConfig, KeyAlgorithmType};
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::list_filter::ListFilterCondition;
 use crate::model::list_query::ListPagination;
 use crate::model::organisation::{OrganisationFilterValue, OrganisationListQuery};
+use crate::repository::error::DataLayerError;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::organisation_repository::OrganisationRepository;
 use crate::service::managed_instance::error::ManagedInstanceError;
@@ -24,9 +25,6 @@ pub(super) async fn validate_wallet_provider_issuer(
         .get(issuer_id)
         .await
         .error_while("getting identifier")?;
-    let Some(identifier) = identifier else {
-        return Err(OrganisationServiceError::IdentifierNotFound(issuer_id));
-    };
 
     if &identifier.organisation.id() != id {
         return Err(OrganisationServiceError::IdentifierOrganisationMismatch);
@@ -51,10 +49,12 @@ pub(super) async fn validate_parent_organisation(
     let parent = organisation_repository
         .get_organisation(&parent_organisation_id)
         .await
-        .error_while("getting parent organisation")?
-        .ok_or(OrganisationServiceError::ParentOrganisationNotFound(
-            parent_organisation_id,
-        ))?;
+        .map_err(|error| match error {
+            DataLayerError::EntityNotFound { .. } => {
+                OrganisationServiceError::ParentOrganisationNotFound(parent_organisation_id)
+            }
+            error => error.error_while("getting parent organisation").into(),
+        })?;
 
     if parent.parent_organisation.is_some() {
         return Err(OrganisationServiceError::InvalidParentOrganisation);

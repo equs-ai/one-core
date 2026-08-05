@@ -11,7 +11,7 @@ use super::dto::{
 };
 use super::error::IdentifierServiceError;
 use crate::config::core_config::{BlobStorageType, CoreConfig};
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::openid4vp::format_type_to_dcql_format;
 use crate::model::blob::BlobType;
 use crate::model::certificate::Certificate;
@@ -31,6 +31,7 @@ use crate::model::relation::RelatedVec;
 use crate::model::trust_list_subscription::TrustListSubscription;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
+use crate::repository::error::DataLayerError;
 use crate::repository::proof_schema_repository::ProofSchemaRepository;
 use crate::service::certificate::dto::CertificateResponseDTO;
 use crate::service::certificate::mapper::certificate_to_response_dto;
@@ -361,10 +362,12 @@ async fn credential_schema_filter(
     let schema = credential_schema_repository
         .get_credential_schema(credential_schema_id)
         .await
-        .error_while("retrieving credential schema")?
-        .ok_or(IdentifierServiceError::CredentialSchemaNotFound(
-            *credential_schema_id,
-        ))?;
+        .map_err(|error| match error {
+            DataLayerError::EntityNotFound { .. } => {
+                IdentifierServiceError::CredentialSchemaNotFound(*credential_schema_id)
+            }
+            error => error.error_while("retrieving credential schema").into(),
+        })?;
     let filter_value =
         filter_value_from_credential_schema(config, &schema, TrustContext::Issuance).await?;
     Ok(filter_value)
@@ -384,10 +387,12 @@ async fn proof_schema_filter(
             },
         )
         .await
-        .error_while("retrieving proof schema")?
-        .ok_or(IdentifierServiceError::ProofSchemaNotFound(
-            *proof_schema_id,
-        ))?;
+        .map_err(|error| match error {
+            DataLayerError::EntityNotFound { .. } => {
+                IdentifierServiceError::ProofSchemaNotFound(*proof_schema_id)
+            }
+            error => error.error_while("retrieving proof schema").into(),
+        })?;
     let mut trust_verification_types = ListFilterCondition::<IdentifierFilterValue>::default();
     for input_schema in schema
         .input_schemas

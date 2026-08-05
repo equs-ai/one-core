@@ -12,7 +12,7 @@ use crate::proto::openid4vp_proof_validator::ValidatedProofResult;
 use crate::proto::transaction_manager::{IsolationLevel, TransactionManager};
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::proof_repository::ProofRepository;
-use crate::service::error::{EntityNotFoundError, ServiceError};
+use crate::service::error::ServiceError;
 use crate::validator::throw_if_proof_state_not_in;
 
 #[expect(clippy::too_many_arguments)]
@@ -37,8 +37,7 @@ pub(crate) async fn persist_accepted_proof(
                         Some(LockType::Update),
                     )
                     .await
-                    .error_while("getting proof")?
-                    .ok_or(EntityNotFoundError::Proof(proof.id))?;
+                    .error_while("getting proof")?;
                 // Double-check that proof is in the expected state
                 throw_if_proof_state_not_in(
                     &proof,

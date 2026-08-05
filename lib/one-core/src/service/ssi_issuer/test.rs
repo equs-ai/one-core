@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use super::SSIIssuerService;
 use crate::config::core_config::CoreConfig;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::did::{Did, KeyRole, RelatedKey};
 use crate::model::identifier::{Identifier, IdentifierData};
@@ -20,6 +21,7 @@ use crate::provider::key_algorithm::key::{
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::provider::provider_directory::ProviderError;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::service::ssi_issuer::dto::SdJwtVcIssuerMetadataJwks;
 use crate::service::ssi_issuer::error::IssuerServiceError;
@@ -98,13 +100,13 @@ async fn test_get_sd_jwt_vc_issuer_metadata_success_with_did() {
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_| Ok(Some(identifier)));
+        .return_once(move |_| Ok(identifier));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::new();
     credential_schema_repository
         .expect_get_credential_schema()
         .once()
-        .return_once(move |_| Ok(Some(credential_schema)));
+        .return_once(move |_| Ok(credential_schema));
 
     let mut mock_public_key = MockSignaturePublicKeyHandle::new();
     mock_public_key.expect_as_jwk().once().return_once(|| {
@@ -177,13 +179,13 @@ async fn test_get_sd_jwt_vc_issuer_metadata_success() {
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_| Ok(Some(identifier)));
+        .return_once(move |_| Ok(identifier));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::new();
     credential_schema_repository
         .expect_get_credential_schema()
         .once()
-        .return_once(move |_| Ok(Some(credential_schema)));
+        .return_once(move |_| Ok(credential_schema));
 
     let mut mock_public_key = MockSignaturePublicKeyHandle::new();
     mock_public_key.expect_as_jwk().once().return_once(|| {
@@ -313,10 +315,12 @@ async fn test_get_sd_jwt_vc_issuer_metadata_fails_when_identifier_not_found() {
         .return_once(|_| Ok(Arc::new(MockIssuanceProtocol::new())));
 
     let mut identifier_repository = MockIdentifierRepository::new();
-    identifier_repository
-        .expect_get()
-        .once()
-        .return_once(|_| Ok(None));
+    identifier_repository.expect_get().once().return_once(|id| {
+        Err(DataLayerError::EntityNotFound {
+            kind: EntityKind::Identifier,
+            id: id.into(),
+        })
+    });
 
     let service = setup_service(
         MockCredentialSchemaRepository::new(),
@@ -339,10 +343,7 @@ async fn test_get_sd_jwt_vc_issuer_metadata_fails_when_identifier_not_found() {
         .await;
 
     // then
-    assert!(matches!(
-        result,
-        Err(IssuerServiceError::MissingIdentifier(id)) if id == identifier_id
-    ));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0207);
 }
 
 #[tokio::test]
@@ -358,13 +359,18 @@ async fn test_get_sd_jwt_vc_issuer_metadata_fails_when_credential_schema_not_fou
     identifier_repository
         .expect_get()
         .once()
-        .return_once(move |_| Ok(Some(dummy_identifier())));
+        .return_once(move |_| Ok(dummy_identifier()));
 
     let mut credential_schema_repository = MockCredentialSchemaRepository::new();
     credential_schema_repository
         .expect_get_credential_schema()
         .once()
-        .return_once(|_| Ok(None));
+        .return_once(|id| {
+            Err(DataLayerError::EntityNotFound {
+                kind: EntityKind::CredentialSchema,
+                id: (*id).into(),
+            })
+        });
 
     let service = setup_service(
         credential_schema_repository,
@@ -387,8 +393,5 @@ async fn test_get_sd_jwt_vc_issuer_metadata_fails_when_credential_schema_not_fou
         .await;
 
     // then
-    assert!(matches!(
-        result,
-        Err(IssuerServiceError::MissingCredentialSchema(id)) if id == credential_schema_id
-    ));
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0006);
 }

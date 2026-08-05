@@ -165,12 +165,7 @@ impl AsyncVecLoader<RelatedKey> for DidKeysLoader {
             let key = if let Some(key) = key_map.get(key_id) {
                 key.to_owned()
             } else {
-                let key = self.key_repository.get_key(key_id).await?.ok_or(
-                    DataLayerError::MissingRequiredRelation {
-                        relation: "did-key",
-                        id: key_id.to_string(),
-                    },
-                )?;
+                let key = self.key_repository.get_key(key_id).await?;
 
                 key_map.insert(*key_id, key.to_owned());
                 key

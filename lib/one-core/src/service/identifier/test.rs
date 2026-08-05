@@ -42,6 +42,7 @@ use crate::provider::trust_list_subscriber::{
 use crate::repository::certificate_repository::MockCertificateRepository;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
 use crate::repository::did_repository::MockDidRepository;
+use crate::repository::error::{DataLayerError, EntityKind};
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::identifier_trust_information_repository::MockIdentifierTrustInformationRepository;
 use crate::repository::key_repository::MockKeyRepository;
@@ -108,9 +109,12 @@ fn setup_service(mocks: Mocks) -> IdentifierService {
 
 fn setup_service_simple(identifier: Option<Identifier>) -> IdentifierService {
     let mut identifier_repository = MockIdentifierRepository::default();
-    identifier_repository
-        .expect_get()
-        .returning(move |_| Ok(identifier.clone()));
+    identifier_repository.expect_get().returning(move |id| {
+        identifier.clone().ok_or(DataLayerError::EntityNotFound {
+            kind: EntityKind::Identifier,
+            id: id.into(),
+        })
+    });
 
     setup_service(Mocks {
         identifier_repository,
@@ -299,7 +303,7 @@ async fn test_resolve_trust_entries_success() {
         Arc::new(trust_list_subscriber);
     trust_list_subscriber_provider
         .expect_get()
-        .returning(move |_| Some(subscriber_arc.clone()));
+        .returning(move |_| Ok(subscriber_arc.clone()));
 
     let service = setup_service(Mocks {
         identifier_repository,
@@ -390,7 +394,7 @@ async fn test_resolve_trust_entries_filters_local() {
         Arc::new(trust_list_subscriber);
     trust_list_subscriber_provider
         .expect_get()
-        .returning(move |_| Some(subscriber_arc.clone()));
+        .returning(move |_| Ok(subscriber_arc.clone()));
 
     let service = setup_service(Mocks {
         identifier_repository,
@@ -539,7 +543,7 @@ async fn test_resolve_trust_entries_subscriber_error() {
         Arc::new(trust_list_subscriber);
     trust_list_subscriber_provider
         .expect_get()
-        .returning(move |_| Some(subscriber_arc.clone()));
+        .returning(move |_| Ok(subscriber_arc.clone()));
 
     let service = setup_service(Mocks {
         identifier_repository,
@@ -631,7 +635,7 @@ async fn test_resolve_trust_entries_filters_key_type() {
         Arc::new(trust_list_subscriber);
     trust_list_subscriber_provider
         .expect_get()
-        .returning(move |_| Some(subscriber_arc.clone()));
+        .returning(move |_| Ok(subscriber_arc.clone()));
 
     let service = setup_service(Mocks {
         identifier_repository,
@@ -666,7 +670,7 @@ async fn test_create_identifier_with_trust_information() {
     let key_id = dummy_key.id;
     key_repository
         .expect_get_key()
-        .returning(move |_| Ok(Some(dummy_key.clone())));
+        .returning(move |_| Ok(dummy_key.clone()));
     let mut identifier_creator = MockIdentifierCreator::default();
     let mut identifier_trust_information_repository =
         MockIdentifierTrustInformationRepository::default();
@@ -686,7 +690,7 @@ async fn test_create_identifier_with_trust_information() {
     let organisation_id = session_provider.0.organisation_id.unwrap();
     organisation_repository
         .expect_get_organisation()
-        .returning(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .returning(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let identifier_id = Uuid::new_v4().into();
     let mut identifier = dummy_identifier();
@@ -759,7 +763,7 @@ async fn test_create_identifier_with_inconsistent_reg_certs_fails() {
     let key_id = dummy_key.id;
     key_repository
         .expect_get_key()
-        .returning(move |_| Ok(Some(dummy_key.clone())));
+        .returning(move |_| Ok(dummy_key.clone()));
     let mut identifier_creator = MockIdentifierCreator::default();
     let mut identifier_trust_information_repository =
         MockIdentifierTrustInformationRepository::default();
@@ -780,7 +784,7 @@ async fn test_create_identifier_with_inconsistent_reg_certs_fails() {
     let organisation_id = session_provider.0.organisation_id.unwrap();
     organisation_repository
         .expect_get_organisation()
-        .returning(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .returning(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let identifier_id = Uuid::new_v4().into();
     let mut identifier = dummy_identifier();
@@ -931,7 +935,7 @@ async fn test_delete_identifier_cascades_to_certificates() {
     let returned_identifier = identifier.clone();
     identifier_repository
         .expect_get()
-        .returning(move |_| Ok(Some(returned_identifier.clone())));
+        .returning(move |_| Ok(returned_identifier.clone()));
     identifier_repository
         .expect_delete()
         .times(1)
@@ -1000,7 +1004,12 @@ async fn test_create_remote_identifier_missing_organisation() {
     let mut organisation_repository = MockOrganisationRepository::default();
     organisation_repository
         .expect_get_organisation()
-        .returning(|_| Ok(None));
+        .returning(|_| {
+            Err(DataLayerError::EntityNotFound {
+                kind: EntityKind::Organisation,
+                id: Uuid::nil(),
+            })
+        });
 
     let service = setup_service(Mocks {
         organisation_repository,
@@ -1015,7 +1024,7 @@ async fn test_create_remote_identifier_missing_organisation() {
         })
         .await;
 
-    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0088);
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0022);
 }
 
 #[tokio::test]
@@ -1029,7 +1038,7 @@ async fn test_create_remote_identifier_deactivated_organisation() {
     let mut organisation_repository = MockOrganisationRepository::default();
     organisation_repository
         .expect_get_organisation()
-        .returning(move |_| Ok(Some(deactivated_organisation.clone())));
+        .returning(move |_| Ok(deactivated_organisation.clone()));
 
     let service = setup_service(Mocks {
         organisation_repository,
@@ -1055,7 +1064,7 @@ async fn test_create_remote_identifier_empty_request_returns_error() {
     let mut organisation_repository = MockOrganisationRepository::default();
     organisation_repository
         .expect_get_organisation()
-        .returning(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .returning(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let service = setup_service(Mocks {
         organisation_repository,
@@ -1079,7 +1088,7 @@ async fn test_create_remote_identifier_multiple_inputs_returns_error() {
     let mut organisation_repository = MockOrganisationRepository::default();
     organisation_repository
         .expect_get_organisation()
-        .returning(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .returning(move |_| Ok(dummy_organisation(Some(organisation_id))));
 
     let service = setup_service(Mocks {
         organisation_repository,
@@ -1115,7 +1124,7 @@ fn org_repo_returning_org(
 ) -> MockOrganisationRepository {
     let mut repo = MockOrganisationRepository::default();
     repo.expect_get_organisation()
-        .returning(move |_| Ok(Some(dummy_organisation(Some(organisation_id)))));
+        .returning(move |_| Ok(dummy_organisation(Some(organisation_id))));
     repo
 }
 

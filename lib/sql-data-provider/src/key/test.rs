@@ -141,7 +141,7 @@ async fn test_get_key_success() {
         organisation_repository: Arc::new(organisation_repository),
     };
 
-    let result = provider.get_key(&key_id).await.unwrap().unwrap();
+    let result = provider.get_key(&key_id).await.unwrap();
 
     assert_eq!(key_id, result.id);
 }

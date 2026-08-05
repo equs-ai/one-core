@@ -1,4 +1,3 @@
-use shared_types::{CredentialSchemaId, IdentifierId};
 use thiserror::Error;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
@@ -9,10 +8,6 @@ pub enum IssuerServiceError {
     MissingSdJwtVcTypeMetadata(String),
     #[error("Protocol `{0}` not found")]
     MissingProtocol(String),
-    #[error("Credential schema `{0}` not found")]
-    MissingCredentialSchema(CredentialSchemaId),
-    #[error("Identifier not found: {0}")]
-    MissingIdentifier(IdentifierId),
 
     #[error("Input validation error")]
     InvalidInput,
@@ -29,9 +24,7 @@ impl ErrorCodeMixin for IssuerServiceError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::MissingSdJwtVcTypeMetadata(_) => ErrorCode::BR_0172,
-            Self::MissingIdentifier(_) => ErrorCode::BR_0207,
             Self::MissingProtocol(_) => ErrorCode::BR_0046,
-            Self::MissingCredentialSchema(_) => ErrorCode::BR_0006,
             Self::InvalidInput => ErrorCode::BR_0084,
             Self::InvalidFormat => ErrorCode::BR_0323,
             Self::MappingError(_) => ErrorCode::BR_0047,

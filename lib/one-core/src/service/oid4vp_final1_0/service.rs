@@ -15,8 +15,8 @@ use super::proof_request::{
 };
 use crate::clock::now_utc;
 use crate::config::core_config::{BlobStorageType, VerificationProtocolType};
-use crate::error::ContextWithErrorCode;
 use crate::error::ErrorCode::BR_0000;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::blob::{Blob, BlobType};
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::identifier::{Identifier, IdentifierRelations};
@@ -40,6 +40,7 @@ use crate::provider::verification_protocol::openid4vp::model::{
     CommonVerifierInteractionContent, JwePayload, OpenID4VPDirectPostRequestDTO,
     OpenID4VPVerifierInteractionContent, SubmissionRequestData, VpSubmissionData,
 };
+use crate::repository::error::DataLayerError;
 use crate::service::ssi_validator::validate_verification_protocol_type;
 use crate::util::openid4vp::persist_accepted_proof;
 use crate::validator::{throw_if_proof_state_not_eq, validate_verification_protocol_config_exists};
@@ -76,8 +77,7 @@ impl OID4VPFinal1_0Service {
                 None,
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(OID4VPFinal1_0ServiceError::MissingProof(id))?;
+            .error_while("getting proof")?;
 
         throw_if_proof_state_not_eq(&proof, ProofStateEnum::Pending)
             .error_while("checking proof state")?;
@@ -220,8 +220,7 @@ impl OID4VPFinal1_0Service {
                 None,
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(OID4VPFinal1_0ServiceError::MissingProof(id))?;
+            .error_while("getting proof")?;
 
         throw_if_proof_state_not_eq(&proof, ProofStateEnum::Pending)
             .error_while("checking proof state")?;
@@ -275,10 +274,12 @@ impl OID4VPFinal1_0Service {
                 },
             )
             .await
-            .error_while("getting proof")?
-            .ok_or(OID4VPFinal1_0ServiceError::MissingProofForInteraction(
-                interaction_id,
-            ))?;
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => {
+                    OID4VPFinal1_0ServiceError::MissingProofForInteraction(interaction_id)
+                }
+                error => error.error_while("getting proof").into(),
+            })?;
 
         let proof_id = proof.id;
         let result = self.verify_submission(proof, unpacked_request).await?;
@@ -459,16 +460,18 @@ impl OID4VPFinal1_0Service {
                 })?;
 
                 // KeyId can't be verified here since we don't know related proof yet.
-                let key = self
-                    .key_repository
-                    .get_key(&key_id)
-                    .await
-                    .error_while("getting key")?
-                    .ok_or_else(|| {
-                        OID4VPFinal1_0ServiceError::ValidationError(
-                            "Invalid JWE key_id".to_string(),
-                        )
-                    })?;
+                let key =
+                    self.key_repository
+                        .get_key(&key_id)
+                        .await
+                        .map_err(|error| match error {
+                            DataLayerError::EntityNotFound { .. } => {
+                                OID4VPFinal1_0ServiceError::ValidationError(
+                                    "Invalid JWE key_id".to_string(),
+                                )
+                            }
+                            error => error.error_while("getting key").into(),
+                        })?;
 
                 let key_storage = self.key_provider.get_key_storage(&key.storage_type)?;
 

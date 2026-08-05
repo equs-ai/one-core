@@ -91,7 +91,7 @@ async fn test_create_key_success() {
         organisation_repository
             .expect_get_organisation()
             .once()
-            .returning(move |_| Ok(Some(organisation.clone())));
+            .returning(move |_| Ok(organisation.clone()));
 
         key_storage
             .expect_get_capabilities()
@@ -152,7 +152,7 @@ async fn test_get_key_success() {
         repository
             .expect_get_key()
             .once()
-            .returning(move |_| Ok(Some(key.clone())));
+            .returning(move |_| Ok(key.clone()));
     }
 
     let service = setup_service(
@@ -268,7 +268,7 @@ async fn test_generate_csr_failed() {
     repository
         .expect_get_key()
         .once()
-        .returning(move |_| Ok(Some(key_clone.clone())));
+        .returning(move |_| Ok(key_clone.clone()));
 
     let service = setup_service(
         repository,
@@ -356,7 +356,7 @@ async fn test_key_ops_session_org_mismatch() {
     let key_id = Uuid::new_v4();
     repository
         .expect_get_key()
-        .returning(move |_| Ok(Some(generic_key("NAME", key_id))));
+        .returning(move |_| Ok(generic_key("NAME", key_id)));
 
     let service = KeyService::new(
         Arc::new(repository),

@@ -489,7 +489,7 @@ mod tests {
         repository
             .expect_get_organisation()
             .once()
-            .return_once(|id| Ok(Some(dummy_organisation(Some(*id)))));
+            .return_once(|id| Ok(dummy_organisation(Some(*id))));
 
         let repository: Arc<dyn OrganisationRepository> = Arc::new(repository);
 

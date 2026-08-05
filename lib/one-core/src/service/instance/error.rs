@@ -18,12 +18,12 @@ pub enum HolderInstanceError {
     #[error("App integrity check not required: provide proof and public key")]
     AppIntegrityCheckNotRequired,
 
-    #[error("Organisation `{0}` not found")]
-    MissingOrganisation(OrganisationId),
     #[error("Organisation {0} is deactivated")]
     OrganisationIsDeactivated(OrganisationId),
     #[error("Invalid key algorithm: {0}")]
     InvalidKeyAlgorithm(String),
+    #[error("No matching key storage configured: {0}")]
+    NoMatchingKeyStorage(String),
     #[error("Invalid wallet provider url: {0}")]
     InvalidWalletProviderUrl(url::ParseError),
     #[error("Key already exists")]
@@ -65,9 +65,9 @@ impl ErrorCodeMixin for HolderInstanceError {
             Self::WalletInstanceAlreadyExists(_) => ErrorCode::BR_0271,
             Self::AppIntegrityCheckRequired => ErrorCode::BR_0280,
             Self::AppIntegrityCheckNotRequired => ErrorCode::BR_0281,
-            Self::MissingOrganisation(_) => ErrorCode::BR_0022,
             Self::OrganisationIsDeactivated(_) => ErrorCode::BR_0241,
             Self::InvalidKeyAlgorithm(_) => ErrorCode::BR_0043,
+            Self::NoMatchingKeyStorage(_) => ErrorCode::BR_0040,
             Self::InvalidWalletProviderUrl(_) => ErrorCode::BR_0295,
             Self::KeyAlreadyExists => ErrorCode::BR_0066,
             Self::MissingTrustCollection(_) => ErrorCode::BR_0391,

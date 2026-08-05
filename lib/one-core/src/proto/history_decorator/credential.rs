@@ -31,8 +31,7 @@ impl CredentialHistoryDecorator {
                 ..Default::default()
             },
         )
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Credential (id: {credential_id}) not found").into())
+        .await
     }
 
     async fn create_history_entry(
@@ -51,7 +50,7 @@ impl CredentialHistoryDecorator {
             .await;
 
         match credential {
-            Ok(Some(credential)) => {
+            Ok(credential) => {
                 for action in actions {
                     self.create_history_entry_for_credential(&credential, action)
                         .await;
@@ -200,7 +199,7 @@ impl CredentialRepository for CredentialHistoryDecorator {
         &self,
         id: &CredentialId,
         relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError> {
+    ) -> Result<Credential, DataLayerError> {
         self.inner.get_credential(id, relations).await
     }
 

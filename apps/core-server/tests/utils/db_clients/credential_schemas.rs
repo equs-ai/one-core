@@ -1224,7 +1224,6 @@ impl CredentialSchemasDB {
             .get_credential_schema(credential_schema_id)
             .await
             .unwrap()
-            .unwrap()
     }
 
     pub async fn delete(&self, credential_schema: &CredentialSchema) {

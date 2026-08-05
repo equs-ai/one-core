@@ -152,7 +152,9 @@ pub(crate) async fn oid4vp_final1_0_swiyu_client_request(
             )
                 .into_response()
         }
-        Err(OID4VPFinal1_0ServiceError::MissingProof(_)) => StatusCode::NOT_FOUND.into_response(),
+        Err(error) if error.error_code() == ErrorCode::BR_0012 => {
+            StatusCode::NOT_FOUND.into_response()
+        }
         Err(e) => {
             tracing::error!("Error: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR.into_response()

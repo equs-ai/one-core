@@ -269,6 +269,6 @@ fn test_subscriber_provider(
     let mut subscriber_provider = MockTrustListSubscriberProvider::new();
     subscriber_provider
         .expect_get()
-        .returning(move |_| Some(subscriber.clone()));
+        .returning(move |_| Ok(subscriber.clone()));
     Arc::new(subscriber_provider)
 }

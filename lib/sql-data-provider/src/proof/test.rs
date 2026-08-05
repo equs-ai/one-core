@@ -25,6 +25,7 @@ use one_core::repository::certificate_repository::{
 use one_core::repository::claim_repository::{ClaimRepository, MockClaimRepository};
 use one_core::repository::credential_repository::{CredentialRepository, MockCredentialRepository};
 use one_core::repository::did_repository::MockDidRepository;
+use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::{IdentifierRepository, MockIdentifierRepository};
 use one_core::repository::identifier_trust_information_repository::MockIdentifierTrustInformationRepository;
 use one_core::repository::interaction_repository::{
@@ -463,7 +464,7 @@ async fn test_get_proof_missing() {
     let result = repository
         .get_proof(&Uuid::new_v4().into(), &ProofRelations::default(), None)
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -486,7 +487,6 @@ async fn test_get_proof_no_relations() {
     let proof = repository
         .get_proof(&proof_id, &ProofRelations::default(), None)
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(proof.id, proof_id);
@@ -499,7 +499,7 @@ async fn test_get_proof_with_relations() {
         .expect_get_proof_schema()
         .times(1)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -510,7 +510,7 @@ async fn test_get_proof_with_relations() {
                 expire_duration: 0,
                 organisation: None,
                 input_schemas: None,
-            }))
+            })
         });
 
     let mut interaction_repository = MockInteractionRepository::default();
@@ -534,7 +534,7 @@ async fn test_get_proof_with_relations() {
 
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository.expect_get().times(1).returning(|id| {
-        Ok(Some(Identifier {
+        Ok(Identifier {
             id: id.to_owned(),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -561,7 +561,7 @@ async fn test_get_proof_with_relations() {
             deleted_at: None,
             organisation: dummy_organisation(None).into(),
             trust_information: Default::default(),
-        }))
+        })
     });
 
     let credential_id = Uuid::new_v4().into();
@@ -634,7 +634,7 @@ async fn test_get_proof_with_relations() {
 
     let mut key_repository = MockKeyRepository::default();
     key_repository.expect_get_key().once().returning(|key_id| {
-        Ok(Some(Key {
+        Ok(Key {
             id: key_id.to_owned(),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -644,7 +644,7 @@ async fn test_get_proof_with_relations() {
             storage_type: "".to_string(),
             key_type: "".to_string(),
             organisation: dummy_organisation(None).into(),
-        }))
+        })
     });
 
     let TestSetupWithProof {
@@ -754,7 +754,6 @@ async fn test_get_proof_with_relations() {
             None,
         )
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(proof.id, proof_id);
@@ -784,7 +783,7 @@ async fn test_get_proof_by_interaction_id_missing() {
     let result = repository
         .get_proof_by_interaction_id(&Uuid::new_v4().into(), &ProofRelations::default())
         .await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -794,7 +793,7 @@ async fn test_get_proof_by_interaction_id_success() {
         .expect_get_proof_schema()
         .times(1)
         .returning(|id, _| {
-            Ok(Some(ProofSchema {
+            Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
                 imported_source_url: Some("CORE_URL".to_string()),
@@ -805,7 +804,7 @@ async fn test_get_proof_by_interaction_id_success() {
                 expire_duration: 0,
                 organisation: None,
                 input_schemas: None,
-            }))
+            })
         });
 
     let mut interaction_repository = MockInteractionRepository::default();
@@ -829,7 +828,7 @@ async fn test_get_proof_by_interaction_id_success() {
 
     let mut key_repository = MockKeyRepository::default();
     key_repository.expect_get_key().once().returning(|key_id| {
-        Ok(Some(Key {
+        Ok(Key {
             id: key_id.to_owned(),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -839,7 +838,7 @@ async fn test_get_proof_by_interaction_id_success() {
             storage_type: "".to_string(),
             key_type: "".to_string(),
             organisation: dummy_organisation(None).into(),
-        }))
+        })
     });
 
     let TestSetupWithProof {
@@ -870,7 +869,6 @@ async fn test_get_proof_by_interaction_id_success() {
             },
         )
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(proof.id, proof_id);

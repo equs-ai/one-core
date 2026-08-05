@@ -1,6 +1,6 @@
 use std::string::FromUtf8Error;
 
-use shared_types::{InteractionId, ProofId};
+use shared_types::InteractionId;
 use thiserror::Error;
 
 use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
@@ -8,8 +8,6 @@ use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 
 #[derive(Debug, Error)]
 pub enum OID4VPFinal1_0ServiceError {
-    #[error("Proof `{0}` not found")]
-    MissingProof(ProofId),
     #[error("Missing proof for interaction `{0}`")]
     MissingProofForInteraction(InteractionId),
     #[error("Validation error: `{0}`")]
@@ -35,7 +33,6 @@ pub enum OID4VPFinal1_0ServiceError {
 impl ErrorCodeMixin for OID4VPFinal1_0ServiceError {
     fn error_code(&self) -> ErrorCode {
         match self {
-            Self::MissingProof(_) => ErrorCode::BR_0012,
             Self::MissingProofForInteraction(_) => ErrorCode::BR_0094,
             Self::ValidationError(_) => ErrorCode::BR_0323,
             Self::OpenID4VCError(_) => ErrorCode::BR_0048,

@@ -15,7 +15,7 @@ use super::mapper::{
 };
 use super::validator::validate_deactivation_request;
 use crate::config::core_config::{KeyAlgorithmType, KeyStorageType};
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::did::{RelatedKey, SortableDidColumn};
 use crate::model::identifier::{IdentifierData, IdentifierState, UpdateIdentifierRequest};
 use crate::model::key::Key;
@@ -25,6 +25,7 @@ use crate::provider::did_method::DidKeys;
 use crate::provider::did_method::common::jwk_verification_method;
 use crate::provider::did_method::dto::DidDocumentDTO;
 use crate::provider::key_storage::provider::KeyProvider;
+use crate::repository::error::DataLayerError;
 use crate::service::common_dto::ListQueryDTO;
 use crate::service::did::mapper::response_from_did;
 use crate::validator::throw_if_org_id_not_matching_session;
@@ -43,12 +44,14 @@ impl DidService {
             .did_repository
             .get_did(id)
             .await
-            .error_while("getting did")?
-            .filter(|d| d.deleted_at.is_none());
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => DidServiceError::NotFound(*id),
+                error => error.error_while("getting did").into(),
+            })?;
 
-        let Some(did) = did else {
+        if did.deleted_at.is_some() {
             return Err(DidServiceError::NotFound(*id));
-        };
+        }
 
         if did.did.method() != "web" {
             return Err(DidServiceError::InvalidMethod {
@@ -102,12 +105,14 @@ impl DidService {
             .did_repository
             .get_did(id)
             .await
-            .error_while("getting did")?
-            .filter(|d| d.deleted_at.is_none());
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => DidServiceError::NotFound(*id),
+                error => error.error_while("getting did").into(),
+            })?;
 
-        let Some(did) = did else {
+        if did.deleted_at.is_some() {
             return Err(DidServiceError::NotFound(*id));
-        };
+        }
 
         let Some(log) = did.log else {
             return Err(DidServiceError::InvalidMethod {
@@ -127,11 +132,14 @@ impl DidService {
             .did_repository
             .get_did(id)
             .await
-            .error_while("getting did")?
-            .filter(|d| d.deleted_at.is_none());
-        let Some(did) = did else {
+            .map_err(|error| match error {
+                DataLayerError::EntityNotFound { .. } => DidServiceError::NotFound(*id),
+                error => error.error_while("getting did").into(),
+            })?;
+
+        if did.deleted_at.is_some() {
             return Err(DidServiceError::NotFound(*id));
-        };
+        }
         throw_if_org_id_not_matching_session(did.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -172,10 +180,7 @@ impl DidService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(DidServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(DidServiceError::OrganisationDeactivated(
@@ -218,9 +223,6 @@ impl DidService {
             .await
             .error_while("getting did")?;
 
-        let Some(did) = did else {
-            return Err(DidServiceError::NotFound(*id));
-        };
         throw_if_org_id_not_matching_session(did.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 

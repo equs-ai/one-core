@@ -59,10 +59,7 @@ impl CredentialService {
                 .identifier_repository
                 .get(issuer_identifier_id)
                 .await
-                .error_while("getting identifier")?
-                .ok_or(CredentialServiceError::MissingIdentifier(
-                    issuer_identifier_id,
-                ))?,
+                .error_while("getting identifier")?,
             None => {
                 let issuer_did_id = request.issuer_did.ok_or(CredentialServiceError::NoIssuer)?;
 
@@ -74,16 +71,11 @@ impl CredentialService {
             }
         };
 
-        let Some(schema) = self
+        let schema = self
             .credential_schema_repository
             .get_credential_schema(&request.credential_schema_id)
             .await
-            .error_while("getting credential schema")?
-        else {
-            return Err(CredentialServiceError::MissingCredentialSchema(
-                request.credential_schema_id,
-            ));
-        };
+            .error_while("getting credential schema")?;
         throw_if_org_id_not_matching_session(schema.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -212,10 +204,6 @@ impl CredentialService {
             .await
             .error_while("getting credential")?;
 
-        let Some(credential) = credential else {
-            return Err(CredentialServiceError::NotFound(*credential_id));
-        };
-
         let schema = credential.schema.as_ref().await?;
         throw_if_org_id_not_matching_session(schema.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
@@ -288,7 +276,6 @@ impl CredentialService {
             .await
             .error_while("getting credential")?;
 
-        let credential = credential.ok_or(CredentialServiceError::NotFound(*credential_id))?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
             .await
             .error_while("checking session")?;
@@ -604,7 +591,6 @@ impl CredentialService {
             )
             .await
             .error_while("getting credential")?;
-        let credential = credential.ok_or(CredentialServiceError::NotFound(id))?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
             .await
             .error_while("checking session")?;
@@ -645,8 +631,7 @@ impl CredentialService {
                 },
             )
             .await
-            .error_while("getting credential")?
-            .ok_or(CredentialServiceError::NotFound(*id))?;
+            .error_while("getting credential")?;
 
         Ok(credential)
     }

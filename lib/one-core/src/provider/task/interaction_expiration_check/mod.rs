@@ -15,7 +15,7 @@ use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::history_repository::HistoryRepository;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::proof_repository::ProofRepository;
-use crate::service::error::{EntityNotFoundError, ServiceError};
+use crate::service::error::ServiceError;
 
 pub mod dto;
 
@@ -67,8 +67,7 @@ impl Task for InteractionExpirationCheckProvider {
                     },
                 )
                 .await
-                .error_while("getting credential")?
-                .ok_or(EntityNotFoundError::Credential(*credential_id))?;
+                .error_while("getting credential")?;
 
             let target = target_from_credential(&credential);
             let schema = credential.schema.as_ref().await?.to_owned();
@@ -112,8 +111,7 @@ impl Task for InteractionExpirationCheckProvider {
                     None,
                 )
                 .await
-                .error_while("getting proof")?
-                .ok_or(EntityNotFoundError::Proof(*proof_id))?;
+                .error_while("getting proof")?;
 
             let name = proof.schema.map(|schema| schema.name).unwrap_or_default();
             let organisation = proof

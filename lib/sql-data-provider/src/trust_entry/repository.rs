@@ -57,12 +57,7 @@ impl TrustEntryRepository for TrustEntryProvider {
         }
 
         if relations.identifier.is_some() {
-            result.identifier = Some(self.identifier_repository.get(identifier_id).await?.ok_or(
-                DataLayerError::MissingRequiredRelation {
-                    relation: "trust_entry-identifier",
-                    id: identifier_id.to_string(),
-                },
-            )?);
+            result.identifier = Some(self.identifier_repository.get(identifier_id).await?);
         }
 
         Ok(result)

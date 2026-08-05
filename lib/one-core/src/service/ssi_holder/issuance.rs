@@ -65,8 +65,7 @@ impl SSIHolderService {
                 self.identifier_repository
                     .get(identifier_id)
                     .await
-                    .error_while("getting identifier")?
-                    .ok_or(HolderServiceError::MissingIdentifier(identifier_id))?,
+                    .error_while("getting identifier")?,
             ),
             (None, None) => None,
             (Some(_), Some(_)) => {
@@ -466,16 +465,11 @@ impl SSIHolderService {
             .error_while("checking session")?;
         validate_initiate_issuance_request(&request, &self.config)?;
 
-        let Some(organisation) = self
+        let organisation = self
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-        else {
-            return Err(HolderServiceError::MissingOrganisation(
-                request.organisation_id,
-            ));
-        };
+            .error_while("getting organisation")?;
 
         let authorization_server = request
             .authorization_server

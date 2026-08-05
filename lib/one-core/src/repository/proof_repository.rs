@@ -18,13 +18,13 @@ pub trait ProofRepository: Send + Sync {
         id: &ProofId,
         relations: &ProofRelations,
         lock: Option<LockType>,
-    ) -> Result<Option<Proof>, DataLayerError>;
+    ) -> Result<Proof, DataLayerError>;
 
     async fn get_proof_by_interaction_id(
         &self,
         interaction_id: &InteractionId,
         relations: &ProofRelations,
-    ) -> Result<Option<Proof>, DataLayerError>;
+    ) -> Result<Proof, DataLayerError>;
 
     async fn get_proof_list(
         &self,

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use shared_types::TaskId;
+use thiserror::Error;
 
 use super::Task;
 use super::certificate_check::CertificateCheck;
@@ -13,6 +14,7 @@ use super::trust_list_subscription_update::TrustListSubscriptionUpdateTask;
 use super::webhook_notify::WebhookNotify;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, TaskType};
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::credential_validity_manager::CredentialValidityManager;
 use crate::proto::notification_sender::NotificationSender;
@@ -36,9 +38,23 @@ use crate::repository::proof_repository::ProofRepository;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 
+#[derive(Debug, Error)]
+pub enum TaskProviderError {
+    #[error("Cannot find task `{0}`")]
+    NotFound(TaskId),
+}
+
+impl ErrorCodeMixin for TaskProviderError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::NotFound(_) => ErrorCode::BR_0103,
+        }
+    }
+}
+
 #[cfg_attr(test, mockall::automock)]
 pub trait TaskProvider: Send + Sync {
-    fn get_task(&self, task_id: &TaskId) -> Option<Arc<dyn Task>>;
+    fn get_task(&self, task_id: &TaskId) -> Result<Arc<dyn Task>, TaskProviderError>;
 }
 
 struct TaskProviderImpl {
@@ -46,8 +62,11 @@ struct TaskProviderImpl {
 }
 
 impl TaskProvider for TaskProviderImpl {
-    fn get_task(&self, task_id: &TaskId) -> Option<Arc<dyn Task>> {
-        self.tasks.get(task_id).cloned()
+    fn get_task(&self, task_id: &TaskId) -> Result<Arc<dyn Task>, TaskProviderError> {
+        self.tasks
+            .get(task_id)
+            .cloned()
+            .ok_or_else(|| TaskProviderError::NotFound(task_id.to_owned()))
     }
 }
 

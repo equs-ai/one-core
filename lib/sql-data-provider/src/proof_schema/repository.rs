@@ -9,7 +9,7 @@ use one_core::model::proof_schema::{
 };
 use one_core::model::relation::{AsyncVecLoader, BatchModelLoader, Related, RelatedVec};
 use one_core::repository::claim_schema_repository::ClaimSchemaRepository;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::proof_schema_repository::ProofSchemaRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, Unchanged,
@@ -141,15 +141,15 @@ impl ProofSchemaRepository for ProofSchemaProvider {
         &self,
         id: &ProofSchemaId,
         relations: &ProofSchemaRelations,
-    ) -> Result<Option<ProofSchema>, DataLayerError> {
+    ) -> Result<ProofSchema, DataLayerError> {
         let proof_schema_model = crate::entity::proof_schema::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
-
-        let Some(proof_schema_model) = proof_schema_model else {
-            return Ok(None);
-        };
+            .map_err(|e| DataLayerError::Db(e.into()))?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::ProofSchema,
+                id: (*id).into(),
+            })?;
 
         let organisation_id = proof_schema_model.organisation_id.to_owned();
         let mut proof_schema = ProofSchema::from(proof_schema_model);
@@ -162,15 +162,11 @@ impl ProofSchemaRepository for ProofSchemaProvider {
             proof_schema.organisation = Some(
                 self.organisation_repository
                     .get_organisation(&organisation_id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "proof_schema-organisation",
-                        id: organisation_id.to_string(),
-                    })?,
+                    .await?,
             );
         }
 
-        Ok(Some(proof_schema))
+        Ok(proof_schema)
     }
 
     async fn get_proof_schema_list(

@@ -22,7 +22,7 @@ use crate::repository::identifier_trust_information_repository::IdentifierTrustI
 #[async_trait]
 pub trait IdentifierRepository: Send + Sync {
     async fn create(&self, request: Identifier) -> Result<IdentifierId, DataLayerError>;
-    async fn get(&self, id: IdentifierId) -> Result<Option<Identifier>, DataLayerError>;
+    async fn get(&self, id: IdentifierId) -> Result<Identifier, DataLayerError>;
     async fn get_from_did_id(&self, did_id: DidId) -> Result<Option<Identifier>, DataLayerError>;
     async fn update(
         &self,
@@ -39,12 +39,7 @@ pub trait IdentifierRepository: Send + Sync {
 #[async_trait]
 impl AsyncModelLoader<Identifier> for Arc<dyn IdentifierRepository> {
     async fn load(&self, id: &IdentifierId) -> Result<Identifier, DataLayerError> {
-        self.get(*id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "identifier",
-                id: id.to_string(),
-            })
+        self.get(*id).await
     }
 }
 

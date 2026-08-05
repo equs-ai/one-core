@@ -310,11 +310,11 @@ async fn test_create_credential_success() {
     let mut identifier_repository = MockIdentifierRepository::default();
     identifier_repository.expect_get().return_once({
         let identifier = identifier.clone();
-        |_| Ok(Some(identifier))
+        |_| Ok(identifier)
     });
 
     let mut schema_repository = MockCredentialSchemaRepository::default();
-    let credential_schema_result = Ok(Some(credential_schema.clone()));
+    let credential_schema_result = Ok(credential_schema.clone());
     schema_repository
         .expect_get_credential_schema()
         .return_once(move |_| credential_schema_result);
@@ -556,7 +556,6 @@ async fn test_delete_credential_success() {
     let credential = provider
         .get_credential(&credential.id, &CredentialRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert!(credential.deleted_at.is_some());
 }
@@ -950,7 +949,7 @@ async fn test_get_credential_success() {
     credential_schema_repository
         .expect_get_credential_schema()
         .times(1)
-        .returning(move |_| Ok(Some(credential_schema_clone.clone())));
+        .returning(move |_| Ok(credential_schema_clone.clone()));
 
     // real claim provider: the credential-schema ordering of the claims is implemented there
     let claim_repository = ClaimProvider {
@@ -978,7 +977,7 @@ async fn test_get_credential_success() {
         .await;
 
     assert!(credential.is_ok());
-    let credential = credential.unwrap().unwrap();
+    let credential = credential.unwrap();
     assert_eq!(credential_id, credential.id);
     assert_eq!(
         credential_schema,
@@ -1006,10 +1005,12 @@ async fn test_get_credential_fail_not_found() {
 
     let credential = provider
         .get_credential(&Uuid::new_v4().into(), &CredentialRelations::default())
-        .await
-        .unwrap();
+        .await;
 
-    assert!(credential.is_none());
+    assert!(matches!(
+        credential,
+        Err(DataLayerError::EntityNotFound { .. })
+    ));
 }
 
 #[tokio::test]
@@ -1069,7 +1070,7 @@ async fn test_update_credential_success() {
         .get_credential(&credential_id, &CredentialRelations::default())
         .await;
     assert!(credential_before_update.is_ok());
-    let credential_before_update = credential_before_update.unwrap().unwrap();
+    let credential_before_update = credential_before_update.unwrap();
     assert_eq!(credential_id, credential_before_update.id);
 
     assert_eq!(
@@ -1116,7 +1117,7 @@ async fn test_update_credential_success() {
         )
         .await;
     assert!(credential_after_update.is_ok());
-    let credential_after_update = credential_after_update.unwrap().unwrap();
+    let credential_after_update = credential_after_update.unwrap();
     assert_eq!(blob_id, credential_after_update.credential_blob_id.unwrap());
     assert_eq!(
         interaction_id,
@@ -1189,7 +1190,7 @@ async fn test_update_credential_success_no_claims() {
         .get_credential(&credential_id, &CredentialRelations::default())
         .await;
     assert!(credential_before_update.is_ok());
-    let credential_before_update = credential_before_update.unwrap().unwrap();
+    let credential_before_update = credential_before_update.unwrap();
     assert_eq!(credential_id, credential_before_update.id);
 
     assert_eq!(
@@ -1237,7 +1238,7 @@ async fn test_update_credential_success_no_claims() {
         )
         .await;
     assert!(credential_after_update.is_ok());
-    let credential_after_update = credential_after_update.unwrap().unwrap();
+    let credential_after_update = credential_after_update.unwrap();
     assert_eq!(blob_id, credential_after_update.credential_blob_id.unwrap());
     assert_eq!(
         interaction_id,
@@ -1288,14 +1289,12 @@ async fn test_delete_credential_blobs_success() {
     let credential = provider
         .get_credential(&credential.id, &CredentialRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert!(credential.credential_blob_id.is_some());
 
     let credential_two = provider
         .get_credential(&credential_two.id, &CredentialRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert!(credential_two.credential_blob_id.is_some());
 
@@ -1307,14 +1306,12 @@ async fn test_delete_credential_blobs_success() {
     let credential = provider
         .get_credential(&credential.id, &CredentialRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert!(credential.credential_blob_id.is_none());
 
     let credential_two = provider
         .get_credential(&credential_two.id, &CredentialRelations::default())
         .await
-        .unwrap()
         .unwrap();
     assert!(credential_two.credential_blob_id.is_none());
 }

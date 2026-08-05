@@ -3,6 +3,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum_extra::extract::WithRejection;
+use one_core::error::{ErrorCode, ErrorCodeMixin};
 use one_core::service::ssi_issuer::error::IssuerServiceError;
 use proc_macros::endpoint;
 use shared_types::{CredentialSchemaId, IdentifierId};
@@ -51,9 +52,11 @@ pub(crate) async fn oid4vci_get_jwt_vc_issuer_metadata(
             let response_body: SdJwtVcIssuerMetadataRestDTO = value.into();
             (StatusCode::OK, Json(response_body)).into_response()
         }
-        Err(error @ IssuerServiceError::MissingProtocol(_))
-        | Err(error @ IssuerServiceError::MissingCredentialSchema(_))
-        | Err(error @ IssuerServiceError::MissingIdentifier(_)) => {
+        Err(error @ IssuerServiceError::MissingProtocol(_)) => {
+            tracing::error!("Not found error: {error}");
+            StatusCode::NOT_FOUND.into_response()
+        }
+        Err(error) if matches!(error.error_code(), ErrorCode::BR_0006 | ErrorCode::BR_0207) => {
             tracing::error!("Not found error: {error}");
             StatusCode::NOT_FOUND.into_response()
         }

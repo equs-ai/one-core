@@ -56,32 +56,18 @@ impl TrustListPublicationRepository for TrustListPublicationProvider {
             result.organisation = Some(
                 self.organisation_repository
                     .get_organisation(&organisation_id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "trust_list_publication-organisation",
-                        id: organisation_id.to_string(),
-                    })?,
+                    .await?,
             );
         }
 
         if relations.identifier.is_some() {
-            result.identifier = Some(self.identifier_repository.get(identifier_id).await?.ok_or(
-                DataLayerError::MissingRequiredRelation {
-                    relation: "trust_list_publication-identifier",
-                    id: identifier_id.to_string(),
-                },
-            )?);
+            result.identifier = Some(self.identifier_repository.get(identifier_id).await?);
         }
 
         if let Some(key_id) = key_id
             && let Some(_key_relations) = &relations.key
         {
-            result.key = Some(self.key_repository.get_key(&key_id).await?.ok_or(
-                DataLayerError::MissingRequiredRelation {
-                    relation: "trust_list_publication-key",
-                    id: key_id.to_string(),
-                },
-            )?);
+            result.key = Some(self.key_repository.get_key(&key_id).await?);
         }
 
         if let Some(certificate_id) = certificate_id

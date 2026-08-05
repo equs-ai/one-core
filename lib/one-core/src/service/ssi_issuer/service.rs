@@ -101,12 +101,6 @@ impl SSIIssuerService {
             .await
             .error_while("getting credential schema")?;
 
-        let Some(credential_schema) = credential_schema else {
-            return Err(IssuerServiceError::MissingCredentialSchema(
-                credential_schema_id,
-            ));
-        };
-
         let (schema_format, claim_mappings) = if let Some(format) = format {
             let formats = credential_schema.formats.as_ref().await?;
             let Some(format) = formats.iter().find(|f| f.format == *format) else {
@@ -387,21 +381,21 @@ impl SSIIssuerService {
         &self,
         credential_schema_id: &CredentialSchemaId,
     ) -> Result<CredentialSchema, IssuerServiceError> {
-        self.credential_schema_repository
+        Ok(self
+            .credential_schema_repository
             .get_credential_schema(credential_schema_id)
             .await
-            .error_while("fetching credential schema")?
-            .ok_or_else(|| IssuerServiceError::MissingCredentialSchema(*credential_schema_id))
+            .error_while("fetching credential schema")?)
     }
 
     async fn fetch_identifier(
         &self,
         identifier_id: &IdentifierId,
     ) -> Result<Identifier, IssuerServiceError> {
-        self.identifier_repository
+        Ok(self
+            .identifier_repository
             .get(*identifier_id)
             .await
-            .error_while("fetching identifier")?
-            .ok_or_else(|| IssuerServiceError::MissingIdentifier(*identifier_id))
+            .error_while("fetching identifier")?)
     }
 }

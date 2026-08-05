@@ -1,6 +1,5 @@
 use shared_types::{
-    BlobId, CredentialSchemaId, IdentifierId, KeyId, OrganisationId, ProofSchemaId,
-    TrustListSubscriberId,
+    BlobId, CredentialSchemaId, IdentifierId, OrganisationId, ProofSchemaId, TrustListSubscriberId,
 };
 
 use crate::config::core_config::IdentifierType;
@@ -19,12 +18,8 @@ pub enum IdentifierServiceError {
     #[error("Remote identifier `{0}` already exists")]
     RemoteIdentifierAlreadyExists(IdentifierId),
 
-    #[error("Organisation `{0}` not found")]
-    MissingOrganisation(OrganisationId),
     #[error("Organisation `{0}` is deactivated")]
     OrganisationDeactivated(OrganisationId),
-    #[error("Key `{0}` not found")]
-    MissingKey(KeyId),
     #[error("Trust information blob `{0}` not found")]
     MissingTrustInformationBlob(BlobId),
     #[error("Invalid trust information: {0}")]
@@ -50,9 +45,7 @@ impl ErrorCodeMixin for IdentifierServiceError {
             Self::IdentifierTypeDisabled(_) => ErrorCode::BR_0227,
             Self::InvalidCreationInput => ErrorCode::BR_0206,
             Self::RemoteIdentifierAlreadyExists(_) => ErrorCode::BR_0240,
-            Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::OrganisationDeactivated(_) => ErrorCode::BR_0241,
-            Self::MissingKey(_) => ErrorCode::BR_0037,
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::CredentialSchemaNotFound(_) => ErrorCode::BR_0413,
             Self::ProofSchemaNotFound(_) => ErrorCode::BR_0414,

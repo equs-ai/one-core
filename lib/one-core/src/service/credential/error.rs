@@ -45,8 +45,6 @@ pub enum CredentialServiceError {
 
     #[error("Missing claim schema: {0}")]
     MissingClaimSchema(ClaimSchemaId),
-    #[error("Identifier `{0}` not found")]
-    MissingIdentifier(IdentifierId),
     #[error("Did `{0}` not found")]
     MissingDid(DidId),
     #[error("Credential schema `{0}` not found")]
@@ -68,7 +66,6 @@ impl ErrorCodeMixin for CredentialServiceError {
             Self::InvalidState(_) => ErrorCode::BR_0002,
             Self::InvalidType(_) => ErrorCode::BR_0442,
             Self::MissingClaimSchema(_) => ErrorCode::BR_0003,
-            Self::MissingIdentifier(_) => ErrorCode::BR_0207,
             Self::MissingDid(_) => ErrorCode::BR_0024,
             Self::MissingCredentialSchema(_) => ErrorCode::BR_0006,
             Self::MissingParentClaimSchema { .. } => ErrorCode::BR_0109,

@@ -101,7 +101,6 @@ impl ProofSchemasDB {
             )
             .await
             .unwrap()
-            .unwrap()
     }
 
     pub async fn delete(&self, id: &ProofSchemaId) {

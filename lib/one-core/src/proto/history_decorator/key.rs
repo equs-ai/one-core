@@ -46,7 +46,7 @@ impl KeyRepository for KeyHistoryDecorator {
         Ok(key_id)
     }
 
-    async fn get_key(&self, id: &KeyId) -> Result<Option<Key>, DataLayerError> {
+    async fn get_key(&self, id: &KeyId) -> Result<Key, DataLayerError> {
         self.inner.get_key(id).await
     }
 

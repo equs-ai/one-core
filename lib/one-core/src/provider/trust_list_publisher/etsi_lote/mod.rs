@@ -353,13 +353,7 @@ impl EtsiLotePublisher {
                 .identifier_repository
                 .get(entry.identifier_id)
                 .await
-                .error_while("fetching entry identifier")?
-                .ok_or_else(|| {
-                    TrustListPublisherError::MissingRelation(format!(
-                        "identifier {} not found for entry {}",
-                        entry.identifier_id, entry.id
-                    ))
-                })?;
+                .error_while("fetching entry identifier")?;
 
             entries_with_identifiers.push((entry, identifier));
         }

@@ -5,13 +5,12 @@ use shared_types::{DidMethodId, DidValue};
 use time::OffsetDateTime;
 
 use crate::config::core_config::{DidType, Fields};
-use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use crate::error::ContextWithErrorCode;
 use crate::provider::caching_loader::{CachingLoader, ResolveResult, Resolver};
 use crate::provider::did_method::DidMethod;
 use crate::provider::did_method::dto::DidDocumentDTO;
 use crate::provider::did_method::error::{DidMethodError, DidMethodProviderError};
 use crate::provider::provider_directory::ProviderDirectory;
-use crate::service::error::MissingProviderError;
 
 pub struct DidResolver {
     pub directory: ProviderDirectory<DidMethodId, Fields<DidType>, dyn DidMethod>,
@@ -52,8 +51,7 @@ impl DidResolver {
         &self,
         did_value: &DidValue,
     ) -> Result<&Arc<dyn DidMethod>, DidMethodProviderError> {
-        Ok(self
-            .directory
+        self.directory
             .iter()
             .find(|(_, method)| {
                 method
@@ -63,9 +61,6 @@ impl DidResolver {
                     .any(|val| val == did_value.method())
             })
             .map(|(_, method)| method)
-            .ok_or(
-                MissingProviderError::DidMethod(did_value.method().into())
-                    .error_while("getting did provider"),
-            )?)
+            .ok_or_else(|| DidMethodProviderError::UnknownDidMethod(did_value.method().into()))
     }
 }

@@ -1,4 +1,4 @@
-use shared_types::{IdentifierId, TrustEntryId, TrustListPublicationId, TrustListPublisherId};
+use shared_types::{TrustEntryId, TrustListPublicationId, TrustListPublisherId};
 use thiserror::Error;
 
 use crate::config::core_config::{IdentifierType, KeyAlgorithmType};
@@ -13,8 +13,6 @@ pub enum TrustListPublicationServiceError {
     MappingError(String),
     #[error(transparent)]
     Nested(#[from] NestedError),
-    #[error("Identifier `{0}` not found")]
-    IdentifierNotFound(IdentifierId),
     #[error("Unsupported identifier type `{0}`: expected one of `{1:?}`")]
     InvalidIdentifierType(IdentifierType, Vec<IdentifierType>),
     #[error("Selected key not matching supported types")]
@@ -41,7 +39,6 @@ impl ErrorCodeMixin for TrustListPublicationServiceError {
             Self::Nested(nested) => nested.error_code(),
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::MissingTrustListPublisher(_) => ErrorCode::BR_0388,
-            Self::IdentifierNotFound(_) => ErrorCode::BR_0207,
             Self::ContentDeserialization(_) => ErrorCode::BR_0189,
             Self::InvalidIdentifierType(_, _) => ErrorCode::BR_0382,
             Self::InvalidSelectedKey => ErrorCode::BR_0330,

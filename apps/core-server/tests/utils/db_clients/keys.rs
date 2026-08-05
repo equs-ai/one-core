@@ -39,7 +39,7 @@ impl KeysDB {
     }
 
     pub async fn get(&self, id: &KeyId) -> Key {
-        self.repository.get_key(id).await.unwrap().unwrap()
+        self.repository.get_key(id).await.unwrap()
     }
 }
 

@@ -277,7 +277,7 @@ async fn test_get_did_by_value_missing() {
 async fn test_get_did_existing() {
     let mut key_repository = MockKeyRepository::default();
     key_repository.expect_get_key().times(1).returning(|id| {
-        Ok(Some(Key {
+        Ok(Key {
             id: id.to_owned(),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -287,7 +287,7 @@ async fn test_get_did_existing() {
             storage_type: "INTERNAL".to_string(),
             key_type: "ED25519".to_string(),
             organisation: dummy_organisation(None).into(),
-        }))
+        })
     });
 
     let TestSetupWithDid {
@@ -308,7 +308,7 @@ async fn test_get_did_existing() {
 
     assert!(result.is_ok());
 
-    let content = result.unwrap().unwrap();
+    let content = result.unwrap();
     assert_eq!(content.id, did_id);
     assert_eq!(content.did_method, "KEY".into());
     assert_eq!(content.did_type, DidType::Local);
@@ -325,9 +325,9 @@ async fn test_get_did_existing() {
 async fn test_get_did_not_existing() {
     let TestSetup { provider, .. } = setup_empty(Repositories::default()).await;
 
-    let result = provider.get_did(&Uuid::new_v4().into()).await.unwrap();
+    let result = provider.get_did(&Uuid::new_v4().into()).await;
 
-    assert!(result.is_none());
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]

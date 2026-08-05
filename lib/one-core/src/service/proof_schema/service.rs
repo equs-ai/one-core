@@ -68,8 +68,7 @@ impl ProofSchemaService {
                 },
             )
             .await
-            .error_while("getting proof schema")?
-            .ok_or(ProofSchemaServiceError::NotFound(*id))?;
+            .error_while("getting proof schema")?;
         throw_if_org_not_matching_session(result.organisation.as_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -129,12 +128,6 @@ impl ProofSchemaService {
             .get_organisation(&request.organisation_id)
             .await
             .error_while("getting organisation")?;
-
-        let Some(organisation) = organisation else {
-            return Err(ProofSchemaServiceError::MissingOrganisation(
-                request.organisation_id,
-            ));
-        };
 
         if organisation.deactivated_at.is_some() {
             return Err(ProofSchemaServiceError::OrganisationIsDeactivated(
@@ -235,8 +228,7 @@ impl ProofSchemaService {
                 },
             )
             .await
-            .error_while("getting proof schema")?
-            .ok_or(ProofSchemaServiceError::NotFound(*id))?;
+            .error_while("getting proof schema")?;
         throw_if_org_not_matching_session(schema.organisation.as_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
@@ -267,8 +259,7 @@ impl ProofSchemaService {
                 },
             )
             .await
-            .error_while("getting proof schema")?
-            .ok_or(ProofSchemaServiceError::NotFound(id))?;
+            .error_while("getting proof schema")?;
         throw_if_org_not_matching_session(
             proof_schema.organisation.as_ref(),
             &*self.session_provider,
@@ -292,10 +283,7 @@ impl ProofSchemaService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(ProofSchemaServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(ProofSchemaServiceError::OrganisationIsDeactivated(

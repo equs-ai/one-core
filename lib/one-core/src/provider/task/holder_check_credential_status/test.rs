@@ -108,7 +108,7 @@ async fn test_task_holder_check_credential_status_being_revoked() {
     let credential_clone = credential.clone();
     credential_repository
         .expect_get_credential()
-        .returning(move |_, _| Ok(Some(credential_clone.clone())));
+        .returning(move |_, _| Ok(credential_clone.clone()));
 
     credential_repository
         .expect_get_credential_list()

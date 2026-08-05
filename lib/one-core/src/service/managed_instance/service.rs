@@ -1183,12 +1183,6 @@ impl ManagedInstanceService {
             .await
             .error_while("getting identifier")?;
 
-        let Some(issuer_identifier) = issuer_identifier else {
-            return Err(ManagedInstanceError::MissingIdentifier(
-                issuer_identifier_id,
-            ));
-        };
-
         let selection = issuer_identifier
             .select_key(KeyFilter::algorithms(vec![KeyAlgorithmType::Ecdsa]).into())
             .await

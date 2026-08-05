@@ -63,13 +63,18 @@ impl IdentifierService {
         &self,
         id: &IdentifierId,
     ) -> Result<GetIdentifierResponseDTO, IdentifierServiceError> {
-        let identifier = self
-            .identifier_repository
-            .get(*id)
-            .await
-            .error_while("getting identifier")?
-            .filter(|i| i.deleted_at.is_none())
-            .ok_or(IdentifierServiceError::NotFound(*id))?;
+        let identifier =
+            self.identifier_repository
+                .get(*id)
+                .await
+                .map_err(|error| match error {
+                    DataLayerError::EntityNotFound { .. } => IdentifierServiceError::NotFound(*id),
+                    error => error.error_while("getting identifier").into(),
+                })?;
+
+        if identifier.deleted_at.is_some() {
+            return Err(IdentifierServiceError::NotFound(*id));
+        }
 
         throw_if_org_id_not_matching_session(
             &identifier.organisation.id(),
@@ -121,10 +126,7 @@ impl IdentifierService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(IdentifierServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(IdentifierServiceError::OrganisationDeactivated(
@@ -275,10 +277,7 @@ impl IdentifierService {
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
-            .error_while("getting organisation")?
-            .ok_or(IdentifierServiceError::MissingOrganisation(
-                request.organisation_id,
-            ))?;
+            .error_while("getting organisation")?;
 
         if organisation.deactivated_at.is_some() {
             return Err(IdentifierServiceError::OrganisationDeactivated(
@@ -331,8 +330,7 @@ impl IdentifierService {
                                 .key_repository
                                 .get_key(&key_id)
                                 .await
-                                .error_while("getting key")?
-                                .ok_or(IdentifierServiceError::MissingKey(key_id))?;
+                                .error_while("getting key")?;
 
                             self.identifier_creator
                                 .create_local_identifier(
@@ -358,8 +356,7 @@ impl IdentifierService {
                                 .key_repository
                                 .get_key(&key_id)
                                 .await
-                                .error_while("getting key")?
-                                .ok_or(IdentifierServiceError::MissingKey(key_id))?;
+                                .error_while("getting key")?;
 
                             self.identifier_creator
                                 .create_local_identifier(
@@ -551,9 +548,6 @@ impl IdentifierService {
             .get(*id)
             .await
             .error_while("getting identifier")?;
-        let Some(identifier) = identifier else {
-            return Err(IdentifierServiceError::NotFound(*id));
-        };
         throw_if_org_id_not_matching_session(
             &identifier.organisation.id(),
             &*self.session_provider,
@@ -790,7 +784,7 @@ impl IdentifierService {
     ) -> Result<Arc<dyn TrustListSubscriber>, IdentifierServiceError> {
         self.trust_list_subscriber_provider
             .get(&trust_list_subscription.r#type)
-            .ok_or_else(|| {
+            .map_err(|_| {
                 IdentifierServiceError::MissingTrustListSubscriber(
                     trust_list_subscription.r#type.clone(),
                 )

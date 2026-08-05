@@ -13,7 +13,7 @@ use crate::proto::notification_scheduler::{NotificationPayload, NotificationSche
 use crate::provider::issuance_protocol::model::CommonParams;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::error::DataLayerError;
-use crate::service::error::{ServiceError, ValidationError};
+use crate::service::error::ValidationError;
 
 pub struct CredentialNotificationDecorator {
     pub inner: Arc<dyn CredentialRepository>,
@@ -34,8 +34,7 @@ impl CredentialNotificationDecorator {
                     ..Default::default()
                 },
             )
-            .await?
-            .ok_or(ServiceError::MappingError("missing credential".to_string()))
+            .await
             .error_while("sending notification")?;
 
         let Some(webhook_url) = &stored.webhook_url else {
@@ -125,7 +124,7 @@ impl CredentialRepository for CredentialNotificationDecorator {
         &self,
         id: &CredentialId,
         relations: &CredentialRelations,
-    ) -> Result<Option<Credential>, DataLayerError> {
+    ) -> Result<Credential, DataLayerError> {
         self.inner.get_credential(id, relations).await
     }
 

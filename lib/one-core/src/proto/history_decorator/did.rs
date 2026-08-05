@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use shared_types::{DidId, DidValue, OrganisationId};
 use uuid::Uuid;
 
@@ -62,7 +61,7 @@ impl DidRepository for DidHistoryDecorator {
         Ok(did_id)
     }
 
-    async fn get_did(&self, id: &DidId) -> Result<Option<Did>, DataLayerError> {
+    async fn get_did(&self, id: &DidId) -> Result<Did, DataLayerError> {
         self.inner.get_did(id).await
     }
 
@@ -82,11 +81,7 @@ impl DidRepository for DidHistoryDecorator {
         self.inner.update_did(request.clone()).await?;
 
         if let Some(deactivated) = request.deactivated {
-            let did = self
-                .inner
-                .get_did(&request.id)
-                .await?
-                .context("did is missing")?;
+            let did = self.inner.get_did(&request.id).await?;
 
             self.create_history(
                 did.id,

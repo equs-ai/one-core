@@ -34,10 +34,6 @@ impl KeyService {
             .get_key(key_id)
             .await
             .error_while("loading key")?;
-
-        let Some(key) = key else {
-            return Err(KeyServiceError::KeyNotFound(*key_id));
-        };
         throw_if_org_id_not_matching_session(key.organisation.id_ref(), &*self.session_provider)
             .error_while("validating organisation")?;
 
@@ -59,12 +55,6 @@ impl KeyService {
             .get_organisation(&request.organisation_id)
             .await
             .error_while("loading organisation from repository")?;
-
-        let Some(organisation) = organisation else {
-            return Err(KeyServiceError::MissingOrganisation(
-                request.organisation_id,
-            ));
-        };
 
         if organisation.deactivated_at.is_some() {
             return Err(KeyServiceError::OrganisationDeactivated(
@@ -152,10 +142,6 @@ impl KeyService {
             .get_key(key_id)
             .await
             .error_while("loading key")?;
-
-        let Some(key) = key else {
-            return Err(KeyServiceError::KeyNotFound(*key_id));
-        };
         throw_if_org_id_not_matching_session(key.organisation.id_ref(), &*self.session_provider)
             .error_while("validating organisation")?;
 

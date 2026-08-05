@@ -193,11 +193,11 @@ async fn test_get_or_create_remote_identifier_certificate_existing() {
     identifier_repository.expect_get().once().return_once({
         let certificate = certificate.clone();
         move |_| {
-            Ok(Some(Identifier {
+            Ok(Identifier {
                 id: identifier_id,
                 data: IdentifierData::Certificate(RelatedVec::from(vec![certificate])),
                 ..dummy_identifier()
-            }))
+            })
         }
     });
 

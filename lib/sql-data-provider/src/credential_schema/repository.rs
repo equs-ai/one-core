@@ -7,7 +7,7 @@ use one_core::model::credential_schema::{
 use one_core::model::credential_schema_format_claim_schema::CredentialSchemaFormatClaimSchema;
 use one_core::proto::transaction_manager::IsolationLevel;
 use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::service::credential_schema::dto::CredentialSchemaListIncludeEntityTypeEnum;
 use one_dto_mapper::convert_inner;
 use sea_orm::ActiveValue::Set;
@@ -115,24 +115,22 @@ impl CredentialSchemaRepository for CredentialSchemaProvider {
     async fn get_credential_schema(
         &self,
         id: &CredentialSchemaId,
-    ) -> Result<Option<CredentialSchema>, DataLayerError> {
+    ) -> Result<CredentialSchema, DataLayerError> {
         let credential_schema = credential_schema::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::CredentialSchema,
+                id: (*id).into(),
+            })?;
 
-        let Some(credential_schema) = credential_schema else {
-            return Ok(None);
-        };
-
-        let credential_schema = credential_schema_from_models(
+        credential_schema_from_models(
             credential_schema,
             false,
             self.db.to_owned(),
             &self.organisation_repository,
-        )?;
-
-        Ok(Some(credential_schema))
+        )
     }
 
     async fn get_credential_schema_list(

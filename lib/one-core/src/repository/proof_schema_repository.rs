@@ -18,7 +18,7 @@ pub trait ProofSchemaRepository: Send + Sync {
         &self,
         id: &ProofSchemaId,
         relations: &ProofSchemaRelations,
-    ) -> Result<Option<ProofSchema>, DataLayerError>;
+    ) -> Result<ProofSchema, DataLayerError>;
 
     async fn get_proof_schema_list(
         &self,

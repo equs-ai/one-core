@@ -71,8 +71,6 @@ pub enum CredentialSchemaServiceError {
     MissingRevocationMethod(RevocationMethodId),
     #[error("Missing formats")]
     MissingFormats,
-    #[error("Missing organisation: {0}")]
-    MissingOrganisation(OrganisationId),
     #[error("Organisation {0} is deactivated")]
     OrganisationIsDeactivated(OrganisationId),
 
@@ -117,7 +115,6 @@ impl ErrorCodeMixin for CredentialSchemaServiceError {
             Self::SuspensionNotEnabledForSuspendOnlyRevocationMethod => ErrorCode::BR_0191,
             Self::SuspensionNotAvailableForSelectedRevocationMethod => ErrorCode::BR_0162,
             Self::MissingRevocationMethod(_) => ErrorCode::BR_0044,
-            Self::MissingOrganisation(_) => ErrorCode::BR_0088,
             Self::OrganisationIsDeactivated(_) => ErrorCode::BR_0241,
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::Nested(nested) => nested.error_code(),

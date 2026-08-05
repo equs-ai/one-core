@@ -1,7 +1,7 @@
 use one_crypto::CryptoProviderError;
 use shared_types::{
     CredentialId, CredentialSchemaId, DidId, DidMethodId, DidValue, IdentifierId, InteractionId,
-    OrganisationId, ProofId, RevocationMethodId, TaskId, TrustListSubscriberId,
+    ProofId,
 };
 use thiserror::Error;
 
@@ -67,9 +67,6 @@ pub enum EntityNotFoundError {
 
     #[error("Proof `{0}` not found")]
     Proof(ProofId),
-
-    #[error("Organisation `{0}` not found")]
-    Organisation(OrganisationId),
 
     #[error("Credential schema `{0}` not found")]
     CredentialSchema(CredentialSchemaId),
@@ -172,26 +169,8 @@ pub enum MissingProviderError {
     #[error("Cannot find formatter with type `{0}` in formatter provider")]
     FormatterType(FormatType),
 
-    #[error("Cannot find `{0}` in key storage provider")]
-    KeyStorage(String),
-
-    #[error("Cannot find `{0}` in did method provider")]
-    DidMethod(DidMethodId),
-
-    #[error("Cannot find `{0}` in revocation method provider")]
-    RevocationMethod(RevocationMethodId),
-
     #[error("Cannot find revocation method provider for credential status type `{0}`")]
     RevocationMethodByCredentialStatusType(String),
-
-    #[error("Cannot find task `{0}`")]
-    Task(TaskId),
-
-    #[error("Cannot find verifier provider `{0}`")]
-    Verifier(String),
-
-    #[error("Cannot find trust list subscriber provider `{0}`")]
-    TrustListSubscriber(TrustListSubscriberId),
 }
 
 impl From<uuid::Error> for ServiceError {
@@ -223,7 +202,6 @@ impl ErrorCodeMixin for EntityNotFoundError {
             Self::Credential(_) => ErrorCode::BR_0001,
             Self::Did(_) | Self::DidValue(_) => ErrorCode::BR_0024,
             Self::Proof(_) => ErrorCode::BR_0012,
-            Self::Organisation(_) => ErrorCode::BR_0022,
             Self::CredentialSchema(_) => ErrorCode::BR_0006,
             Self::Identifier(_) | Self::IdentifierByDidId(_) => ErrorCode::BR_0207,
         }
@@ -272,13 +250,7 @@ impl ErrorCodeMixin for MissingProviderError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::Formatter(_) | Self::FormatterType(_) => ErrorCode::BR_0038,
-            Self::KeyStorage(_) => ErrorCode::BR_0040,
-            Self::DidMethod(_) => ErrorCode::BR_0031,
-            Self::RevocationMethod(_) => ErrorCode::BR_0044,
             Self::RevocationMethodByCredentialStatusType(_) => ErrorCode::BR_0045,
-            Self::Task(_) => ErrorCode::BR_0103,
-            Self::Verifier(_) => ErrorCode::BR_0380,
-            Self::TrustListSubscriber(_) => ErrorCode::BR_0400,
         }
     }
 }

@@ -14,9 +14,7 @@ use crate::proto::session_provider::SessionProvider;
 use crate::provider::verification_protocol::VerificationProtocol;
 use crate::provider::verification_protocol::dto::PresentationDefinitionVersion;
 use crate::repository::organisation_repository::OrganisationRepository;
-use crate::service::error::{
-    BusinessLogicError, EntityNotFoundError, ServiceError, ValidationError,
-};
+use crate::service::error::{BusinessLogicError, ServiceError, ValidationError};
 
 pub(crate) mod key_security;
 pub(crate) mod permissions;
@@ -73,8 +71,7 @@ pub(crate) async fn throw_if_org_id_not_matching_session_with_parent_check(
         let session_org = organisations_repository
             .get_organisation(&session_org_id)
             .await
-            .error_while("fetching organisation")?
-            .ok_or(EntityNotFoundError::Organisation(session_org_id))?;
+            .error_while("fetching organisation")?;
         if session_org
             .parent_organisation
             .is_some_and(|parent_organisation| parent_organisation.id() == organisation_id)

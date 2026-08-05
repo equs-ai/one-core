@@ -28,7 +28,7 @@ pub trait CredentialSchemaRepository: Send + Sync {
     async fn get_credential_schema(
         &self,
         id: &CredentialSchemaId,
-    ) -> Result<Option<CredentialSchema>, DataLayerError>;
+    ) -> Result<CredentialSchema, DataLayerError>;
 
     async fn get_credential_schema_list(
         &self,
@@ -50,12 +50,7 @@ pub trait CredentialSchemaRepository: Send + Sync {
 #[async_trait::async_trait]
 impl AsyncModelLoader<CredentialSchema> for Arc<dyn CredentialSchemaRepository> {
     async fn load(&self, id: &CredentialSchemaId) -> Result<CredentialSchema, DataLayerError> {
-        self.get_credential_schema(id).await?.ok_or_else(|| {
-            DataLayerError::MissingRequiredRelation {
-                relation: "credential_schema",
-                id: id.to_string(),
-            }
-        })
+        self.get_credential_schema(id).await
     }
 }
 

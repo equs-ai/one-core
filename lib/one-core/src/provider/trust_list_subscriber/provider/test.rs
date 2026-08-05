@@ -66,7 +66,7 @@ LOTL_SUBSCRIBER:
     // a LOTL subscriber is roleless; roles are derived per resolved entry
     assert!(lotl.get_capabilities().roles.is_empty());
 
-    assert!(provider.get(&"LOTE_SUBSCRIBER".into()).is_some());
+    assert!(provider.get(&"LOTE_SUBSCRIBER".into()).is_ok());
 }
 
 #[test]

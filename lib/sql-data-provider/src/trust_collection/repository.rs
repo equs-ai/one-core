@@ -48,11 +48,7 @@ impl TrustCollectionRepository for TrustCollectionProvider {
             result.organisation = Some(
                 self.organisation_repository
                     .get_organisation(&organisation_id)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "trust_collection-organisation",
-                        id: organisation_id.to_string(),
-                    })?,
+                    .await?,
             );
         }
         Ok(result)

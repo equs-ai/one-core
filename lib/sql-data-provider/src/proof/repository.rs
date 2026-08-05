@@ -11,7 +11,7 @@ use one_core::model::proof::{
     GetProofList, Proof, ProofClaim, ProofClaimRelations, ProofListQuery, ProofRelations,
     ProofStateEnum, UpdateProofRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::proof_repository::ProofRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
@@ -49,31 +49,32 @@ impl ProofRepository for ProofProvider {
         proof_id: &ProofId,
         relations: &ProofRelations,
         lock: Option<LockType>,
-    ) -> Result<Option<Proof>, DataLayerError> {
+    ) -> Result<Proof, DataLayerError> {
         let select = proof::Entity::find_by_id(proof_id);
         let select = match lock {
             None => select,
             Some(lock) => select.lock(map_lock_type(lock)),
         };
-        let proof_model = select.one(&self.db).await.map_err(|error| {
-            tracing::error!(%error, %proof_id, "Error while fetching proof");
-            DataLayerError::Db(error.into())
-        })?;
+        let proof_model = select
+            .one(&self.db)
+            .await
+            .map_err(|error| {
+                tracing::error!(%error, %proof_id, "Error while fetching proof");
+                DataLayerError::Db(error.into())
+            })?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Proof,
+                id: (*proof_id).into(),
+            })?;
 
-        let Some(proof_model) = proof_model else {
-            return Ok(None);
-        };
-
-        let proof = self.resolve_proof_relations(proof_model, relations).await?;
-
-        Ok(Some(proof))
+        self.resolve_proof_relations(proof_model, relations).await
     }
 
     async fn get_proof_by_interaction_id(
         &self,
         interaction_id: &InteractionId,
         relations: &ProofRelations,
-    ) -> Result<Option<Proof>, DataLayerError> {
+    ) -> Result<Proof, DataLayerError> {
         let proof_model = crate::entity::proof::Entity::find()
             .filter(proof::Column::InteractionId.eq(interaction_id.to_string()))
             .one(&self.db)
@@ -85,15 +86,13 @@ impl ProofRepository for ProofProvider {
                     e.to_string()
                 );
                 DataLayerError::Db(e.into())
+            })?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::ProofByInteraction,
+                id: (*interaction_id).into(),
             })?;
 
-        match proof_model {
-            None => Ok(None),
-            Some(proof_model) => {
-                let proof = self.resolve_proof_relations(proof_model, relations).await?;
-                Ok(Some(proof))
-            }
-        }
+        self.resolve_proof_relations(proof_model, relations).await
     }
 
     async fn get_proof_list(
@@ -343,11 +342,7 @@ impl ProofProvider {
             proof.schema = Some(
                 self.proof_schema_repository
                     .get_proof_schema(&proof_schema_id, proof_schema_relations)
-                    .await?
-                    .ok_or(DataLayerError::MissingRequiredRelation {
-                        relation: "proof-proof_schema",
-                        id: proof_schema_id.to_string(),
-                    })?,
+                    .await?,
             );
         }
 
@@ -361,8 +356,7 @@ impl ProofProvider {
             let verifier_identifier = self
                 .identifier_repository
                 .get(*verifier_identifier_id)
-                .await?
-                .ok_or(DataLayerError::Db(anyhow!("Verifier identifier not found")))?;
+                .await?;
             proof.verifier_identifier = Some(verifier_identifier);
         }
 
@@ -380,12 +374,7 @@ impl ProofProvider {
         if let (Some(_verifier_key_relations), Some(verifier_key_id)) =
             (&relations.verifier_key, proof_model.verifier_key_id)
         {
-            let verifier_key = self.key_repository.get_key(&verifier_key_id).await?.ok_or(
-                DataLayerError::MissingRequiredRelation {
-                    relation: "proof-verifierkey",
-                    id: verifier_key_id.to_string(),
-                },
-            )?;
+            let verifier_key = self.key_repository.get_key(&verifier_key_id).await?;
 
             proof.verifier_key = Some(verifier_key);
         }

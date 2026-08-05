@@ -3,6 +3,7 @@ use one_core::model::list_query::{ListPagination, ListSorting};
 use one_core::model::organisation::{
     Organisation, OrganisationListQuery, SortableOrganisationColumn, UpdateOrganisationRequest,
 };
+use one_core::repository::error::DataLayerError;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use sea_orm::{DatabaseConnection, EntityTrait};
 use similar_asserts::assert_eq;
@@ -60,7 +61,7 @@ async fn test_get_organisation_missing() {
     let TestSetup { repository, .. } = setup().await;
 
     let result = repository.get_organisation(&Uuid::new_v4().into()).await;
-    assert!(matches!(result, Ok(None)));
+    assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
@@ -75,7 +76,7 @@ async fn test_get_organisation_success() {
     let result = repository.get_organisation(&org_id).await;
 
     assert!(result.is_ok());
-    let organisation = result.unwrap().unwrap();
+    let organisation = result.unwrap();
     assert_eq!(organisation.id, org_id);
 }
 

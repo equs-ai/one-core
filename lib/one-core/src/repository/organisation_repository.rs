@@ -21,10 +21,7 @@ pub trait OrganisationRepository: Send + Sync {
         request: UpdateOrganisationRequest,
     ) -> Result<(), DataLayerError>;
 
-    async fn get_organisation(
-        &self,
-        id: &OrganisationId,
-    ) -> Result<Option<Organisation>, DataLayerError>;
+    async fn get_organisation(&self, id: &OrganisationId) -> Result<Organisation, DataLayerError>;
 
     async fn get_organisation_for_wallet_provider(
         &self,
@@ -45,11 +42,6 @@ pub trait OrganisationRepository: Send + Sync {
 #[async_trait::async_trait]
 impl AsyncModelLoader<Organisation> for Arc<dyn OrganisationRepository> {
     async fn load(&self, id: &OrganisationId) -> Result<Organisation, DataLayerError> {
-        self.get_organisation(id)
-            .await?
-            .ok_or_else(|| DataLayerError::MissingRequiredRelation {
-                relation: "organisation",
-                id: id.to_string(),
-            })
+        self.get_organisation(id).await
     }
 }

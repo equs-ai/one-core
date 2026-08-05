@@ -25,12 +25,13 @@ impl CertificateHistoryDecorator {
     async fn get_organisation_id_from_identifier_id(
         &self,
         identifier_id: IdentifierId,
-    ) -> Result<Option<OrganisationId>, DataLayerError> {
+    ) -> Result<OrganisationId, DataLayerError> {
         Ok(self
             .identifier_repository
             .get(identifier_id)
             .await?
-            .map(|identifier| identifier.organisation.id()))
+            .organisation
+            .id())
     }
 
     async fn create_history(
@@ -49,11 +50,6 @@ impl CertificateHistoryDecorator {
                 tracing::warn!(%error, "identifier_id (id: {identifier_id}) fetch failure");
                 return;
             }
-        };
-
-        let Some(organisation_id) = organisation_id else {
-            tracing::warn!("certificate (id: {id}) missing organisation");
-            return;
         };
 
         let result = self

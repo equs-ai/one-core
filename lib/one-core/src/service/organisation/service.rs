@@ -116,18 +116,13 @@ impl OrganisationService {
             .await
             .error_while("getting organisation")?;
 
-        let Some(organisation) = organisation else {
-            return Err(OrganisationServiceError::NotFound(*id));
-        };
-
         let wallet_provider_issuer =
             if let Some(identifier_id) = &organisation.wallet_provider_issuer {
                 Some(
                     self.identifier_repository
                         .get(*identifier_id)
                         .await
-                        .error_while("getting identifier")?
-                        .ok_or(OrganisationServiceError::IdentifierNotFound(*identifier_id))?,
+                        .error_while("getting identifier")?,
                 )
             } else {
                 None
@@ -138,8 +133,7 @@ impl OrganisationService {
                     self.identifier_repository
                         .get(*identifier_id)
                         .await
-                        .error_while("getting identifier")?
-                        .ok_or(OrganisationServiceError::IdentifierNotFound(*identifier_id))?,
+                        .error_while("getting identifier")?,
                 )
             } else {
                 None
@@ -159,6 +153,17 @@ impl OrganisationService {
             wallet_instance,
             verifier_instance,
         ))
+    }
+
+    async fn get_organisation_if_exists(
+        &self,
+        id: &OrganisationId,
+    ) -> Result<Option<Organisation>, DataLayerError> {
+        match self.organisation_repository.get_organisation(id).await {
+            Ok(organisation) => Ok(Some(organisation)),
+            Err(DataLayerError::EntityNotFound { .. }) => Ok(None),
+            Err(error) => Err(error),
+        }
     }
 
     async fn load_instance_details(
@@ -227,8 +232,7 @@ impl OrganisationService {
         request: UpsertOrganisationRequestDTO,
     ) -> Result<(), OrganisationServiceError> {
         let existing_organisation = self
-            .organisation_repository
-            .get_organisation(&request.id)
+            .get_organisation_if_exists(&request.id)
             .await
             .error_while("getting organisation")?;
         let existing_id = existing_organisation.as_ref().map(|org| &org.id);
@@ -344,8 +348,7 @@ impl OrganisationService {
         id: &OrganisationId,
     ) -> Result<Vec<TrustCollectionInfoDTO>, OrganisationServiceError> {
         let Some(organisation) = self
-            .organisation_repository
-            .get_organisation(id)
+            .get_organisation_if_exists(id)
             .await
             .error_while("getting organisation")?
         else {

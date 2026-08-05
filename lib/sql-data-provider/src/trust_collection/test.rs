@@ -436,11 +436,11 @@ async fn test_get_trust_collection_with_organisation_relation() {
     mock_org_repo
         .expect_get_organisation()
         .returning(move |id| {
-            Ok(Some(Organisation {
+            Ok(Organisation {
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 ..dummy_organisation(Some(*id))
-            }))
+            })
         });
 
     let provider = TrustCollectionProvider {

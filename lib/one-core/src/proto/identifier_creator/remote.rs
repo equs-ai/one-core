@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use super::creator::IdentifierCreatorProto;
 use super::{Error, IdentifierName};
-use crate::error::ContextWithErrorCode;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::{
     Certificate, CertificateFilterValue, CertificateListQuery, CertificateState,
 };
@@ -121,10 +121,7 @@ impl IdentifierCreatorProto {
                 .identifier_repository
                 .get(certificate.identifier_id)
                 .await
-                .error_while("getting identifier")?
-                .ok_or(Error::MappingError(
-                    "Certificate identifier not found".to_string(),
-                ))?;
+                .error_while("getting identifier")?;
             return Ok((certificate, identifier));
         }
 
@@ -330,13 +327,16 @@ impl IdentifierCreatorProto {
                     return Ok(None);
                 };
 
-                let Some(identifier) = self
+                let identifier = match self
                     .identifier_repository
                     .get(certificate.identifier_id)
                     .await
-                    .error_while("getting identifier")?
-                else {
-                    return Ok(None);
+                {
+                    Ok(identifier) => identifier,
+                    Err(crate::repository::error::DataLayerError::EntityNotFound { .. }) => {
+                        return Ok(None);
+                    }
+                    Err(error) => return Err(error.error_while("getting identifier").into()),
                 };
 
                 Ok(Some((

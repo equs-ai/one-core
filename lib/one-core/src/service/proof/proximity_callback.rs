@@ -45,7 +45,7 @@ impl ProofService {
     }
 
     async fn ble_mqtt_presentation(&self, proof_id: ProofId) {
-        let Ok(Some(proof)) = self
+        let Ok(proof) = self
             .proof_repository
             .get_proof(
                 &proof_id,

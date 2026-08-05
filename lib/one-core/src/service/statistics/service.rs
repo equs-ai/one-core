@@ -9,7 +9,6 @@ use crate::model::history::{
 use crate::model::list_query::{ListPagination, ListSorting};
 use crate::model::organisation::OrganisationListQuery;
 use crate::model::organisation::SortableOrganisationColumn::CreatedDate;
-use crate::service::error::EntityNotFoundError;
 use crate::service::statistics::StatisticsService;
 use crate::service::statistics::dto::{
     GetIssuerStatsResponseDTO, GetSystemInteractionStatsResponseDTO,
@@ -34,8 +33,6 @@ impl StatisticsService {
                     .organisation_repository
                     .get_organisation(&request.organisation_id)
                     .await
-                    .error_while("getting organisation")?
-                    .ok_or(EntityNotFoundError::Organisation(request.organisation_id))
                     .error_while("getting organisation")?;
                 (organisation.created_date, false)
             }

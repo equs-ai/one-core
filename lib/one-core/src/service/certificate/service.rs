@@ -64,11 +64,7 @@ impl CertificateService {
             .identifier_repository
             .get(certificate.identifier_id)
             .await
-            .error_while("getting identifier")?
-            .ok_or(CertificateServiceError::MappingError(format!(
-                "Identifier {} missing",
-                certificate.identifier_id
-            )))?;
+            .error_while("getting identifier")?;
 
         if identifier.data.r#type() != IdentifierType::CertificateAuthority {
             tracing::info!("Invalid identifier type: {}", identifier.data.r#type());
@@ -103,11 +99,7 @@ impl CertificateService {
             .identifier_repository
             .get(certificate.identifier_id)
             .await
-            .error_while("getting identifier")?
-            .ok_or(CertificateServiceError::MappingError(format!(
-                "Identifier {} missing",
-                certificate.identifier_id
-            )))?;
+            .error_while("getting identifier")?;
 
         if identifier.data.r#type() != IdentifierType::Certificate {
             tracing::info!("Invalid identifier type: {}", identifier.data.r#type());

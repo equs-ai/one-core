@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use one_core::model::identifier::{
     GetIdentifierList, Identifier, IdentifierListQuery, UpdateIdentifierRequest,
 };
-use one_core::repository::error::DataLayerError;
+use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::identifier_repository::IdentifierRepository;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Select, Set,
@@ -44,15 +44,17 @@ impl IdentifierRepository for IdentifierProvider {
         Ok(identifier.id)
     }
 
-    async fn get(&self, id: IdentifierId) -> Result<Option<Identifier>, DataLayerError> {
+    async fn get(&self, id: IdentifierId) -> Result<Identifier, DataLayerError> {
         let identifier = identifier::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(to_data_layer_error)?;
+            .map_err(to_data_layer_error)?
+            .ok_or_else(|| DataLayerError::EntityNotFound {
+                kind: EntityKind::Identifier,
+                id: id.into(),
+            })?;
 
-        identifier
-            .map(|identifier| self.identifier_from_model(identifier))
-            .transpose()
+        self.identifier_from_model(identifier)
     }
 
     async fn get_from_did_id(&self, did_id: DidId) -> Result<Option<Identifier>, DataLayerError> {
