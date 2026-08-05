@@ -9,20 +9,18 @@
 
 use indexmap::IndexMap;
 use one_core::provider::issuance_protocol::openid4vci_final1_0::model::{
-    CredentialMetadataData, OpenID4VCICredentialDefinitionRequestDTO,
-    OpenID4VCICredentialSubjectItem,
+    OpenID4VCICredentialDefinitionRequestDTO, OpenID4VCICredentialSubjectItem,
 };
 use one_dto_mapper::{From, Into, convert_inner_of_inner};
 use proc_macros::options_not_nullable;
 use serde::{Deserialize, Serialize};
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::openid4vci::{
-    BatchCredentialIssuance, ClaimMetadata, CredentialDefinition, CredentialResponseEntry, Image,
-    IssuerDisplay, IssuerInfoAttestation, ProofTypeSupported, SigningAlgValue,
+    BatchCredentialIssuance, ClaimMetadata, CredentialDefinition, CredentialDisplay,
+    CredentialMetadata, CredentialResponseEntry, Image, IssuerDisplay, IssuerInfoAttestation,
+    ProofTypeSupported, SigningAlgValue,
 };
 use utoipa::ToSchema;
-
-use crate::endpoint::credential_schema::dto::CredentialSchemaCodeTypeRestEnum;
 
 #[options_not_nullable]
 #[derive(Clone, Debug, Serialize, ToSchema)]
@@ -59,7 +57,7 @@ pub(crate) struct OpenID4VCIIssuerMetadataCredentialSupportedResponseRestDTO {
 
 #[options_not_nullable]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
-#[from(CredentialMetadataData)]
+#[from(CredentialMetadata)]
 pub(crate) struct OpenID4VCICredentialMetadataResponseRestDTO {
     #[from(with_fn = convert_inner_of_inner)]
     pub display: Option<Vec<OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO>>,
@@ -67,7 +65,8 @@ pub(crate) struct OpenID4VCICredentialMetadataResponseRestDTO {
 }
 
 #[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Serialize, ToSchema, From)]
+#[from(CredentialDisplay)]
 pub(crate) struct OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO {
     pub name: String,
     pub locale: Option<String>,
@@ -76,17 +75,9 @@ pub(crate) struct OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO {
     pub background_color: Option<String>,
     pub background_image: Option<Image>,
     pub text_color: Option<String>,
-    pub procivis_design: Option<OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesignRestDTO>,
-}
 
-#[options_not_nullable]
-#[derive(Clone, Debug, Serialize, ToSchema)]
-pub(crate) struct OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesignRestDTO {
-    pub primary_attribute: Option<String>,
-    pub secondary_attribute: Option<String>,
-    pub picture_attribute: Option<String>,
-    pub code_attribute: Option<String>,
-    pub code_type: Option<CredentialSchemaCodeTypeRestEnum>,
+    #[serde(flatten, skip_serializing_if = "IndexMap::is_empty")]
+    pub additional_values: IndexMap<String, serde_json::Value>,
 }
 
 /// Loosely typed form of the Token Request, deliberately *not* replaced by

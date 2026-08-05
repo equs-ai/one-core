@@ -14,9 +14,8 @@ use mapper::{
     parse_credential_issuer_params,
 };
 use model::{
-    CredentialConfigurationData, HolderInteractionData, IssuerMetadata, OpenID4VCIFinal1Params,
-    OpenID4VCIIssuerInteractionDataDTO, PreparedMetadata, TokenRequestWalletAttestationRequest,
-    WalletAttestationResult,
+    HolderInteractionData, OpenID4VCIFinal1Params, OpenID4VCIIssuerInteractionDataDTO,
+    PreparedMetadata, TokenRequestWalletAttestationRequest, WalletAttestationResult,
 };
 use one_crypto::encryption::{decrypt_string, encrypt_string};
 use one_crypto::jwe::decrypt_jwe_payload;
@@ -39,10 +38,10 @@ use standardized_types::oauth2::token::{
     TokenErrorCode, TokenErrorResponse, TokenRequest, TokenResponse,
 };
 use standardized_types::openid4vci::{
-    AuthorizationCodeGrant, AuthorizationDetail, CredentialOffer, CredentialRequest,
-    CredentialRequestIdentifier, Grants, IssuerInfoAttestation, IssuerInfoAttestationFormat,
-    NonceResponse, NotificationEvent, NotificationRequest, ProofTypeSupported, Proofs,
-    ResponseEncryption,
+    AuthorizationCodeGrant, AuthorizationDetail, CredentialConfiguration, CredentialIssuerMetadata,
+    CredentialOffer, CredentialRequest, CredentialRequestIdentifier, Grants, IssuerInfoAttestation,
+    IssuerInfoAttestationFormat, NonceResponse, NotificationEvent, NotificationRequest,
+    ProofTypeSupported, Proofs, ResponseEncryption,
 };
 use standardized_types::openid4vp::dcql::CredentialQueryId;
 use time::{Duration, OffsetDateTime};
@@ -1443,7 +1442,7 @@ impl OpenID4VCIFinal1_0 {
             .await
             .error_while("getting credential schema")?;
 
-        let mut credential_configurations_supported: IndexMap<String, CredentialConfigurationData> =
+        let mut credential_configurations_supported: IndexMap<String, CredentialConfiguration> =
             Default::default();
         {
             let proof_types_supported: IndexMap<String, ProofTypeSupported> =
@@ -2180,7 +2179,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         protocol_id: &str,
         credential_schema_id: &CredentialSchemaId,
         issuer_identifier: &Identifier,
-    ) -> Result<IssuerMetadata, IssuanceProtocolError> {
+    ) -> Result<CredentialIssuerMetadata, IssuanceProtocolError> {
         let prepared_metadata = self.prepare_issuer_metadata(credential_schema_id).await?;
         let issuer_info = self
             .get_etsi_issuer_info(issuer_identifier, &prepared_metadata.schema)
@@ -2377,15 +2376,15 @@ async fn resolve_credential_offer(
 
 #[expect(clippy::large_enum_variant)]
 enum IssuerMetadataRepresentation {
-    Unsigned(IssuerMetadata),
+    Unsigned(CredentialIssuerMetadata),
     Signed(
-        DecomposedJwt<IssuerMetadata>,
+        DecomposedJwt<CredentialIssuerMetadata>,
         Option<(AccessCertificateResult, String)>,
     ),
 }
 
 impl IssuerMetadataRepresentation {
-    fn metadata(&self) -> &IssuerMetadata {
+    fn metadata(&self) -> &CredentialIssuerMetadata {
         match &self {
             Self::Unsigned(metadata) => metadata,
             Self::Signed(jwt, _) => &jwt.payload.custom,
@@ -2400,7 +2399,7 @@ struct AuthorizationMetadata {
 
 async fn get_authorization_metadata(
     fetcher: &dyn OpenIDMetadataFetcher,
-    issuer_metadata: &IssuerMetadata,
+    issuer_metadata: &CredentialIssuerMetadata,
     credential_issuer: &str,
     authorization_server: Option<&String>,
 ) -> Result<AuthorizationMetadata, IssuanceProtocolError> {
@@ -2433,7 +2432,7 @@ async fn get_authorization_metadata(
 }
 
 fn get_authorization_server_url_from_issuer_metadata(
-    issuer_metadata: &IssuerMetadata,
+    issuer_metadata: &CredentialIssuerMetadata,
     credential_issuer: &str,
     authorization_server_from_offer: Option<&String>,
 ) -> Result<Url, IssuanceProtocolError> {

@@ -9,17 +9,17 @@ use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::oauth2::TokenType;
 use standardized_types::oauth2::token::{ExpiresIn, TokenRequest, TokenResponse};
 use standardized_types::openid4vci::{
-    BatchCredentialIssuance, ClaimDisplay, ClaimMetadata, CredentialDisplay, CredentialOffer,
-    Grants, Image, IssuerDisplay, IssuerInfoAttestation, PreAuthorizedCodeGrant,
-    ProofTypeSupported, SigningAlgValue, TxCode,
+    BatchCredentialIssuance, ClaimDisplay, ClaimMetadata, CredentialConfiguration,
+    CredentialDisplay, CredentialIssuerMetadata, CredentialMetadata, CredentialOffer, Grants,
+    Image, IssuerDisplay, IssuerInfoAttestation, PreAuthorizedCodeGrant, ProofTypeSupported,
+    SigningAlgValue, TxCode,
 };
 use time::Duration;
 use uuid::Uuid;
 
 use super::model::{
-    CredentialConfigurationData, CredentialDisplayWithDesign, CredentialMetadataData,
-    IssuerMetadata, OpenID4VCIIssuerInteractionDataDTO,
-    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign, PreparedMetadata,
+    OpenID4VCIIssuerInteractionDataDTO, OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
+    PreparedMetadata,
 };
 use super::validator::{
     throw_if_credential_state_not_eq, throw_if_interaction_created_date,
@@ -35,6 +35,7 @@ use crate::model::identifier::Identifier;
 use crate::model::interaction::Interaction;
 use crate::model::localized_text::LocalizedTextField;
 use crate::provider::issuance_protocol::error::{OpenID4VCIError, OpenIDIssuanceError};
+use crate::provider::issuance_protocol::openid4vci_final1_0::model::PROCIVIS_DESIGN_KEY;
 
 pub(crate) fn create_issuer_metadata_response(
     protocol_id: &str,
@@ -45,7 +46,7 @@ pub(crate) fn create_issuer_metadata_response(
         credential_configurations_supported,
     }: PreparedMetadata,
     issuer_info: Vec<IssuerInfoAttestation>,
-) -> Result<IssuerMetadata, OpenID4VCIError> {
+) -> Result<CredentialIssuerMetadata, OpenID4VCIError> {
     let credential_schema_id = schema.id;
     let credential_issuer = format!(
         "{protocol_base_url}/{protocol_id}/{}/{credential_schema_id}",
@@ -62,7 +63,7 @@ pub(crate) fn create_issuer_metadata_response(
         None
     };
 
-    Ok(IssuerMetadata {
+    Ok(CredentialIssuerMetadata {
         credential_issuer,
         authorization_servers: None,
         credential_endpoint: format!("{protocol_base_url}/{credential_schema_id}/credential"),
@@ -90,12 +91,12 @@ pub(crate) async fn credential_configuration_supported(
     cryptographic_binding_methods_supported: Vec<String>,
     proof_types_supported: IndexMap<String, ProofTypeSupported>,
     credential_signing_alg_values_supported: Vec<String>,
-) -> Result<CredentialConfigurationData, OpenID4VCIError> {
+) -> Result<CredentialConfiguration, OpenID4VCIError> {
     let credential_metadata_claims =
         create_claims_dtos_from_claims(credential_schema, format).await?;
     let display_dtos = create_display_dtos_from_schema(credential_schema, format).await?;
 
-    let credential_metadata = CredentialMetadataData {
+    let credential_metadata = CredentialMetadata {
         display: Some(display_dtos),
         claims: Some(credential_metadata_claims),
     };
@@ -206,20 +207,17 @@ async fn create_claims_dtos_from_claims(
 async fn create_display_dto_from_schema(
     credential_schema: &CredentialSchema,
     format: &CredentialSchemaFormat,
-) -> Result<CredentialDisplayWithDesign, OpenID4VCIError> {
-    let mut display = CredentialDisplayWithDesign {
-        standard: CredentialDisplay {
-            name: credential_schema.name.clone(),
-            ..Default::default()
-        },
-        procivis_design: None,
+) -> Result<CredentialDisplay, OpenID4VCIError> {
+    let mut display = CredentialDisplay {
+        name: credential_schema.name.clone(),
+        ..Default::default()
     };
 
     if let Some(layout_properties) = credential_schema.layout_properties.to_owned() {
         // Extract background
         if let Some(background) = layout_properties.background {
-            display.standard.background_color = background.color;
-            display.standard.background_image = background.image.map(|uri| Image {
+            display.background_color = background.color;
+            display.background_image = background.image.map(|uri| Image {
                 uri,
                 alt_text: None,
             });
@@ -227,8 +225,8 @@ async fn create_display_dto_from_schema(
 
         // Extract logo
         if let Some(logo) = layout_properties.logo {
-            display.standard.text_color = logo.font_color;
-            display.standard.logo = logo.image.map(|uri| Image {
+            display.text_color = logo.font_color;
+            display.logo = logo.image.map(|uri| Image {
                 uri,
                 alt_text: Some(format!("{} logo", credential_schema.name)),
             });
@@ -279,7 +277,7 @@ async fn create_display_dto_from_schema(
                 Ok(Some(attribute_path))
             };
 
-        display.procivis_design = Some(OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign {
+        let procivis_design = OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign {
             primary_attribute: attribute_to_claim_path(layout_properties.primary_attribute)?,
             secondary_attribute: attribute_to_claim_path(layout_properties.secondary_attribute)?,
             picture_attribute: attribute_to_claim_path(layout_properties.picture_attribute)?,
@@ -287,7 +285,12 @@ async fn create_display_dto_from_schema(
             code_attribute: attribute_to_claim_path(
                 layout_properties.code.map(|code| code.attribute),
             )?,
-        });
+        };
+        display.additional_values.insert(
+            PROCIVIS_DESIGN_KEY.to_string(),
+            serde_json::to_value(procivis_design)
+                .map_err(|err| OpenID4VCIError::RuntimeError(err.to_string()))?,
+        );
     }
 
     Ok(display)
@@ -296,7 +299,7 @@ async fn create_display_dto_from_schema(
 async fn create_display_dtos_from_schema(
     credential_schema: &CredentialSchema,
     format: &CredentialSchemaFormat,
-) -> Result<Vec<CredentialDisplayWithDesign>, OpenID4VCIError> {
+) -> Result<Vec<CredentialDisplay>, OpenID4VCIError> {
     let translations = credential_schema
         .translations
         .as_ref()
@@ -322,13 +325,10 @@ async fn create_display_dtos_from_schema(
 
     let displays = by_lang
         .into_iter()
-        .map(|(lang, (name, description))| CredentialDisplayWithDesign {
-            standard: CredentialDisplay {
-                name: name.unwrap_or_else(|| credential_schema.name.clone()),
-                locale: Some(lang),
-                description,
-                ..visual_base.standard.clone()
-            },
+        .map(|(lang, (name, description))| CredentialDisplay {
+            name: name.unwrap_or_else(|| credential_schema.name.clone()),
+            locale: Some(lang),
+            description,
             ..visual_base.clone()
         })
         .collect();
@@ -363,12 +363,12 @@ async fn create_claim_display_dtos(
 
 fn jsonld_configuration(
     oidc_format: &str,
-    credential_metadata: CredentialMetadataData,
+    credential_metadata: CredentialMetadata,
     cryptographic_binding_methods_supported: Vec<String>,
     proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> CredentialConfigurationData {
-    CredentialConfigurationData {
+) -> CredentialConfiguration {
+    CredentialConfiguration {
         format: oidc_format.into(),
         credential_definition: None, //TODO! Fill for json_ld
         credential_metadata: Some(credential_metadata),
@@ -381,13 +381,13 @@ fn jsonld_configuration(
 
 fn jwt_configuration(
     oidc_format: &str,
-    credential_metadata: CredentialMetadataData,
+    credential_metadata: CredentialMetadata,
     cryptographic_binding_methods_supported: Vec<String>,
     proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     credential_signing_alg_values_supported: Vec<String>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> CredentialConfigurationData {
-    CredentialConfigurationData {
+) -> CredentialConfiguration {
+    CredentialConfiguration {
         format: oidc_format.into(),
         credential_definition: None, //TODO! Fill with W3C types
         cryptographic_binding_methods_supported: Some(cryptographic_binding_methods_supported),
@@ -406,14 +406,14 @@ fn jwt_configuration(
 
 fn sdjwt_configuration(
     oidc_format: &str,
-    credential_metadata: CredentialMetadataData,
+    credential_metadata: CredentialMetadata,
     vct: &str,
     cryptographic_binding_methods_supported: Vec<String>,
     proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     credential_signing_alg_values_supported: Vec<String>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> CredentialConfigurationData {
-    CredentialConfigurationData {
+) -> CredentialConfiguration {
+    CredentialConfiguration {
         format: oidc_format.into(),
         credential_metadata: Some(credential_metadata),
         cryptographic_binding_methods_supported: Some(cryptographic_binding_methods_supported),
@@ -433,11 +433,11 @@ fn sdjwt_configuration(
 
 fn mdoc_configuration(
     doctype: String,
-    credential_metadata: CredentialMetadataData,
+    credential_metadata: CredentialMetadata,
     proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
     disclosure_policy: Option<DisclosurePolicy>,
-) -> CredentialConfigurationData {
-    CredentialConfigurationData {
+) -> CredentialConfiguration {
+    CredentialConfiguration {
         format: "mso_mdoc".to_string(),
         doctype: Some(doctype.to_string()),
         credential_metadata: Some(credential_metadata),

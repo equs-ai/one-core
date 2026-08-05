@@ -2,9 +2,10 @@ use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use shared_types::{DidValue, OrganisationId};
 use standardized_types::oauth2::token::TokenRequest;
+use standardized_types::openid4vci::CredentialConfiguration;
 
 use super::mapper::credential_config_to_holder_signing_algs_and_key_storage_security;
-use super::model::{CredentialConfigurationData, OpenID4VCIIssuerInteractionDataDTO};
+use super::model::OpenID4VCIIssuerInteractionDataDTO;
 use crate::config::core_config::KeySecurityLevelType;
 use crate::error::ContextWithErrorCode;
 use crate::model::credential::{Credential, CredentialStateEnum};
@@ -153,7 +154,7 @@ pub(super) fn validate_key_requirements_supported(
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
     key_storage_provider: &dyn KeyProvider,
     key_security_provider: &dyn KeySecurityLevelProvider,
-    credential_config: &CredentialConfigurationData,
+    credential_config: &CredentialConfiguration,
 ) -> Result<(), IssuanceProtocolError> {
     if let (Some(algs), Some(security)) =
         credential_config_to_holder_signing_algs_and_key_storage_security(

@@ -16,17 +16,16 @@ use crate::w3c_vcdm::Context;
 /// Credential Issuer Metadata document, served from
 /// `/.well-known/openid-credential-issuer`.
 ///
-/// The `Cfg` parameter allows deployments to substitute an extended credential configuration; use
-/// [`CredentialIssuerMetadata`] without type arguments for the plain specification shape.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct CredentialIssuerMetadata<Cfg = CredentialConfiguration> {
+pub struct CredentialIssuerMetadata {
     pub credential_issuer: String,
     pub authorization_servers: Option<Vec<String>>,
     pub credential_endpoint: String,
     pub nonce_endpoint: Option<String>,
     pub notification_endpoint: Option<String>,
-    pub credential_configurations_supported: IndexMap<String, Cfg>,
+    pub credential_configurations_supported: IndexMap<String, CredentialConfiguration>,
     pub display: Option<Vec<IssuerDisplay>>,
     /// ETSI TS 119 472-3 V1.1.1, Section 4.2.3
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -117,14 +116,11 @@ pub struct CredentialResponseEncryption {
 }
 
 /// An entry of `credential_configurations_supported`.
-///
-/// The `Meta` parameter allows deployments to substitute extended credential metadata; use
-/// [`CredentialConfiguration`] without type arguments for the plain specification shape.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct CredentialConfiguration<Meta = CredentialMetadata> {
+pub struct CredentialConfiguration {
     pub format: String,
-    pub credential_metadata: Option<Meta>,
+    pub credential_metadata: Option<CredentialMetadata>,
     pub cryptographic_binding_methods_supported: Option<Vec<String>>,
     pub credential_signing_alg_values_supported: Option<Vec<SigningAlgValue>>,
     pub proof_types_supported: Option<IndexMap<String, ProofTypeSupported>>,
@@ -158,13 +154,10 @@ pub struct CredentialDefinition {
 }
 
 /// Display and claim metadata of a credential configuration.
-///
-/// The `D` parameter allows deployments to substitute an extended display type; use
-/// [`CredentialMetadata`] without type arguments for the plain specification shape.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CredentialMetadata<D = CredentialDisplay> {
-    pub display: Option<Vec<D>>,
+pub struct CredentialMetadata {
+    pub display: Option<Vec<CredentialDisplay>>,
     pub claims: Option<Vec<ClaimMetadata>>,
 }
 
@@ -179,6 +172,11 @@ pub struct CredentialDisplay {
     pub background_color: Option<String>,
     pub background_image: Option<Image>,
     pub text_color: Option<String>,
+
+    /// The Credential Display Object is open; members not defined by the specification are
+    /// retained here rather than discarded.
+    #[serde(flatten, default, skip_serializing_if = "IndexMap::is_empty")]
+    pub additional_values: IndexMap<String, serde_json::Value>,
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-B.2>

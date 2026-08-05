@@ -7,16 +7,17 @@ use secrecy::ExposeSecret;
 use serde::de::Error;
 use standardized_types::oauth2::token::TokenResponse;
 use standardized_types::openid4vci::{
-    KeyAttestationsRequired, KeyStorageSecurityLevel, ProofTypeSupported,
+    CredentialConfiguration, CredentialDisplay, KeyAttestationsRequired, KeyStorageSecurityLevel,
+    ProofTypeSupported,
 };
 use time::OffsetDateTime;
 
 use super::model::{
-    CredentialConfigurationData, CredentialDisplayWithDesign, CredentialIssuerParams,
-    CredentialSchemaBackgroundPropertiesRequestDTO, CredentialSchemaCodePropertiesRequestDTO,
-    CredentialSchemaCodeTypeEnum, CredentialSchemaLayoutPropertiesRequestDTO,
-    CredentialSchemaLogoPropertiesRequestDTO, HolderInteractionData,
-    OpenID4VCIIssuerInteractionDataDTO, OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
+    CredentialIssuerParams, CredentialSchemaBackgroundPropertiesRequestDTO,
+    CredentialSchemaCodePropertiesRequestDTO, CredentialSchemaCodeTypeEnum,
+    CredentialSchemaLayoutPropertiesRequestDTO, CredentialSchemaLogoPropertiesRequestDTO,
+    HolderInteractionData, OpenID4VCIIssuerInteractionDataDTO,
+    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{IdentifierType, Params};
@@ -26,6 +27,7 @@ use crate::model::credential_schema::{
     LogoProperties,
 };
 use crate::provider::issuance_protocol::error::{IssuanceProtocolError, OpenID4VCIError};
+use crate::provider::issuance_protocol::openid4vci_final1_0::model::PROCIVIS_DESIGN_KEY;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 
 pub(crate) fn get_credential_offer_url(
@@ -200,71 +202,74 @@ pub(crate) fn parse_credential_issuer_params(
         })
 }
 
-impl From<CredentialDisplayWithDesign> for Option<LayoutProperties> {
-    fn from(value: CredentialDisplayWithDesign) -> Self {
-        let background = match (
-            value.standard.background_image,
-            value.standard.background_color,
-        ) {
-            (None, None) => None,
-            (None, Some(background_color)) => Some(BackgroundProperties {
-                color: Some(background_color),
-                ..Default::default()
-            }),
-            (Some(background_image), _) => Some(BackgroundProperties {
-                image: Some(background_image.uri),
-                ..Default::default()
-            }),
-        };
+pub(crate) fn convert_metadata_to_layout_properties(
+    mut metadata: CredentialDisplay,
+) -> Option<LayoutProperties> {
+    let background = match (metadata.background_image, metadata.background_color) {
+        (None, None) => None,
+        (None, Some(background_color)) => Some(BackgroundProperties {
+            color: Some(background_color),
+            ..Default::default()
+        }),
+        (Some(background_image), _) => Some(BackgroundProperties {
+            image: Some(background_image.uri),
+            ..Default::default()
+        }),
+    };
 
-        let logo = match (value.standard.logo, value.standard.text_color) {
-            (None, None) => None,
-            (None, Some(text_color)) => Some(LogoProperties {
-                font_color: Some(text_color),
-                ..Default::default()
-            }),
-            (Some(logo), None) => Some(LogoProperties {
-                image: Some(logo.uri),
-                ..Default::default()
-            }),
-            (Some(logo), Some(text_color)) => Some(LogoProperties {
-                image: Some(logo.uri),
-                font_color: Some(text_color),
-                ..Default::default()
-            }),
-        };
+    let logo = match (metadata.logo, metadata.text_color) {
+        (None, None) => None,
+        (None, Some(text_color)) => Some(LogoProperties {
+            font_color: Some(text_color),
+            ..Default::default()
+        }),
+        (Some(logo), None) => Some(LogoProperties {
+            image: Some(logo.uri),
+            ..Default::default()
+        }),
+        (Some(logo), Some(text_color)) => Some(LogoProperties {
+            image: Some(logo.uri),
+            font_color: Some(text_color),
+            ..Default::default()
+        }),
+    };
 
-        let additional = value.procivis_design.map(
-            |OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign {
-                 primary_attribute,
-                 secondary_attribute,
-                 picture_attribute,
-                 code_attribute,
-                 code_type,
-             }| {
-                let code = match (code_attribute, code_type) {
-                    (Some(attribute), Some(r#type)) => Some(CodeProperties { attribute, r#type }),
-                    _ => None,
-                };
+    let procivis_design: Option<OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign> =
+        metadata
+            .additional_values
+            .swap_remove(PROCIVIS_DESIGN_KEY)
+            .and_then(|v| serde_json::from_value(v).ok());
 
-                LayoutProperties {
-                    primary_attribute,
-                    secondary_attribute,
-                    picture_attribute,
-                    code,
-                    ..Default::default()
-                }
-            },
-        );
+    let additional = procivis_design.map(
+        |OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign {
+             primary_attribute,
+             secondary_attribute,
+             picture_attribute,
+             code_attribute,
+             code_type,
+         }| {
+            let code = match (code_attribute, code_type) {
+                (Some(attribute), Some(r#type)) => Some(CodeProperties { attribute, r#type }),
+                _ => None,
+            };
 
-        match (&background, &logo, &additional) {
-            (None, None, None) => None,
-            _ => Some(LayoutProperties {
-                background,
-                logo,
-                ..additional.unwrap_or_default()
-            }),
-        }
+            LayoutProperties {
+                primary_attribute,
+                secondary_attribute,
+                picture_attribute,
+                code,
+                ..Default::default()
+            }
+        },
+    );
+
+    match (&background, &logo, &additional) {
+        (None, None, None) => None,
+        _ => Some(LayoutProperties {
+            background,
+            logo,
+            ..additional.unwrap_or_default()
+        }),
     }
 }
 
@@ -284,7 +289,7 @@ pub(crate) fn interaction_data_to_accepted_key_storage_security(
 
 pub(super) fn credential_config_to_holder_signing_algs_and_key_storage_security(
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
-    credential_config: &CredentialConfigurationData,
+    credential_config: &CredentialConfiguration,
 ) -> (Option<Vec<String>>, Option<Vec<KeyStorageSecurity>>) {
     let Some(proof_types_supported) = &credential_config.proof_types_supported else {
         return (None, None);

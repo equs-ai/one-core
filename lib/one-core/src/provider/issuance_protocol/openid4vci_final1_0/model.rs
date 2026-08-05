@@ -10,9 +10,8 @@ use shared_types::OrganisationId;
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::oauth2::dynamic_client_registration::TokenEndpointAuthMethod;
 use standardized_types::openid4vci::{
-    AuthorizationDetail, CredentialConfiguration, CredentialDisplay, CredentialIssuerMetadata,
-    CredentialMetadata, CredentialRequestEncryption, CredentialResponseEncryption, Grants,
-    ProofTypeSupported, SigningAlgValue,
+    AuthorizationDetail, CredentialConfiguration, CredentialMetadata, CredentialRequestEncryption,
+    CredentialResponseEncryption, Grants, ProofTypeSupported, SigningAlgValue,
 };
 use time::{Duration, OffsetDateTime};
 use url::Url;
@@ -108,7 +107,7 @@ pub(crate) struct HolderInteractionData {
     #[serde(default)]
     pub client_attestation_pop_signing_alg_values_supported: Option<Vec<String>>,
     #[serde(default)]
-    pub credential_metadata: Option<CredentialMetadataData>,
+    pub credential_metadata: Option<CredentialMetadata>,
     #[serde(default)]
     pub credential_request_encryption: Option<CredentialRequestEncryption>,
     #[serde(default)]
@@ -143,26 +142,8 @@ pub(crate) struct HolderInteractionData {
     pub disclosure_policy: Option<DisclosurePolicy>,
 }
 
-/// Credential Issuer Metadata, with the Procivis-specific credential display extension.
-///
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>
-pub type IssuerMetadata = CredentialIssuerMetadata<CredentialConfigurationData>;
-
-/// Credential configuration, with the Procivis-specific credential display extension.
-pub type CredentialConfigurationData = CredentialConfiguration<CredentialMetadataData>;
-
-/// Credential metadata carrying the Procivis-specific display extension.
-pub type CredentialMetadataData = CredentialMetadata<CredentialDisplayWithDesign>;
-
-/// Credential display properties, extended with the Procivis design parameters.
-#[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct CredentialDisplayWithDesign {
-    #[serde(flatten)]
-    pub standard: CredentialDisplay,
-    // procivis extension
-    pub procivis_design: Option<OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign>,
-}
+// procivis extension under CredentialDisplay
+pub const PROCIVIS_DESIGN_KEY: &str = "procivis_design";
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -446,5 +427,5 @@ pub(super) struct WalletAttestationResult {
 pub(crate) struct PreparedMetadata {
     pub(crate) protocol_base_url: String,
     pub(crate) schema: CredentialSchema,
-    pub(crate) credential_configurations_supported: IndexMap<String, CredentialConfigurationData>,
+    pub(crate) credential_configurations_supported: IndexMap<String, CredentialConfiguration>,
 }

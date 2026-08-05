@@ -1,4 +1,4 @@
-use standardized_types::openid4vci::KeyStorageSecurityLevel;
+use standardized_types::openid4vci::{CredentialMetadata, KeyStorageSecurityLevel};
 #[cfg(test)]
 mod test;
 
@@ -11,7 +11,8 @@ use shared_types::{
 };
 use uuid::Uuid;
 
-use super::model::CredentialMetadataData;
+use super::mapper::{convert_metadata_to_layout_properties, remap_claim_credential_ids};
+use super::validator::validate_batch_consistency;
 use super::{HolderInteractionData, OpenID4VCIFinal1_0, SubmitIssuerResponse};
 use crate::clock::now_utc;
 use crate::config::core_config::{BlobStorageType, CoreConfig};
@@ -45,8 +46,6 @@ use crate::proto::wrp_validator::model::TrustMode;
 use crate::provider::credential_formatter::CredentialFormatter;
 use crate::provider::credential_formatter::model::{CertificateDetails, IdentifierDetails};
 use crate::provider::issuance_protocol::model::CredentialWithBlob;
-use crate::provider::issuance_protocol::openid4vci_final1_0::mapper::remap_claim_credential_ids;
-use crate::provider::issuance_protocol::openid4vci_final1_0::validator::validate_batch_consistency;
 use crate::provider::issuance_protocol::{
     HolderBindingInput, IssuanceAcceptResponse, IssuanceProtocolError,
 };
@@ -1026,7 +1025,7 @@ fn remap_claim_path(
 
 async fn apply_issuer_metadata_to_schema(
     schema: &mut CredentialSchema,
-    metadata: Option<&CredentialMetadataData>,
+    metadata: Option<&CredentialMetadata>,
     default_language: &str,
 ) -> Result<(), IssuanceProtocolError> {
     let now = now_utc();
@@ -1034,13 +1033,12 @@ async fn apply_issuer_metadata_to_schema(
 
     let metadata_display = all_displays.iter().find(|display| {
         display
-            .standard
             .locale
             .as_deref()
             .is_none_or(|locale| locale == default_language)
     });
 
-    if let Some(name) = metadata_display.map(|d| d.standard.name.to_owned()) {
+    if let Some(name) = metadata_display.map(|d| d.name.to_owned()) {
         schema.name = name;
     }
 
@@ -1048,7 +1046,6 @@ async fn apply_issuer_metadata_to_schema(
         .iter()
         .flat_map(|display| {
             let lang = display
-                .standard
                 .locale
                 .as_deref()
                 .unwrap_or(default_language)
@@ -1059,10 +1056,10 @@ async fn apply_issuer_metadata_to_schema(
                 created_date: now,
                 last_modified: now,
                 lang: lang.clone(),
-                value: display.standard.name.clone(),
+                value: display.name.clone(),
                 entity_type: LocalizedTextEntityType::CredentialSchema,
             }];
-            if let Some(description) = &display.standard.description {
+            if let Some(description) = &display.description {
                 entries.push(LocalizedText {
                     entity_id: schema.id.into(),
                     field: LocalizedTextField::Description,
@@ -1148,7 +1145,8 @@ async fn apply_issuer_metadata_to_schema(
         }
     }
 
-    schema.layout_properties = metadata_display.and_then(|display| display.to_owned().into());
+    schema.layout_properties = metadata_display
+        .and_then(|display| convert_metadata_to_layout_properties(display.to_owned()));
 
     Ok(())
 }

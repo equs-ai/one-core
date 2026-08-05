@@ -1,24 +1,18 @@
 use one_core::provider::issuance_protocol::error::OpenID4VCIError;
-use one_core::provider::issuance_protocol::openid4vci_final1_0::model::{
-    CredentialConfigurationData, CredentialDisplayWithDesign, IssuerMetadata,
-    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
-};
-use one_core::service::credential_schema::dto::CredentialSchemaCodeTypeEnum;
 use one_core::service::oid4vci_final1_0::dto::OpenID4VCICredentialResponseDTO;
 use one_core::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
 use one_dto_mapper::{convert_inner, convert_inner_of_inner};
 use standardized_types::oauth2::token::TokenRequest;
+use standardized_types::openid4vci::{CredentialConfiguration, CredentialIssuerMetadata};
 
 use super::dto::{
     OpenID4VCIFinal1CredentialResponseRestDTO,
-    OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO,
     OpenID4VCIIssuerMetadataCredentialSupportedResponseRestDTO,
     OpenID4VCIIssuerMetadataResponseRestDTO, OpenID4VCITokenRequestRestDTO,
 };
-use crate::endpoint::ssi::issuance::final1_0::dto::OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesignRestDTO;
 
-impl From<IssuerMetadata> for OpenID4VCIIssuerMetadataResponseRestDTO {
-    fn from(value: IssuerMetadata) -> Self {
+impl From<CredentialIssuerMetadata> for OpenID4VCIIssuerMetadataResponseRestDTO {
+    fn from(value: CredentialIssuerMetadata) -> Self {
         Self {
             credential_issuer: value.credential_issuer,
             authorization_servers: value.authorization_servers,
@@ -33,20 +27,6 @@ impl From<IssuerMetadata> for OpenID4VCIIssuerMetadataResponseRestDTO {
             nonce_endpoint: value.nonce_endpoint,
             issuer_info: value.issuer_info,
             batch_credential_issuance: convert_inner(value.batch_credential_issuance),
-        }
-    }
-}
-
-impl From<OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign>
-    for OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesignRestDTO
-{
-    fn from(value: OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign) -> Self {
-        Self {
-            primary_attribute: value.primary_attribute,
-            secondary_attribute: value.secondary_attribute,
-            picture_attribute: value.picture_attribute,
-            code_attribute: value.code_attribute,
-            code_type: convert_inner(value.code_type.map(CredentialSchemaCodeTypeEnum::from)),
         }
     }
 }
@@ -84,10 +64,8 @@ impl TryFrom<OpenID4VCITokenRequestRestDTO> for TokenRequest {
     }
 }
 
-impl From<CredentialConfigurationData>
-    for OpenID4VCIIssuerMetadataCredentialSupportedResponseRestDTO
-{
-    fn from(value: CredentialConfigurationData) -> Self {
+impl From<CredentialConfiguration> for OpenID4VCIIssuerMetadataCredentialSupportedResponseRestDTO {
+    fn from(value: CredentialConfiguration) -> Self {
         Self {
             format: value.format,
             doctype: value.doctype,
@@ -101,25 +79,6 @@ impl From<CredentialConfigurationData>
             proof_types_supported: value.proof_types_supported,
             credential_definition: convert_inner(value.credential_definition),
             disclosure_policy: value.disclosure_policy,
-        }
-    }
-}
-
-impl From<CredentialDisplayWithDesign>
-    for OpenID4VCIIssuerMetadataCredentialSupportedDisplayRestDTO
-{
-    fn from(value: CredentialDisplayWithDesign) -> Self {
-        let procivis_design = value.procivis_design;
-        let value = value.standard;
-        Self {
-            name: value.name,
-            locale: value.locale,
-            logo: convert_inner(value.logo),
-            description: value.description,
-            background_color: value.background_color,
-            background_image: convert_inner(value.background_image),
-            text_color: value.text_color,
-            procivis_design: convert_inner(procivis_design),
         }
     }
 }

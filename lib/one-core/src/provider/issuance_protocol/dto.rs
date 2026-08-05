@@ -27,6 +27,3 @@ pub(crate) struct ContinueIssuanceDTO {
     pub code_verifier: Option<String>,
     pub authorization_server: Option<String>,
 }
-
-pub type IssuerMetadata =
-    crate::provider::issuance_protocol::openid4vci_final1_0::model::IssuerMetadata;

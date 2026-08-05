@@ -2,12 +2,12 @@ use shared_types::{CredentialId, CredentialSchemaId, IdentifierId};
 use standardized_types::oauth2::authorization_server_metadata::AuthorizationServerMetadata;
 use standardized_types::oauth2::token::{TokenRequest, TokenResponse};
 use standardized_types::openid4vci::{
-    CredentialOffer, CredentialRequest, NonceResponse, NotificationRequest,
+    CredentialIssuerMetadata, CredentialOffer, CredentialRequest, NonceResponse,
+    NotificationRequest,
 };
 
 use super::OID4VCIFinal1_0SwiyuService;
 use crate::error::ContextWithErrorCode;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::IssuerMetadata;
 use crate::service::oid4vci_final1_0::dto::OpenID4VCICredentialResponseDTO;
 use crate::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
 
@@ -27,7 +27,7 @@ impl OID4VCIFinal1_0SwiyuService {
         protocol_id: &str,
         identifier_id: &IdentifierId,
         credential_schema_id: &CredentialSchemaId,
-    ) -> Result<IssuerMetadata, OID4VCIFinal1_0ServiceError> {
+    ) -> Result<CredentialIssuerMetadata, OID4VCIFinal1_0ServiceError> {
         let issuance_protocol = self.protocol_provider.get_protocol(protocol_id)?;
 
         let issuer_identifier = self.inner.get_issuer_identifier(identifier_id).await?;

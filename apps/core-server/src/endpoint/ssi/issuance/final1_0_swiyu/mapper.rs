@@ -1,17 +1,15 @@
 use indexmap::IndexMap;
-use one_core::provider::issuance_protocol::openid4vci_final1_0::model::{
-    CredentialConfigurationData, IssuerMetadata,
-};
 use one_dto_mapper::{convert_inner, convert_inner_of_inner};
 use standardized_types::oauth2::token::TokenResponse;
+use standardized_types::openid4vci::{CredentialConfiguration, CredentialIssuerMetadata};
 
 use crate::endpoint::ssi::issuance::final1_0_swiyu::dto::{
     OpenID4VCISwiyuIssuerMetadataCredentialSupportedResponseRestDTO,
     OpenID4VCISwiyuIssuerMetadataResponseRestDTO, SwiyuOpenID4VCITokenResponseRestDTO,
 };
 
-impl From<IssuerMetadata> for OpenID4VCISwiyuIssuerMetadataResponseRestDTO {
-    fn from(value: IssuerMetadata) -> Self {
+impl From<CredentialIssuerMetadata> for OpenID4VCISwiyuIssuerMetadataResponseRestDTO {
+    fn from(value: CredentialIssuerMetadata) -> Self {
         Self {
             credential_issuer: value.credential_issuer,
             authorization_servers: value.authorization_servers,
@@ -28,10 +26,10 @@ impl From<IssuerMetadata> for OpenID4VCISwiyuIssuerMetadataResponseRestDTO {
     }
 }
 
-impl From<CredentialConfigurationData>
+impl From<CredentialConfiguration>
     for OpenID4VCISwiyuIssuerMetadataCredentialSupportedResponseRestDTO
 {
-    fn from(value: CredentialConfigurationData) -> Self {
+    fn from(value: CredentialConfiguration) -> Self {
         let mut credential_display = vec![];
         let mut swiyu_claims = IndexMap::new();
         if let Some(meta) = &value.credential_metadata {

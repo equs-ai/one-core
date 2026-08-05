@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use shared_types::{CredentialSchemaId, IdentifierId};
+use standardized_types::openid4vci::CredentialIssuerMetadata;
 use time::OffsetDateTime;
 
 use crate::clock::now_utc;
@@ -15,7 +16,6 @@ use crate::proto::jwt::model::JWTPayload;
 use crate::proto::jwt::{Jwt, JwtPublicKeyInfo};
 use crate::provider::caching_loader::{CachingLoader, ResolveResult, Resolver};
 use crate::provider::issuance_protocol::IssuanceProtocol;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::IssuerMetadata;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
@@ -140,7 +140,7 @@ impl CredentialIssuerMetadataResolver {
     async fn sign_issuer_metadata(
         &self,
         issuer_identifier: &Identifier,
-        issuer_metadata: IssuerMetadata,
+        issuer_metadata: CredentialIssuerMetadata,
     ) -> Result<String, OID4VCIFinal1_0ServiceError> {
         let signing_key = issuer_identifier
             .select_key(KeySelection {

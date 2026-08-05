@@ -1,14 +1,14 @@
 use shared_types::{CredentialId, OrganisationId, SerializedCredential};
 use standardized_types::etsi_119_475;
-use standardized_types::openid4vci::IssuerInfoAttestation;
+use standardized_types::openid4vci::{
+    CredentialConfiguration, CredentialIssuerMetadata, IssuerInfoAttestation,
+};
 use standardized_types::openid4vp::dcql;
 use url::Url;
 use uuid::Uuid;
 
 use super::model::HolderInteractionData;
-use super::{
-    AccessCertificateResult, CredentialConfigurationData, IssuerMetadata, OpenID4VCIFinal1_0,
-};
+use super::{AccessCertificateResult, OpenID4VCIFinal1_0};
 use crate::clock::now_utc;
 use crate::config::core_config::BlobStorageType;
 use crate::error::ContextWithErrorCode;
@@ -128,8 +128,8 @@ impl OpenID4VCIFinal1_0 {
 
     pub(super) async fn validate_trust(
         &self,
-        credential_config: &CredentialConfigurationData,
-        issuer_metadata: &IssuerMetadata,
+        credential_config: &CredentialConfiguration,
+        issuer_metadata: &CredentialIssuerMetadata,
         organisation_id: OrganisationId,
         access_certificate: &AccessCertificateResult,
     ) -> Result<TrustInfo, IssuanceProtocolError> {
@@ -170,7 +170,7 @@ impl OpenID4VCIFinal1_0 {
 
     async fn validate_credential_config_trust_against_registry(
         &self,
-        credential_config: &CredentialConfigurationData,
+        credential_config: &CredentialConfiguration,
         relying_party_id: &str,
         registry_url: &Url,
         organisation_id: OrganisationId,
@@ -207,7 +207,7 @@ impl OpenID4VCIFinal1_0 {
 
     async fn validate_credential_config_trust_with_registration_certificate(
         &self,
-        credential_config: &CredentialConfigurationData,
+        credential_config: &CredentialConfiguration,
         issuer_info: &[IssuerInfoAttestation],
         expected_relying_party_id: &str,
         organisation_id: OrganisationId,
@@ -231,7 +231,7 @@ impl OpenID4VCIFinal1_0 {
 
     async fn credential_config_matches_reg_cert(
         &self,
-        credential_config: &CredentialConfigurationData,
+        credential_config: &CredentialConfiguration,
         issuer_info: &IssuerInfoAttestation,
         expected_relying_party_id: &str,
         organisation_id: OrganisationId,
@@ -452,7 +452,7 @@ fn formatter_requires_namespaces(formatter: &dyn CredentialFormatter) -> bool {
 }
 
 fn credential_config_matches_reg_cert_attestation(
-    credential_config: &CredentialConfigurationData,
+    credential_config: &CredentialConfiguration,
     reg_cert_attestation: &etsi_119_475::Credential,
 ) -> bool {
     if credential_config.format != reg_cert_attestation.format.dcql_format() {

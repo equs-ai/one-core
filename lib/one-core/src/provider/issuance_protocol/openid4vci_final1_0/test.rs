@@ -21,9 +21,10 @@ use standardized_types::iana::{EncryptionAlgorithm, EncryptionKeyManagementAlgor
 use standardized_types::jwe::CompressionAlgorithm;
 use standardized_types::jwk::{Jwks, PublicJwk, PublicJwkEc};
 use standardized_types::openid4vci::{
-    ClaimDisplay, ClaimMetadata, CredentialDisplay, CredentialRequest, CredentialRequestEncryption,
-    CredentialRequestIdentifier, CredentialResponseEncryption, Grants, KeyAttestationsRequired,
-    KeyStorageSecurityLevel, PreAuthorizedCodeGrant, ProofTypeSupported, Proofs,
+    ClaimDisplay, ClaimMetadata, CredentialDisplay, CredentialIssuerMetadata, CredentialMetadata,
+    CredentialRequest, CredentialRequestEncryption, CredentialRequestIdentifier,
+    CredentialResponseEncryption, Grants, KeyAttestationsRequired, KeyStorageSecurityLevel,
+    PreAuthorizedCodeGrant, ProofTypeSupported, Proofs,
 };
 use standardized_types::openid4vp::dcql;
 use standardized_types::openid4vp::dcql::MsoMdocMeta;
@@ -80,9 +81,6 @@ use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::did_method::{DidCreated, MockDidMethod};
 use crate::provider::issuance_protocol::dto::ContinueIssuanceDTO;
 use crate::provider::issuance_protocol::model::InvitationResponseEnum;
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
-    CredentialDisplayWithDesign, CredentialMetadataData,
-};
 use crate::provider::issuance_protocol::{HolderBindingInput, IssuanceProtocol};
 use crate::provider::key_algorithm::ecdsa::Ecdsa;
 use crate::provider::key_algorithm::key::{
@@ -3537,7 +3535,7 @@ async fn test_holder_accept_credential_succeeds_with_wallet_unit_id_when_key_att
 
 async fn interaction_with_metadata(
     credential: &Credential,
-    credential_metadata: CredentialMetadataData,
+    credential_metadata: CredentialMetadata,
     mock_server_uri: &str,
 ) -> Interaction {
     let interaction_data = HolderInteractionData {
@@ -3613,24 +3611,18 @@ async fn test_holder_accept_credential_stores_all_translations_from_metadata() {
 
     let credential = generic_credential_key();
 
-    let credential_metadata = CredentialMetadataData {
+    let credential_metadata = CredentialMetadata {
         display: Some(vec![
-            CredentialDisplayWithDesign {
-                standard: CredentialDisplay {
-                    name: "My Credential".to_string(),
-                    locale: Some("en".to_string()),
-                    description: Some("English description".to_string()),
-                    ..Default::default()
-                },
+            CredentialDisplay {
+                name: "My Credential".to_string(),
+                locale: Some("en".to_string()),
+                description: Some("English description".to_string()),
                 ..Default::default()
             },
-            CredentialDisplayWithDesign {
-                standard: CredentialDisplay {
-                    name: "Mein Ausweis".to_string(),
-                    locale: Some("de".to_string()),
-                    description: None,
-                    ..Default::default()
-                },
+            CredentialDisplay {
+                name: "Mein Ausweis".to_string(),
+                locale: Some("de".to_string()),
+                description: None,
                 ..Default::default()
             },
         ]),
@@ -3847,14 +3839,11 @@ async fn test_holder_accept_credential_uses_default_language_for_display_without
 
     let credential = generic_credential_key();
 
-    let credential_metadata = CredentialMetadataData {
-        display: Some(vec![CredentialDisplayWithDesign {
-            standard: CredentialDisplay {
-                name: "Mein Ausweis".to_string(),
-                locale: None, // no locale — should fall back to default_language
-                description: None,
-                ..Default::default()
-            },
+    let credential_metadata = CredentialMetadata {
+        display: Some(vec![CredentialDisplay {
+            name: "Mein Ausweis".to_string(),
+            locale: None, // no locale — should fall back to default_language
+            description: None,
             ..Default::default()
         }]),
         claims: None,
@@ -4053,13 +4042,10 @@ async fn test_holder_accept_credential_stores_claim_schema_translations_from_met
     // generic_credential_key() has a claim schema with key "NUMBER"
     let credential = generic_credential_key();
 
-    let credential_metadata = CredentialMetadataData {
-        display: Some(vec![CredentialDisplayWithDesign {
-            standard: CredentialDisplay {
-                name: "My Credential".to_string(),
-                locale: Some("en".to_string()),
-                ..Default::default()
-            },
+    let credential_metadata = CredentialMetadata {
+        display: Some(vec![CredentialDisplay {
+            name: "My Credential".to_string(),
+            locale: Some("en".to_string()),
             ..Default::default()
         }]),
         claims: Some(vec![ClaimMetadata {
@@ -5069,5 +5055,5 @@ async fn test_holder_accept_credential_request_and_response_encryption_with_comp
 fn test_parse_eudi_issuer_metadata() {
     // Taken from https://issuer.eudiw.dev/.well-known/openid-credential-issuer on 03.07.2026
     let metadata = include_str!("fixtures/eudi_issuer_metadata.json");
-    assert!(serde_json::from_str::<super::model::IssuerMetadata>(metadata).is_ok());
+    assert!(serde_json::from_str::<CredentialIssuerMetadata>(metadata).is_ok());
 }

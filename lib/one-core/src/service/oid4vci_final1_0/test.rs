@@ -477,7 +477,6 @@ async fn test_get_issuer_metadata_jwt() {
             .display
             .as_ref()
             .unwrap()[0]
-            .standard
             .name
     );
     assert_eq!(
@@ -618,7 +617,6 @@ async fn test_get_issuer_metadata_sd_jwt() {
             .display
             .as_ref()
             .unwrap()[0]
-            .standard
             .name
     );
     // SD-JWT format should not have doctype (which is mdoc-specific)
@@ -787,7 +785,6 @@ async fn test_get_issuer_metadata_mdoc() {
             .display
             .as_ref()
             .unwrap()[0]
-            .standard
             .name
     );
     assert_eq!(
@@ -947,19 +944,19 @@ async fn test_get_issuer_metadata_includes_schema_translations() {
 
     let en_display = displays
         .iter()
-        .find(|d| d.standard.locale.as_deref() == Some("en"))
+        .find(|d| d.locale.as_deref() == Some("en"))
         .unwrap();
-    assert_eq!("English Name", en_display.standard.name);
-    assert!(en_display.standard.description.is_none());
+    assert_eq!("English Name", en_display.name);
+    assert!(en_display.description.is_none());
 
     let de_display = displays
         .iter()
-        .find(|d| d.standard.locale.as_deref() == Some("de"))
+        .find(|d| d.locale.as_deref() == Some("de"))
         .unwrap();
-    assert_eq!("German Name", de_display.standard.name);
+    assert_eq!("German Name", de_display.name);
     assert_eq!(
         Some("German Description"),
-        de_display.standard.description.as_deref()
+        de_display.description.as_deref()
     );
 }
 
