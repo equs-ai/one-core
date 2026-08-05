@@ -20,7 +20,6 @@ pub(crate) async fn add_new_interaction(
     let now = crate::clock::now_utc();
 
     let new_interaction = Interaction {
-        ecosystem,
         id: interaction_id,
         created_date: now,
         last_modified: now,
@@ -29,6 +28,8 @@ pub(crate) async fn add_new_interaction(
         nonce_id: None,
         interaction_type,
         expires_at,
+        ecosystem,
+        ecosystem_data: None,
     };
 
     interaction_repository

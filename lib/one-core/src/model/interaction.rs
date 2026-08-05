@@ -12,18 +12,22 @@ pub struct Interaction {
     pub id: InteractionId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
+    /// additional data for the interaction, usually managed by the exchange protocol
     pub data: Option<Vec<u8>>,
     pub organisation: Related<Organisation>,
     pub nonce_id: Option<NonceId>,
     pub interaction_type: InteractionType,
     pub expires_at: Option<OffsetDateTime>,
     pub ecosystem: Option<EcosystemId>,
+    /// additional data managed by the ecosystem provider
+    pub ecosystem_data: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct UpdateInteractionRequest {
     pub data: Option<Option<Vec<u8>>>,
     pub ecosystem: Option<Option<EcosystemId>>,
+    pub ecosystem_data: Option<Option<Vec<u8>>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -42,6 +46,7 @@ impl From<Interaction> for UpdateInteractionRequest {
         Self {
             data: Some(value.data),
             ecosystem: Some(value.ecosystem),
+            ecosystem_data: Some(value.ecosystem_data),
         }
     }
 }

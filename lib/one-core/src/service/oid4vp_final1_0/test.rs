@@ -112,7 +112,6 @@ async fn test_submit_proof_failed_on_validator_failure() {
     let interaction_data_serialized = serde_json::to_vec(&interaction_data).unwrap();
     let now = crate::clock::now_utc();
     let interaction = Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: now,
         last_modified: now,
@@ -121,6 +120,8 @@ async fn test_submit_proof_failed_on_validator_failure() {
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     };
 
     let interaction_id_copy = interaction_id.to_owned();
@@ -251,7 +252,6 @@ async fn test_submit_proof_failed_on_trust_failure() {
     let interaction_data_serialized = serde_json::to_vec(&interaction_data).unwrap();
     let now = crate::clock::now_utc();
     let interaction = Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: now,
         last_modified: now,
@@ -260,6 +260,8 @@ async fn test_submit_proof_failed_on_trust_failure() {
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     };
 
     let interaction_id_copy = interaction_id.to_owned();

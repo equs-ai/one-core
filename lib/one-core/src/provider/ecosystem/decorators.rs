@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use shared_types::{EcosystemId, OrganisationId};
+use shared_types::EcosystemId;
 
 use super::Ecosystem;
 use super::error::EcosystemError;
@@ -12,6 +12,7 @@ use super::model::{
 };
 use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierFilterValue;
+use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterCondition;
 use crate::provider::disabled_provider::DisabledProvider;
 use crate::provider::provider_directory::WithDisabledDecorator;
@@ -39,7 +40,7 @@ impl<T: Ecosystem + Display + ?Sized> Ecosystem for DisabledProvider<T> {
     async fn validate_interaction(
         &self,
         _interaction_artifact: &ProtocolArtifact,
-        _organisation_id: OrganisationId,
+        _interaction: &Interaction,
     ) -> Result<(), EcosystemError> {
         self.disabled_error()
     }

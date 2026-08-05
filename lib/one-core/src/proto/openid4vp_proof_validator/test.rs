@@ -316,7 +316,6 @@ fn test_data(dcql_query: DcqlQuery) -> TestData {
     };
     let interaction_data_serialized = serde_json::to_vec(&interaction_data).unwrap();
     let interaction = Interaction {
-        ecosystem: None,
         id: Uuid::parse_str("a83dabc3-1601-4642-84ec-7a5ad8a70d36")
             .unwrap()
             .into(),
@@ -327,6 +326,8 @@ fn test_data(dcql_query: DcqlQuery) -> TestData {
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     };
     let claim_schema_required = ClaimSchema {
         key: "required_key".to_string(),

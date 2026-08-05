@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use proc_macros::Provider;
 use serde::Deserialize;
-use shared_types::{EcosystemId, OrganisationId};
+use shared_types::EcosystemId;
 
 use super::Ecosystem;
 use super::error::EcosystemError;
@@ -11,6 +11,7 @@ use super::model::{
 };
 use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierFilterValue;
+use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterCondition;
 use crate::provider::provider_directory::InitializationError;
 
@@ -67,7 +68,7 @@ impl Ecosystem for EudiEcosystem {
     async fn validate_interaction(
         &self,
         _interaction_artifact: &ProtocolArtifact,
-        _organisation_id: OrganisationId,
+        _interaction: &Interaction,
     ) -> Result<(), EcosystemError> {
         todo!()
     }

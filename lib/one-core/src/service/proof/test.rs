@@ -643,7 +643,6 @@ async fn test_get_proof_with_array_holder() {
         verifier_key: None,
         verifier_certificate: None,
         interaction: Some(Interaction {
-            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -652,6 +651,8 @@ async fn test_get_proof_with_array_holder() {
             nonce_id: None,
             interaction_type: InteractionType::Verification,
             expires_at: None,
+            ecosystem: None,
+            ecosystem_data: None,
         }),
         role: ProofRole::Holder,
         profile: None,
@@ -916,7 +917,6 @@ async fn test_get_proof_with_array_in_object_holder() {
         verifier_key: None,
         verifier_certificate: None,
         interaction: Some(Interaction {
-            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: get_dummy_date(),
             last_modified: get_dummy_date(),
@@ -925,6 +925,8 @@ async fn test_get_proof_with_array_in_object_holder() {
             nonce_id: None,
             interaction_type: InteractionType::Verification,
             expires_at: None,
+            ecosystem: None,
+            ecosystem_data: None,
         }),
         role: ProofRole::Holder,
         profile: None,
@@ -1204,7 +1206,6 @@ async fn test_get_proof_with_object_array_holder() {
         verifier_key: None,
         verifier_certificate: None,
         interaction: Some(Interaction {
-            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             last_modified: crate::clock::now_utc(),
@@ -1213,6 +1214,8 @@ async fn test_get_proof_with_object_array_holder() {
             nonce_id: None,
             interaction_type: InteractionType::Verification,
             expires_at: None,
+            ecosystem: None,
+            ecosystem_data: None,
         }),
         role: ProofRole::Holder,
         profile: None,
@@ -4192,7 +4195,6 @@ async fn test_delete_proof_ok_for_allowed_state(
     proof.protocol = "OPENID4VP_DRAFT20".to_string();
     proof.transport = "HTTP".to_string();
     proof.interaction = Some(Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -4201,6 +4203,8 @@ async fn test_delete_proof_ok_for_allowed_state(
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     });
 
     let mut protocol_provider = MockVerificationProtocolProvider::default();
@@ -4270,7 +4274,6 @@ async fn test_delete_proof_ok_for_requested_state() {
     proof.protocol = "OPENID4VP_DRAFT20".to_string();
     proof.transport = "HTTP".to_string();
     proof.interaction = Some(Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -4279,6 +4282,8 @@ async fn test_delete_proof_ok_for_requested_state() {
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     });
 
     let mut protocol_provider = MockVerificationProtocolProvider::default();
@@ -4351,7 +4356,6 @@ async fn test_delete_proof_fails_for_invalid_state(
     proof.protocol = "OPENID4VP_DRAFT20".to_string();
     proof.transport = "HTTP".to_string();
     proof.interaction = Some(Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -4360,6 +4364,8 @@ async fn test_delete_proof_fails_for_invalid_state(
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     });
 
     let mut proof_repository = MockProofRepository::default();
@@ -4409,7 +4415,6 @@ async fn test_retract_proof_with_bluetooth_ok() {
     proof.protocol = "OPENID4VP_DRAFT20".to_string();
     proof.transport = "BLE".to_string();
     proof.interaction = Some(Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -4457,6 +4462,8 @@ async fn test_retract_proof_with_bluetooth_ok() {
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     });
 
     let mut protocol_provider = MockVerificationProtocolProvider::default();
@@ -4539,7 +4546,6 @@ async fn test_retract_proof_success_holder_iso_mdl() {
     proof.schema = None;
     proof.role = ProofRole::Holder;
     proof.interaction = Some(Interaction {
-        ecosystem: None,
         id: interaction_id,
         created_date: crate::clock::now_utc(),
         last_modified: crate::clock::now_utc(),
@@ -4548,6 +4554,8 @@ async fn test_retract_proof_success_holder_iso_mdl() {
         nonce_id: None,
         interaction_type: InteractionType::Verification,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     });
 
     let mut protocol_provider = MockVerificationProtocolProvider::default();

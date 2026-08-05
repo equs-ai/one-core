@@ -519,7 +519,6 @@ async fn test_get_proof_with_relations() {
         .times(1)
         .returning(|id, _| {
             Ok(Interaction {
-                ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -528,6 +527,8 @@ async fn test_get_proof_with_relations() {
                 nonce_id: None,
                 interaction_type: InteractionType::Verification,
                 expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
             })
         });
 
@@ -813,7 +814,6 @@ async fn test_get_proof_by_interaction_id_success() {
         .times(1)
         .returning(|id, _| {
             Ok(Interaction {
-                ecosystem: None,
                 id: id.to_owned(),
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
@@ -822,6 +822,8 @@ async fn test_get_proof_by_interaction_id_success() {
                 nonce_id: None,
                 interaction_type: InteractionType::Verification,
                 expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
             })
         });
 

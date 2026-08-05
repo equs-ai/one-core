@@ -527,7 +527,6 @@ impl SSIHolderService {
         let now = crate::clock::now_utc();
         self.interaction_repository
             .create_interaction(Interaction {
-                ecosystem,
                 id: interaction_id,
                 created_date: now,
                 last_modified: now,
@@ -536,6 +535,8 @@ impl SSIHolderService {
                 nonce_id: None,
                 interaction_type: InteractionType::Issuance,
                 expires_at: None,
+                ecosystem,
+                ecosystem_data: None,
             })
             .await
             .error_while("creating interaction")?;

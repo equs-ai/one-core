@@ -17,6 +17,8 @@ pub struct Model {
     pub interaction_type: InteractionType,
     pub expires_at: Option<OffsetDateTime>,
     pub ecosystem: Option<EcosystemId>,
+    #[sea_orm(column_type = "Blob")]
+    pub ecosystem_data: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

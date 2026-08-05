@@ -621,7 +621,6 @@ pub async fn insert_interaction(
     let now = one_core::clock::now_utc();
 
     let interaction = interaction::ActiveModel {
-        ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         created_date: Set(now),
         last_modified: Set(now),
@@ -630,6 +629,8 @@ pub async fn insert_interaction(
         nonce_id: Set(nonce_id),
         interaction_type: Set(interaction_type),
         expires_at: Set(None),
+        ecosystem: Set(None),
+        ecosystem_data: Set(None),
     }
     .insert(database)
     .await?;

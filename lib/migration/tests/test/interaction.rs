@@ -16,6 +16,7 @@ async fn test_db_schema_interaction() {
             "interaction_type",
             "expires_at",
             "ecosystem",
+            "ecosystem_data",
         ])
         .index("index-Interaction-NonceId-Unique", true, &["nonce_id"])
         .index("index-Interaction-ExpiresAt", false, &["expires_at"]);
@@ -61,5 +62,9 @@ async fn test_db_schema_interaction() {
     interaction
         .column("ecosystem")
         .r#type(ColumnType::String(None))
+        .nullable(true);
+    interaction
+        .column("ecosystem_data")
+        .r#type(ColumnType::Blob)
         .nullable(true);
 }

@@ -827,7 +827,6 @@ async fn dummy_credential() -> Credential {
         .unwrap()
         .into(),
         interaction: Some(Interaction {
-            ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
             data: Some(b"interaction data".to_vec()),
@@ -836,6 +835,8 @@ async fn dummy_credential() -> Credential {
             nonce_id: None,
             interaction_type: InteractionType::Issuance,
             expires_at: None,
+            ecosystem: None,
+            ecosystem_data: None,
         }),
         key: None,
         profile: None,

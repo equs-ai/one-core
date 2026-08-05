@@ -47,7 +47,6 @@ pub(crate) fn interaction_from_handle_invitation(
     organisation: impl Into<Related<Organisation>>,
 ) -> Interaction {
     Interaction {
-        ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: now,
         last_modified: now,
@@ -56,6 +55,8 @@ pub(crate) fn interaction_from_handle_invitation(
         nonce_id: None,
         interaction_type: InteractionType::Issuance,
         expires_at: None,
+        ecosystem: None,
+        ecosystem_data: None,
     }
 }
 

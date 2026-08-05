@@ -19,6 +19,7 @@ impl From<Interaction> for interaction::ActiveModel {
             interaction_type: Set(value.interaction_type.into()),
             expires_at: Set(value.expires_at),
             ecosystem: Set(value.ecosystem),
+            ecosystem_data: Set(value.ecosystem_data),
         }
     }
 }
@@ -28,6 +29,7 @@ impl From<UpdateInteractionRequest> for interaction::ActiveModel {
         Self {
             data: value.data.map(Set).unwrap_or_default(),
             ecosystem: value.ecosystem.map(Set).unwrap_or_default(),
+            ecosystem_data: value.ecosystem_data.map(Set).unwrap_or_default(),
             ..Default::default()
         }
     }
@@ -47,5 +49,6 @@ pub(crate) fn interaction_from_model(
         interaction_type: interaction.interaction_type.into(),
         expires_at: interaction.expires_at,
         ecosystem: interaction.ecosystem,
+        ecosystem_data: interaction.ecosystem_data,
     }
 }

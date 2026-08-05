@@ -572,8 +572,8 @@ impl OpenID4VCIFinal1_0 {
             .update_interaction(
                 interaction_id,
                 UpdateInteractionRequest {
-                    ecosystem: None,
                     data: Some(Some(serialize_interaction_data(&interaction_data)?)),
+                    ..Default::default()
                 },
             )
             .await
@@ -1780,8 +1780,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .update_interaction(
                 interaction.id,
                 UpdateInteractionRequest {
-                    ecosystem: None,
                     data: Some(Some(serialize_interaction_data(&interaction_data)?)),
+                    ..Default::default()
                 },
             )
             .await
@@ -2301,8 +2301,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 .update_interaction(
                     interaction.id,
                     UpdateInteractionRequest {
-                        ecosystem: None,
                         data: Some(Some(serialize_interaction_data(&interaction_data)?)),
+                        ..Default::default()
                     },
                 )
                 .await
