@@ -64,6 +64,7 @@ use crate::provider::credential_formatter::model::FormatterCapabilities;
 use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
 use crate::provider::credential_formatter::{CredentialFormatter, MockCredentialFormatter};
 use crate::provider::did_method::provider::MockDidMethodProvider;
+use crate::provider::ecosystem::directory::MockEcosystemDirectory;
 use crate::provider::key_algorithm::MockKeyAlgorithm;
 use crate::provider::key_algorithm::key::{
     KeyHandle, MockSignaturePublicKeyHandle, SignatureKeyHandle,
@@ -126,6 +127,7 @@ struct Repositories {
     pub trust_information_provider: MockTrustInformationProvider,
     pub transaction_data_provider: MockTransactionDataProvider,
     pub holder_trust_resolver: MockHolderTrustResolver,
+    pub ecosystem_provider: MockEcosystemDirectory,
 }
 
 fn setup_service(repositories: Repositories) -> ProofService {
@@ -164,6 +166,7 @@ fn setup_service(repositories: Repositories) -> ProofService {
         Arc::new(repositories.trust_information_provider),
         Arc::new(repositories.transaction_data_provider),
         Arc::new(repositories.holder_trust_resolver),
+        Arc::new(repositories.ecosystem_provider),
     )
 }
 

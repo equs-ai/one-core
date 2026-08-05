@@ -7,6 +7,7 @@ use crate::proto::session_provider::SessionProvider;
 use crate::proto::transaction_manager::TransactionManager;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
+use crate::provider::ecosystem::directory::EcosystemDirectory;
 use crate::provider::issuance_protocol::provider::IssuanceProtocolProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_security_level::provider::KeySecurityLevelProvider;
@@ -46,6 +47,7 @@ pub struct SSIHolderService {
     session_provider: Arc<dyn SessionProvider>,
     identifier_creator: Arc<dyn IdentifierCreator>,
     transaction_manager: Arc<dyn TransactionManager>,
+    ecosystem_provider: Arc<dyn EcosystemDirectory>,
 }
 
 #[expect(clippy::too_many_arguments)]
@@ -67,6 +69,7 @@ impl SSIHolderService {
         session_provider: Arc<dyn SessionProvider>,
         identifier_creator: Arc<dyn IdentifierCreator>,
         transaction_manager: Arc<dyn TransactionManager>,
+        ecosystem_provider: Arc<dyn EcosystemDirectory>,
     ) -> Self {
         Self {
             credential_repository,
@@ -85,6 +88,7 @@ impl SSIHolderService {
             key_security_level_provider,
             identifier_creator,
             transaction_manager,
+            ecosystem_provider,
         }
     }
 }

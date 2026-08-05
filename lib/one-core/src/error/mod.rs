@@ -1006,6 +1006,12 @@ pub enum ErrorCode {
     #[strum(message = "User authentication mandated but not supported for instances with OS WEB")]
     BR_0473,
 
+    #[strum(message = "Usage of ecosystem enforced, none provided/matching")]
+    BR_0476,
+
+    #[strum(message = "Ecosystem validation failure")]
+    BR_0477,
+
     #[strum(message = "No suitable provider")]
     BR_0478,
 }

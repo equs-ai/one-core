@@ -14,6 +14,7 @@ use crate::proto::trust_information::TrustInformationProvider;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
+use crate::provider::ecosystem::directory::EcosystemDirectory;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::presentation_formatter::provider::PresentationFormatterProvider;
@@ -64,6 +65,7 @@ pub struct ProofService {
     trust_information_provider: Arc<dyn TrustInformationProvider>,
     transaction_data_provider: Arc<dyn TransactionDataProvider>,
     holder_trust_resolver: Arc<dyn HolderTrustResolver>,
+    ecosystem_provider: Arc<dyn EcosystemDirectory>,
 }
 
 impl ProofService {
@@ -96,6 +98,7 @@ impl ProofService {
         trust_information_provider: Arc<dyn TrustInformationProvider>,
         transaction_data_provider: Arc<dyn TransactionDataProvider>,
         holder_trust_resolver: Arc<dyn HolderTrustResolver>,
+        ecosystem_provider: Arc<dyn EcosystemDirectory>,
     ) -> Self {
         Self {
             proof_repository,
@@ -125,6 +128,7 @@ impl ProofService {
             trust_information_provider,
             transaction_data_provider,
             holder_trust_resolver,
+            ecosystem_provider,
         }
     }
 }

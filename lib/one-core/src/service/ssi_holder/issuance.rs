@@ -28,6 +28,7 @@ use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::proto::oauth_client::OAuthClientProvider;
 use crate::proto::transaction_manager::IsolationLevel;
+use crate::provider::ProviderExt;
 use crate::provider::blob_storage::BlobStorage;
 use crate::provider::issuance_protocol::dto::{ContinueIssuanceDTO, Features};
 use crate::provider::issuance_protocol::model::{CredentialWithBlob, InvitationResponseEnum};
@@ -507,6 +508,12 @@ impl SSIHolderService {
             .await
             .error_while("initiating authorization code flow")?;
 
+        let ecosystem = request.ecosystem.clone();
+        if let Some(ecosystem_id) = &ecosystem {
+            let ecosystem = self.ecosystem_provider.get(ecosystem_id)?;
+            ecosystem.ensure_enabled()?;
+        }
+
         let interaction_data = OpenIDAuthorizationCodeFlowInteractionData {
             request,
             code_verifier: authorization_response.code_verifier,
@@ -518,7 +525,7 @@ impl SSIHolderService {
         let now = crate::clock::now_utc();
         self.interaction_repository
             .create_interaction(Interaction {
-                ecosystem: None,
+                ecosystem,
                 id: interaction_id,
                 created_date: now,
                 last_modified: now,

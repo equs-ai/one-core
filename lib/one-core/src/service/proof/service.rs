@@ -51,6 +51,7 @@ use crate::model::proof::{
 use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::key_verification::KeyVerification;
 use crate::proto::nfc::static_handover_handler::NfcStaticHandoverHandler;
+use crate::provider::ProviderExt;
 use crate::provider::credential_formatter::mdoc_formatter::util::EmbeddedCbor;
 use crate::provider::credential_formatter::model::VerificationFn;
 use crate::provider::transaction_data::Features::SupportsMultipleTxDataPerPresentation;
@@ -578,6 +579,7 @@ impl ProofService {
                         .to_owned(),
                     InteractionType::Verification,
                     None,
+                    request.ecosystem.clone(),
                 )
                 .await
                 .error_while("adding interaction")?,
@@ -679,6 +681,7 @@ impl ProofService {
             organisation.to_owned(),
             InteractionType::Verification,
             expires_at,
+            proof.ecosystem,
         )
         .await
         .error_while("adding interaction")?;
@@ -824,6 +827,11 @@ impl ProofService {
             });
         }
 
+        if let Some(ecosystem_id) = &request.ecosystem {
+            let ecosystem = self.ecosystem_provider.get(ecosystem_id)?;
+            ecosystem.ensure_enabled()?;
+        }
+
         let organisation = self
             .organisation_repository
             .get_organisation(&request.organisation_id)
@@ -943,6 +951,7 @@ impl ProofService {
             organisation,
             InteractionType::Verification,
             None,
+            request.ecosystem.to_owned(),
         )
         .await
         .error_while("adding interaction")?;
@@ -950,7 +959,7 @@ impl ProofService {
         let proof_id = self
             .proof_repository
             .create_proof(Proof {
-                ecosystem: None,
+                ecosystem: request.ecosystem,
                 id: Uuid::new_v4().into(),
                 created_date: now,
                 last_modified: now,

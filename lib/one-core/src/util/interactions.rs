@@ -1,4 +1,4 @@
-use shared_types::InteractionId;
+use shared_types::{EcosystemId, InteractionId};
 use time::OffsetDateTime;
 
 use crate::error::ContextWithErrorCode;
@@ -15,11 +15,12 @@ pub(crate) async fn add_new_interaction(
     organisation: impl Into<Related<Organisation>>,
     interaction_type: InteractionType,
     expires_at: Option<OffsetDateTime>,
+    ecosystem: Option<EcosystemId>,
 ) -> Result<Interaction, ServiceError> {
     let now = crate::clock::now_utc();
 
     let new_interaction = Interaction {
-        ecosystem: None,
+        ecosystem,
         id: interaction_id,
         created_date: now,
         last_modified: now,

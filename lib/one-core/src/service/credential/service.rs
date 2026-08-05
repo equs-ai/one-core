@@ -563,6 +563,7 @@ impl CredentialService {
             credential_schema.organisation.to_owned(),
             InteractionType::Issuance,
             expires_at,
+            credential.ecosystem,
         )
         .await
         .error_while("adding interaction")?;

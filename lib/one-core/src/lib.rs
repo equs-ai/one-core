@@ -360,8 +360,7 @@ impl OneCore {
         let document_signer_provider =
             document_signer_provider_from_config(&mut config, csc_client)?;
 
-        // TODO ONE-9974: pass into the ecosystem-aware services once they exist
-        let _ecosystem_directory = ecosystem_directory_from_config(&mut config)?;
+        let ecosystem_provider = ecosystem_directory_from_config(&mut config)?;
 
         let identifier_creator = Arc::new(IdentifierCreatorProto::new(
             did_method_provider.clone(),
@@ -764,6 +763,7 @@ impl OneCore {
                 trust_information_provider,
                 transaction_data_provider,
                 holder_trust_resolver,
+                ecosystem_provider.clone(),
             ),
             ssi_issuer_service: SSIIssuerService::new(
                 data_provider.get_credential_schema_repository(),
@@ -804,6 +804,7 @@ impl OneCore {
                 session_provider.clone(),
                 identifier_creator.clone(),
                 data_provider.get_tx_manager(),
+                ecosystem_provider,
             ),
             wallet_provider_service: ManagedInstanceService::new(
                 data_provider.get_organisation_repository(),

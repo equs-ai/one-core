@@ -38,6 +38,7 @@ use crate::provider::blob_storage::MockBlobStorage;
 use crate::provider::blob_storage::provider::MockBlobStorageProvider;
 use crate::provider::credential_formatter::MockCredentialFormatter;
 use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
+use crate::provider::ecosystem::directory::MockEcosystemDirectory;
 use crate::provider::issuance_protocol::MockIssuanceProtocol;
 use crate::provider::issuance_protocol::dto::{Features, IssuanceProtocolCapabilities};
 use crate::provider::issuance_protocol::error::TxCodeError;
@@ -1044,6 +1045,7 @@ fn mock_ssi_holder_service() -> SSIHolderService {
         session_provider: Arc::new(NoSessionProvider),
         identifier_creator: Arc::new(MockIdentifierCreator::new()),
         transaction_manager: Arc::new(NoTransactionManager),
+        ecosystem_provider: Arc::new(MockEcosystemDirectory::new()),
     }
 }
 
