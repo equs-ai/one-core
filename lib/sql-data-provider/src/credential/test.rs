@@ -102,6 +102,7 @@ async fn setup_empty() -> TestSetup {
         .unwrap();
 
     let credential_schema = CredentialSchema {
+        expiration: None,
         ecosystem: None,
         batch_size: None,
         allow_revocation: false,
@@ -356,6 +357,7 @@ async fn test_create_credential_success() {
 
     let result = provider
         .create_credential(Credential {
+            expires_at: None,
             ecosystem: None,
             id: credential_id,
             created_date: get_dummy_date(),
@@ -414,6 +416,7 @@ async fn test_create_credential_empty_claims() {
     let credential_id = Uuid::new_v4().into();
     let result = provider
         .create_credential(Credential {
+            expires_at: None,
             ecosystem: None,
             id: credential_id,
             created_date: get_dummy_date(),
@@ -484,6 +487,7 @@ async fn test_create_credential_already_exists() {
 
     let result = provider
         .create_credential(Credential {
+            expires_at: None,
             ecosystem: None,
             id: credential_id,
             created_date: get_dummy_date(),

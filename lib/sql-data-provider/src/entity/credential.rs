@@ -23,6 +23,7 @@ pub struct Model {
     pub last_modified: OffsetDateTime,
 
     pub issuance_date: Option<OffsetDateTime>,
+    pub expires_at: Option<OffsetDateTime>,
     pub deleted_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
 

@@ -53,7 +53,7 @@ format:
     order: 101
     params:
       public:
-        msoExpiresInSeconds: 60
+        expirationSeconds: 60
         msoExpectedUpdateInSeconds: 60
         msoMinimumRefreshSeconds: 10
         leewaySeconds: 10

@@ -171,6 +171,7 @@ async fn test_presentation_reject_ok() {
             input_schemas: Some(vec![ProofInputSchema {
                 claim_schemas: Default::default(),
                 credential_schema: CredentialSchema {
+                    expiration: None,
                     batch_size: None,
                     allow_revocation: false,
                     id: credential_schema_id,
@@ -440,6 +441,7 @@ async fn test_get_presentation_definition_v2() {
     ];
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -545,6 +547,7 @@ async fn test_get_presentation_definition_v2() {
     ];
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential_id,
         created_date: crate::clock::now_utc(),

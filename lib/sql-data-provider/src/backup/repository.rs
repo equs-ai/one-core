@@ -215,6 +215,7 @@ impl BackupRepository for BackupProvider {
                 credential::Column::Id,
                 credential::Column::CreatedDate,
                 credential::Column::IssuanceDate,
+                credential::Column::ExpiresAt,
                 credential::Column::LastModified,
                 credential::Column::DeletedAt,
                 credential::Column::RedirectUri,
@@ -278,6 +279,10 @@ impl BackupRepository for BackupProvider {
             .column_as(
                 credential_schema::Column::EmbeddedDisclosurePolicy,
                 "credential_schema_embedded_disclosure_policy",
+            )
+            .column_as(
+                credential_schema::Column::Expiration,
+                "credential_schema_expiration",
             )
             .column_as(
                 credential_schema::Column::LayoutType,

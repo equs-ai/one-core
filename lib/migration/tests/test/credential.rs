@@ -34,6 +34,7 @@ async fn test_db_schema_credential() {
             "embedded_disclosure_policy",
             "subscriber_information",
             "ecosystem",
+            "expires_at",
         ])
         .index("index-Credential-CreatedDate", false, &["created_date"])
         .index("index-Credential-Role", false, &["role"])
@@ -185,6 +186,10 @@ async fn test_db_schema_credential() {
     credential
         .column("ecosystem")
         .r#type(ColumnType::String(None))
+        .nullable(true);
+    credential
+        .column("expires_at")
+        .r#type(ColumnType::TimestampMilliseconds)
         .nullable(true);
 }
 

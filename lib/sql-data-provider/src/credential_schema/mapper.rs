@@ -18,6 +18,7 @@ use sea_orm::{
     ColumnTrait, EntityTrait, IntoSimpleExpr, JoinType, QueryFilter, QueryOrder, RelationTrait,
 };
 use shared_types::CredentialSchemaId;
+use time::Duration;
 
 use crate::TransactionManagerImpl;
 use crate::claim_schema::mapper::claim_schema_from_model;
@@ -163,6 +164,7 @@ impl From<CredentialSchema> for credential_schema::ActiveModel {
             batch_size: Set(value.batch_size),
             allow_revocation: Set(value.allow_revocation),
             embedded_disclosure_policy: Set(value.embedded_disclosure_policy),
+            expiration: Set(value.expiration.map(|d| d.whole_seconds() as i32)),
             ecosystem: Set(value.ecosystem),
         }
     }
@@ -238,6 +240,9 @@ pub(super) fn credential_schema_from_models(
         batch_size: credential_schema.batch_size,
         allow_revocation: credential_schema.allow_revocation,
         embedded_disclosure_policy: credential_schema.embedded_disclosure_policy,
+        expiration: credential_schema
+            .expiration
+            .map(|seconds| Duration::seconds(seconds as i64)),
         ecosystem: credential_schema.ecosystem,
         translations: RelatedVec::new(LocalizedTextLoader { id: id.into(), db }),
     })

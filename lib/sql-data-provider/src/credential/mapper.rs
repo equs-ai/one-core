@@ -23,6 +23,7 @@ use sea_orm::sea_query::query::IntoCondition;
 use sea_orm::sea_query::{ExprTrait, Query, SelectStatement, SimpleExpr};
 use sea_orm::{ActiveValue, ColumnTrait, IntoSimpleExpr, JoinType, RelationTrait, Set, Value};
 use shared_types::{BlobId, CertificateId, CredentialId, IdentifierId, InteractionId, KeyId};
+use time::Duration;
 
 use crate::TransactionManagerImpl;
 use crate::credential::entity_model::CredentialListEntityModel;
@@ -212,6 +213,7 @@ pub(crate) fn model_to_credential(
         id: credential.id,
         created_date: credential.created_date,
         issuance_date: credential.issuance_date,
+        expires_at: credential.expires_at,
         last_modified: credential.last_modified,
         deleted_at: credential.deleted_at,
         consumed_at: credential.consumed_at,
@@ -268,6 +270,7 @@ pub(super) fn request_to_active_model(
         created_date: Set(request.created_date),
         last_modified: Set(request.last_modified),
         issuance_date: Set(request.issuance_date),
+        expires_at: Set(request.expires_at),
         deleted_at: Set(request.deleted_at),
         consumed_at: Set(request.consumed_at),
         protocol: Set(request.protocol.to_owned()),
@@ -353,6 +356,9 @@ pub(super) fn credential_list_model_to_repository_model(
         batch_size: credential.credential_schema_batch_size,
         allow_revocation: credential.credential_schema_allow_revocation,
         embedded_disclosure_policy: credential.credential_schema_embedded_disclosure_policy,
+        expiration: credential
+            .credential_schema_expiration
+            .map(|seconds| Duration::seconds(seconds as i64)),
         translations: RelatedVec::new(LocalizedTextLoader {
             id: credential.credential_schema_id.into(),
             db: db.to_owned(),
@@ -409,6 +415,7 @@ pub(super) fn credential_list_model_to_repository_model(
         id: credential.id,
         created_date: credential.created_date,
         issuance_date: credential.issuance_date,
+        expires_at: credential.expires_at,
         last_modified: credential.last_modified,
         deleted_at: credential.deleted_at,
         consumed_at: credential.consumed_at,

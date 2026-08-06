@@ -539,6 +539,7 @@ pub(super) fn from_create_v2_request_with_id(
         }
         .into(),
         embedded_disclosure_policy,
+        expiration: None,
     })
 }
 

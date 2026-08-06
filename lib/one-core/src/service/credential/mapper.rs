@@ -137,7 +137,7 @@ pub(crate) async fn credential_detail_response_from_model(
         };
 
         issuance_date.map(|issuance_date| MdocMsoValidityResponseDTO {
-            expiration: issuance_date + params.mso_expires_in_seconds,
+            expiration: issuance_date + params.expiration_seconds,
             next_update: issuance_date + params.mso_expected_update_in_seconds,
             last_update: issuance_date,
         })
@@ -490,6 +490,7 @@ pub(super) fn from_create_request(
         id: credential_id,
         created_date: now,
         issuance_date: None,
+        expires_at: None,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
         last_modified: now,

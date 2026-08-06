@@ -201,6 +201,7 @@ async fn test_importer_import_credential_schema_success() {
     // given
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = CredentialSchema {
+        expiration: None,
         ecosystem: None,
         batch_size: None,
         allow_revocation: false,
@@ -274,6 +275,7 @@ async fn test_importer_import_credential_schema_success_duplicate_name() {
     // given
     let credential_schema_id = Uuid::new_v4().into();
     let mut existing_schema = CredentialSchema {
+        expiration: None,
         ecosystem: None,
         batch_size: None,
         allow_revocation: false,
@@ -349,6 +351,7 @@ async fn test_importer_import_credential_schema_failure_duplicate_schema_id() {
     // given
     let credential_schema_id = Uuid::new_v4().into();
     let existing_schema = CredentialSchema {
+        expiration: None,
         ecosystem: None,
         batch_size: None,
         allow_revocation: false,

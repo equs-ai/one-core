@@ -366,6 +366,7 @@ impl CredentialFormatter for SDJWTFormatter {
             now,
         );
         let schema = CredentialSchema {
+            expiration: None,
             ecosystem: None,
             id: credential_schema_id,
             deleted_at: None,
@@ -396,6 +397,7 @@ impl CredentialFormatter for SDJWTFormatter {
         )?;
 
         Ok(Credential {
+            expires_at: None,
             ecosystem: None,
             id: credential_id,
             created_date: now,

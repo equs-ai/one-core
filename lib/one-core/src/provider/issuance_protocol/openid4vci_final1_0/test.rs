@@ -330,6 +330,7 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
         .unwrap()
         .into();
     Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential_id,
         created_date: now,
@@ -361,6 +362,7 @@ fn generic_credential(issuer_identifier: Identifier) -> Credential {
         issuer_identifier: Some(issuer_identifier),
         holder_identifier: None,
         schema: CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,

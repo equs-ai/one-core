@@ -265,6 +265,7 @@ fn generic_proof_input_schema() -> ProofInputSchema {
     ProofInputSchema {
         claim_schemas: Default::default(),
         credential_schema: CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -345,6 +346,7 @@ async fn test_get_proof_exists() {
                 .into(),
                 credential_schema: backfill_default_translations(
                     CredentialSchema {
+                        expiration: None,
                         ecosystem: None,
                         batch_size: None,
                         allow_revocation: false,
@@ -498,6 +500,7 @@ async fn test_get_proof_with_array_holder() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -534,6 +537,7 @@ async fn test_get_proof_with_array_holder() {
     .unwrap();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
@@ -762,6 +766,7 @@ async fn test_get_proof_with_array_in_object_holder() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -798,6 +803,7 @@ async fn test_get_proof_with_array_in_object_holder() {
     .unwrap();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
@@ -1041,6 +1047,7 @@ async fn test_get_proof_with_object_array_holder() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -1077,6 +1084,7 @@ async fn test_get_proof_with_object_array_holder() {
     .unwrap();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
@@ -1325,6 +1333,7 @@ async fn test_get_proof_with_array() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -1361,6 +1370,7 @@ async fn test_get_proof_with_array() {
     .unwrap();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
@@ -1596,6 +1606,7 @@ async fn test_get_proof_with_array_in_object() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -1632,6 +1643,7 @@ async fn test_get_proof_with_array_in_object() {
     .unwrap();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),
@@ -1883,6 +1895,7 @@ async fn test_get_proof_with_object_array() {
     let credential_schema_id = Uuid::new_v4().into();
     let credential_schema = backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -1919,6 +1932,7 @@ async fn test_get_proof_with_object_array() {
     .unwrap();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: Uuid::new_v4().into(),
         created_date: crate::clock::now_utc(),

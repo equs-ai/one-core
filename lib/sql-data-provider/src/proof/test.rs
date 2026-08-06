@@ -600,6 +600,7 @@ async fn test_get_proof_with_relations() {
                 total_pages: 1,
                 total_items: 1,
                 values: vec![Credential {
+                    expires_at: None,
                     ecosystem: None,
                     id: credential_id,
                     created_date: get_dummy_date(),

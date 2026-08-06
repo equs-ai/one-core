@@ -87,6 +87,7 @@ pub async fn insert_credential(
     .await?;
 
     let credential = credential::ActiveModel {
+        expires_at: Set(None),
         ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         credential_schema_id: Set(*credential_schema_id),
@@ -119,6 +120,7 @@ pub async fn insert_credential(
     .await?;
 
     Ok(Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential.id,
         created_date: credential.created_date,
@@ -180,6 +182,7 @@ pub async fn insert_credential_schema_to_database(
 ) -> Result<CredentialSchemaId, DbErr> {
     let new_id: CredentialSchemaId = Uuid::new_v4().into();
     let schema = credential_schema::ActiveModel {
+        expiration: Set(None),
         ecosystem: Set(None),
         batch_size: Set(None),
         allow_revocation: Set(allow_revocation),

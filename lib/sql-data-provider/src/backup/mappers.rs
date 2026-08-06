@@ -9,6 +9,7 @@ use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::convert_inner;
+use time::Duration;
 
 use super::models::{ClaimWithSchema, UnexportableCredentialModel};
 use crate::claim::mapper::claim_from_model;
@@ -63,6 +64,7 @@ pub(super) fn credential_from_unexportable_model(
         id: value.id,
         created_date: value.created_date,
         issuance_date: value.issuance_date,
+        expires_at: value.expires_at,
         last_modified: value.last_modified,
         deleted_at: value.deleted_at,
         consumed_at: value.consumed_at,
@@ -102,6 +104,9 @@ pub(super) fn credential_from_unexportable_model(
                 db: db.to_owned(),
             }),
             embedded_disclosure_policy: value.credential_schema_embedded_disclosure_policy,
+            expiration: value
+                .credential_schema_expiration
+                .map(|seconds| Duration::seconds(seconds as i64)),
         }
         .into(),
         interaction: None,

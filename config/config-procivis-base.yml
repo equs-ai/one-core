@@ -5,6 +5,7 @@ format:
     order: 300
     params:
       public:
+        expirationSeconds: 63072000 # 2 years in seconds
         leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
@@ -14,6 +15,7 @@ format:
     order: 310
     params:
       public:
+        expirationSeconds: 63072000 # 2 years in seconds
         leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
@@ -23,6 +25,7 @@ format:
     order: 320
     params:
       public:
+        expirationSeconds: 63072000 # 2 years in seconds
         leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
@@ -32,6 +35,7 @@ format:
     order: 330
     params:
       public:
+        expirationSeconds: 63072000 # 2 years in seconds
         leewaySeconds: 60
         embedLayoutProperties: true
         revocationMethod: "BITSTRINGSTATUSLIST"
@@ -42,7 +46,7 @@ format:
     priority: 100
     params:
       public:
-        msoExpiresInSeconds: 259200 # 72h in seconds
+        expirationSeconds: 259200 # 72h in seconds
         msoExpectedUpdateInSeconds: 86400 # 24h in seconds
         msoMinimumRefreshSeconds: 300 # 5 min in seconds
         leewaySeconds: 60
@@ -70,6 +74,7 @@ format:
     priority: 100
     params:
       public:
+        expirationSeconds: 63072000 # 2 years in seconds
         leewaySeconds: 60
         embedLayoutProperties: true
         ecosystemSchemaIds:
@@ -94,6 +99,7 @@ format:
     order: 201
     params:
       public:
+        expirationSeconds: 63072000 # 2 years in seconds
         leewaySeconds: 60
         embedLayoutProperties: true
         swiyuMode: true

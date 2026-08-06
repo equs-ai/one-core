@@ -122,6 +122,7 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             credential::Column::CreatedDate,
             credential::Column::LastModified,
             credential::Column::IssuanceDate,
+            credential::Column::ExpiresAt,
             credential::Column::DeletedAt,
             credential::Column::ConsumedAt,
             credential::Column::RedirectUri,
@@ -203,6 +204,10 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
         .column_as(
             credential_schema::Column::EmbeddedDisclosurePolicy,
             "credential_schema_embedded_disclosure_policy",
+        )
+        .column_as(
+            credential_schema::Column::Expiration,
+            "credential_schema_expiration",
         )
         .column_as(
             credential_schema::Column::Ecosystem,

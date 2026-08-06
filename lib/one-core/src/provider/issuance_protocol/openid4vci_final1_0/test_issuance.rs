@@ -506,7 +506,7 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
                 public: Some(json!({
                     "msoExpectedUpdateInSeconds": Duration::days(3).whole_seconds(),
                     "msoMinimumRefreshSeconds": Duration::days(3).whole_seconds(),
-                    "msoExpiresInSeconds": 10,
+                    "expirationSeconds": 10,
                     "leewaySeconds": 5,
                 })),
                 private: None,
@@ -620,7 +620,7 @@ async fn test_issue_credential_for_existing_mdoc_with_expected_update_in_the_fut
                 public: Some(json!({
                     "msoExpectedUpdateInSeconds": Duration::days(3).whole_seconds(),
                     "msoMinimumRefreshSeconds": Duration::days(3).whole_seconds(),
-                    "msoExpiresInSeconds": 10,
+                    "expirationSeconds": 10,
                     "leewaySeconds": 5,
                 })),
                 private: None,
@@ -724,7 +724,7 @@ fn dummy_config() -> CoreConfig {
                 public: Some(json!({
                     "msoExpectedUpdateInSeconds": Duration::days(3).whole_seconds(),
                     "msoMinimumRefreshSeconds": Duration::days(3).whole_seconds(),
-                    "msoExpiresInSeconds": 10,
+                    "expirationSeconds": 10,
                     "leewaySeconds": 5,
                 })),
                 private: None,
@@ -740,6 +740,7 @@ async fn dummy_credential() -> Credential {
     let credential_id = Uuid::new_v4().into();
     let credential_schema_id = Uuid::new_v4().into();
     Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential_id,
         created_date: crate::clock::now_utc(),
@@ -780,6 +781,7 @@ async fn dummy_credential() -> Credential {
         holder_identifier: None,
         schema: backfill_default_translations(
             CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: true,

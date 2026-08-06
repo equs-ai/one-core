@@ -13,6 +13,7 @@ pub struct UnexportableCredentialModel {
     pub id: CredentialId,
     pub created_date: OffsetDateTime,
     pub issuance_date: Option<OffsetDateTime>,
+    pub expires_at: Option<OffsetDateTime>,
     pub last_modified: OffsetDateTime,
     pub deleted_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
@@ -42,6 +43,7 @@ pub struct UnexportableCredentialModel {
     pub credential_schema_batch_size: Option<i32>,
     pub credential_schema_allow_revocation: bool,
     pub credential_schema_embedded_disclosure_policy: Option<String>,
+    pub credential_schema_expiration: Option<i32>,
     pub credential_schema_layout_type: LayoutType,
 
     pub organisation_id: OrganisationId,

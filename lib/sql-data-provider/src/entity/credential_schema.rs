@@ -36,6 +36,7 @@ pub struct Model {
     pub allow_revocation: bool,
     #[sea_orm(column_type = "Text")]
     pub embedded_disclosure_policy: Option<String>,
+    pub expiration: Option<i32>,
     pub ecosystem: Option<EcosystemId>,
 }
 

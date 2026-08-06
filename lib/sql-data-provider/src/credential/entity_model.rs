@@ -15,6 +15,7 @@ pub(super) struct CredentialListEntityModel {
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
     pub issuance_date: Option<OffsetDateTime>,
+    pub expires_at: Option<OffsetDateTime>,
     pub deleted_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
     pub protocol: String,
@@ -53,6 +54,7 @@ pub(super) struct CredentialListEntityModel {
     pub credential_schema_batch_size: Option<i32>,
     pub credential_schema_allow_revocation: bool,
     pub credential_schema_embedded_disclosure_policy: Option<String>,
+    pub credential_schema_expiration: Option<i32>,
     pub credential_schema_ecosystem: Option<EcosystemId>,
 
     pub issuer_identifier_id: Option<IdentifierId>,

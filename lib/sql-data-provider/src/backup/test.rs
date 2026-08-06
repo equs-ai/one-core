@@ -71,6 +71,7 @@ async fn insert_credential_to_database(
     deleted: bool,
 ) -> CredentialId {
     let credential_id = credential::ActiveModel {
+        expires_at: Set(None),
         ecosystem: Set(None),
         id: Set(Uuid::new_v4().into()),
         credential_schema_id: Set(schema_id),

@@ -6,7 +6,7 @@ use serde_with::skip_serializing_none;
 use shared_types::{CredentialFormat, CredentialSchemaId, EcosystemId, RevocationMethodId};
 use strum::Display;
 use thiserror::Error;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 
 use super::claim_schema::ClaimSchema;
 use super::common::GetListResponse;
@@ -47,6 +47,9 @@ pub struct CredentialSchema {
     pub allow_revocation: bool,
     pub allow_suspension: bool,
 
+    /// Administrative/business lifetime of credentials issued from this schema.
+    /// `None` means an indefinite lifetime.
+    pub expiration: Option<Duration>,
     pub ecosystem: Option<EcosystemId>,
 
     pub claim_schemas: RelatedVec<ClaimSchema>,

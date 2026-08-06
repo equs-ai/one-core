@@ -96,7 +96,7 @@ pub struct MdocFormatter {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Params {
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub mso_expires_in_seconds: Duration,
+    pub expiration_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
     pub mso_expected_update_in_seconds: Duration,
     #[serde_as(as = "DurationSeconds<i64>")]
@@ -223,7 +223,7 @@ impl CredentialFormatter for MdocFormatter {
         let validity_info = ValidityInfo {
             signed: DateTime(crate::clock::now_utc()),
             valid_from: DateTime(crate::clock::now_utc()),
-            valid_until: DateTime(crate::clock::now_utc() + self.params.mso_expires_in_seconds),
+            valid_until: DateTime(crate::clock::now_utc() + self.params.expiration_seconds),
             expected_update: Some(DateTime(
                 crate::clock::now_utc() + self.params.mso_expected_update_in_seconds,
             )),
@@ -544,6 +544,7 @@ impl CredentialFormatter for MdocFormatter {
 
         let credential_schema_id = Uuid::new_v4().into();
         let credential_schema = crate::model::credential_schema::CredentialSchema {
+            expiration: None,
             ecosystem: None,
             id: credential_schema_id,
             deleted_at: None,
@@ -591,6 +592,7 @@ impl CredentialFormatter for MdocFormatter {
         )?;
 
         Ok(Credential {
+            expires_at: None,
             ecosystem: None,
             id: credential_id,
             created_date: crate::clock::now_utc(),

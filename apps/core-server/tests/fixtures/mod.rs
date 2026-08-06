@@ -671,6 +671,7 @@ pub async fn create_credential_schema(
         namespace: None,
     };
     let mut credential_schema = CredentialSchema {
+        expiration: None,
         ecosystem: None,
         batch_size: None,
         allow_revocation: params.allow_revocation.unwrap_or(true),
@@ -740,6 +741,7 @@ pub async fn create_credential_schema_with_claims(
     let id = Uuid::new_v4();
     let format_id = Uuid::new_v4().into();
     let mut credential_schema = CredentialSchema {
+        expiration: None,
         ecosystem: None,
         batch_size: None,
         allow_revocation,
@@ -965,6 +967,7 @@ pub async fn create_credential(
         .collect();
 
     let credential = Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential_id,
         created_date: get_dummy_date(),

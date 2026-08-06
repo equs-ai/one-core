@@ -26,6 +26,7 @@ async fn test_db_schema_credential_schema() {
         "allow_revocation",
         "embedded_disclosure_policy",
         "ecosystem",
+        "expiration",
     ];
     if schema.backend() == DbBackend::MySql {
         columns.push("deleted_at_materialized");
@@ -142,6 +143,10 @@ async fn test_db_schema_credential_schema() {
     credential_schema
         .column("ecosystem")
         .r#type(ColumnType::String(None))
+        .nullable(true);
+    credential_schema
+        .column("expiration")
+        .r#type(ColumnType::Integer)
         .nullable(true);
 }
 

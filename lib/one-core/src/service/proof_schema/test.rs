@@ -388,6 +388,7 @@ async fn test_create_proof_schema_success() {
         .times(1)
         .returning(move |_| {
             let schema = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -528,6 +529,7 @@ async fn test_create_proof_schema_success_mixed_key_storage_security_types() {
         .once()
         .returning(move |_| {
             let schema_software = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -671,6 +673,7 @@ async fn test_create_proof_schema_fail_unsupported_wallet_storage_type() {
         .times(1)
         .returning(move |_| {
             let schema = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -828,6 +831,7 @@ async fn test_create_proof_schema_array_object_fail() {
         .times(1)
         .returning(move |_| {
             let schema = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -997,6 +1001,7 @@ async fn test_create_proof_schema_array_success() {
         .times(1)
         .returning(move |_| {
             let schema = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -1156,6 +1161,7 @@ async fn test_create_proof_schema_claims_dont_exist() {
         .times(1)
         .returning(move |_| {
             let schema = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -1943,6 +1949,7 @@ async fn test_import_proof_ok_existing_credential_schema_all_claims_present() {
         .once()
         .returning(move |_, _| {
             Ok(Some(CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -2124,6 +2131,7 @@ async fn test_import_proof_schema_rehosts_source_url_when_enabled() {
         .once()
         .returning(move |_, _| {
             Ok(Some(CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -2739,6 +2747,7 @@ async fn credential_schema_with_claims(claims: Vec<ClaimSchema>) -> CredentialSc
     let credential_schema_id = Uuid::new_v4().into();
     backfill_default_translations(
         CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: false,
@@ -2983,6 +2992,7 @@ async fn test_create_proof_schema_verify_nested_generic(
         .once()
         .return_once(move |_| {
             let schema = CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,

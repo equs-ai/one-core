@@ -33,6 +33,7 @@ pub mod m20260703_120000_add_history_target_index;
 pub mod m20260717_084043_common_json_ld_context;
 pub mod m20260720_091548_instance;
 pub mod m20260722_121557_drop_verifier_instance_history;
+pub mod m20260803_115908_add_expiration_to_credential_schema_and_credential;
 pub mod m20260803_120000_add_ecosystem;
 pub mod m20260804_120000_organisation_ecosystem_configuration;
 pub mod m20260804_140000_add_ecosystem_to_interaction;

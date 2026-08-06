@@ -236,6 +236,7 @@ impl CredentialSchemaImportParser for CredentialSchemaImportParserImpl {
                 .map(|policy| serde_json::to_string(&policy))
                 .transpose()
                 .map_err(|e| Error::MappingError(e.to_string()))?,
+            expiration: None,
         })
     }
 }

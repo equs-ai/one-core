@@ -88,7 +88,7 @@ pub fn generic_config() -> AppConfig<CustomConfig> {
               order: 4
               params:
                 public:
-                  msoExpiresInSeconds: 259200 # 72h in seconds
+                  expirationSeconds: 259200 # 72h in seconds
                   msoExpectedUpdateInSeconds: 86400 # 24h in seconds
                   msoMinimumRefreshSeconds: 300 # 5min in seconds
                   leewaySeconds: 60
@@ -285,6 +285,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
 
     let credential_schema_id = Uuid::new_v4().into();
     Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential_id,
         created_date: crate::clock::now_utc(),
@@ -328,6 +329,7 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {
+            expiration: None,
             ecosystem: None,
             batch_size: None,
             allow_revocation: true,
@@ -550,6 +552,7 @@ pub fn dummy_credential_schema() -> CredentialSchema {
 pub fn dummy_credential_schema_with_format(format: &str) -> CredentialSchema {
     let credential_schema_id = Uuid::new_v4().into();
     CredentialSchema {
+        expiration: None,
         ecosystem: None,
         id: credential_schema_id,
         deleted_at: None,

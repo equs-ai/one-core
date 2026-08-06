@@ -190,6 +190,7 @@ async fn test_create_proof_schema_already_exists() {
                 }]
                 .into(),
                 credential_schema: CredentialSchema {
+                    expiration: None,
                     ecosystem: None,
                     batch_size: None,
                     allow_revocation: false,
@@ -308,6 +309,7 @@ async fn test_create_proof_schema_success() {
                 }]
                 .into(),
                 credential_schema: CredentialSchema {
+                    expiration: None,
                     ecosystem: None,
                     batch_size: None,
                     allow_revocation: false,
@@ -644,6 +646,7 @@ async fn test_get_proof_schema_with_input_proof_relations() {
         .expect_get_credential_schema()
         .returning(|id| {
             Ok(CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,
@@ -1125,6 +1128,7 @@ async fn test_get_proof_schema_list_filter_formats() {
 
     let date_now = one_core::clock::now_utc();
     let cred_schema_jwt_id = crate::entity::credential_schema::ActiveModel {
+        expiration: Set(None),
         ecosystem: Set(None),
         batch_size: Set(None),
         allow_revocation: Set(false),
@@ -1163,6 +1167,7 @@ async fn test_get_proof_schema_list_filter_formats() {
     .unwrap();
 
     let cred_schema_mdoc_id = crate::entity::credential_schema::ActiveModel {
+        expiration: Set(None),
         ecosystem: Set(None),
         batch_size: Set(None),
         allow_revocation: Set(false),

@@ -52,6 +52,7 @@ async fn dummy_unexportable_entities() -> UnexportableEntities {
     let credential_schema_id = Uuid::new_v4().into();
     UnexportableEntities {
         credentials: vec![Credential {
+            expires_at: None,
             ecosystem: None,
             id: Uuid::new_v4().into(),
             created_date: crate::clock::now_utc(),
@@ -93,6 +94,7 @@ async fn dummy_unexportable_entities() -> UnexportableEntities {
             holder_identifier: None,
             schema: backfill_default_translations(
                 CredentialSchema {
+                    expiration: None,
                     ecosystem: None,
                     batch_size: None,
                     allow_revocation: true,

@@ -1660,7 +1660,7 @@ async fn test_revoke_check_failed_deleted_credential() {
 
 async fn valid_mdoc_credential() -> SerializedCredential {
     let params = json!({
-        "msoExpiresInSeconds": 86_400,
+        "expirationSeconds": 86_400,
         "msoExpectedUpdateInSeconds": 300,
         "msoMinimumRefreshSeconds": 300,
         "leewaySeconds": 60
@@ -1670,7 +1670,7 @@ async fn valid_mdoc_credential() -> SerializedCredential {
 
 async fn to_be_updated_mdoc_credential() -> SerializedCredential {
     let params = json!({
-        "msoExpiresInSeconds": 86_400,     // not expired
+        "expirationSeconds": 86_400,     // not expired
         "msoExpectedUpdateInSeconds": -10, // ready for update
         "msoMinimumRefreshSeconds": 0, // refresh immediately
         "leewaySeconds": 60
@@ -1680,7 +1680,7 @@ async fn to_be_updated_mdoc_credential() -> SerializedCredential {
 
 async fn expired_mdoc_credential() -> SerializedCredential {
     let params = json!({
-        "msoExpiresInSeconds": -86_400,     // already expired
+        "expirationSeconds": -86_400,     // already expired
         "msoExpectedUpdateInSeconds": -86_400,
         "msoMinimumRefreshSeconds": 0, // refresh immediately
         "leewaySeconds": 60

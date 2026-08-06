@@ -212,6 +212,7 @@ pub(crate) fn extracted_credential_to_model(
     };
 
     Ok(Credential {
+        expires_at: None,
         ecosystem: None,
         id: credential_id,
         created_date: now,
@@ -495,6 +496,7 @@ mod tests {
             &claim_schemas,
             &mappings,
             CredentialSchema {
+                expiration: None,
                 ecosystem: None,
                 batch_size: None,
                 allow_revocation: false,

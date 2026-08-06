@@ -24,6 +24,7 @@ pub struct Credential {
     pub id: CredentialId,
     pub created_date: OffsetDateTime,
     pub issuance_date: Option<OffsetDateTime>,
+    pub expires_at: Option<OffsetDateTime>,
     pub last_modified: OffsetDateTime,
     pub deleted_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
