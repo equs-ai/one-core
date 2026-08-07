@@ -459,6 +459,301 @@ async fn test_check_revocation_batch_parent_becoming_revoked() {
 }
 
 #[tokio::test]
+async fn test_check_revocation_batch_parent_expires_when_all_items_and_refresh_token_expired() {
+    let mut credential_repository = MockCredentialRepository::default();
+    let revocation_method_provider = MockRevocationMethodProvider::default();
+    let formatter_provider = MockCredentialFormatterProvider::default();
+
+    let credential_blob_id = Uuid::new_v4().into();
+    let parent_credential_id = Uuid::new_v4().into();
+    let item_credential_id: CredentialId = Uuid::new_v4().into();
+
+    let refresh_token_expires_at = crate::clock::now_utc() - Duration::hours(1);
+    let interaction_data = serde_json::to_vec(&serde_json::json!({
+        "issuer_url": "https://issuer.example",
+        "credential_endpoint": "https://issuer.example/credential",
+        "credential_configuration_id": "test",
+        "protocol": "OPENID4VCI_DRAFT13",
+        "format": "JWT",
+        "refresh_token_expires_at": refresh_token_expires_at
+            .format(&time::format_description::well_known::Rfc3339)
+            .unwrap(),
+    }))
+    .unwrap();
+
+    let credential = Credential {
+        state: CredentialStateEnum::Accepted,
+        suspend_end_date: None,
+        interaction: Some(crate::model::interaction::Interaction {
+            id: Uuid::new_v4().into(),
+            created_date: crate::clock::now_utc(),
+            last_modified: crate::clock::now_utc(),
+            data: Some(interaction_data),
+            organisation: dummy_organisation(None).into(),
+            nonce_id: None,
+            interaction_type: crate::model::interaction::InteractionType::Issuance,
+            expires_at: None,
+            ecosystem: None,
+            ecosystem_data: None,
+        }),
+        ..generic_credential()
+    };
+    credential_repository
+        .expect_get_credential()
+        .with(eq(parent_credential_id), always())
+        .once()
+        .returning({
+            let mut credential = credential.clone();
+            credential.id = parent_credential_id;
+            credential.r#type = CredentialType::BatchParent;
+            move |_, _| Ok(credential.clone())
+        });
+    credential_repository
+        .expect_get_credential()
+        .with(eq(item_credential_id), always())
+        .once()
+        .returning({
+            let mut credential = credential.clone();
+            credential.id = item_credential_id;
+            credential.r#type = CredentialType::BatchItem;
+            credential.credential_blob_id = Some(credential_blob_id);
+            // the item is itself individually expired
+            credential.expires_at = Some(crate::clock::now_utc() - Duration::days(1));
+            move |_, _| Ok(credential.clone())
+        });
+    credential_repository
+        .expect_get_credential_list()
+        .once()
+        .return_once({
+            let mut credential = credential.clone();
+            credential.id = item_credential_id;
+            credential.r#type = CredentialType::BatchItem;
+            credential.credential_blob_id = Some(credential_blob_id);
+            move |_| {
+                Ok(GetCredentialList {
+                    values: vec![credential],
+                    total_pages: 1,
+                    total_items: 1,
+                })
+            }
+        });
+    // the item transitions to Expired individually (its own business `expires_at` passed), and
+    // since the shared refresh token has also expired, the parent transitions to Expired too
+    credential_repository
+        .expect_update_credential()
+        .once()
+        .with(eq(item_credential_id), always())
+        .withf(|_, request| {
+            matches!(
+                request,
+                UpdateCredentialRequest {
+                    state: Some(CredentialStateEnum::Expired),
+                    ..
+                }
+            )
+        })
+        .returning(|_, _| Ok(()));
+    credential_repository
+        .expect_update_credential()
+        .once()
+        .with(eq(parent_credential_id), always())
+        .withf(|_, request| {
+            matches!(
+                request,
+                UpdateCredentialRequest {
+                    state: Some(CredentialStateEnum::Expired),
+                    ..
+                }
+            )
+        })
+        .returning(|_, _| Ok(()));
+
+    let validity_manager = setup_validity_manager(Repositories {
+        credential_repository,
+        revocation_method_provider,
+        formatter_provider,
+        config: generic_config().core,
+        ..Default::default()
+    });
+
+    let result = validity_manager
+        .check_holder_credential_validity(parent_credential_id, false)
+        .await
+        .unwrap();
+
+    assert_eq!(result.credential_id, parent_credential_id);
+    assert!(result.success);
+    assert_eq!(result.status, CredentialStateEnum::Expired);
+}
+
+#[tokio::test]
+async fn test_check_revocation_batch_parent_stays_valid_when_refresh_token_expired_but_item_valid()
+{
+    let mut credential_repository = MockCredentialRepository::default();
+    let mut revocation_method_provider: MockRevocationMethodProvider =
+        MockRevocationMethodProvider::default();
+    let mut formatter_provider = MockCredentialFormatterProvider::default();
+
+    let mut formatter = MockCredentialFormatter::default();
+
+    let mut revocation_method = MockRevocationMethod::default();
+
+    formatter
+        .expect_extract_credentials_unverified()
+        .returning(|_, _| {
+            Ok(DetailCredential {
+                id: None,
+                issuance_date: None,
+                valid_from: None,
+                valid_until: None,
+                update_at: None,
+                invalid_before: None,
+                issuer: IdentifierDetails::Did("did:example:123".parse().unwrap()),
+                subject: None,
+                claims: CredentialSubject {
+                    claims: Default::default(),
+                    id: None,
+                },
+                status: vec![CredentialStatus {
+                    id: Some("did:status:test".parse().unwrap()),
+                    r#type: "type".to_string(),
+                    status_purpose: Some("purpose".to_string()),
+                    additional_fields: HashMap::default(),
+                }],
+                credential_schema: None,
+            })
+        });
+
+    static REVOCATION_METHOD: LazyLock<RevocationMethodId> = LazyLock::new(|| "mock".into());
+    formatter
+        .expect_revocation_method_id()
+        .returning(|| Some(&*REVOCATION_METHOD));
+
+    // the item itself is still perfectly valid from a revocation-status point of view
+    revocation_method
+        .expect_check_credential_revocation_status()
+        .returning(|_, _, _, _| Ok(RevocationState::Valid));
+
+    let formatter = Arc::new(formatter);
+    formatter_provider
+        .expect_get_credential_formatter()
+        .returning(move |_| Ok(formatter.clone()));
+
+    let revocation_method = Arc::new(revocation_method);
+    revocation_method_provider
+        .expect_get_revocation_method()
+        .with(eq((*REVOCATION_METHOD).clone()))
+        .returning(move |_| Ok(revocation_method.clone()));
+
+    let credential_blob_id = Uuid::new_v4().into();
+    let parent_credential_id = Uuid::new_v4().into();
+    let item_credential_id: CredentialId = Uuid::new_v4().into();
+
+    let refresh_token_expires_at = crate::clock::now_utc() - Duration::hours(1);
+    let interaction_data = serde_json::to_vec(&serde_json::json!({
+        "issuer_url": "https://issuer.example",
+        "credential_endpoint": "https://issuer.example/credential",
+        "credential_configuration_id": "test",
+        "protocol": "OPENID4VCI_DRAFT13",
+        "format": "JWT",
+        "refresh_token_expires_at": refresh_token_expires_at
+            .format(&time::format_description::well_known::Rfc3339)
+            .unwrap(),
+    }))
+    .unwrap();
+
+    let credential = Credential {
+        state: CredentialStateEnum::Accepted,
+        suspend_end_date: None,
+        interaction: Some(crate::model::interaction::Interaction {
+            id: Uuid::new_v4().into(),
+            created_date: crate::clock::now_utc(),
+            last_modified: crate::clock::now_utc(),
+            data: Some(interaction_data),
+            organisation: dummy_organisation(None).into(),
+            nonce_id: None,
+            interaction_type: crate::model::interaction::InteractionType::Issuance,
+            expires_at: None,
+            ecosystem: None,
+            ecosystem_data: None,
+        }),
+        ..generic_credential()
+    };
+    credential_repository
+        .expect_get_credential()
+        .with(eq(parent_credential_id), always())
+        .once()
+        .returning({
+            let mut credential = credential.clone();
+            credential.id = parent_credential_id;
+            credential.r#type = CredentialType::BatchParent;
+            move |_, _| Ok(credential.clone())
+        });
+    credential_repository
+        .expect_get_credential()
+        .with(eq(item_credential_id), always())
+        .once()
+        .returning({
+            let mut credential = credential.clone();
+            credential.id = item_credential_id;
+            credential.r#type = CredentialType::BatchItem;
+            credential.credential_blob_id = Some(credential_blob_id);
+            move |_, _| Ok(credential.clone())
+        });
+    credential_repository
+        .expect_get_credential_list()
+        .once()
+        .return_once({
+            let mut credential = credential.clone();
+            credential.id = item_credential_id;
+            credential.r#type = CredentialType::BatchItem;
+            credential.credential_blob_id = Some(credential_blob_id);
+            move |_| {
+                Ok(GetCredentialList {
+                    values: vec![credential],
+                    total_pages: 1,
+                    total_items: 1,
+                })
+            }
+        });
+    // the item stays Accepted (its own revocation status is Valid); the parent is left
+    // untouched too, since a still-valid item means the batch as a whole isn't expired,
+    // regardless of the refresh token
+    credential_repository.expect_update_credential().never();
+
+    let mut blob_storage_provider = MockBlobStorageProvider::new();
+    blob_storage_provider
+        .expect_get_blob_storage()
+        .return_once(move |_| {
+            let mut blob_storage = MockBlobStorage::new();
+            blob_storage
+                .expect_get()
+                .once()
+                .with(eq(credential_blob_id))
+                .return_once(|_| Ok(Some(dummy_blob())));
+            Ok(Arc::new(blob_storage))
+        });
+
+    let validity_manager = setup_validity_manager(Repositories {
+        credential_repository,
+        revocation_method_provider,
+        formatter_provider,
+        blob_storage_provider,
+        config: generic_config().core,
+        ..Default::default()
+    });
+
+    let result = validity_manager
+        .check_holder_credential_validity(parent_credential_id, false)
+        .await
+        .unwrap();
+
+    assert_eq!(result.credential_id, parent_credential_id);
+    assert!(result.success);
+    assert_eq!(result.status, CredentialStateEnum::Accepted);
+}
+
+#[tokio::test]
 async fn test_check_revocation_batch_item_becoming_revoked() {
     let mut credential_repository = MockCredentialRepository::default();
     let mut revocation_method_provider: MockRevocationMethodProvider =

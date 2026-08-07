@@ -34,6 +34,8 @@ pub struct Filters<'a> {
     pub issuance_date_before: Option<OffsetDateTime>,
     pub revocation_date_after: Option<OffsetDateTime>,
     pub revocation_date_before: Option<OffsetDateTime>,
+    pub expires_at_after: Option<OffsetDateTime>,
+    pub expires_at_before: Option<OffsetDateTime>,
 }
 
 impl<'a> Filters<'a> {
@@ -203,6 +205,12 @@ impl CredentialsApi {
         }
         if let Some(date) = filters.revocation_date_before {
             url += &format!("&{}", query_time_urlencoded("revocationDateBefore", date));
+        }
+        if let Some(date) = filters.expires_at_after {
+            url += &format!("&{}", query_time_urlencoded("expiresAtAfter", date));
+        }
+        if let Some(date) = filters.expires_at_before {
+            url += &format!("&{}", query_time_urlencoded("expiresAtBefore", date));
         }
 
         if let Some(include) = include {

@@ -77,6 +77,36 @@ async fn test_share_credential_failed_deleted_credential() {
 }
 
 #[tokio::test]
+async fn test_share_credential_fails_when_expired() {
+    // GIVEN
+    let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test", &organisation, Default::default())
+        .await;
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Expired,
+            &identifier,
+            "OPENID4VCI_FINAL1",
+            TestingCredentialParams::default(),
+        )
+        .await;
+
+    // WHEN
+    let resp = context.api.credentials.share(&credential.id).await;
+
+    // THEN - same error as sharing an already REVOKED credential (invalid state)
+    assert_eq!(resp.status(), 400);
+    let resp = resp.json_value().await;
+    assert_eq!(resp["code"], "BR_0002");
+}
+
+#[tokio::test]
 async fn test_share_credential_with_tx_code() {
     // GIVEN
     let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;

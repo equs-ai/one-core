@@ -904,6 +904,8 @@ impl TryFrom<CredentialListQueryBindingDTO>
                 issuance_date_before: into_timestamp_opt(value.issuance_date_before)?,
                 revocation_date_after: into_timestamp_opt(value.revocation_date_after)?,
                 revocation_date_before: into_timestamp_opt(value.revocation_date_before)?,
+                expires_at_after: None,
+                expires_at_before: None,
             },
             include: convert_inner_of_inner(value.include),
         })

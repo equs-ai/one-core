@@ -28,6 +28,7 @@ pub struct CredentialListItemResponseDTO {
     pub created_date: OffsetDateTime,
     pub issuance_date: Option<OffsetDateTime>,
     pub revocation_date: Option<OffsetDateTime>,
+    pub expires_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
     pub state: CredentialStateEnum,
     pub r#type: CredentialTypeEnum,
@@ -54,6 +55,8 @@ pub struct CredentialDetailResponseDTO<T> {
     pub issuance_date: Option<OffsetDateTime>,
     #[serde(with = "time::serde::rfc3339::option")]
     pub revocation_date: Option<OffsetDateTime>,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub expires_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
     pub state: CredentialStateEnum,
     pub r#type: CredentialTypeEnum,
@@ -187,6 +190,7 @@ pub enum CredentialStateEnum {
     Suspended,
     Error,
     InteractionExpired,
+    Expired,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize, Into, From)]
@@ -229,6 +233,8 @@ pub struct CredentialFilterParamsDTO {
     pub issuance_date_before: Option<OffsetDateTime>,
     pub revocation_date_after: Option<OffsetDateTime>,
     pub revocation_date_before: Option<OffsetDateTime>,
+    pub expires_at_after: Option<OffsetDateTime>,
+    pub expires_at_before: Option<OffsetDateTime>,
 }
 
 pub type GetCredentialListResponseDTO = GetListResponse<CredentialListItemResponseDTO>;

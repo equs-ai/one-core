@@ -17,6 +17,7 @@ impl<IN, OUT: From<IN>> TryFrom<CredentialDetailResponseDTO<IN>>
             created_date: value.created_date,
             issuance_date: value.issuance_date,
             revocation_date: value.revocation_date,
+            expires_at: value.expires_at,
             consumed_at: value.consumed_at,
             state: value.state.into(),
             r#type: value.r#type.into(),

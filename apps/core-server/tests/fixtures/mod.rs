@@ -919,6 +919,7 @@ pub struct TestingCredentialParams {
     pub holder_identifier: Option<Identifier>,
     pub interaction: Option<Interaction>,
     pub deleted_at: Option<OffsetDateTime>,
+    pub expires_at: Option<OffsetDateTime>,
     pub consumed_at: Option<OffsetDateTime>,
     pub role: Option<CredentialRole>,
     pub r#type: Option<CredentialType>,
@@ -967,7 +968,7 @@ pub async fn create_credential(
         .collect();
 
     let credential = Credential {
-        expires_at: None,
+        expires_at: params.expires_at,
         ecosystem: None,
         id: credential_id,
         created_date: get_dummy_date(),

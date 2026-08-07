@@ -279,3 +279,74 @@ async fn test_revoke_credential_deleted() {
     // THEN
     assert_eq!(resp.status(), 404);
 }
+
+#[tokio::test]
+async fn test_revoke_credential_fails_when_expired() {
+    // GIVEN
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
+    let key = context
+        .db
+        .keys
+        .create(&organisation, eddsa_testing_params())
+        .await;
+    let issuer_did = context
+        .db
+        .dids
+        .create(
+            organisation.clone(),
+            TestingDidParams {
+                did: Some(
+                    DidValue::from_str("did:key:zDnaetpgFTTteRE2RWG8DtbNX6WNWxxgFs627d7z2JVjboM2L")
+                        .unwrap(),
+                ),
+                keys: Some(vec![RelatedKey {
+                    role: KeyRole::AssertionMethod,
+                    key,
+                    reference: "1".to_string(),
+                }]),
+                ..Default::default()
+            },
+        )
+        .await;
+    let identifier = context
+        .db
+        .identifiers
+        .create(
+            &organisation,
+            TestingIdentifierParams {
+                did: Some(issuer_did.clone()),
+                r#type: Some(IdentifierType::Did),
+                is_remote: Some(issuer_did.did_type == DidType::Remote),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test", &organisation, Default::default())
+        .await;
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Expired,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams::default(),
+        )
+        .await;
+
+    // WHEN
+    let resp = context.api.credentials.revoke(&credential.id).await;
+
+    // THEN - same error as revoking an already REVOKED credential (invalid state transition)
+    assert_eq!(resp.status(), 400);
+    let resp = resp.json_value().await;
+    assert_eq!(resp["code"], "BR_0366");
+
+    let credential = context.db.credentials.get(&credential.id).await;
+    assert_eq!(CredentialStateEnum::Expired, credential.state);
+}

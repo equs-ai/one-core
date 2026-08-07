@@ -36,6 +36,7 @@ fn generate_credential_detail_response(
         created_date: now,
         issuance_date: None,
         revocation_date: None,
+        expires_at: None,
         consumed_at: None,
         state: CredentialStateEnum::Created,
         last_modified: now,

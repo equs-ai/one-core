@@ -146,6 +146,9 @@ impl IntoFilterCondition for CredentialFilterValue {
                     .and(credential::Column::State.eq(credential::CredentialState::Revoked))
                     .into_condition()
             }
+            Self::ExpiresAt(value) => {
+                get_comparison_condition(credential::Column::ExpiresAt, value)
+            }
             Self::HasUnconsumedBatchItems(true) => credential::Column::Id
                 .in_subquery(unconsumed_item_select())
                 .into_condition(),

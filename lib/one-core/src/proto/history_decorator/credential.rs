@@ -256,5 +256,6 @@ fn action_from_state(state: CredentialStateEnum) -> HistoryAction {
         CredentialStateEnum::Suspended => HistoryAction::Suspended,
         CredentialStateEnum::Error => HistoryAction::Errored,
         CredentialStateEnum::InteractionExpired => HistoryAction::InteractionExpired,
+        CredentialStateEnum::Expired => HistoryAction::Expired,
     }
 }

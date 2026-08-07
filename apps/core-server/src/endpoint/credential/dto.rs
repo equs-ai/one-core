@@ -52,6 +52,9 @@ pub(crate) struct CredentialListItemResponseRestDTO {
     #[serde(serialize_with = "front_time_option")]
     #[schema(nullable = false, example = "2023-06-09T14:19:57.000Z")]
     pub consumed_at: Option<OffsetDateTime>,
+    #[serde(serialize_with = "front_time_option")]
+    #[schema(nullable = false, example = "2023-06-09T14:19:57.000Z")]
+    pub expires_at: Option<OffsetDateTime>,
     pub state: CredentialStateRestEnum,
     pub r#type: CredentialTypeRestEnum,
     pub parent_id: Option<CredentialId>,
@@ -106,6 +109,10 @@ pub(crate) struct GetCredentialResponseRestDTO<TClaim> {
     #[serde(serialize_with = "front_time_option")]
     #[schema(nullable = false, example = "2023-06-09T14:19:57.000Z")]
     pub revocation_date: Option<OffsetDateTime>,
+
+    #[serde(serialize_with = "front_time_option")]
+    #[schema(nullable = false, example = "2023-06-09T14:19:57.000Z")]
+    pub expires_at: Option<OffsetDateTime>,
     pub state: CredentialStateRestEnum,
 
     #[serde(serialize_with = "front_time")]
@@ -292,6 +299,7 @@ pub(crate) enum CredentialStateRestEnum {
     Revoked,
     Error,
     InteractionExpired,
+    Expired,
 }
 
 /// The type representation of the credential in the system.
@@ -423,6 +431,18 @@ pub(crate) struct CredentialsFilterQueryParamsRest {
     #[param(nullable = false)]
     #[try_into(infallible)]
     pub revocation_date_before: Option<OffsetDateTime>,
+    /// Return only credentials with an expiration after this time.
+    /// Timestamp in RFC3339 format (e.g. '2023-06-09T14:19:57.000Z').
+    #[serde(default, deserialize_with = "deserialize_timestamp")]
+    #[param(nullable = false)]
+    #[try_into(infallible)]
+    pub expires_at_after: Option<OffsetDateTime>,
+    /// Return only credentials with an expiration before this time.
+    /// Timestamp in RFC3339 format (e.g. '2023-06-09T14:19:57.000Z').
+    #[serde(default, deserialize_with = "deserialize_timestamp")]
+    #[param(nullable = false)]
+    #[try_into(infallible)]
+    pub expires_at_before: Option<OffsetDateTime>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, ToSchema, Into)]

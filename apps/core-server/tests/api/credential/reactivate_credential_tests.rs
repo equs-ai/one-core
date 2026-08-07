@@ -77,3 +77,36 @@ async fn test_reactivate_credential_with_bitstring_status_list_success() {
         RevocationListEntryState::Active
     );
 }
+
+#[tokio::test]
+async fn test_reactivate_credential_fails_when_expired() {
+    // GIVEN
+    let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test", &organisation, Default::default())
+        .await;
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Expired,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams::default(),
+        )
+        .await;
+
+    // WHEN
+    let resp = context.api.credentials.reactivate(&credential.id).await;
+
+    // THEN - same error as reactivating a REVOKED credential (invalid state transition)
+    assert_eq!(resp.status(), 400);
+    let resp = resp.json_value().await;
+    assert_eq!(resp["code"], "BR_0366");
+
+    let credential = context.db.credentials.get(&credential.id).await;
+    assert_eq!(CredentialStateEnum::Expired, credential.state);
+}

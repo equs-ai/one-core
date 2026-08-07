@@ -361,6 +361,7 @@ fn map_to_filtered_dto(
         created_date: full_dto.created_date,
         issuance_date: full_dto.issuance_date,
         revocation_date: full_dto.revocation_date,
+        expires_at: full_dto.expires_at,
         consumed_at: full_dto.consumed_at,
         state: full_dto.state,
         last_modified: full_dto.last_modified,

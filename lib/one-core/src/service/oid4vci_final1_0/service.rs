@@ -18,7 +18,7 @@ use standardized_types::openid4vci::{
     CredentialOffer, CredentialRequest, CredentialResponse, CredentialResponseEntry, NonceResponse,
     NotificationEvent, NotificationRequest, Proofs,
 };
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use super::OID4VCIFinal1_0Service;
@@ -674,6 +674,11 @@ impl OID4VCIFinal1_0Service {
 
         let issuance_protocol = self.protocol_provider.get_protocol(&credential.protocol)?;
 
+        let credential_schema = credential.schema.as_ref().await?;
+        let expires_at = credential_schema
+            .expiration
+            .map(|expiration| crate::clock::now_utc() + expiration);
+
         let credentials = match credential.r#type {
             CredentialType::Single => {
                 let holder_identifier = holder_identifiers
@@ -703,6 +708,7 @@ impl OID4VCIFinal1_0Service {
                                 UpdateCredentialRequest {
                                     state: Some(CredentialStateEnum::Accepted),
                                     issuance_date: Some(crate::clock::now_utc()),
+                                    expires_at,
                                     ..Default::default()
                                 },
                             )
@@ -716,6 +722,7 @@ impl OID4VCIFinal1_0Service {
                             batch_item_id,
                             format.id,
                             issuance_protocol.as_ref(),
+                            expires_at,
                         )
                         .await?,
                     ]
@@ -727,6 +734,7 @@ impl OID4VCIFinal1_0Service {
                             credential.id,
                             format.id,
                             issuance_protocol.as_ref(),
+                            expires_at,
                         )
                         .await?,
                     ]
@@ -750,6 +758,7 @@ impl OID4VCIFinal1_0Service {
                             batch_item_id,
                             format.id,
                             issuance_protocol.as_ref(),
+                            expires_at,
                         )
                         .await?,
                     );
@@ -762,6 +771,7 @@ impl OID4VCIFinal1_0Service {
                             UpdateCredentialRequest {
                                 state: Some(CredentialStateEnum::Accepted),
                                 issuance_date: Some(crate::clock::now_utc()),
+                                expires_at,
                                 ..Default::default()
                             },
                         )
@@ -818,6 +828,7 @@ impl OID4VCIFinal1_0Service {
         credential_id: CredentialId,
         format_id: CredentialSchemaFormatId,
         issuance_protocol: &dyn IssuanceProtocol,
+        expires_at: Option<OffsetDateTime>,
     ) -> Result<CredentialResponseEntry, OID4VCIFinal1_0ServiceError> {
         let wua_blob_id = if let Some(attestation) = holder_identifier.key_attestation {
             let blob_storage = self
@@ -852,6 +863,7 @@ impl OID4VCIFinal1_0Service {
                 credential_id,
                 UpdateCredentialRequest {
                     issuance_date: Some(crate::clock::now_utc()),
+                    expires_at,
                     holder_identifier_id: Some(holder_identifier_id),
                     wallet_unit_attestation_blob_id: wua_blob_id,
                     ..Default::default()

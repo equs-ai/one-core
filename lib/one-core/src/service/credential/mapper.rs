@@ -164,6 +164,7 @@ pub(crate) async fn credential_detail_response_from_model(
         created_date: value.created_date,
         issuance_date: value.issuance_date,
         revocation_date: get_revocation_date(&state, &value.last_modified),
+        expires_at: value.expires_at,
         consumed_at: value.consumed_at,
         state: state.into(),
         last_modified: value.last_modified,
@@ -437,6 +438,7 @@ pub(super) async fn to_credential_list_response(
         created_date: credential.created_date,
         issuance_date: credential.issuance_date,
         revocation_date: get_revocation_date(&credential.state, &credential.last_modified),
+        expires_at: credential.expires_at,
         consumed_at: credential.consumed_at,
         state: credential.state.into(),
         last_modified: credential.last_modified,
@@ -847,6 +849,19 @@ impl From<CredentialFilterParamsDTO> for ListFilterCondition<CredentialFilterVal
             })
         });
 
+        let expires_at_after = value.expires_at_after.map(|date| {
+            CredentialFilterValue::ExpiresAt(ValueComparison {
+                comparison: ComparisonType::GreaterThanOrEqual,
+                value: date,
+            })
+        });
+        let expires_at_before = value.expires_at_before.map(|date| {
+            CredentialFilterValue::ExpiresAt(ValueComparison {
+                comparison: ComparisonType::LessThanOrEqual,
+                value: date,
+            })
+        });
+
         search_filters
             & name
             & roles
@@ -866,6 +881,8 @@ impl From<CredentialFilterParamsDTO> for ListFilterCondition<CredentialFilterVal
             & revocation_date_after
             & revocation_date_before
             & CredentialFilterValue::Deleted(false)
+            & expires_at_after
+            & expires_at_before
     }
 }
 

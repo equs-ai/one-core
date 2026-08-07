@@ -188,4 +188,6 @@ pub enum CredentialState {
     Error,
     #[sea_orm(string_value = "INTERACTION_EXPIRED")]
     InteractionExpired,
+    #[sea_orm(string_value = "EXPIRED")]
+    Expired,
 }

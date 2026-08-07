@@ -15,6 +15,7 @@ use crate::model::credential::{
 };
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
+use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
 use crate::proto::session_provider::SessionProvider;
@@ -22,6 +23,8 @@ use crate::proto::transaction_manager::TransactionManager;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::credential_formatter::model::{CertificateDetails, IdentifierDetails};
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
+use crate::provider::issuance_protocol::deserialize_interaction_data;
+use crate::provider::issuance_protocol::openid4vci_final1_0::model::HolderInteractionData;
 use crate::provider::issuance_protocol::provider::IssuanceProtocolProvider;
 use crate::provider::revocation::RevocationMethod;
 use crate::provider::revocation::mapper::revocation_state_from_credential_state;
@@ -208,6 +211,32 @@ impl CredentialValidityManagerImpl {
             return Ok((result, None));
         }
 
+        if credential
+            .expires_at
+            .is_some_and(|expires_at| expires_at < crate::clock::now_utc())
+        {
+            self.credential_repository
+                .update_credential(
+                    credential.id,
+                    UpdateCredentialRequest {
+                        state: Some(CredentialStateEnum::Expired),
+                        ..Default::default()
+                    },
+                )
+                .await
+                .error_while("updating credential")?;
+
+            return Ok((
+                CredentialValidityCheckResult {
+                    credential_id: credential.id,
+                    status: CredentialStateEnum::Expired,
+                    success: true,
+                    reason: None,
+                },
+                None,
+            ));
+        }
+
         let Some(credential_blob_id) = credential.credential_blob_id else {
             return Err(Error::MappingError("no credential blob_id".to_string()));
         };
@@ -307,7 +336,7 @@ impl CredentialValidityManagerImpl {
                 }
                 Ok(state) => match state {
                     RevocationState::Valid => {}
-                    RevocationState::Revoked => {
+                    RevocationState::Revoked | RevocationState::Expired => {
                         worst_revocation_state = state;
                         break;
                     }
@@ -387,6 +416,57 @@ impl CredentialValidityManagerImpl {
         }
 
         Ok(())
+    }
+
+    /// Aggregates per-item states into the batch parent's state. A batch parent is only ever
+    /// EXPIRED once every item has individually expired *and* the shared OAuth refresh token has
+    /// also expired (so the batch can no longer be renewed either). If any item is still valid,
+    /// the parent stays valid regardless of the refresh token; conversely, if the refresh token
+    /// is still valid, an all-expired batch can still be renewed, so the parent's state is left
+    /// as-is rather than guessed.
+    async fn finalize_batch_parent_state(
+        &self,
+        parent: &Credential,
+        interaction: Option<&Interaction>,
+        item_revocation_states: &[RevocationState],
+    ) -> Result<CredentialStateEnum, Error> {
+        if item_revocation_states.is_empty() {
+            if self.batch_refresh_token_expired(interaction)? {
+                if parent.state != CredentialStateEnum::Expired {
+                    self.credential_repository
+                        .update_credential(
+                            parent.id,
+                            UpdateCredentialRequest {
+                                state: Some(CredentialStateEnum::Expired),
+                                ..Default::default()
+                            },
+                        )
+                        .await
+                        .error_while("updating batch parent credential")?;
+                }
+                return Ok(CredentialStateEnum::Expired);
+            }
+            return Ok(parent.state);
+        }
+
+        self.update_batch_parent_state(parent, item_revocation_states)
+            .await?;
+        Ok(get_best_state(item_revocation_states).into())
+    }
+
+    fn batch_refresh_token_expired(
+        &self,
+        interaction: Option<&Interaction>,
+    ) -> Result<bool, Error> {
+        let Some(interaction) = interaction else {
+            return Ok(false);
+        };
+        let data: HolderInteractionData = deserialize_interaction_data(interaction.data.as_ref())
+            .error_while("parsing holder interaction data")?;
+
+        Ok(data
+            .refresh_token_expires_at
+            .is_some_and(|expires_at| expires_at < crate::clock::now_utc()))
     }
 }
 
@@ -690,18 +770,25 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                         });
                     }
 
-                    item_states.push(
-                        revocation_state_from_credential_state(result.status, suspend_end_date)
-                            .error_while("parsing status")?,
-                    );
+                    if result.status != CredentialStateEnum::Expired {
+                        item_states.push(
+                            revocation_state_from_credential_state(result.status, suspend_end_date)
+                                .error_while("parsing status")?,
+                        );
+                    }
                 }
 
-                self.update_batch_parent_state(&credential, &item_states)
+                let status = self
+                    .finalize_batch_parent_state(
+                        &credential,
+                        credential.interaction.as_ref(),
+                        &item_states,
+                    )
                     .await?;
 
                 Ok(CredentialValidityCheckResult {
                     credential_id: credential.id,
-                    status: get_best_state(&item_states).into(),
+                    status,
                     success: true,
                     reason: None,
                 })
@@ -738,15 +825,20 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                             .values;
 
                         let item_states = batch_items
-                            .into_iter()
+                            .iter()
+                            .filter(|c| c.state != CredentialStateEnum::Expired)
                             .map(|c| {
                                 revocation_state_from_credential_state(c.state, c.suspend_end_date)
                             })
                             .collect::<Result<Vec<_>, _>>()
                             .error_while("getting batch items states")?;
 
-                        self.update_batch_parent_state(&parent, &item_states)
-                            .await?;
+                        self.finalize_batch_parent_state(
+                            &parent,
+                            credential.interaction.as_ref(),
+                            &item_states,
+                        )
+                        .await?;
                     }
                 }
 
@@ -813,6 +905,7 @@ fn validate_state_transition(
         ],
         RevocationState::Valid => &[CredentialStateEnum::Suspended],
         RevocationState::Suspended { .. } => &[CredentialStateEnum::Accepted],
+        RevocationState::Expired => &[],
     };
     if !valid_states.contains(&current_state) {
         return Err(Error::InvalidCredentialStateTransition {
@@ -837,6 +930,15 @@ fn check_invalid_or_terminal_state(
             Some(CredentialValidityCheckResult {
                 credential_id: credential.id,
                 status: CredentialStateEnum::Revoked,
+                success: true,
+                reason: None,
+            })
+        }
+        CredentialStateEnum::Expired => {
+            // credential already expired, no need to check further (refresh is not possible)
+            Some(CredentialValidityCheckResult {
+                credential_id: credential.id,
+                status: CredentialStateEnum::Expired,
                 success: true,
                 reason: None,
             })
@@ -881,7 +983,7 @@ fn get_best_state(states: &[RevocationState]) -> RevocationState {
                     *state
                 };
             }
-            RevocationState::Revoked => {
+            RevocationState::Revoked | RevocationState::Expired => {
                 // try next
             }
         };

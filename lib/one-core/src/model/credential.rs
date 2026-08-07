@@ -71,6 +71,7 @@ pub enum CredentialStateEnum {
     Suspended,
     Error,
     InteractionExpired,
+    Expired,
 }
 
 #[derive(Clone, Debug)]
@@ -96,6 +97,7 @@ pub struct UpdateCredentialRequest {
     pub key: Option<KeyId>,
     pub redirect_uri: Option<Option<String>>,
     pub state: Option<CredentialStateEnum>,
+    pub expires_at: Option<OffsetDateTime>,
     pub suspend_end_date: Clearable<Option<OffsetDateTime>>,
     pub consumed_at: Clearable<Option<OffsetDateTime>>,
     pub wallet_unit_attestation_blob_id: Option<BlobId>,
@@ -147,6 +149,7 @@ pub enum CredentialFilterValue {
     LastModified(ValueComparison<OffsetDateTime>),
     IssuanceDate(ValueComparison<OffsetDateTime>),
     RevocationDate(ValueComparison<OffsetDateTime>),
+    ExpiresAt(ValueComparison<OffsetDateTime>),
     HasUnconsumedBatchItems(bool),
     Deleted(bool),
 }

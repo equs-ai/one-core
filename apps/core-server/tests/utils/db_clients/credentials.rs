@@ -178,7 +178,7 @@ impl CredentialsDB {
         };
 
         Credential {
-            expires_at: None,
+            expires_at: params.expires_at,
             ecosystem: None,
             id: credential_id,
             created_date: get_dummy_date(),

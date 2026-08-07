@@ -8,6 +8,8 @@ use one_core::model::history::{
 use one_core::service::credential::dto::WalletInstanceAttestationDTO;
 use similar_asserts::assert_eq;
 use sql_data_provider::test_utilities::get_dummy_date;
+use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 use uuid::Uuid;
 
 use crate::fixtures::{ClaimData, TestingCredentialParams};
@@ -70,6 +72,7 @@ async fn test_get_credential_success() {
     assert_eq!(resp["schema"]["name"], "test");
     assert_eq!(resp["schema"]["translations"]["name"]["en"], "test");
     assert!(resp["revocationDate"].is_null());
+    assert!(resp["expiresAt"].is_null());
     assert_eq!(resp["state"], "CREATED");
     assert_eq!(resp["role"], "ISSUER");
     assert_eq!(resp["protocol"], "OPENID4VCI_DRAFT13");
@@ -198,6 +201,7 @@ async fn test_get_credential_certificate_identifier_success() {
     resp["schema"]["organisationId"].assert_eq(&organisation.id);
     assert_eq!(resp["schema"]["name"], "test");
     assert!(resp["revocationDate"].is_null());
+    assert!(resp["expiresAt"].is_null());
     assert_eq!(resp["state"], "CREATED");
     assert_eq!(resp["role"], "ISSUER");
     assert_eq!(resp["protocol"], "OPENID4VCI_DRAFT13");
@@ -378,4 +382,42 @@ async fn test_get_credential_success_batch() {
         resp["parentId"].as_str().unwrap(),
         parent_credential.id.to_string()
     );
+}
+
+#[tokio::test]
+async fn test_get_credential_with_expires_at() {
+    // GIVEN
+    let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test", &organisation, Default::default())
+        .await;
+
+    let expires_at = get_dummy_date();
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Accepted,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams {
+                expires_at: Some(expires_at),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // WHEN
+    let resp = context.api.credentials.get(&credential.id).await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let resp = resp.json_value().await;
+    resp["id"].assert_eq(&credential.id);
+    let returned_expires_at =
+        OffsetDateTime::parse(resp["expiresAt"].as_str().unwrap(), &Rfc3339).unwrap();
+    assert_eq!(returned_expires_at, expires_at);
 }

@@ -10,6 +10,7 @@ impl From<RevocationState> for CredentialStateEnum {
             RevocationState::Valid => CredentialStateEnum::Accepted,
             RevocationState::Revoked => CredentialStateEnum::Revoked,
             RevocationState::Suspended { .. } => CredentialStateEnum::Suspended,
+            RevocationState::Expired => CredentialStateEnum::Expired,
         }
     }
 }
@@ -22,6 +23,7 @@ pub(crate) fn revocation_state_from_credential_state(
         CredentialStateEnum::Accepted => RevocationState::Valid,
         CredentialStateEnum::Revoked => RevocationState::Revoked,
         CredentialStateEnum::Suspended => RevocationState::Suspended { suspend_end_date },
+        CredentialStateEnum::Expired => RevocationState::Expired,
         state => {
             return Err(RevocationError::MappingError(format!(
                 "Invalid credential state: {state}"

@@ -6,8 +6,10 @@ use one_core::model::credential::{
 use one_core::model::identifier::IdentifierType;
 use shared_types::CredentialId;
 use similar_asserts::assert_eq;
-use time::Duration;
+use sql_data_provider::test_utilities::get_dummy_date;
+use time::format_description::well_known::Rfc3339;
 use time::macros::datetime;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::fixtures::{ClaimData, TestingCredentialParams, TestingIdentifierParams};
@@ -59,7 +61,8 @@ async fn test_get_list_credential_success() {
     assert_eq!(resp["totalPages"], 2);
     assert_eq!(resp["values"].as_array().unwrap().len(), 8);
     assert!(resp["values"][0]["schema"]["layoutProperties"].is_null());
-    assert_eq!(resp["values"][0]["protocol"], "OPENID4VCI_DRAFT13")
+    assert_eq!(resp["values"][0]["protocol"], "OPENID4VCI_DRAFT13");
+    assert!(resp["values"][0]["expiresAt"].is_null());
 }
 
 #[tokio::test]
@@ -1130,6 +1133,78 @@ async fn test_get_list_credential_filter_by_date() {
         credentials["values"][0]["id"],
         revoked_credential.id.to_string()
     );
+}
+
+#[tokio::test]
+async fn test_get_list_credential_filter_by_expires_at() {
+    // GIVEN
+    let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test", &organisation, Default::default())
+        .await;
+
+    let pivot_date = get_dummy_date();
+
+    let expiring_credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Accepted,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams {
+                expires_at: Some(pivot_date),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let _non_expiring_credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Accepted,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            Default::default(),
+        )
+        .await;
+
+    // WHEN
+    let resp = context
+        .api
+        .credentials
+        .list(
+            0,
+            10,
+            &organisation.id,
+            Filters {
+                expires_at_after: Some(pivot_date - Duration::seconds(20)),
+                expires_at_before: Some(pivot_date + Duration::seconds(20)),
+                ..Default::default()
+            },
+            None,
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let credentials = resp.json_value().await;
+    assert_eq!(credentials["totalItems"], 1);
+    assert_eq!(
+        credentials["values"][0]["id"],
+        expiring_credential.id.to_string()
+    );
+    let returned_expires_at = OffsetDateTime::parse(
+        credentials["values"][0]["expiresAt"].as_str().unwrap(),
+        &Rfc3339,
+    )
+    .unwrap();
+    assert_eq!(returned_expires_at, pivot_date);
 }
 
 #[tokio::test]

@@ -202,3 +202,37 @@ async fn test_suspend_credential_fails_credential_deleted() {
     // THEN
     assert_eq!(resp.status(), 404);
 }
+
+#[tokio::test]
+async fn test_suspend_credential_fails_when_expired() {
+    // GIVEN
+    let (context, organisation, _issuer_did, identifier, ..) =
+        TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test", &organisation, Default::default())
+        .await;
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Expired,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams::default(),
+        )
+        .await;
+
+    // WHEN
+    let resp = context.api.credentials.suspend(&credential.id, None).await;
+
+    // THEN - same error as suspending an already REVOKED credential (invalid state transition)
+    assert_eq!(resp.status(), 400);
+    let resp = resp.json_value().await;
+    assert_eq!(resp["code"], "BR_0366");
+
+    let credential = context.db.credentials.get(&credential.id).await;
+    assert_eq!(CredentialStateEnum::Expired, credential.state);
+}

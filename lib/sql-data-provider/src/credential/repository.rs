@@ -470,6 +470,11 @@ impl CredentialRepository for CredentialProvider {
             Some(issuance_date) => Set(issuance_date.into()),
         };
 
+        let expires_at = match request.expires_at {
+            None => Unchanged(Default::default()),
+            Some(expires_at) => Set(Some(expires_at)),
+        };
+
         let wallet_unit_attestation_blob_id = match request.wallet_unit_attestation_blob_id {
             None => Unchanged(Default::default()),
             Some(blob_id) => Set(Some(blob_id)),
@@ -485,6 +490,7 @@ impl CredentialRepository for CredentialProvider {
             id: Unchanged(credential_id),
             last_modified: Set(one_core::clock::now_utc()),
             issuance_date,
+            expires_at,
             holder_identifier_id,
             issuer_identifier_id,
             issuer_certificate_id,
