@@ -1,5 +1,7 @@
 app:
   insecureVcApiEndpointsEnabled: true
+  hideErrorResponseCause: false
+
 walletProvider:
   PROCIVIS_ONE:
     params:

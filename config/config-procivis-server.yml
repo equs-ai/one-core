@@ -7,7 +7,7 @@ app:
   traceLevel: "debug,hyper=error,h2=error,sea_orm=info,sqlx::query=error,reqwest=error"
   sentryDsn: ""
   sentryEnvironment: ""
-  hideErrorResponseCause: false
+  hideErrorResponseCause: true
   insecureVcApiEndpointsEnabled: false
   enableMetrics: true
   enableExternalEndpoints: true
