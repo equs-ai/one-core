@@ -77,6 +77,7 @@ pub struct CreateSchemaV2Params {
     pub transaction_code: Option<CredentialSchemaTransactionCodeRequestRestDTO>,
     pub translations: Option<serde_json::Value>,
     pub embedded_disclosure_policy: Option<serde_json::Value>,
+    pub expiration: Option<i64>,
 }
 
 impl CreateSchemaParams {
@@ -241,6 +242,7 @@ impl CredentialSchemasApi {
             "batchSize": params.batch_size,
             "allowSuspension": params.allow_suspension,
             "allowRevocation": params.allow_revocation,
+            "expiration": params.expiration,
         });
         let mut body = body;
         if let Some(transaction_code) = params.transaction_code {

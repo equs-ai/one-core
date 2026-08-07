@@ -260,6 +260,7 @@ pub(crate) async fn schema_to_detail_v1_response_dto(
         requires_wallet_instance_attestation: value.requires_wallet_instance_attestation,
         transaction_code: convert_inner(value.transaction_code),
         dcql,
+        expiration: value.expiration,
     })
 }
 
@@ -361,6 +362,7 @@ pub(crate) async fn schema_to_detail_v2_response_dto(
         requires_wallet_instance_attestation: value.requires_wallet_instance_attestation,
         transaction_code: convert_inner(value.transaction_code),
         embedded_disclosure_policy,
+        expiration: value.expiration,
     })
 }
 
@@ -539,7 +541,7 @@ pub(super) fn from_create_v2_request_with_id(
         }
         .into(),
         embedded_disclosure_policy,
-        expiration: None,
+        expiration: request.expiration,
     })
 }
 
@@ -742,6 +744,7 @@ pub(crate) async fn to_credential_schema_list_v2_response(
         batch_size: credential_schema.batch_size,
         requires_wallet_instance_attestation: credential_schema
             .requires_wallet_instance_attestation,
+        expiration: credential_schema.expiration,
     })
 }
 
@@ -1121,6 +1124,19 @@ impl From<CredentialSchemaV2FilterParamsDTO> for ListFilterCondition<CredentialS
 
         let schema_ids = value.schema_ids.map(CredentialSchemaFilterValue::SchemaIds);
 
+        let expiration_greater_than = value.expiration_greater_than.map(|expiration| {
+            CredentialSchemaFilterValue::Expiration(ValueComparison {
+                comparison: ComparisonType::GreaterThan,
+                value: expiration.whole_seconds(),
+            })
+        });
+        let expiration_less_than = value.expiration_less_than.map(|expiration| {
+            CredentialSchemaFilterValue::Expiration(ValueComparison {
+                comparison: ComparisonType::LessThan,
+                value: expiration.whole_seconds(),
+            })
+        });
+
         organisation_id
             & name
             & schema_ids
@@ -1134,5 +1150,7 @@ impl From<CredentialSchemaV2FilterParamsDTO> for ListFilterCondition<CredentialS
             & last_modified_before
             & uses_batch_issuance
             & is_multiformat_schema
+            & expiration_greater_than
+            & expiration_less_than
     }
 }

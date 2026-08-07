@@ -142,6 +142,59 @@ async fn test_get_credential_schema_v2_created_via_v2_endpoint() {
 }
 
 #[tokio::test]
+async fn test_get_credential_schema_v2_with_expiration() {
+    // GIVEN
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
+
+    let create_resp = context
+        .api
+        .credential_schemas
+        .create_v2(CreateSchemaV2Params {
+            name: "schema with expiration".into(),
+            organisation_id: organisation.id.into(),
+            formats: vec![serde_json::json!({ "format": "JWT" })],
+            claims: default_claims(),
+            expiration: Some(63072000),
+            ..Default::default()
+        })
+        .await;
+    assert_eq!(create_resp.status(), 201);
+    let create_resp = create_resp.json_value().await;
+    let id = create_resp["id"].parse::<Uuid>();
+
+    // WHEN
+    let resp = context.api.credential_schemas.get_v2(&id).await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let resp = resp.json_value().await;
+    assert_eq!(resp["expiration"], 63072000);
+}
+
+#[tokio::test]
+async fn test_get_credential_schema_v2_without_expiration() {
+    // GIVEN
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create("test schema", &organisation, Default::default())
+        .await;
+
+    // WHEN
+    let resp = context
+        .api
+        .credential_schemas
+        .get_v2(&credential_schema.id)
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let resp = resp.json_value().await;
+    assert!(resp["expiration"].is_null());
+}
+
+#[tokio::test]
 async fn test_get_credential_schema_v2_multiple_formats() {
     // GIVEN
     let (context, organisation) = TestContext::new_with_organisation(None).await;

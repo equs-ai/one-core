@@ -69,6 +69,9 @@ impl IntoFilterCondition for CredentialSchemaFilterValue {
             Self::LastModified(value) => {
                 get_comparison_condition(credential_schema::Column::LastModified, value)
             }
+            Self::Expiration(value) => {
+                get_comparison_condition(credential_schema::Column::Expiration, value)
+            }
             Self::RequiresWalletInstanceAttestation(requires_wia) => get_equals_condition(
                 credential_schema::Column::RequiresWalletInstanceAttestation,
                 requires_wia,

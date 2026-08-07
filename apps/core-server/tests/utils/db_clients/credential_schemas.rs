@@ -16,7 +16,7 @@ use one_core::repository::error::DataLayerError;
 use one_core::service::credential_schema::dto::CredentialSchemaListIncludeEntityTypeEnum;
 use shared_types::{ClaimSchemaId, CredentialFormat, CredentialSchemaId};
 use sql_data_provider::test_utilities::get_dummy_date;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 #[derive(Debug, Default, Clone)]
@@ -35,6 +35,7 @@ pub struct TestingCreateSchemaParams {
     pub batch_size: Option<i32>,
     pub claim_mappings: Option<HashMap<String, String>>,
     pub embedded_disclosure_policy: Option<String>,
+    pub expiration: Option<Duration>,
 }
 
 fn claim_name_translation(id: ClaimSchemaId, key: &str) -> LocalizedText {
@@ -127,7 +128,7 @@ impl CredentialSchemasDB {
 
         let id = params.id.unwrap_or(Uuid::new_v4().into());
         let mut credential_schema = CredentialSchema {
-            expiration: None,
+            expiration: params.expiration,
             ecosystem: None,
             batch_size: params.batch_size,
             allow_revocation: params.allow_revocation.unwrap_or(true),

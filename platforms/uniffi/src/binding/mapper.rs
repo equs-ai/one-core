@@ -967,6 +967,8 @@ impl TryFrom<CredentialSchemaListQueryBindingDTO>
                 last_modified_before: into_timestamp_opt(value.last_modified_before)?,
                 uses_batch_issuance: value.uses_batch_issuance,
                 is_multiformat_schema: value.is_multiformat_schema,
+                expiration_greater_than: None,
+                expiration_less_than: None,
             },
             include: value
                 .include

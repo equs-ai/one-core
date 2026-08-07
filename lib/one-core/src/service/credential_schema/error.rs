@@ -56,6 +56,8 @@ pub enum CredentialSchemaServiceError {
 
     #[error("Batch size must be at least 2")]
     BatchSizeTooSmall,
+    #[error("Expiration must be greater than 0")]
+    InvalidExpiration,
     #[error(
         "Credential schema mapping for claim with key `{0}`, format `{1}` is not part of schema formats for format"
     )]
@@ -104,6 +106,7 @@ impl ErrorCodeMixin for CredentialSchemaServiceError {
             Self::InvalidTransactionCodeLength => ErrorCode::BR_0338,
             Self::InvalidTransactionCodeDescriptionLength => ErrorCode::BR_0346,
             Self::BatchSizeTooSmall => ErrorCode::BR_0434,
+            Self::InvalidExpiration => ErrorCode::BR_0474,
             Self::MappingFormatNotPartOfFormats(..) => ErrorCode::BR_0437,
             Self::MappingNamespaceMissing(..) => ErrorCode::BR_0438,
             Self::MissingNestedClaims(_) => ErrorCode::BR_0106,

@@ -31,6 +31,7 @@ async fn test_get_list_credential_schema_v2_success() {
         batch_size: Some(10),
         allow_suspension: Some(true),
         allow_revocation: Some(true),
+        expiration: Some(63072000),
         ..Default::default()
     };
     let resp = context.api.credential_schemas.create_v2(params).await;
@@ -55,8 +56,91 @@ async fn test_get_list_credential_schema_v2_success() {
     assert_eq!(value["formats"][0]["format"], "JWT");
     assert_eq!(value["batchSize"], 10);
     assert_eq!(value["allowRevocation"], true);
+    assert_eq!(value["expiration"], 63072000);
     assert!(value["format"].is_null());
     assert!(value["schemaId"].is_null());
+}
+
+#[tokio::test]
+async fn test_get_list_credential_schema_v2_filter_expiration_success() {
+    // GIVEN
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
+
+    context
+        .api
+        .credential_schemas
+        .create_v2(CreateSchemaV2Params {
+            name: "schema-short-expiration".to_string(),
+            organisation_id: organisation.id.into(),
+            formats: vec![json!({"format": "JWT"})],
+            claims: default_claim(),
+            expiration: Some(3600),
+            ..Default::default()
+        })
+        .await;
+
+    context
+        .api
+        .credential_schemas
+        .create_v2(CreateSchemaV2Params {
+            name: "schema-long-expiration".to_string(),
+            organisation_id: organisation.id.into(),
+            formats: vec![json!({"format": "JWT"})],
+            claims: default_claim(),
+            expiration: Some(63072000),
+            ..Default::default()
+        })
+        .await;
+
+    context
+        .api
+        .credential_schemas
+        .create_v2(CreateSchemaV2Params {
+            name: "schema-no-expiration".to_string(),
+            organisation_id: organisation.id.into(),
+            formats: vec![json!({"format": "JWT"})],
+            claims: default_claim(),
+            ..Default::default()
+        })
+        .await;
+
+    // WHEN - filter for expiration greater than 1 hour
+    let resp = context
+        .api
+        .credential_schemas
+        .list_v2(
+            0,
+            10,
+            &organisation.id,
+            None,
+            Some("expirationGreaterThan=3600"),
+        )
+        .await;
+
+    // THEN - only the schema with the 2-year expiration matches
+    assert_eq!(resp.status(), 200);
+    let resp_json = resp.json_value().await;
+    assert_eq!(resp_json["totalItems"], 1);
+    assert_eq!(resp_json["values"][0]["name"], "schema-long-expiration");
+
+    // WHEN - filter for expiration less than 1 day
+    let resp = context
+        .api
+        .credential_schemas
+        .list_v2(
+            0,
+            10,
+            &organisation.id,
+            None,
+            Some("expirationLessThan=86400"),
+        )
+        .await;
+
+    // THEN - only the schema with the 1-hour expiration matches
+    assert_eq!(resp.status(), 200);
+    let resp_json = resp.json_value().await;
+    assert_eq!(resp_json["totalItems"], 1);
+    assert_eq!(resp_json["values"][0]["name"], "schema-short-expiration");
 }
 
 #[tokio::test]

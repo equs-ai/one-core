@@ -89,6 +89,12 @@ pub(crate) fn validate_create_v2_request(
         return Err(CredentialSchemaServiceError::BatchSizeTooSmall);
     }
 
+    if let Some(expiration) = request.expiration
+        && expiration <= time::Duration::ZERO
+    {
+        return Err(CredentialSchemaServiceError::InvalidExpiration);
+    }
+
     if let Some(embedded_disclosure_policy) = &request.embedded_disclosure_policy {
         validate_disclosure_policy(&embedded_disclosure_policy.policy)?;
     }

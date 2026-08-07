@@ -49,6 +49,37 @@ async fn test_get_credential_schema_success() {
     assert_eq!(resp["layoutProperties"]["code"]["type"], "BARCODE");
     assert_eq!(resp["claims"][0]["translations"]["name"]["en"], "firstName");
     assert_eq!(resp["translations"]["name"]["en"], "test schema");
+    assert!(resp["expiration"].is_null());
+}
+
+#[tokio::test]
+async fn test_get_credential_schema_with_expiration() {
+    // GIVEN
+    let (context, organisation) = TestContext::new_with_organisation(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "test schema",
+            &organisation,
+            TestingCreateSchemaParams {
+                expiration: Some(time::Duration::seconds(63072000)),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // WHEN
+    let resp = context
+        .api
+        .credential_schemas
+        .get(&credential_schema.id)
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let resp = resp.json_value().await;
+    assert_eq!(resp["expiration"], 63072000);
 }
 
 #[tokio::test]

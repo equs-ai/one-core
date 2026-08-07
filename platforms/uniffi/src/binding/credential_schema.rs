@@ -31,6 +31,10 @@ use super::mapper::{from_i18n_string, from_i18n_string_opt, to_i18n_string, to_i
 use crate::error::{BindingError, ErrorResponseBindingDTO};
 use crate::utils::{TimestampFormat, into_id, into_timestamp};
 
+fn duration_from_seconds(value: Option<i64>) -> Option<time::Duration> {
+    value.map(time::Duration::seconds)
+}
+
 #[uniffi::export(async_runtime = "tokio")]
 impl OneCore {
     /// Returns detailed information about a credential schema.
@@ -519,6 +523,8 @@ pub struct CreateCredentialSchemaV2RequestBindingDTO {
     pub translations: Option<CredentialSchemaTranslationsBindingDTO>,
     #[try_into(with_fn = try_convert_inner)]
     pub embedded_disclosure_policy: Option<DisclosurePolicyCreateRequestBindingDTO>,
+    #[try_into(infallible, with_fn = duration_from_seconds)]
+    pub expiration: Option<i64>,
 }
 
 #[derive(Clone, Debug, Into, uniffi::Record)]
@@ -584,6 +590,8 @@ pub struct ImportCredentialSchemaV2RequestSchemaBindingDTO {
     pub translations: Option<CredentialSchemaTranslationsBindingDTO>,
     #[try_into(with_fn = try_convert_inner)]
     pub embedded_disclosure_policy: Option<DisclosurePolicyBindingDTO>,
+    #[try_into(infallible, with_fn = duration_from_seconds)]
+    pub expiration: Option<i64>,
 }
 
 #[derive(Clone, Debug, TryInto, uniffi::Record)]

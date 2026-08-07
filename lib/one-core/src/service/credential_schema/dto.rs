@@ -1,6 +1,6 @@
 use one_dto_mapper::{From, Into, convert_inner, convert_inner_of_inner};
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use serde_with::{DurationSeconds, serde_as, skip_serializing_none};
 use shared_types::i18n::I18nString;
 use shared_types::{
     ClaimSchemaId, CredentialFormat, CredentialSchemaId, OrganisationId, RevocationMethodId,
@@ -8,7 +8,7 @@ use shared_types::{
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::openid4vp::dcql;
 use strum::{Display, EnumString};
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::model;
@@ -75,6 +75,7 @@ pub struct CredentialClaimSchemaV2DTO {
     pub translations: CredentialClaimSchemaTranslationsDTO,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialSchemaDetailV2ResponseDTO {
@@ -98,8 +99,11 @@ pub struct CredentialSchemaDetailV2ResponseDTO {
     pub transaction_code: Option<CredentialSchemaTransactionCodeDTO>,
     pub translations: CredentialSchemaTranslationsDTO,
     pub embedded_disclosure_policy: Option<DisclosurePolicy>,
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    pub expiration: Option<Duration>,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialSchemaDetailResponseDTO {
@@ -123,6 +127,8 @@ pub struct CredentialSchemaDetailResponseDTO {
     pub transaction_code: Option<CredentialSchemaTransactionCodeDTO>,
     pub dcql: Option<CredentialSchemaDcqlResponseDTO>,
     pub translations: CredentialSchemaTranslationsDTO,
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    pub expiration: Option<Duration>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -192,6 +198,7 @@ pub enum CredentialSchemaFilterValue {
     LastModified(ValueComparison<OffsetDateTime>),
     UsesBatchIssuance(bool),
     IsMultiformatSchema(bool),
+    Expiration(ValueComparison<i64>),
 }
 
 impl ListFilterValue for CredentialSchemaFilterValue {}
@@ -231,12 +238,15 @@ pub struct CredentialSchemaV2FilterParamsDTO {
     pub uses_batch_issuance: Option<bool>,
     pub is_multiformat_schema: Option<bool>,
     pub schema_ids: Option<Vec<String>>,
+    pub expiration_greater_than: Option<Duration>,
+    pub expiration_less_than: Option<Duration>,
 }
 
 pub type GetCredentialSchemaListResponseDTO = GetListResponse<CredentialSchemaListItemResponseDTO>;
 pub type GetCredentialSchemaListV2ResponseDTO =
     GetListResponse<CredentialSchemaListItemV2ResponseDTO>;
 
+#[serde_as]
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialSchemaListItemV2ResponseDTO {
@@ -255,6 +265,8 @@ pub struct CredentialSchemaListItemV2ResponseDTO {
     pub allow_revocation: Option<bool>,
     pub batch_size: Option<i32>,
     pub requires_wallet_instance_attestation: bool,
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    pub expiration: Option<Duration>,
 }
 
 #[derive(Clone, Debug)]
@@ -273,6 +285,7 @@ pub struct CreateCredentialSchemaV2RequestDTO {
     pub transaction_code: Option<CredentialSchemaTransactionCodeRequestDTO>,
     pub translations: Option<CredentialSchemaTranslationsDTO>,
     pub embedded_disclosure_policy: Option<DisclosurePolicyCreateRequest>,
+    pub expiration: Option<Duration>,
 }
 
 #[derive(Clone, Debug)]
@@ -443,6 +456,7 @@ pub struct ImportCredentialSchemaRequestDTO {
     pub schema: ImportCredentialSchemaRequestSchemaDTO,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, Into)]
 #[into(crate::proto::credential_schema::dto::ImportCredentialSchemaRequestSchemaDTO)]
 #[serde(rename_all = "camelCase")]
@@ -470,6 +484,9 @@ pub struct ImportCredentialSchemaRequestSchemaDTO {
     pub requires_wallet_instance_attestation: Option<bool>,
     #[into(with_fn = convert_inner)]
     pub transaction_code: Option<ImportCredentialSchemaTransactionCodeDTO>,
+    #[serde(default)]
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    pub expiration: Option<Duration>,
 }
 
 #[derive(Clone, Debug, Deserialize, Into)]
@@ -530,6 +547,7 @@ pub struct ImportCredentialSchemaV2RequestDTO {
     pub schema: ImportCredentialSchemaV2RequestSchemaDTO,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, Into)]
 #[into(crate::proto::credential_schema::dto::ImportCredentialSchemaV2RequestSchemaDTO)]
 #[serde(rename_all = "camelCase")]
@@ -569,4 +587,7 @@ pub struct ImportCredentialSchemaV2RequestSchemaDTO {
     pub translations: Option<CredentialSchemaTranslationsDTO>,
     #[serde(default)]
     pub embedded_disclosure_policy: Option<DisclosurePolicy>,
+    #[serde(default)]
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    pub expiration: Option<Duration>,
 }

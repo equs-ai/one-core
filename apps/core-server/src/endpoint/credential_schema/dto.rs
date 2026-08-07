@@ -19,17 +19,18 @@ use one_dto_mapper::{
 };
 use proc_macros::{ModifySchema, options_not_nullable};
 use serde::{Deserialize, Serialize};
+use serde_with::{DurationSeconds, serde_as};
 use shared_types::i18n::I18nString;
 use shared_types::{
     ClaimSchemaId, CredentialFormat, CredentialSchemaId, OrganisationId, RevocationMethodId,
 };
 use standardized_types::etsi_119_472::disclosure_policy::DisclosurePolicy;
 use standardized_types::openid4vp::dcql;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use crate::deserialize::deserialize_timestamp;
+use crate::deserialize::{deserialize_duration_seconds, deserialize_timestamp};
 use crate::dto::common::{Boolean, ListQueryParamsRest};
 use crate::dto::mapper::fallback_organisation_id_from_session;
 use crate::serialize::{front_time, front_time_option};
@@ -74,6 +75,7 @@ pub(crate) struct CredentialSchemaListItemResponseRestDTO {
 }
 
 #[options_not_nullable]
+#[serde_as]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
 #[serde(rename_all = "camelCase")]
 #[from(CredentialSchemaListItemV2ResponseDTO)]
@@ -102,9 +104,15 @@ pub(crate) struct CredentialSchemaListItemV2ResponseRestDTO {
     pub allow_revocation: Option<bool>,
     pub batch_size: Option<i32>,
     pub requires_wallet_instance_attestation: bool,
+    /// Administrative lifetime, in seconds, applied to credentials issued
+    /// from this schema.
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    #[schema(value_type = Option<i64>)]
+    pub expiration: Option<Duration>,
 }
 
 #[options_not_nullable]
+#[serde_as]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
 #[from(CredentialSchemaDetailResponseDTO)]
 #[serde(rename_all = "camelCase")]
@@ -142,6 +150,11 @@ pub(crate) struct CredentialSchemaResponseRestDTO {
     #[from(with_fn = convert_inner)]
     pub dcql: Option<CredentialSchemaDcqlResponseRestDTO>,
     pub translations: CredentialSchemaTranslationsRestDTO,
+    /// Administrative lifetime, in seconds, applied to credentials issued
+    /// from this schema.
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    #[schema(value_type = Option<i64>)]
+    pub expiration: Option<Duration>,
 }
 
 #[options_not_nullable]
@@ -559,6 +572,7 @@ pub(crate) struct ImportCredentialSchemaRequestRestDTO {
 }
 
 #[options_not_nullable]
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, TryInto, ToSchema)]
 #[try_into(T=one_core::service::credential_schema::dto::ImportCredentialSchemaRequestSchemaDTO, Error=ServiceError)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -611,6 +625,11 @@ pub(crate) struct ImportCredentialSchemaRequestSchemaRestDTO {
     #[try_into(skip)]
     #[allow(unused)]
     pub translations: Option<CredentialSchemaTranslationsRestDTO>,
+    #[serde(default)]
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    #[schema(value_type = Option<i64>)]
+    #[try_into(infallible)]
+    pub expiration: Option<Duration>,
 }
 
 #[options_not_nullable]
@@ -770,6 +789,17 @@ pub(crate) struct CredentialSchemasV2FilterQueryParamsRest {
     #[try_into(infallible)]
     #[param(rename = "schemaIds[]", inline, nullable = false)]
     pub schema_ids: Option<Vec<String>>,
+
+    /// Return only credential schemas with an expiration (in seconds) greater than this value.
+    #[serde(default, deserialize_with = "deserialize_duration_seconds")]
+    #[param(value_type = Option<i64>, nullable = false)]
+    #[try_into(infallible)]
+    pub expiration_greater_than: Option<Duration>,
+    /// Return only credential schemas with an expiration (in seconds) less than this value.
+    #[serde(default, deserialize_with = "deserialize_duration_seconds")]
+    #[param(value_type = Option<i64>, nullable = false)]
+    #[try_into(infallible)]
+    pub expiration_less_than: Option<Duration>,
 }
 
 pub(crate) type GetCredentialSchemaV2Query = ListQueryParamsRest<
@@ -779,6 +809,7 @@ pub(crate) type GetCredentialSchemaV2Query = ListQueryParamsRest<
 >;
 
 #[options_not_nullable]
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema, TryInto)]
 #[try_into(T = CreateCredentialSchemaV2RequestDTO, Error = ServiceError)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -842,6 +873,13 @@ pub(crate) struct CreateCredentialSchemaV2RequestRestDTO {
     #[serde(default)]
     #[try_into(infallible, with_fn = convert_inner)]
     pub embedded_disclosure_policy: Option<DisclosurePolicyCreateRequestRestDTO>,
+    /// Administrative lifetime, in seconds, applied to credentials issued
+    /// from this schema. Must be greater than 0 if specified.
+    #[serde(default)]
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    #[schema(value_type = Option<i64>, minimum = 1)]
+    #[try_into(infallible)]
+    pub expiration: Option<Duration>,
 }
 
 #[options_not_nullable]
@@ -907,6 +945,7 @@ pub(crate) struct CredentialClaimSchemaV2ResponseRestDTO {
 }
 
 #[options_not_nullable]
+#[serde_as]
 #[derive(Clone, Debug, Serialize, ToSchema, From)]
 #[from(CredentialSchemaDetailV2ResponseDTO)]
 #[serde(rename_all = "camelCase")]
@@ -944,6 +983,11 @@ pub(crate) struct CredentialSchemaV2ResponseRestDTO {
     /// verifier requests and warn the holder if a violation is detected. See
     /// [Embedded Disclosure Policy](https://docs.procivis.ch/issue/embedded-disclosure-policy).
     pub embedded_disclosure_policy: Option<DisclosurePolicy>,
+    /// Administrative lifetime, in seconds, applied to credentials issued
+    /// from this schema.
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    #[schema(value_type = Option<i64>)]
+    pub expiration: Option<Duration>,
 }
 
 #[options_not_nullable]
@@ -989,6 +1033,7 @@ pub(crate) struct ImportCredentialSchemaV2RequestRestDTO {
 }
 
 #[options_not_nullable]
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, TryInto, ToSchema)]
 #[try_into(T=ImportCredentialSchemaV2RequestSchemaDTO, Error=ServiceError)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -1052,6 +1097,13 @@ pub(crate) struct ImportCredentialSchemaV2RequestSchemaRestDTO {
     #[serde(default)]
     #[try_into(infallible)]
     pub embedded_disclosure_policy: Option<DisclosurePolicy>,
+    /// Administrative lifetime, in seconds, applied to credentials issued
+    /// from this schema.
+    #[serde(default)]
+    #[serde_as(as = "Option<DurationSeconds<i64>>")]
+    #[schema(value_type = Option<i64>)]
+    #[try_into(infallible)]
+    pub expiration: Option<Duration>,
 }
 
 #[cfg(test)]
@@ -1121,6 +1173,7 @@ mod test {
                 )])),
                 description: None,
             },
+            expiration: Some(Duration::seconds(63072000)),
         };
 
         let serialized = serde_json::to_value(shared).unwrap();

@@ -1006,6 +1006,9 @@ pub enum ErrorCode {
     #[strum(message = "User authentication mandated but not supported for instances with OS WEB")]
     BR_0473,
 
+    #[strum(message = "Credential schema expiration must be greater than 0")]
+    BR_0474,
+
     #[strum(message = "Usage of ecosystem enforced, none provided/matching")]
     BR_0476,
 

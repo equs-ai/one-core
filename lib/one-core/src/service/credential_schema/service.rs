@@ -119,6 +119,7 @@ impl CredentialSchemaService {
             transaction_code: request.transaction_code,
             translations: None,
             embedded_disclosure_policy: None,
+            expiration: None,
         };
 
         let id = self

@@ -119,6 +119,7 @@ impl CredentialSchemaImportParser for CredentialSchemaImportParserImpl {
             batch_size: None,
             translations: None,
             embedded_disclosure_policy: None,
+            expiration: dto.schema.expiration,
         };
 
         self.parse_import_credential_schema_v2(ImportCredentialSchemaV2RequestDTO {
@@ -236,7 +237,7 @@ impl CredentialSchemaImportParser for CredentialSchemaImportParserImpl {
                 .map(|policy| serde_json::to_string(&policy))
                 .transpose()
                 .map_err(|e| Error::MappingError(e.to_string()))?,
-            expiration: None,
+            expiration: dto.schema.expiration,
         })
     }
 }
