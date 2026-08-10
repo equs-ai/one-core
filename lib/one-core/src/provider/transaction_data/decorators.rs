@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use shared_types::TransactionDataType;
+use standardized_types::openid4vp;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
 
 use crate::config::core_config::FormatType;
@@ -83,21 +84,15 @@ pub(super) struct CapabilityChecked(pub Arc<dyn TransactionData>);
 
 impl CapabilityChecked {
     fn check_supported(&self, transaction_data: &str) -> Result<(), TransactionDataError> {
-        let value: serde_json::Value = decode_transaction_data(transaction_data)?;
-        let r#type = value.get("type").and_then(|t| t.as_str()).ok_or_else(|| {
-            TransactionDataError::InvalidTransactionData(
-                "missing or invalid 'type' field".to_string(),
-            )
-        })?;
+        let entry: openid4vp::TransactionData = decode_transaction_data(transaction_data)?;
 
         if !self
             .0
             .get_capabilities()
             .transaction_data_types
-            .iter()
-            .any(|supported| supported == r#type)
+            .contains(&entry.r#type)
         {
-            return Err(TransactionDataError::UnsupportedType(r#type.to_string()));
+            return Err(TransactionDataError::UnsupportedType(entry.r#type));
         }
 
         Ok(())
@@ -214,7 +209,9 @@ mod test {
         });
 
         CapabilityChecked(Arc::new(inner))
-            .validate_transaction_data(&encode(json!({ "type": "https://example.com/type" })))
+            .validate_transaction_data(&encode(
+                json!({ "type": "https://example.com/type", "credential_ids": ["cred1"] }),
+            ))
             .unwrap();
     }
 
@@ -225,7 +222,7 @@ mod test {
 
         let result = CapabilityChecked(Arc::new(inner))
             .process_transaction_data(
-                &encode(json!({ "type": "https://example.com/type" })),
+                &encode(json!({ "type": "https://example.com/type", "credential_ids": ["cred1"] })),
                 FormatType::Mdoc,
             )
             .await;
@@ -241,8 +238,9 @@ mod test {
         let mut inner = MockTransactionData::new();
         inner.expect_get_capabilities().return_once(capabilities);
 
-        let result = CapabilityChecked(Arc::new(inner))
-            .validate_transaction_data(&encode(json!({ "type": "https://example.com/other" })));
+        let result = CapabilityChecked(Arc::new(inner)).validate_transaction_data(&encode(
+            json!({ "type": "https://example.com/other", "credential_ids": ["cred1"] }),
+        ));
 
         assert!(matches!(
             result,

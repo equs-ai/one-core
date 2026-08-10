@@ -3,6 +3,7 @@
 pub mod authorization_request;
 pub mod authorization_response;
 pub mod dcql;
+pub mod transaction_data;
 
 use std::collections::HashMap;
 
@@ -10,6 +11,7 @@ pub use authorization_request::*;
 pub use authorization_response::*;
 use serde::{Deserialize, Serialize};
 use serde_with::{VecSkipError, serde_as, skip_serializing_none};
+pub use transaction_data::*;
 
 use crate::iana::EncryptionAlgorithm;
 use crate::jwk::Jwks;

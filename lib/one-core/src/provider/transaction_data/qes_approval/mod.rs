@@ -107,13 +107,15 @@ impl TransactionData for QesApprovalTransactionData {
             ));
         }
 
-        if request.credential_id.is_none() && request.signature_qualifier.is_none() {
+        if request.extension.credential_id.is_none()
+            && request.extension.signature_qualifier.is_none()
+        {
             return Err(TransactionDataError::InvalidTransactionData(
                 "at least one of credentialID and signatureQualifier must be present".to_string(),
             ));
         }
 
-        self.hasher(request.hash_algorithm.into())?;
+        self.hasher(request.extension.hash_algorithm.into())?;
 
         Ok(TransactionDataMetadata {
             credential_ids: request.credential_ids.into_iter().map(Into::into).collect(),
@@ -132,7 +134,7 @@ impl TransactionData for QesApprovalTransactionData {
             // transaction data as received, using the hashAlgorithmOID algorithm
             FormatType::SdJwtVc => {
                 let qes_approval = self
-                    .hasher(request.hash_algorithm.into())?
+                    .hasher(request.extension.hash_algorithm.into())?
                     .hash_base64(transaction_data.as_bytes())?;
 
                 Ok(ProcessedTransactionData::KbJwtClaims(

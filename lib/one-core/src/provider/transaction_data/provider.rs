@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use one_crypto::CryptoProvider;
 use shared_types::TransactionDataType;
+use standardized_types::openid4vp;
 
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, Fields, TransactionDataProviderType};
@@ -40,15 +41,8 @@ impl TransactionDataProvider
         // base64url-encoded transaction data
         transaction_data: &str,
     ) -> Result<(TransactionDataType, Arc<dyn TransactionData>), NestedError> {
-        let as_value: serde_json::Value =
+        let entry: openid4vp::TransactionData =
             decode_transaction_data(transaction_data).error_while("decoding transaction data")?;
-        let transaction_data_type = as_value
-            .get("type")
-            .and_then(|t| t.as_str())
-            .ok_or(TransactionDataError::InvalidTransactionData(
-                "missing or invalid 'type' field".to_string(),
-            ))
-            .error_while("reading transaction data type")?;
 
         let (name, provider) = self
             .iter()
@@ -56,12 +50,9 @@ impl TransactionDataProvider
                 provider
                     .get_capabilities()
                     .transaction_data_types
-                    .iter()
-                    .any(|supported| supported == transaction_data_type)
+                    .contains(&entry.r#type)
             })
-            .ok_or(TransactionDataError::UnsupportedType(
-                transaction_data_type.to_string(),
-            ))
+            .ok_or(TransactionDataError::UnsupportedType(entry.r#type.clone()))
             .error_while("resolving transaction data provider")?;
 
         Ok((name.clone(), provider.clone()))
