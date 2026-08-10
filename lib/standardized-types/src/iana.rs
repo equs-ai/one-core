@@ -1,12 +1,12 @@
 //! Values from IANA registries.
 
 use serde::{Deserialize, Serialize};
-use strum::Display;
+use strum::{Display, EnumString};
 
 /// "Named Information Hash Algorithm" registry.
 ///
 /// <https://www.iana.org/assignments/named-information/named-information.xhtml>
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Display)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Display, EnumString)]
 pub enum HashAlgorithm {
     #[serde(rename = "sha-256")]
     #[strum(to_string = "sha-256")]

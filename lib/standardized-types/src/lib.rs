@@ -24,6 +24,7 @@ pub mod etsi_119_472;
 pub mod etsi_119_475;
 pub mod etsi_119_602;
 pub mod etsi_119_612;
+pub mod eudi_ts12;
 pub mod eudi_ts2;
 pub mod iana;
 pub mod jades;

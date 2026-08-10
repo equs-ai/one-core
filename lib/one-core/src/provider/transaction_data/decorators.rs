@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use shared_types::TransactionDataType;
-use standardized_types::openid4vp;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
+use standardized_types::{iana, openid4vp};
 
 use crate::config::core_config::FormatType;
 use crate::provider::Provider;
@@ -46,6 +46,7 @@ impl<T: Provider + TransactionData + Display + ?Sized> TransactionData for Disab
         &self,
         _transaction_data: &str,
         _format: FormatType,
+        _hash_algorithm: iana::HashAlgorithm,
     ) -> Result<ProcessedTransactionData, TransactionDataError> {
         self.disabled_error()
     }
@@ -127,6 +128,7 @@ impl TransactionData for CapabilityChecked {
         &self,
         transaction_data: &str,
         format: FormatType,
+        hash_algorithm: iana::HashAlgorithm,
     ) -> Result<ProcessedTransactionData, TransactionDataError> {
         self.check_supported(transaction_data)?;
 
@@ -135,7 +137,7 @@ impl TransactionData for CapabilityChecked {
         }
 
         self.0
-            .process_transaction_data(transaction_data, format)
+            .process_transaction_data(transaction_data, format, hash_algorithm)
             .await
     }
 
@@ -224,6 +226,7 @@ mod test {
             .process_transaction_data(
                 &encode(json!({ "type": "https://example.com/type", "credential_ids": ["cred1"] })),
                 FormatType::Mdoc,
+                iana::HashAlgorithm::Sha256,
             )
             .await;
 

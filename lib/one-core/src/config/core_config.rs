@@ -956,6 +956,18 @@ pub enum TransactionDataProviderType {
     #[serde(rename = "QES_APPROVAL")]
     #[strum(serialize = "QES_APPROVAL")]
     QesApproval,
+    #[serde(rename = "SCA_LOGIN_RISK_TRANSACTION")]
+    #[strum(serialize = "SCA_LOGIN_RISK_TRANSACTION")]
+    ScaLoginRiskTransaction,
+    #[serde(rename = "SCA_PAYMENT_CONFIRMATION")]
+    #[strum(serialize = "SCA_PAYMENT_CONFIRMATION")]
+    ScaPaymentConfirmation,
+    #[serde(rename = "SCA_ACCOUNT_ACCESS")]
+    #[strum(serialize = "SCA_ACCOUNT_ACCESS")]
+    ScaAccountAccess,
+    #[serde(rename = "SCA_EMANDATE")]
+    #[strum(serialize = "SCA_EMANDATE")]
+    ScaEmandate,
 }
 
 pub type TransactionDataProviderConfig =

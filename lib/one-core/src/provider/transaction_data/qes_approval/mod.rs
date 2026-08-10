@@ -83,44 +83,8 @@ impl QesApprovalTransactionData {
 
         Ok(())
     }
-}
 
-#[async_trait]
-impl TransactionData for QesApprovalTransactionData {
-    fn prepare_transaction_data(
-        &self,
-        credential_ids: Vec<CredentialQueryId>,
-        data: Option<serde_json::Value>,
-    ) -> Result<String, TransactionDataError> {
-        let entry = QesApprovalEntry {
-            r#type: QES_APPROVAL_TRANSACTION_DATA_TYPE.to_string(),
-            credential_ids: credential_ids.iter().map(ToString::to_string).collect(),
-            // the field belongs to the OpenID4VP `transaction_data_hashes` profile,
-            // which this type does not use: consent is expressed through the CSC claim
-            transaction_data_hashes_alg: None,
-            extension: QesApprovalRequest::deserialize(&data.unwrap_or_default())?,
-        };
-
-        self.validate_entry(&entry)?;
-
-        Ok(Base64UrlSafeNoPadding::encode_to_string(
-            serde_json::to_vec(&entry)?,
-        )?)
-    }
-
-    fn validate_transaction_data(
-        &self,
-        transaction_data: &str,
-    ) -> Result<TransactionDataMetadata, TransactionDataError> {
-        let entry: QesApprovalEntry = decode_transaction_data(transaction_data)?;
-        self.validate_entry(&entry)?;
-
-        Ok(TransactionDataMetadata {
-            credential_ids: entry.credential_ids.into_iter().map(Into::into).collect(),
-        })
-    }
-
-    async fn process_transaction_data(
+    fn evidence(
         &self,
         transaction_data: &str,
         format: FormatType,
@@ -162,6 +126,53 @@ impl TransactionData for QesApprovalTransactionData {
             other => Err(TransactionDataError::UnsupportedCredentialFormat(other)),
         }
     }
+}
+
+#[async_trait]
+impl TransactionData for QesApprovalTransactionData {
+    fn prepare_transaction_data(
+        &self,
+        credential_ids: Vec<CredentialQueryId>,
+        data: Option<serde_json::Value>,
+    ) -> Result<String, TransactionDataError> {
+        let entry = QesApprovalEntry {
+            r#type: QES_APPROVAL_TRANSACTION_DATA_TYPE.to_string(),
+            credential_ids: credential_ids.iter().map(ToString::to_string).collect(),
+            // the field belongs to the OpenID4VP `transaction_data_hashes` profile,
+            // which this type does not use: consent is expressed through the CSC claim
+            transaction_data_hashes_alg: None,
+            extension: QesApprovalRequest::deserialize(&data.unwrap_or_default())?,
+        };
+
+        self.validate_entry(&entry)?;
+
+        Ok(Base64UrlSafeNoPadding::encode_to_string(
+            serde_json::to_vec(&entry)?,
+        )?)
+    }
+
+    fn validate_transaction_data(
+        &self,
+        transaction_data: &str,
+    ) -> Result<TransactionDataMetadata, TransactionDataError> {
+        let entry: QesApprovalEntry = decode_transaction_data(transaction_data)?;
+        self.validate_entry(&entry)?;
+
+        Ok(TransactionDataMetadata {
+            credential_ids: entry.credential_ids.into_iter().map(Into::into).collect(),
+        })
+    }
+
+    async fn process_transaction_data(
+        &self,
+        transaction_data: &str,
+        format: FormatType,
+        // the CSC claim pins the algorithm through `hashAlgorithmOID`, so the one the
+        // OpenID4VP profile agreed for the credential does not apply
+        _hash_algorithm: iana::HashAlgorithm,
+    ) -> Result<ProcessedTransactionData, TransactionDataError> {
+        self.evidence(transaction_data, format)
+    }
 
     // processing has no side effects for this type, the expected evidence can simply
     // be recomputed and compared
@@ -171,9 +182,7 @@ impl TransactionData for QesApprovalTransactionData {
         format: FormatType,
         presented: &PresentedTransactionData,
     ) -> Result<TransactionDataAuthorization, TransactionDataError> {
-        let expected = self
-            .process_transaction_data(transaction_data, format)
-            .await?;
+        let expected = self.evidence(transaction_data, format)?;
 
         let authorized = match (&expected, presented) {
             (

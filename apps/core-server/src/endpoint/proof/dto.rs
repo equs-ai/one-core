@@ -164,7 +164,8 @@ pub(crate) struct ProofRequestTransactionDataRestDTO {
     /// The credential schemas (of the given proof schema) the transaction data
     /// applies to.
     pub credential_schema_ids: Vec<CredentialSchemaId>,
-    /// Type-specific transaction data content.
+    /// Type-specific transaction data content. Structure varies based on the `type`
+    /// value; parameters are given in camelCase.
     #[schema(value_type = Option<Object>)]
     pub data: Option<serde_json::Value>,
 }

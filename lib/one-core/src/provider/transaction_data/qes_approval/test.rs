@@ -81,7 +81,11 @@ async fn test_process_transaction_data_returns_qes_approval_kb_jwt_claim() {
     let transaction_data = encode(csc_example());
 
     let processed = qes_approval_transaction_data()
-        .process_transaction_data(&transaction_data, FormatType::SdJwtVc)
+        .process_transaction_data(
+            &transaction_data,
+            FormatType::SdJwtVc,
+            iana::HashAlgorithm::Sha256,
+        )
         .await
         .unwrap();
 
@@ -105,7 +109,11 @@ async fn test_process_transaction_data_returns_qes_approval_device_signed_elemen
     let transaction_data = encode(csc_example());
 
     let processed = qes_approval_transaction_data()
-        .process_transaction_data(&transaction_data, FormatType::Mdoc)
+        .process_transaction_data(
+            &transaction_data,
+            FormatType::Mdoc,
+            iana::HashAlgorithm::Sha256,
+        )
         .await
         .unwrap();
 
@@ -125,7 +133,11 @@ async fn test_process_transaction_data_returns_qes_approval_device_signed_elemen
 #[tokio::test]
 async fn test_process_transaction_data_rejects_unsupported_credential_format() {
     let result = qes_approval_transaction_data()
-        .process_transaction_data(&encode(csc_example()), FormatType::Jwt)
+        .process_transaction_data(
+            &encode(csc_example()),
+            FormatType::Jwt,
+            iana::HashAlgorithm::Sha256,
+        )
         .await;
 
     assert!(matches!(
@@ -430,7 +442,11 @@ async fn test_verify_transaction_data_matches_recomputed_evidence() {
     let provider = qes_approval_transaction_data();
 
     let ProcessedTransactionData::KbJwtClaims(claims) = provider
-        .process_transaction_data(&transaction_data, FormatType::SdJwtVc)
+        .process_transaction_data(
+            &transaction_data,
+            FormatType::SdJwtVc,
+            iana::HashAlgorithm::Sha256,
+        )
         .await
         .unwrap()
     else {

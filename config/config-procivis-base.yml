@@ -754,6 +754,106 @@ transactionDataProvider:
               display: "transactionData.qesApproval.documentInfo.checksum"
             - path: "$.signed_props"
               display: "transactionData.qesApproval.documentInfo.signedProps"
+  SCA_LOGIN_RISK_TRANSACTION:
+    type: SCA_LOGIN_RISK_TRANSACTION
+    display:
+      en: "Login and Risk-based authentication"
+      de: "Login and Risk-based authentication"
+    order: 2
+    enabled: true
+    params:
+      private:
+        leewaySeconds: 60
+        transactionDataDisplayParams:
+          groupPath: "$.payload"
+          attributes:
+            - path: "$.transaction_id"
+              display: "transactionData.loginRiskTransaction.transactionId"
+            - path: "$.action"
+              display: "transactionData.loginRiskTransaction.action"
+            - path: "$.service"
+              display: "transactionData.loginRiskTransaction.service"
+            - path: "$.date_time"
+              display: "transactionData.loginRiskTransaction.dateTime"
+  SCA_PAYMENT_CONFIRMATION:
+    type: SCA_PAYMENT_CONFIRMATION
+    display:
+      en: "Payment confirmation"
+      de: "Payment confirmation"
+    order: 3
+    enabled: true
+    params:
+      private:
+        leewaySeconds: 60
+        transactionDataDisplayParams:
+          groupPath: "$.payload"
+          attributes:
+            - path: "$.transaction_id"
+              display: "transactionData.paymentConfirmation.transactionId"
+            - path: "$.payee.name"
+              display: "transactionData.paymentConfirmation.payee.name"
+            - path: "$.payee.id"
+              display: "transactionData.paymentConfirmation.payee.id"
+            - path: "$.amount"
+              display: "transactionData.paymentConfirmation.amount"
+            - path: "$.currency"
+              display: "transactionData.paymentConfirmation.currency"
+            - path: "$.execution_date"
+              display: "transactionData.paymentConfirmation.executionDate"
+            - path: "$.recurrence.start_date"
+              display: "transactionData.paymentConfirmation.recurrence.startDate"
+            - path: "$.recurrence.end_date"
+              display: "transactionData.paymentConfirmation.recurrence.endDate"
+            - path: "$.recurrence.number"
+              display: "transactionData.paymentConfirmation.recurrence.number"
+            - path: "$.recurrence.frequency"
+              display: "transactionData.paymentConfirmation.recurrence.frequency"
+  SCA_ACCOUNT_ACCESS:
+    type: SCA_ACCOUNT_ACCESS
+    display:
+      en: "Payment Account Information Access"
+      de: "Payment Account Information Access"
+    order: 4
+    enabled: true
+    params:
+      private:
+        leewaySeconds: 60
+        transactionDataDisplayParams:
+          groupPath: "$.payload"
+          attributes:
+            - path: "$.transaction_id"
+              display: "transactionData.accountAccess.transactionId"
+            - path: "$.description"
+              display: "transactionData.accountAccess.description"
+            - path: "$.date_time"
+              display: "transactionData.accountAccess.dateTime"
+  SCA_EMANDATE:
+    type: SCA_EMANDATE
+    display:
+      en: "E-mandate"
+      de: "E-mandate"
+    order: 5
+    enabled: true
+    params:
+      private:
+        leewaySeconds: 60
+        transactionDataDisplayParams:
+          groupPath: "$.payload"
+          attributes:
+            - path: "$.transaction_id"
+              display: "transactionData.eMandate.transactionId"
+            - path: "$.purpose"
+              display: "transactionData.eMandate.purpose"
+            - path: "$.creditor_id"
+              display: "transactionData.eMandate.creditorId"
+            - path: "$.reference_number"
+              display: "transactionData.eMandate.referenceNumber"
+            - path: "$.date_time"
+              display: "transactionData.eMandate.dateTime"
+            - path: "$.start_date"
+              display: "transactionData.eMandate.startDate"
+            - path: "$.end_date"
+              display: "transactionData.eMandate.endDate"
 ecosystem:
   EUDI:
     type: "EUDI"

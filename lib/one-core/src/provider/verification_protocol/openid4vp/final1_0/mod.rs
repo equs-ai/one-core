@@ -51,7 +51,9 @@ use crate::provider::presentation_formatter::provider::PresentationFormatterProv
 use crate::provider::provider_directory::InitializationError;
 use crate::provider::transaction_data::processed_transaction_data::ProcessedTransactionData;
 use crate::provider::transaction_data::provider::TransactionDataProvider;
-use crate::provider::transaction_data::{Features, assign_entries_to_distinct_credentials};
+use crate::provider::transaction_data::{
+    Features, agreed_hash_algorithm, assign_entries_to_distinct_credentials,
+};
 use crate::provider::verification_protocol::dto::{
     Feature, FormattedCredentialPresentation, InvitationResponseDTO,
     PresentationDefinitionV2ResponseDTO, PresentationDefinitionVersion, ShareResponse,
@@ -296,21 +298,34 @@ impl OpenID4VPFinal1_0 {
                     self.key_algorithm_provider.clone(),
                 )?;
                 let mut aggregated_tx_data = None;
-                for tx_data in transaction_data {
-                    let data = self
-                        .transaction_data_provider
-                        .get_transaction_data_by_name(&tx_data.r#type)?;
-                    let processed = data
-                        .process_transaction_data(&tx_data.data, credential_format)
-                        .await
-                        .error_while("processing transaction data")?;
-                    let Some(existing) = aggregated_tx_data.as_mut() else {
-                        aggregated_tx_data = Some(processed);
-                        continue;
-                    };
-                    existing
-                        .merge(processed)
-                        .error_while("merging transaction data")?;
+                if !transaction_data.is_empty() {
+                    // the entries share one Key Binding JWT claim, so one algorithm is
+                    // agreed for all of them before any is hashed
+                    let hash_algorithm = agreed_hash_algorithm(
+                        transaction_data.iter().map(|tx_data| tx_data.data.as_str()),
+                    )
+                    .error_while("agreeing on a transaction data hash algorithm")?;
+
+                    for tx_data in transaction_data {
+                        let data = self
+                            .transaction_data_provider
+                            .get_transaction_data_by_name(&tx_data.r#type)?;
+                        let processed = data
+                            .process_transaction_data(
+                                &tx_data.data,
+                                credential_format,
+                                hash_algorithm,
+                            )
+                            .await
+                            .error_while("processing transaction data")?;
+                        let Some(existing) = aggregated_tx_data.as_mut() else {
+                            aggregated_tx_data = Some(processed);
+                            continue;
+                        };
+                        existing
+                            .merge(processed)
+                            .error_while("merging transaction data")?;
+                    }
                 }
 
                 let credentials = CredentialToPresent {

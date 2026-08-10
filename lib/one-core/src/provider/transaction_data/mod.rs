@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json_path::JsonPath;
 use shared_types::TransactionDataType;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
+use standardized_types::{iana, openid4vp};
 
 use crate::config::core_config::FormatType;
 use crate::provider::Provider;
@@ -22,6 +23,7 @@ pub mod error;
 pub(crate) mod processed_transaction_data;
 pub(crate) mod provider;
 pub(crate) mod qes_approval;
+pub(crate) mod sca;
 
 pub(crate) fn decode_transaction_data<T: DeserializeOwned>(
     transaction_data: &str,
@@ -94,6 +96,38 @@ pub struct TransactionDataDisplayAttribute {
     pub value: String,
 }
 
+/// The hash algorithm for every entry a single credential authorizes. The entries share
+/// one `transaction_data_hashes_alg` Key Binding JWT claim, so the chosen algorithm has
+/// to be one they all offer.
+pub(crate) fn agreed_hash_algorithm<'a>(
+    transaction_data: impl IntoIterator<Item = &'a str>,
+) -> Result<iana::HashAlgorithm, TransactionDataError> {
+    let mut agreed: Option<Vec<iana::HashAlgorithm>> = None;
+    for entry in transaction_data {
+        let entry = decode_transaction_data::<openid4vp::TransactionData>(entry)?;
+        let offered = entry
+            .transaction_data_hashes_alg
+            .as_deref()
+            .unwrap_or(&[iana::HashAlgorithm::Sha256]);
+        match &mut agreed {
+            None => agreed = Some(offered.to_vec()),
+            Some(agreed) => agreed.retain(|algorithm| offered.contains(algorithm)),
+        }
+    }
+    let agreed = agreed.unwrap_or_default();
+
+    // every implementation must support `sha-256`, so prefer it where the entries offer it
+    if agreed.contains(&iana::HashAlgorithm::Sha256) {
+        return Ok(iana::HashAlgorithm::Sha256);
+    }
+
+    agreed.into_iter().next().ok_or_else(|| {
+        TransactionDataError::InvalidTransactionData(
+            "transaction data entries of one credential offer no common hash algorithm".to_string(),
+        )
+    })
+}
+
 /// The `transaction_data` arguments are base64url-encoded OpenID4VP `transaction_data` entries.
 #[provider_mock]
 #[async_trait]
@@ -112,10 +146,14 @@ pub trait TransactionData: Provider + Send + Sync {
     /// Holder-side processing of an approved transaction; returns the fields to be
     /// merged into the presentation response of the credential authorizing it.
     /// May have side effects, e.g. calling out to external signing APIs.
+    ///
+    /// `hash_algorithm` comes from [`agreed_hash_algorithm`]. Types that do not hash
+    /// their evidence per the OpenID4VP profile ignore it.
     async fn process_transaction_data(
         &self,
         transaction_data: &str,
         format: FormatType,
+        hash_algorithm: iana::HashAlgorithm,
     ) -> Result<ProcessedTransactionData, TransactionDataError>;
     /// Verifier-side check whether the evidence presented by the holder authorizes this
     /// transaction data entry. Must not trigger the side effects of
@@ -256,12 +294,44 @@ pub(crate) fn assign_entries_to_distinct_credentials<Id: Clone + Eq + Hash>(
 
 #[cfg(test)]
 mod test {
+    use ct_codecs::Encoder;
     use similar_asserts::assert_eq;
 
     use super::*;
 
     fn credentials(ids: &[&str]) -> Vec<CredentialQueryId> {
         ids.iter().map(|&id| CredentialQueryId::from(id)).collect()
+    }
+
+    // the entries share one Key Binding JWT claim, so the algorithm has to be one they all
+    // offer even where that means passing over `sha-256`
+    #[test]
+    fn test_agreed_hash_algorithm_takes_the_one_every_entry_offers() {
+        let agreed = |offers: &[&[&str]]| {
+            let entries: Vec<String> = offers
+                .iter()
+                .map(|algorithms| {
+                    let entry = serde_json::json!({
+                        "type": "https://example.com/transaction",
+                        "credential_ids": ["cred1"],
+                        "transaction_data_hashes_alg": algorithms
+                    });
+                    Base64UrlSafeNoPadding::encode_to_string(serde_json::to_vec(&entry).unwrap())
+                        .unwrap()
+                })
+                .collect();
+
+            agreed_hash_algorithm(entries.iter().map(String::as_str))
+        };
+
+        assert_eq!(
+            agreed(&[&["sha-256", "sha-512"], &["sha-512"]]).unwrap(),
+            iana::HashAlgorithm::Sha512
+        );
+        assert!(matches!(
+            agreed(&[&["sha-256"], &["sha-512"]]),
+            Err(TransactionDataError::InvalidTransactionData(_))
+        ));
     }
 
     #[test]

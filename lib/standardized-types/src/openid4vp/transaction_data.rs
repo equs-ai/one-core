@@ -7,6 +7,17 @@ use serde_with::{VecSkipError, serde_as, skip_serializing_none};
 
 use crate::iana::HashAlgorithm;
 
+/// Key Binding JWT claim listing the hashes of the authorized `transaction_data` entries.
+///
+/// Spec <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.3.3.1>
+pub const TRANSACTION_DATA_HASHES: &str = "transaction_data_hashes";
+
+/// Hash algorithms offered in a `transaction_data` entry, and the one used as a Key
+/// Binding JWT claim.
+///
+/// Spec <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.3.3.1>
+pub const TRANSACTION_DATA_HASHES_ALG: &str = "transaction_data_hashes_alg";
+
 /// Entry of the `transaction_data` Authorization Request parameter. `E` holds the
 /// fields added by the specification defining the entry's `type`.
 ///
