@@ -1,4 +1,4 @@
-use shared_types::{IdentifierId, InstanceId, OrganisationId, TrustCollectionId};
+use shared_types::{EcosystemId, IdentifierId, InstanceId, OrganisationId, TrustCollectionId};
 use time::OffsetDateTime;
 
 use crate::model::common::GetListResponse;
@@ -82,6 +82,7 @@ pub struct VerifierProviderDetailResponseDTO {
 // TODO ONE-9979: replace the trust flags with the ecosystem properties
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct OrganisationConfigurationDTO {
+    pub selected_ecosystems: Vec<EcosystemId>,
     pub trusted_issuer_required: bool,
     pub trusted_rp_required: bool,
     pub trusted_wallet_provider_required: bool,
@@ -90,6 +91,7 @@ pub struct OrganisationConfigurationDTO {
 impl From<OrganisationConfiguration> for OrganisationConfigurationDTO {
     fn from(value: OrganisationConfiguration) -> Self {
         Self {
+            selected_ecosystems: value.selected_ecosystems,
             trusted_issuer_required: value.enforce_ecosystem_as_verifier,
             trusted_rp_required: value.enforce_ecosystem_as_holder,
             trusted_wallet_provider_required: value.enforce_ecosystem_as_issuer,
@@ -98,9 +100,10 @@ impl From<OrganisationConfiguration> for OrganisationConfigurationDTO {
 }
 
 /// Partial update for `OrganisationConfiguration`: fields left `None` keep their current value.
-// TODO ONE-9979: adapt to the ecosystem properties, add `selected_ecosystems`
+// TODO ONE-9979: adapt to the ecosystem properties
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct UpsertOrganisationConfigurationDTO {
+    pub selected_ecosystems: Option<Vec<EcosystemId>>,
     pub trusted_issuer_required: Option<bool>,
     pub trusted_rp_required: Option<bool>,
     pub trusted_wallet_provider_required: Option<bool>,

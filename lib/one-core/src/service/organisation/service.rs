@@ -291,9 +291,12 @@ impl OrganisationService {
         let configuration = request
             .configuration
             .as_ref()
-            // TODO ONE-9979: adapt to the new update params, take `selected_ecosystems` from them
+            // TODO ONE-9979: adapt to the new update params
             .map(|update| OrganisationConfiguration {
-                selected_ecosystems: existing_configuration.selected_ecosystems.clone(),
+                selected_ecosystems: update
+                    .selected_ecosystems
+                    .clone()
+                    .unwrap_or(existing_configuration.selected_ecosystems),
                 enforce_ecosystem_as_verifier: update
                     .trusted_issuer_required
                     .unwrap_or(existing_configuration.enforce_ecosystem_as_verifier),

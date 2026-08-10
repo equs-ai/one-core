@@ -687,6 +687,7 @@ impl TryFrom<UpsertOrganisationRequestBindingDTO> for UpsertOrganisationRequestD
 impl From<UpsertOrganisationConfigurationBindingDTO> for UpsertOrganisationConfigurationDTO {
     fn from(value: UpsertOrganisationConfigurationBindingDTO) -> Self {
         Self {
+            selected_ecosystems: convert_inner_of_inner(value.selected_ecosystems),
             trusted_issuer_required: value.trusted_issuer_required,
             trusted_rp_required: value.trusted_rp_required,
             trusted_wallet_provider_required: value.trusted_wallet_provider_required,

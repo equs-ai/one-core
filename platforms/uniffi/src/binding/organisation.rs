@@ -102,6 +102,7 @@ pub struct UpsertOrganisationRequestBindingDTO {
 #[derive(Clone, Debug, uniffi::Record)]
 #[uniffi(name = "UpsertOrganisationConfiguration")]
 pub struct UpsertOrganisationConfigurationBindingDTO {
+    pub selected_ecosystems: Option<Vec<String>>,
     /// When true, the verifier will only validate presentations of
     /// credentials issued by trusted issuers.
     pub trusted_issuer_required: Option<bool>,
@@ -185,6 +186,8 @@ pub(crate) struct VerifierProviderDetailResponseBindingDTO {
 #[uniffi(name = "OrganisationConfiguration")]
 #[from(OrganisationConfigurationDTO)]
 pub(crate) struct OrganisationConfigurationBindingDTO {
+    #[from(with_fn = convert_inner)]
+    pub selected_ecosystems: Vec<String>,
     /// When true, the verifier will only validate presentations of
     /// credentials issued by trusted issuers.
     pub trusted_issuer_required: bool,

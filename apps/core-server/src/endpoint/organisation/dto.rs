@@ -8,7 +8,7 @@ use one_core::service::organisation::dto::{
 use one_dto_mapper::{From, Into, TryInto, convert_inner};
 use proc_macros::options_not_nullable;
 use serde::{Deserialize, Serialize};
-use shared_types::{IdentifierId, InstanceId, OrganisationId, TrustCollectionId};
+use shared_types::{EcosystemId, IdentifierId, InstanceId, OrganisationId, TrustCollectionId};
 use time::OffsetDateTime;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
@@ -33,6 +33,7 @@ pub(crate) struct CreateOrganisationRequestRestDTO {
     pub parent_organisation: Option<OrganisationId>,
 }
 
+#[options_not_nullable]
 #[derive(Clone, Debug, Default, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct UpsertOrganisationRequestRestDTO {
@@ -61,6 +62,7 @@ pub(crate) struct UpsertOrganisationRequestRestDTO {
     pub parent_organisation: Option<Option<OrganisationId>>,
 }
 
+#[options_not_nullable]
 #[derive(Clone, Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct UpsertProviderRequestRestDTO {
@@ -72,10 +74,12 @@ pub(crate) struct UpsertProviderRequestRestDTO {
     pub issuer: Option<IdentifierId>,
 }
 
+#[options_not_nullable]
 #[derive(Clone, Debug, Deserialize, ToSchema, Into)]
 #[into(UpsertOrganisationConfigurationDTO)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct UpsertOrganisationConfigurationRestDTO {
+    pub selected_ecosystems: Option<Vec<EcosystemId>>,
     /// When true, the verifier will only validate presentations of
     /// credentials issued by trusted issuers.
     pub trusted_issuer_required: Option<bool>,
@@ -168,6 +172,7 @@ pub(crate) struct VerifierProviderDetailResponseRestDTO {
 #[serde(rename_all = "camelCase")]
 #[from(OrganisationConfigurationDTO)]
 pub(crate) struct OrganisationConfigurationRestDTO {
+    pub selected_ecosystems: Vec<EcosystemId>,
     /// When true, the verifier will only validate presentations of
     /// credentials issued by trusted issuers.
     pub trusted_issuer_required: bool,
