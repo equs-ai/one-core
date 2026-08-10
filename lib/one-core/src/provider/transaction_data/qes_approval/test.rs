@@ -273,6 +273,36 @@ fn test_get_display_data_group_path_matching_a_single_object() {
 }
 
 #[test]
+fn test_get_display_data_without_title_path() {
+    let provider = display_provider(json!({
+        "groupPath": "$.payload",
+        "attributes": [
+            { "path": "$.action", "display": "action" }
+        ]
+    }));
+
+    let transaction_data = json!({
+        "type": "urn:eudi:sca:login_risk_transaction:1",
+        "payload": { "action": "Log in to Online Banking" }
+    });
+
+    let display_data = provider
+        .get_display_data(&encode(transaction_data))
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(&display_data).unwrap(),
+        json!([
+            {
+                "title": null,
+                "attributes": [
+                    { "key": "action", "value": "Log in to Online Banking" }
+                ]
+            }
+        ])
+    );
+}
+
+#[test]
 fn test_get_display_data_group_path_matching_the_root() {
     let provider = display_provider(json!({
         "groupPath": "$",

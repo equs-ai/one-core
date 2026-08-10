@@ -69,8 +69,8 @@ pub(crate) struct TransactionDataParams {
 pub struct TransactionDataDisplayParams {
     /// Selects the displayed entries within the transaction data
     group_path: JsonPath,
-    /// Selects an entry's title, relative to `group_path`
-    title_path: JsonPath,
+    /// Selects an entry's title, relative to `group_path`, where entries have one
+    title_path: Option<JsonPath>,
     /// An entry's attributes, relative to `group_path`
     attributes: Vec<TransactionDataDisplayParam>,
 }
@@ -83,7 +83,8 @@ pub struct TransactionDataDisplayParam {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TransactionDataDisplayValue {
-    pub title: String,
+    /// Absent where the entries carry no title of their own
+    pub title: Option<String>,
     pub attributes: Vec<TransactionDataDisplayAttribute>,
 }
 
@@ -147,11 +148,10 @@ pub trait TransactionData: Provider + Send + Sync {
             .map(|group| TransactionDataDisplayValue {
                 title: params
                     .title_path
-                    .query(group)
-                    .first()
+                    .as_ref()
+                    .and_then(|title_path| title_path.query(group).first())
                     .and_then(|title| title.as_str())
-                    .unwrap_or_default()
-                    .to_string(),
+                    .map(ToString::to_string),
                 attributes: params
                     .attributes
                     .iter()

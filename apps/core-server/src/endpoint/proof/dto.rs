@@ -544,7 +544,8 @@ pub(crate) struct ProofTransactionDataResponseRestDTO {
 #[from(TransactionDataDisplayValue)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TransactionDataDisplayRestDTO {
-    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
     #[from(with_fn = convert_inner)]
     pub attributes: Vec<TransactionDataDisplayAttributeRestDTO>,
 }

@@ -606,7 +606,7 @@ pub(crate) struct ProofTransactionDataResponseBindingDTO {
 #[from(TransactionDataDisplayValue)]
 #[uniffi(name = "TransactionDataDisplay")]
 pub(crate) struct TransactionDataDisplayBindingDTO {
-    pub title: String,
+    pub title: Option<String>,
     #[from(with_fn = convert_inner)]
     pub attributes: Vec<TransactionDataDisplayAttributeBindingDTO>,
 }

@@ -10,7 +10,7 @@ use super::data_model::DocumentInfo;
 use super::{HashAlgorithm, SignatureQualifier};
 use crate::openid4vp;
 
-/// Transaction data type identifier of [`QesApprovalRequest`] (section 7.1).
+/// Transaction data type identifier of [`QesApprovalTransactionData`] (section 7.1).
 pub const QES_APPROVAL_TRANSACTION_DATA_TYPE: &str =
     "https://cloudsignatureconsortium.org/2025/qes-approval";
 
@@ -23,15 +23,16 @@ pub const QES_APPROVAL_KB_JWT_CLAIM: &str = "org.cloudsignatureconsortium.dm.1.q
 pub const QES_APPROVAL_MDOC_NAMESPACE: &str = "org.cloudsignatureconsortium.dm.1";
 pub const QES_APPROVAL_MDOC_ELEMENT: &str = "qesApproval";
 
-/// `qesApprovalRequest` object (section 7.1.1): OpenID4VP transaction data expressing
-/// the user's approval for QES creation. Union of `signatureCreationApproval` (data
-/// model section 10.1) and the OpenID4VP binding parameters. Its `type` MUST be
+/// OpenID4VP transaction data carrying a [`QesApprovalRequest`]. Its `type` MUST be
 /// [`QES_APPROVAL_TRANSACTION_DATA_TYPE`].
-pub type QesApprovalRequest = openid4vp::TransactionData<QesApproval>;
+pub type QesApprovalTransactionData = openid4vp::TransactionData<QesApprovalRequest>;
 
+/// `qesApprovalRequest` object (section 7.1.1) expressing the user's approval for QES
+/// creation. Union of `signatureCreationApproval` (data model section 10.1) and the
+/// OpenID4VP binding parameters.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct QesApproval {
+pub struct QesApprovalRequest {
     /// Locations of remote signing service providers as defined in RFC 9396
     pub locations: Option<Vec<String>>,
     // signatureCreationApproval (data model section 10.1); at least one of
@@ -97,7 +98,7 @@ mod test {
             "hashAlgorithmOID": "2.16.840.1.101.3.4.2.1"
         });
 
-        let request: QesApprovalRequest = serde_json::from_value(example.clone()).unwrap();
+        let request: QesApprovalTransactionData = serde_json::from_value(example.clone()).unwrap();
 
         assert_eq!(request.r#type, QES_APPROVAL_TRANSACTION_DATA_TYPE);
         assert_eq!(request.credential_ids, vec!["xyz123"]);

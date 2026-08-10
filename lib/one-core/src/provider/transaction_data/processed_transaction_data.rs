@@ -71,6 +71,8 @@ fn merge_json_value(
         (serde_json::Value::Object(existing), serde_json::Value::Object(other)) => {
             merge_json_object(existing, other)
         }
+        // e.g. two entries naming the same hash algorithm
+        (existing, other) if *existing == other => Ok(()),
         _ => Err(conflict(key)),
     }
 }
@@ -180,6 +182,30 @@ mod test {
             err,
             TransactionDataError::TransactionDataConflict(_)
         ));
+    }
+
+    // two transaction data entries authorized by the same credential: their hashes
+    // accumulate, and agreeing on the algorithm they were hashed with is not a conflict
+    #[test]
+    fn test_merge_kb_jwt_claims_entries_sharing_a_hash_algorithm() {
+        let mut a = kb_jwt(json!({
+            "transaction_data_hashes": ["hash-of-entry-1"],
+            "transaction_data_hashes_alg": "sha-256"
+        }));
+        let b = kb_jwt(json!({
+            "transaction_data_hashes": ["hash-of-entry-2"],
+            "transaction_data_hashes_alg": "sha-256"
+        }));
+
+        a.merge(b).unwrap();
+
+        assert_eq!(
+            kb_jwt(json!({
+                "transaction_data_hashes": ["hash-of-entry-1", "hash-of-entry-2"],
+                "transaction_data_hashes_alg": "sha-256"
+            })),
+            a
+        );
     }
 
     #[test]

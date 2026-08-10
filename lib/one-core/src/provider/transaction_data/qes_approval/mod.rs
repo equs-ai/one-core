@@ -5,10 +5,12 @@ use ct_codecs::{Base64UrlSafeNoPadding, Decoder, Encoder};
 use indexmap::IndexMap;
 use one_crypto::{CryptoProvider, Hasher};
 use proc_macros::Provider;
+use serde::Deserialize;
 use shared_types::TransactionDataType;
 use standardized_types::csc::transaction_data::{
     QES_APPROVAL_KB_JWT_CLAIM, QES_APPROVAL_MDOC_ELEMENT, QES_APPROVAL_MDOC_NAMESPACE,
     QES_APPROVAL_TRANSACTION_DATA_TYPE, QesApprovalRequest,
+    QesApprovalTransactionData as QesApprovalEntry,
 };
 use standardized_types::iana;
 use standardized_types::openid4vp::dcql::CredentialQueryId;
@@ -62,6 +64,25 @@ impl QesApprovalTransactionData {
             .get_hasher(&algorithm)
             .map_err(|_| TransactionDataError::UnsupportedHashAlgorithm(algorithm))
     }
+
+    fn validate_entry(&self, entry: &QesApprovalEntry) -> Result<(), TransactionDataError> {
+        if entry.credential_ids.is_empty() {
+            return Err(TransactionDataError::InvalidTransactionData(
+                "credential_ids must not be empty".to_string(),
+            ));
+        }
+
+        if entry.extension.credential_id.is_none() && entry.extension.signature_qualifier.is_none()
+        {
+            return Err(TransactionDataError::InvalidTransactionData(
+                "at least one of credentialID and signatureQualifier must be present".to_string(),
+            ));
+        }
+
+        self.hasher(entry.extension.hash_algorithm.into())?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -71,54 +92,31 @@ impl TransactionData for QesApprovalTransactionData {
         credential_ids: Vec<CredentialQueryId>,
         data: Option<serde_json::Value>,
     ) -> Result<String, TransactionDataError> {
-        let mut entry = match data {
-            None => serde_json::Map::new(),
-            Some(serde_json::Value::Object(data)) => data,
-            Some(_) => {
-                return Err(TransactionDataError::InvalidTransactionData(
-                    "transaction data content must be a JSON object".to_string(),
-                ));
-            }
+        let entry = QesApprovalEntry {
+            r#type: QES_APPROVAL_TRANSACTION_DATA_TYPE.to_string(),
+            credential_ids: credential_ids.iter().map(ToString::to_string).collect(),
+            // the field belongs to the OpenID4VP `transaction_data_hashes` profile,
+            // which this type does not use: consent is expressed through the CSC claim
+            transaction_data_hashes_alg: None,
+            extension: QesApprovalRequest::deserialize(&data.unwrap_or_default())?,
         };
-        entry.insert(
-            "type".to_string(),
-            QES_APPROVAL_TRANSACTION_DATA_TYPE.into(),
-        );
-        entry.insert(
-            "credential_ids".to_string(),
-            serde_json::to_value(credential_ids)?,
-        );
 
-        let encoded = Base64UrlSafeNoPadding::encode_to_string(serde_json::to_vec(&entry)?)?;
-        self.validate_transaction_data(&encoded)?;
+        self.validate_entry(&entry)?;
 
-        Ok(encoded)
+        Ok(Base64UrlSafeNoPadding::encode_to_string(
+            serde_json::to_vec(&entry)?,
+        )?)
     }
 
     fn validate_transaction_data(
         &self,
         transaction_data: &str,
     ) -> Result<TransactionDataMetadata, TransactionDataError> {
-        let request: QesApprovalRequest = decode_transaction_data(transaction_data)?;
-
-        if request.credential_ids.is_empty() {
-            return Err(TransactionDataError::InvalidTransactionData(
-                "credential_ids must not be empty".to_string(),
-            ));
-        }
-
-        if request.extension.credential_id.is_none()
-            && request.extension.signature_qualifier.is_none()
-        {
-            return Err(TransactionDataError::InvalidTransactionData(
-                "at least one of credentialID and signatureQualifier must be present".to_string(),
-            ));
-        }
-
-        self.hasher(request.extension.hash_algorithm.into())?;
+        let entry: QesApprovalEntry = decode_transaction_data(transaction_data)?;
+        self.validate_entry(&entry)?;
 
         Ok(TransactionDataMetadata {
-            credential_ids: request.credential_ids.into_iter().map(Into::into).collect(),
+            credential_ids: entry.credential_ids.into_iter().map(Into::into).collect(),
         })
     }
 
@@ -127,14 +125,14 @@ impl TransactionData for QesApprovalTransactionData {
         transaction_data: &str,
         format: FormatType,
     ) -> Result<ProcessedTransactionData, TransactionDataError> {
-        let request: QesApprovalRequest = decode_transaction_data(transaction_data)?;
+        let entry: QesApprovalEntry = decode_transaction_data(transaction_data)?;
 
         match format {
             // data model bindings section 7.2.1.2: hash the base64url-encoded
             // transaction data as received, using the hashAlgorithmOID algorithm
             FormatType::SdJwtVc => {
                 let qes_approval = self
-                    .hasher(request.extension.hash_algorithm.into())?
+                    .hasher(entry.extension.hash_algorithm.into())?
                     .hash_base64(transaction_data.as_bytes())?;
 
                 Ok(ProcessedTransactionData::KbJwtClaims(
