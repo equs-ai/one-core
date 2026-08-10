@@ -10,6 +10,7 @@ use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierFilterValue;
 use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterCondition;
+use crate::model::proof::Proof;
 use crate::provider::Provider;
 use crate::provider::ecosystem::error::EcosystemError;
 use crate::provider::ecosystem::model::{
@@ -31,13 +32,16 @@ pub trait Ecosystem: Provider + Send + Sync {
 
     fn get_capabilities(&self) -> EcosystemCapabilities;
 
-    fn is_ecosystem_interaction(&self, protocol_artifact: &ProtocolArtifact) -> bool;
-
     async fn validate_interaction(
         &self,
         interaction_artifact: &ProtocolArtifact,
         interaction: &Interaction,
     ) -> Result<(), EcosystemError>;
+
+    /// validate credential before issuance (issuer)
+    async fn validate_credential(&self, credential: &Credential) -> Result<(), EcosystemError>;
+    /// validate proof before request (verifier)
+    async fn validate_proof(&self, proof: &Proof) -> Result<(), EcosystemError>;
 
     fn identifier_filter(
         &self,

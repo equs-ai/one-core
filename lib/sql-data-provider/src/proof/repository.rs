@@ -195,6 +195,11 @@ impl ProofRepository for ProofProvider {
             Some(engagement) => Set(engagement),
         };
 
+        let ecosystem = match proof.ecosystem {
+            None => Unchanged(Default::default()),
+            Some(ecosystem) => Set(ecosystem),
+        };
+
         let now = one_core::clock::now_utc();
         let mut update_model = proof::ActiveModel {
             id: Unchanged(*proof_id),
@@ -206,6 +211,7 @@ impl ProofRepository for ProofProvider {
             requested_date,
             proof_blob_id,
             engagement,
+            ecosystem,
             ..Default::default()
         };
 

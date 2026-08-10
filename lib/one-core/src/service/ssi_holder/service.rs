@@ -23,12 +23,12 @@ impl SSIHolderService {
             ));
         }
 
-        // TODO (ONE-9974): detect/validate ecosystem
-
         let result = if let Some((issuance_exchange, issuance_protocol)) = self
             .issuance_protocol_provider
             .detect_protocol(&request.url)
         {
+            // TODO (ONE-9974): detect/validate ecosystem
+
             self.handle_issuance_invitation(
                 request.url,
                 organisation,
@@ -38,8 +38,13 @@ impl SSIHolderService {
             )
             .await?
         } else {
-            self.handle_verification_invitation(request.url, organisation, request.transport)
-                .await?
+            self.handle_verification_invitation(
+                request.url,
+                organisation,
+                request.transport,
+                request.ecosystem,
+            )
+            .await?
         };
 
         success_log(&result);

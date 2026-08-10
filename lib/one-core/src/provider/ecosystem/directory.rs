@@ -6,20 +6,18 @@ use shared_types::EcosystemId;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, EcosystemProviderType, Fields};
 use crate::error::{ContextWithErrorCode, NestedError};
+use crate::proto::session_provider::SessionProvider;
+use crate::proto::wrp_validator::WRPValidator;
+use crate::provider::blob_storage::provider::BlobStorageProvider;
 use crate::provider::ecosystem::Ecosystem;
 use crate::provider::ecosystem::eudi::EudiEcosystem;
-use crate::provider::ecosystem::model::ProtocolArtifact;
-use crate::provider::provider_directory::{ProviderDirectory, ProviderError};
+use crate::provider::provider_directory::ProviderDirectory;
+use crate::repository::history_repository::HistoryRepository;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub(crate) trait EcosystemDirectory: Send + Sync {
     fn get(&self, name: &EcosystemId) -> Result<Arc<dyn Ecosystem>, NestedError>;
-
-    fn auto_detect(
-        &self,
-        protocol_artifact: &ProtocolArtifact,
-    ) -> Result<Arc<dyn Ecosystem>, NestedError>;
 }
 
 impl EcosystemDirectory
@@ -28,32 +26,29 @@ impl EcosystemDirectory
     fn get(&self, name: &EcosystemId) -> Result<Arc<dyn Ecosystem>, NestedError> {
         self.provider(name)
     }
-
-    fn auto_detect(
-        &self,
-        protocol_artifact: &ProtocolArtifact,
-    ) -> Result<Arc<dyn Ecosystem>, NestedError> {
-        let (_, ecosystem) = self
-            .iter()
-            .find(|(_, e)| e.is_ecosystem_interaction(protocol_artifact))
-            .ok_or(ProviderError::NoSuitableProvider {
-                context: protocol_artifact.to_string(),
-                provider_type: std::any::type_name::<dyn Ecosystem>().to_string(),
-            })?;
-        Ok(ecosystem.clone())
-    }
 }
 
 pub(crate) fn ecosystem_directory_from_config(
     config: &mut CoreConfig,
+    history_repository: Arc<dyn HistoryRepository>,
+    wrp_validator: Arc<dyn WRPValidator>,
+    blob_storage_provider: Arc<dyn BlobStorageProvider>,
+    session_provider: Arc<dyn SessionProvider>,
 ) -> Result<Arc<dyn EcosystemDirectory>, ConfigValidationError> {
+    let config_copy = config.clone();
     let directory = ProviderDirectory::initialize(
         config.ecosystem.iter_mut(),
-        |name: &EcosystemId, fields: &Fields<EcosystemProviderType>| {
+        move |name: &EcosystemId, fields: &Fields<EcosystemProviderType>| {
             let ecosystem: Arc<dyn Ecosystem> = match fields.r#type {
-                EcosystemProviderType::Eudi => {
-                    Arc::new(EudiEcosystem::new(name.clone(), fields.merge_fields())?)
-                }
+                EcosystemProviderType::Eudi => Arc::new(EudiEcosystem::new(
+                    name.clone(),
+                    fields.merge_fields(),
+                    config_copy.clone(),
+                    history_repository.clone(),
+                    wrp_validator.clone(),
+                    blob_storage_provider.clone(),
+                    session_provider.clone(),
+                )?),
             };
 
             Ok(ecosystem)
@@ -72,7 +67,11 @@ mod test {
     use super::*;
     use crate::config::core_config::{ConfigEntryDisplay, Params};
     use crate::error::{ErrorCode, ErrorCodeMixin};
+    use crate::proto::session_provider::NoSessionProvider;
+    use crate::proto::wrp_validator::MockWRPValidator;
+    use crate::provider::blob_storage::provider::MockBlobStorageProvider;
     use crate::provider::ecosystem::model::EcosystemRole;
+    use crate::repository::history_repository::MockHistoryRepository;
 
     fn fields() -> Fields<EcosystemProviderType> {
         Fields {
@@ -99,7 +98,14 @@ mod test {
     fn disabled_ecosystem_rejects_interactions() {
         let mut config = config();
 
-        let directory = ecosystem_directory_from_config(&mut config).unwrap();
+        let directory = ecosystem_directory_from_config(
+            &mut config,
+            Arc::new(MockHistoryRepository::new()),
+            Arc::new(MockWRPValidator::new()),
+            Arc::new(MockBlobStorageProvider::new()),
+            Arc::new(NoSessionProvider),
+        )
+        .unwrap();
 
         let ecosystem = directory.get(&"EUDI".into()).unwrap();
         assert_eq!(
@@ -110,17 +116,5 @@ mod test {
             ecosystem.get_capabilities().ecosystem_roles.first(),
             Some(&EcosystemRole::Holder)
         );
-    }
-
-    #[test]
-    fn disabled_ecosystem_is_not_auto_detected() {
-        let mut config = config();
-
-        let directory = ecosystem_directory_from_config(&mut config).unwrap();
-
-        let Err(error) = directory.auto_detect(&ProtocolArtifact::IssuerIssuance {}) else {
-            panic!("expected no suitable provider error");
-        };
-        assert_eq!(error.error_code(), ErrorCode::BR_0478);
     }
 }

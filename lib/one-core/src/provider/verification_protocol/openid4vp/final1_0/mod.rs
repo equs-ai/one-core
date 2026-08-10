@@ -42,6 +42,7 @@ use crate::proto::trust_information::TrustInformationProvider;
 use crate::proto::wrp_validator::WRPValidator;
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
+use crate::provider::ecosystem::model::ProtocolArtifact;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::presentation_formatter::model::{CredentialToPresent, FormatPresentationCtx};
@@ -423,6 +424,12 @@ impl OpenID4VPFinal1_0 {
         Ok(InvitationResponseDTO {
             interaction_id,
             proof,
+            ecosystem_artifact: ProtocolArtifact::HolderProof {
+                verifier_details: holder_interaction_data.verifier_details,
+                dcql_query: holder_interaction_data.dcql_query,
+                verifier_info: holder_interaction_data.verifier_info,
+                proof_id,
+            },
         })
     }
 

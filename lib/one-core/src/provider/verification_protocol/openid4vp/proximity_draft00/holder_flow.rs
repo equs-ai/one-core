@@ -11,6 +11,7 @@ use crate::model::organisation::Organisation;
 use crate::proto::identifier_creator::{IdentifierCreator, IdentifierName, IdentifierRole};
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::model::{IdentifierDetails, VerificationFn};
+use crate::provider::ecosystem::model::ProtocolArtifact;
 use crate::provider::verification_protocol::dto::{InvitationResponseDTO, UpdateResponse};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::decode_client_id_with_scheme;
@@ -97,15 +98,23 @@ pub(crate) async fn handle_invitation_with_transport<T: Send + Sync + 'static>(
         VerificationProtocolError::InvalidRequest(format!("invalid client_id did: {did_value}"))
     })?;
 
+    let verifier_details = IdentifierDetails::Did(did_value);
     let (verifier_identifier, ..) = identifier_creator
         .get_or_create_remote_identifier(
             &organisation,
-            &IdentifierDetails::Did(did_value),
+            &verifier_details,
             IdentifierName::PrefixForId(IdentifierRole::Verifier.to_string()),
         )
         .await
         .error_while("creating verifier identifier")?;
     proof.verifier_identifier = Some(verifier_identifier);
+
+    let ecosystem_artifact = ProtocolArtifact::HolderProof {
+        verifier_details: Some(verifier_details),
+        dcql_query: presentation_request.payload.custom.dcql_query.clone(),
+        verifier_info: presentation_request.payload.custom.verifier_info.clone(),
+        proof_id: proof.id,
+    };
 
     let interaction_data = transport
         .interaction_data_from_authz_request(presentation_request.payload.custom, context)?;
@@ -124,6 +133,7 @@ pub(crate) async fn handle_invitation_with_transport<T: Send + Sync + 'static>(
     Ok(InvitationResponseDTO {
         interaction_id,
         proof,
+        ecosystem_artifact,
     })
 }
 

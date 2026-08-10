@@ -35,6 +35,7 @@ use crate::proto::nfc::hce::NfcHce;
 use crate::proto::nfc::static_handover_handler::NfcStaticHandoverHandler;
 use crate::provider::credential_formatter::mdoc_formatter::util::{Bstr, EmbeddedCbor};
 use crate::provider::credential_formatter::model::VerificationFn;
+use crate::provider::ecosystem::directory::EcosystemDirectory;
 use crate::provider::presentation_formatter::mso_mdoc::model::DeviceResponse;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::Handover;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::nfc::NFCHandover;
@@ -135,6 +136,7 @@ pub(crate) async fn receive_mdl_request(
     qr_engagement: Option<EmbeddedCbor<DeviceEngagement>>,
     nfc_engagement: Option<NfcHceSession>,
     holder_trust_resolver: Arc<dyn HolderTrustResolver>,
+    ecosystem_provider: Arc<dyn EcosystemDirectory>,
     certificate_validator: Arc<dyn CertificateValidator>,
     identifier_creator: Arc<dyn IdentifierCreator>,
     verify_fn: VerificationFn,
@@ -239,12 +241,13 @@ pub(crate) async fn receive_mdl_request(
                     let device_request: DeviceRequest =
                         ciborium::from_reader(device_request_bytes.as_slice())?;
 
-                    let organisation = interaction.organisation.as_ref().await?;
-                    let verifier_identifier = resolve_verifier_and_trust(
+                    let (verifier_identifier, ecosystem) = resolve_verifier_and_trust(
                         &device_request,
                         session_transcript_bytes.inner(),
                         proof_id,
-                        &organisation,
+                        &interaction,
+                        interaction_repository.as_ref(),
+                        ecosystem_provider.as_ref(),
                         holder_trust_resolver.as_ref(),
                         certificate_validator.as_ref(),
                         identifier_creator.as_ref(),
@@ -283,6 +286,7 @@ pub(crate) async fn receive_mdl_request(
                                 state: Some(ProofStateEnum::Requested),
                                 engagement: Some(Some(engagement_type.to_string())),
                                 verifier_identifier_id: verifier_identifier.map(|i| i.id),
+                                ecosystem: Some(ecosystem),
                                 ..Default::default()
                             },
                             None,

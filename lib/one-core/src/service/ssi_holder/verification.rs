@@ -3,7 +3,9 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use itertools::Itertools;
-use shared_types::{CredentialId, InteractionId, ProofId, SerializedCredential, TransactionDataId};
+use shared_types::{
+    CredentialId, EcosystemId, InteractionId, ProofId, SerializedCredential, TransactionDataId,
+};
 use standardized_types::openid4vp::dcql::CredentialQueryId;
 use url::Url;
 
@@ -50,6 +52,7 @@ use crate::repository::error::DataLayerError;
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, DetailCredentialClaimValueResponseDTO,
 };
+use crate::validator::ecosystem::{SelectionRole, ecosystem_autodetection};
 use crate::validator::{throw_if_endpoint_version_incompatible, throw_if_proof_state_not_eq};
 
 impl SSIHolderService {
@@ -363,8 +366,9 @@ impl SSIHolderService {
         url: Url,
         organisation: Organisation,
         transport: Option<Vec<String>>,
+        user_selected_ecosystem: Option<EcosystemId>,
     ) -> Result<HandleInvitationResultDTO, HolderServiceError> {
-        let (verification_exchange, verification_protocol) = self
+        let (protocol, verification_protocol) = self
             .verification_protocol_provider
             .detect_protocol(&url)
             .ok_or(HolderServiceError::MissingExchangeProtocol(
@@ -388,25 +392,39 @@ impl SSIHolderService {
         let InvitationResponseDTO {
             mut proof,
             interaction_id,
+            ecosystem_artifact,
         } = verification_protocol
             .holder_handle_invitation(url, organisation, transport)
             .await
             .error_while("handling invitation")?;
 
-        proof.protocol = verification_exchange.clone();
+        let ecosystem = ecosystem_autodetection(
+            interaction_id,
+            &ecosystem_artifact,
+            user_selected_ecosystem,
+            self.interaction_repository.as_ref(),
+            self.ecosystem_provider.as_ref(),
+            SelectionRole::Holder,
+        )
+        .await
+        .error_while("selecting ecosystem")?;
+
+        proof.protocol = protocol.clone();
+        proof.ecosystem = ecosystem.clone();
 
         self.fill_verifier_in_proof(&mut proof).await?;
 
-        self.proof_repository
-            .create_proof(proof.to_owned())
+        let proof_id = self
+            .proof_repository
+            .create_proof(proof)
             .await
             .error_while("creating proof")?;
 
         Ok(HandleInvitationResultDTO::ProofRequest {
             interaction_id,
-            proof_id: proof.id,
-            protocol: verification_exchange,
-            ecosystem: None, // TODO: ONE-9974
+            proof_id,
+            protocol,
+            ecosystem,
         })
     }
 

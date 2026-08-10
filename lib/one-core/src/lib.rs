@@ -360,8 +360,6 @@ impl OneCore {
         let document_signer_provider =
             document_signer_provider_from_config(&mut config, csc_client)?;
 
-        let ecosystem_provider = ecosystem_directory_from_config(&mut config)?;
-
         let identifier_creator = Arc::new(IdentifierCreatorProto::new(
             did_method_provider.clone(),
             data_provider.get_did_repository(),
@@ -433,6 +431,14 @@ impl OneCore {
 
         let blob_storage_provider =
             blob_storage_provider_from_config(&mut config, data_provider.get_blob_repository())?;
+
+        let ecosystem_provider = ecosystem_directory_from_config(
+            &mut config,
+            data_provider.get_history_repository(),
+            wrp_validator.clone(),
+            blob_storage_provider.clone(),
+            session_provider.clone(),
+        )?;
 
         let holder_trust_resolver = Arc::new(HolderTrustResolverProto::new(
             data_provider.get_history_repository(),

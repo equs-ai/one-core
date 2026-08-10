@@ -71,12 +71,6 @@ pub(crate) enum ProviderError {
 
     #[error("Provider `{provider}` is disabled")]
     ProviderDisabled { provider: String },
-
-    #[error("No suitable provider of type `{provider_type}`: {context}")]
-    NoSuitableProvider {
-        context: String,
-        provider_type: String,
-    },
 }
 
 impl ErrorCodeMixin for ProviderError {
@@ -84,7 +78,6 @@ impl ErrorCodeMixin for ProviderError {
         match self {
             ProviderError::MissingProvider { .. } => ErrorCode::BR_0430,
             ProviderError::ProviderDisabled { .. } => ErrorCode::BR_0431,
-            ProviderError::NoSuitableProvider { .. } => ErrorCode::BR_0478,
         }
     }
 }

@@ -16,6 +16,7 @@ use crate::provider::verification_protocol::dto::PresentationDefinitionVersion;
 use crate::repository::organisation_repository::OrganisationRepository;
 use crate::service::error::{BusinessLogicError, ServiceError, ValidationError};
 
+pub(crate) mod ecosystem;
 pub(crate) mod key_security;
 pub(crate) mod permissions;
 pub(crate) mod x509;

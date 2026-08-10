@@ -1009,6 +1009,9 @@ pub enum ErrorCode {
     #[strum(message = "Credential schema expiration must be greater than 0")]
     BR_0474,
 
+    #[strum(message = "Ecosystem not permitted by organisation config")]
+    BR_0475,
+
     #[strum(message = "Usage of ecosystem enforced, none provided/matching")]
     BR_0476,
 

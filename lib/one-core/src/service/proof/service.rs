@@ -991,6 +991,7 @@ impl ProofService {
             qr_engagement,
             nfc_engagement,
             self.holder_trust_resolver.clone(),
+            self.ecosystem_provider.clone(),
             self.certificate_validator.clone(),
             self.identifier_creator.clone(),
             self.verification_fn(),

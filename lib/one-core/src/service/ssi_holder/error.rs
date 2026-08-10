@@ -42,6 +42,8 @@ pub enum HolderServiceError {
     InvalidCredentialType(CredentialType),
     #[error("No unused, active credentials left in batch credential {0}")]
     BatchExhausted(CredentialId),
+    #[error("No ecosystem detected")]
+    NoEcosystemDetected,
 
     #[error("Mapping error: {0}")]
     MappingError(String),
@@ -71,6 +73,7 @@ impl ErrorCodeMixin for HolderServiceError {
             Self::MappingError(_) => ErrorCode::BR_0047,
             Self::InvalidCredentialType(_) => ErrorCode::BR_0442,
             Self::BatchExhausted(_) => ErrorCode::BR_0443,
+            Self::NoEcosystemDetected => ErrorCode::BR_0476,
             Self::Nested(nested) => nested.error_code(),
         }
     }

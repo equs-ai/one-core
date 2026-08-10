@@ -114,4 +114,5 @@ pub struct UpdateProofRequest {
     pub requested_date: Option<Option<OffsetDateTime>>,
     pub proof_blob_id: Option<Option<BlobId>>,
     pub engagement: Option<Option<String>>,
+    pub ecosystem: Option<Option<EcosystemId>>,
 }

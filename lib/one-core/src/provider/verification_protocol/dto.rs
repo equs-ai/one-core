@@ -12,6 +12,7 @@ use crate::model::credential_schema::CredentialSchema;
 use crate::model::did::Did;
 use crate::model::key::Key;
 use crate::model::proof::{Proof, UpdateProofRequest};
+use crate::provider::ecosystem::model::ProtocolArtifact;
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, DetailCredentialClaimValueResponseDTO,
 };
@@ -46,6 +47,7 @@ pub enum PresentationDefinitionVersion {
 pub(crate) struct InvitationResponseDTO {
     pub interaction_id: InteractionId,
     pub proof: Proof,
+    pub ecosystem_artifact: ProtocolArtifact,
 }
 
 #[derive(Clone, Debug)]

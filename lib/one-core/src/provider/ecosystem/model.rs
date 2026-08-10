@@ -1,14 +1,14 @@
-use std::fmt::{Display, Formatter};
-
 use serde::Serialize;
-use shared_types::{CredentialSchemaId, EcosystemId, ProofSchemaId};
+use shared_types::{CredentialSchemaId, EcosystemId, ProofId, ProofSchemaId, SerializedCredential};
 use standardized_types::openid4vci::CredentialIssuerMetadata;
 use standardized_types::openid4vp::VerifierInfoAttestation;
 use standardized_types::openid4vp::dcql::DcqlQuery;
+use strum::Display;
 
 use crate::model::credential::Credential;
+use crate::model::proof::Proof;
 use crate::proto::jwt::model::DecomposedJwt;
-use crate::provider::credential_formatter::model::IdentifierDetails;
+use crate::provider::credential_formatter::model::{DetailCredential, IdentifierDetails};
 use crate::service::common_dto::EudiTrustInformationResponseDTO;
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -28,23 +28,14 @@ pub enum EcosystemRole {
     WalletProvider,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum IssuerMetadataRepresentation {
     Signed(Box<DecomposedJwt<CredentialIssuerMetadata>>),
     Unsigned(Box<CredentialIssuerMetadata>),
 }
 
-impl IssuerMetadataRepresentation {
-    fn metadata(&self) -> &CredentialIssuerMetadata {
-        match &self {
-            Self::Signed(jwt) => &jwt.payload.custom,
-            Self::Unsigned(metadata) => metadata,
-        }
-    }
-}
-
 #[expect(clippy::large_enum_variant)]
-#[derive(Debug)]
+#[derive(Clone, Debug, Display)]
 pub enum ProtocolArtifact {
     /// As holder, protocol artifacts about the issuance & issuer
     HolderIssuanceInvitation {
@@ -53,41 +44,26 @@ pub enum ProtocolArtifact {
     },
     HolderIssuanceCredential {
         credential: Credential,
+        serialized: SerializedCredential,
     },
     /// As holder, protocol artifacts about the proof-request & verifier
     HolderProof {
         verifier_details: Option<IdentifierDetails>,
         dcql_query: DcqlQuery,
         verifier_info: Vec<VerifierInfoAttestation>,
+        proof_id: ProofId,
     },
-    /// As issuer, protocol artifacts of the holder
+    /// As issuer, issuance protocol artifacts
     IssuerIssuance {
-        // todo wallet unit attestation
+        wallet_provider: IdentifierDetails,
+        /// issued credential (role=Issuer)
+        credential: Credential,
     },
-    /// As verifier, protocol artifacts of a proof-request
-    Verifier {
-        // todo presentation
+    /// As verifier, protocol artifacts of a proof-request (after submission)
+    VerifierSubmission {
+        proof: Proof,
+        credentials: Vec<DetailCredential>,
     },
-}
-
-impl Display for ProtocolArtifact {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProtocolArtifact::HolderIssuanceInvitation { .. }
-            | ProtocolArtifact::HolderIssuanceCredential { .. } => {
-                write!(f, "Protocol interaction holder -> issuer")
-            }
-            ProtocolArtifact::HolderProof { .. } => {
-                write!(f, "Protocol interaction holder -> verifier")
-            }
-            ProtocolArtifact::IssuerIssuance { .. } => {
-                write!(f, "Protocol interaction issuer -> holder")
-            }
-            ProtocolArtifact::Verifier { .. } => {
-                write!(f, "Protocol interaction verifier -> issuer")
-            }
-        }
-    }
 }
 
 pub enum SchemaFilter {

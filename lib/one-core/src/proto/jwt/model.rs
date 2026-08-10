@@ -81,7 +81,7 @@ pub struct JWTPayload<CustomPayload> {
     pub custom: CustomPayload,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DecomposedJwt<CustomPayload> {
     pub header: JWTHeader,
     pub payload: JWTPayload<CustomPayload>,

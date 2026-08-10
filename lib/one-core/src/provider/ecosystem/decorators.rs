@@ -14,6 +14,7 @@ use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierFilterValue;
 use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterCondition;
+use crate::model::proof::Proof;
 use crate::provider::disabled_provider::DisabledProvider;
 use crate::provider::provider_directory::WithDisabledDecorator;
 
@@ -33,15 +34,18 @@ impl<T: Ecosystem + Display + ?Sized> Ecosystem for DisabledProvider<T> {
         self.inner().get_capabilities()
     }
 
-    fn is_ecosystem_interaction(&self, _protocol_artifact: &ProtocolArtifact) -> bool {
-        false
-    }
-
     async fn validate_interaction(
         &self,
         _interaction_artifact: &ProtocolArtifact,
         _interaction: &Interaction,
     ) -> Result<(), EcosystemError> {
+        self.disabled_error()
+    }
+
+    async fn validate_credential(&self, _credential: &Credential) -> Result<(), EcosystemError> {
+        self.disabled_error()
+    }
+    async fn validate_proof(&self, _proof: &Proof) -> Result<(), EcosystemError> {
         self.disabled_error()
     }
 

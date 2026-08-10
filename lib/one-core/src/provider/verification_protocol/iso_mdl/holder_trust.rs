@@ -1,5 +1,5 @@
 use coset::iana;
-use shared_types::ProofId;
+use shared_types::{EcosystemId, ProofId};
 use standardized_types::jwk::PublicJwk;
 use standardized_types::openid4vp::{VerifierInfoAttestation, VerifierInfoAttestationFormat};
 use time::Duration;
@@ -9,7 +9,7 @@ use super::mapper::device_request_to_dcql_query;
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::der_chain_into_pem_chain;
 use crate::model::identifier::Identifier;
-use crate::model::organisation::Organisation;
+use crate::model::interaction::Interaction;
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CertificateValidator, EnforceKeyUsage, ParsedCertificate,
 };
@@ -21,23 +21,29 @@ use crate::provider::credential_formatter::mdoc_formatter::util::{EmbeddedCbor, 
 use crate::provider::credential_formatter::model::{
     CertificateDetails, IdentifierDetails, VerificationFn, X5References,
 };
+use crate::provider::ecosystem::directory::EcosystemDirectory;
+use crate::provider::ecosystem::model::ProtocolArtifact;
 use crate::provider::presentation_formatter::mso_mdoc::model::ReaderAuthentication;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::SessionTranscript;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
+use crate::repository::interaction_repository::InteractionRepository;
+use crate::validator::ecosystem::{SelectionRole, ecosystem_autodetection};
 
 #[expect(clippy::too_many_arguments)]
 pub(super) async fn resolve_verifier_and_trust(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
     proof_id: ProofId,
-    organisation: &Organisation,
+    interaction: &Interaction,
+    interaction_repository: &dyn InteractionRepository,
+    ecosystem_provider: &dyn EcosystemDirectory,
     holder_trust_resolver: &dyn HolderTrustResolver,
     certificate_validator: &dyn CertificateValidator,
     identifier_creator: &dyn IdentifierCreator,
     verify_fn: &VerificationFn,
-) -> Result<Option<Identifier>, VerificationProtocolError> {
+) -> Result<(Option<Identifier>, Option<EcosystemId>), VerificationProtocolError> {
     let dcql_query = device_request_to_dcql_query(device_request);
-    let reg_certs = extract_reg_certs(device_request)?;
+    let verifier_info = extract_reg_certs(device_request)?;
     let verifier_details = extract_verifier(
         device_request,
         session_transcript,
@@ -50,18 +56,34 @@ pub(super) async fn resolve_verifier_and_trust(
         .resolve_verification_trust(
             verifier_details.as_ref(),
             proof_id,
-            organisation.id,
+            interaction.organisation.id(),
             &dcql_query,
-            &reg_certs,
+            &verifier_info,
             Duration::default(),
         )
         .await
         .error_while("resolving trust")?;
 
+    let ecosystem = ecosystem_autodetection(
+        interaction.id,
+        &ProtocolArtifact::HolderProof {
+            verifier_details: verifier_details.clone(),
+            dcql_query,
+            verifier_info,
+            proof_id,
+        },
+        interaction.ecosystem.to_owned(),
+        interaction_repository,
+        ecosystem_provider,
+        SelectionRole::Holder,
+    )
+    .await
+    .error_while("selecting ecosystem")?;
+
     let identifier = if let Some(verifier_details) = verifier_details {
         let (identifier, _) = identifier_creator
             .get_or_create_remote_identifier(
-                organisation,
+                interaction.organisation.as_ref().await?.as_ref(),
                 &verifier_details,
                 IdentifierName::PrefixForId("ReaderAuth".to_string()),
             )
@@ -73,7 +95,7 @@ pub(super) async fn resolve_verifier_and_trust(
         None
     };
 
-    Ok(identifier)
+    Ok((identifier, ecosystem))
 }
 
 fn extract_reg_certs(
