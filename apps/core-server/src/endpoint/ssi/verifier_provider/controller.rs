@@ -13,12 +13,12 @@ use crate::router::AppState;
     path = "/ssi/verifier-provider/v1/{verifierProvider}",
     responses(OkOrErrorResponse<VerifierProviderResponseRestDTO>),
     params(
-        ("verifierProvider" = String, Path, description = "Verifier provider ID")
+        ("verifierProvider" = String, Path, description = "Verifier Provider ID")
     ),
-    tag = "verifier-provider",
-    summary = "Retrieve verifier provider info",
+    tag = "ssi",
+    summary = "Retrieve Verifier Provider info",
     description = indoc::formatdoc! {"
-    Retrieves information about a verifier provider.
+    Returns configuration and policies from the Verifier Provider.
 "},
 )]
 pub(crate) async fn get_verification_provider(

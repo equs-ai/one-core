@@ -117,13 +117,13 @@ pub(crate) async fn issue_wallet_unit_attestation(
     get,
     path = "/ssi/wallet-provider/v1/{walletProvider}",
     params(
-        ("walletProvider" = String, Path, description = "Wallet provider")
+        ("walletProvider" = String, Path, description = "Wallet Provider ID")
     ),
     responses(OkOrErrorResponse<WalletProviderMetadataResponseRestDTO>),
     tag = "ssi",
-    summary = "Returns metadata of given wallet provider",
+    summary = "Retrieve Wallet Provider info",
     description = indoc::formatdoc! {"
-        Returns metadata of given wallet provider.
+        Returns configuration and policies from the Wallet Provider.
     "},
 )]
 pub(crate) async fn get_wallet_provider_metadata(
