@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use futures_util::FutureExt;
-use shared_types::{CredentialId, DidId, IdentifierId, InteractionId, KeyId};
+use shared_types::{CredentialId, DidId, EcosystemId, IdentifierId, InteractionId, KeyId};
 use standardized_types::oauth2::authorization_request::AuthorizationRequest;
 use standardized_types::openid4vci::SigningAlgValue;
 use url::Url;
@@ -28,7 +28,6 @@ use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::proto::oauth_client::OAuthClientProvider;
 use crate::proto::transaction_manager::IsolationLevel;
-use crate::provider::ProviderExt;
 use crate::provider::blob_storage::BlobStorage;
 use crate::provider::issuance_protocol::dto::{ContinueIssuanceDTO, Features};
 use crate::provider::issuance_protocol::model::{CredentialWithBlob, InvitationResponseEnum};
@@ -38,6 +37,9 @@ use crate::provider::issuance_protocol::{
     serialize_interaction_data,
 };
 use crate::service::error::MissingProviderError;
+use crate::validator::ecosystem::{
+    SelectionRole, ecosystem_autodetection, validate_ecosystem_selection_possible_autodetect,
+};
 use crate::validator::key_security::match_key_security_level;
 use crate::validator::{throw_if_credential_state_not_eq, throw_if_org_id_not_matching_session};
 
@@ -397,6 +399,7 @@ impl SSIHolderService {
         exchange: String,
         issuance_protocol: Arc<dyn IssuanceProtocol>,
         redirect_uri: Option<String>,
+        user_selected_ecosystem: Option<EcosystemId>,
     ) -> Result<HandleInvitationResultDTO, HolderServiceError> {
         let result = issuance_protocol
             .holder_handle_invitation(url, organisation, redirect_uri)
@@ -410,15 +413,29 @@ impl SSIHolderService {
                 key_storage_security,
                 key_algorithms,
                 requires_wallet_instance_attestation,
-            } => Ok(HandleInvitationResultDTO::Credential {
-                interaction_id,
-                tx_code,
-                key_storage_security_levels: key_storage_security,
-                key_algorithms,
-                protocol: exchange,
-                requires_wallet_instance_attestation,
-                ecosystem: None, // TODO: ONE-9974
-            }),
+                ecosystem_artifact,
+            } => {
+                let ecosystem = ecosystem_autodetection(
+                    interaction_id,
+                    &ecosystem_artifact,
+                    user_selected_ecosystem,
+                    self.interaction_repository.as_ref(),
+                    self.ecosystem_provider.as_ref(),
+                    SelectionRole::Holder,
+                )
+                .await
+                .error_while("selecting ecosystem")?;
+
+                Ok(HandleInvitationResultDTO::Credential {
+                    interaction_id,
+                    tx_code,
+                    key_storage_security_levels: key_storage_security,
+                    key_algorithms,
+                    protocol: exchange,
+                    requires_wallet_instance_attestation,
+                    ecosystem,
+                })
+            }
             InvitationResponseEnum::AuthorizationFlow {
                 organisation_id,
                 issuer,
@@ -428,6 +445,7 @@ impl SSIHolderService {
                 scope,
                 issuer_state,
                 authorization_server,
+                ecosystem_artifact,
             } => {
                 let InitiateIssuanceResponseDTO {
                     interaction_id,
@@ -443,15 +461,26 @@ impl SSIHolderService {
                         authorization_details,
                         issuer_state,
                         authorization_server,
-                        ecosystem: None, // TODO: ONE-9974, pass selected/detected ecosystem
+                        ecosystem: user_selected_ecosystem.clone(),
                     })
                     .await?;
+
+                let ecosystem = ecosystem_autodetection(
+                    interaction_id,
+                    &ecosystem_artifact,
+                    user_selected_ecosystem,
+                    self.interaction_repository.as_ref(),
+                    self.ecosystem_provider.as_ref(),
+                    SelectionRole::Holder,
+                )
+                .await
+                .error_while("selecting ecosystem")?;
 
                 Ok(HandleInvitationResultDTO::AuthorizationCodeFlow {
                     interaction_id,
                     authorization_code_flow_url: url,
                     protocol: exchange,
-                    ecosystem: None, // TODO: ONE-9974
+                    ecosystem,
                 })
             }
         }
@@ -505,10 +534,12 @@ impl SSIHolderService {
             .error_while("initiating authorization code flow")?;
 
         let ecosystem = request.ecosystem.clone();
-        if let Some(ecosystem_id) = &ecosystem {
-            let ecosystem = self.ecosystem_provider.get(ecosystem_id)?;
-            ecosystem.ensure_enabled()?;
-        }
+        validate_ecosystem_selection_possible_autodetect(
+            &ecosystem,
+            &organisation,
+            self.ecosystem_provider.as_ref(),
+        )
+        .error_while("validating ecosystem")?;
 
         let interaction_data = OpenIDAuthorizationCodeFlowInteractionData {
             request,
@@ -605,6 +636,7 @@ impl SSIHolderService {
             key_algorithms,
             requires_wallet_instance_attestation,
             protocol,
+            ecosystem_artifact,
         } = self
             .issuance_protocol_provider
             .get_protocol(&issuance.request.protocol)?
@@ -630,6 +662,17 @@ impl SSIHolderService {
             .await
             .error_while("continuing issuance")?;
 
+        let ecosystem = ecosystem_autodetection(
+            interaction_id,
+            &ecosystem_artifact,
+            interaction.ecosystem,
+            self.interaction_repository.as_ref(),
+            self.ecosystem_provider.as_ref(),
+            SelectionRole::Holder,
+        )
+        .await
+        .error_while("selecting ecosystem")?;
+
         tracing::info!(
             "Processed authorization code flow result for credential issuance using interaction {interaction_id}"
         );
@@ -641,7 +684,7 @@ impl SSIHolderService {
             key_algorithms,
             requires_wallet_instance_attestation,
             protocol,
-            ecosystem: None, // TODO (ONE-9974): implement validations
+            ecosystem,
         })
     }
 }

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use shared_types::EcosystemId;
 
 use crate::config::ConfigValidationError;
@@ -9,13 +8,14 @@ use crate::error::{ContextWithErrorCode, NestedError};
 use crate::proto::session_provider::SessionProvider;
 use crate::proto::wrp_validator::WRPValidator;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
+use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::ecosystem::Ecosystem;
 use crate::provider::ecosystem::eudi::EudiEcosystem;
 use crate::provider::provider_directory::ProviderDirectory;
 use crate::repository::history_repository::HistoryRepository;
+use crate::repository::interaction_repository::InteractionRepository;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-#[async_trait]
 pub(crate) trait EcosystemDirectory: Send + Sync {
     fn get(&self, name: &EcosystemId) -> Result<Arc<dyn Ecosystem>, NestedError>;
 }
@@ -31,11 +31,13 @@ impl EcosystemDirectory
 pub(crate) fn ecosystem_directory_from_config(
     config: &mut CoreConfig,
     history_repository: Arc<dyn HistoryRepository>,
+    interaction_repository: Arc<dyn InteractionRepository>,
     wrp_validator: Arc<dyn WRPValidator>,
     blob_storage_provider: Arc<dyn BlobStorageProvider>,
     session_provider: Arc<dyn SessionProvider>,
+    formatter_provider: Arc<dyn CredentialFormatterProvider>,
 ) -> Result<Arc<dyn EcosystemDirectory>, ConfigValidationError> {
-    let config_copy = config.clone();
+    let config_clone = config.clone();
     let directory = ProviderDirectory::initialize(
         config.ecosystem.iter_mut(),
         move |name: &EcosystemId, fields: &Fields<EcosystemProviderType>| {
@@ -43,11 +45,13 @@ pub(crate) fn ecosystem_directory_from_config(
                 EcosystemProviderType::Eudi => Arc::new(EudiEcosystem::new(
                     name.clone(),
                     fields.merge_fields(),
-                    config_copy.clone(),
+                    config_clone.clone(),
                     history_repository.clone(),
+                    interaction_repository.clone(),
                     wrp_validator.clone(),
                     blob_storage_provider.clone(),
                     session_provider.clone(),
+                    formatter_provider.clone(),
                 )?),
             };
 
@@ -70,8 +74,10 @@ mod test {
     use crate::proto::session_provider::NoSessionProvider;
     use crate::proto::wrp_validator::MockWRPValidator;
     use crate::provider::blob_storage::provider::MockBlobStorageProvider;
+    use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
     use crate::provider::ecosystem::model::EcosystemRole;
     use crate::repository::history_repository::MockHistoryRepository;
+    use crate::repository::interaction_repository::MockInteractionRepository;
 
     fn fields() -> Fields<EcosystemProviderType> {
         Fields {
@@ -101,9 +107,11 @@ mod test {
         let directory = ecosystem_directory_from_config(
             &mut config,
             Arc::new(MockHistoryRepository::new()),
+            Arc::new(MockInteractionRepository::new()),
             Arc::new(MockWRPValidator::new()),
             Arc::new(MockBlobStorageProvider::new()),
             Arc::new(NoSessionProvider),
+            Arc::new(MockCredentialFormatterProvider::new()),
         )
         .unwrap();
 

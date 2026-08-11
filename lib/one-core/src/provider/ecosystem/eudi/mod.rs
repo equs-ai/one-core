@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use holder_issuance::HolderIssuanceResolver;
 use holder_proof::HolderProofResolver;
 use mapper::credential_schema_to_schema_format;
 use proc_macros::Provider;
@@ -25,9 +26,12 @@ use crate::model::proof::Proof;
 use crate::proto::session_provider::SessionProvider;
 use crate::proto::wrp_validator::WRPValidator;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
+use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::provider_directory::InitializationError;
 use crate::repository::history_repository::HistoryRepository;
+use crate::repository::interaction_repository::InteractionRepository;
 
+mod holder_issuance;
 mod holder_proof;
 mod mapper;
 
@@ -60,17 +64,21 @@ pub struct EudiEcosystem {
     config: CoreConfig,
 
     holder_proof_resolver: HolderProofResolver,
+    holder_issuance_resolver: HolderIssuanceResolver,
 }
 
 impl EudiEcosystem {
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         config_id: EcosystemId,
         params: serde_json::Value,
         config: CoreConfig,
         history_repository: Arc<dyn HistoryRepository>,
+        interaction_repository: Arc<dyn InteractionRepository>,
         wrp_validator: Arc<dyn WRPValidator>,
         blob_storage_provider: Arc<dyn BlobStorageProvider>,
         session_provider: Arc<dyn SessionProvider>,
+        formatter_provider: Arc<dyn CredentialFormatterProvider>,
     ) -> Result<Self, InitializationError> {
         let params: Params =
             serde_json::from_value(params).map_err(|err| InitializationError::InvalidParams {
@@ -86,6 +94,15 @@ impl EudiEcosystem {
                 wrp_validator.clone(),
                 blob_storage_provider.clone(),
                 session_provider.clone(),
+            ),
+            holder_issuance_resolver: HolderIssuanceResolver::new(
+                history_repository,
+                interaction_repository,
+                wrp_validator,
+                blob_storage_provider,
+                session_provider,
+                formatter_provider,
+                params.leeway_seconds,
             ),
             params,
         })
@@ -111,13 +128,26 @@ impl Ecosystem for EudiEcosystem {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err(Debug))]
     async fn validate_interaction(
         &self,
         interaction_artifact: &ProtocolArtifact,
         interaction: &Interaction,
     ) -> Result<(), EcosystemError> {
         match interaction_artifact {
-            ProtocolArtifact::HolderIssuanceInvitation { .. } => todo!(),
+            ProtocolArtifact::HolderIssuanceInvitation {
+                issuer_metadata,
+                credential_configuration_ids,
+            } => {
+                self.holder_issuance_resolver
+                    .resolve_metadata_trust(
+                        interaction,
+                        issuer_metadata,
+                        credential_configuration_ids,
+                    )
+                    .await
+                    .error_while("resolving holder issuance trust")?;
+            }
             ProtocolArtifact::HolderIssuanceCredential { .. } => todo!(),
             ProtocolArtifact::HolderProof {
                 verifier_details,

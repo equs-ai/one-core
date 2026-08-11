@@ -101,6 +101,7 @@ use crate::provider::credential_formatter::model::{
 };
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
+use crate::provider::ecosystem::model::ProtocolArtifact;
 use crate::provider::issuance_protocol::openid4vci_final1_0::jwe::build_jwe;
 use crate::provider::issuance_protocol::openid4vci_final1_0::mapper_v2::credential_to_credential_detail_v2;
 use crate::provider::key_algorithm::ecdsa::ecdsa_public_key_as_jwk;
@@ -1176,7 +1177,7 @@ impl OpenID4VCIFinal1_0 {
         &self,
         organisation: Organisation,
         token_endpoint: String,
-        issuer_metadata: IssuerMetadataRepresentation,
+        issuer_metadata: &IssuerMetadataRepresentation,
         oauth_authorization_server_metadata: Option<AuthorizationServerMetadata>,
         grants: Grants,
         configuration_ids: &[String],
@@ -1638,15 +1639,19 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 redirect_uri,
                 authorization_details: Some(
                     credential_configuration_ids
-                        .into_iter()
-                        .map(|credential_configuration_id| AuthorizationDetail {
+                        .iter()
+                        .map(|configuration_id| AuthorizationDetail {
                             r#type: "openid_credential".to_string(),
-                            credential_configuration_id,
+                            credential_configuration_id: configuration_id.to_owned(),
                         })
                         .collect(),
                 ),
                 issuer_state: authorization_code.issuer_state,
                 authorization_server: authorization_code.authorization_server,
+                ecosystem_artifact: ProtocolArtifact::HolderIssuanceInvitation {
+                    issuer_metadata: issuer_metadata.into(),
+                    credential_configuration_ids,
+                },
             });
         }
 
@@ -1670,7 +1675,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .prepare_issuance_interaction(
                 organisation,
                 token_endpoint,
-                issuer_metadata,
+                &issuer_metadata,
                 Some(oauth_metadata),
                 credential_offer.grants,
                 &credential_offer.credential_configuration_ids,
@@ -1685,6 +1690,10 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             key_storage_security,
             key_algorithms,
             requires_wallet_instance_attestation,
+            ecosystem_artifact: ProtocolArtifact::HolderIssuanceInvitation {
+                issuer_metadata: issuer_metadata.into(),
+                credential_configuration_ids: credential_offer.credential_configuration_ids,
+            },
         })
     }
 
@@ -2136,7 +2145,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .prepare_issuance_interaction(
                 organisation,
                 token_endpoint,
-                issuer_metadata,
+                &issuer_metadata,
                 Some(oauth_metadata),
                 Grants::AuthorizationCode(AuthorizationCodeGrant {
                     issuer_state: None, // issuer state was used at the authorization request stage so it is not relevant anymore
@@ -2154,6 +2163,10 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             key_algorithms,
             requires_wallet_instance_attestation,
             protocol: self.config_id.to_owned(),
+            ecosystem_artifact: ProtocolArtifact::HolderIssuanceInvitation {
+                issuer_metadata: issuer_metadata.into(),
+                credential_configuration_ids: all_credential_configuration_ids,
+            },
         })
     }
 

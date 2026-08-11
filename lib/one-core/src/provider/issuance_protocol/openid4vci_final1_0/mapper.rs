@@ -12,12 +12,13 @@ use standardized_types::openid4vci::{
 };
 use time::OffsetDateTime;
 
+use super::IssuerMetadataRepresentation;
 use super::model::{
     CredentialIssuerParams, CredentialSchemaBackgroundPropertiesRequestDTO,
     CredentialSchemaCodePropertiesRequestDTO, CredentialSchemaCodeTypeEnum,
     CredentialSchemaLayoutPropertiesRequestDTO, CredentialSchemaLogoPropertiesRequestDTO,
     HolderInteractionData, OpenID4VCIIssuerInteractionDataDTO,
-    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign,
+    OpenID4VCIIssuerMetadataCredentialMetadataProcivisDesign, PROCIVIS_DESIGN_KEY,
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{IdentifierType, Params};
@@ -27,7 +28,6 @@ use crate::model::credential_schema::{
     LogoProperties,
 };
 use crate::provider::issuance_protocol::error::{IssuanceProtocolError, OpenID4VCIError};
-use crate::provider::issuance_protocol::openid4vci_final1_0::model::PROCIVIS_DESIGN_KEY;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 
 pub(crate) fn get_credential_offer_url(
@@ -329,4 +329,23 @@ pub(super) async fn remap_claim_credential_ids(
         claim.credential_id = credential_id;
     }
     Ok(())
+}
+
+impl From<IssuerMetadataRepresentation>
+    for crate::provider::ecosystem::model::IssuerMetadataRepresentation
+{
+    fn from(value: IssuerMetadataRepresentation) -> Self {
+        match value {
+            IssuerMetadataRepresentation::Unsigned(credential_issuer_metadata) => {
+                crate::provider::ecosystem::model::IssuerMetadataRepresentation::Unsigned(Box::new(
+                    credential_issuer_metadata,
+                ))
+            }
+            IssuerMetadataRepresentation::Signed(jwt, _) => {
+                crate::provider::ecosystem::model::IssuerMetadataRepresentation::Signed(Box::new(
+                    jwt,
+                ))
+            }
+        }
+    }
 }

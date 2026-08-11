@@ -435,9 +435,11 @@ impl OneCore {
         let ecosystem_provider = ecosystem_directory_from_config(
             &mut config,
             data_provider.get_history_repository(),
+            data_provider.get_interaction_repository(),
             wrp_validator.clone(),
             blob_storage_provider.clone(),
             session_provider.clone(),
+            credential_formatter_provider.clone(),
         )?;
 
         let holder_trust_resolver = Arc::new(HolderTrustResolverProto::new(

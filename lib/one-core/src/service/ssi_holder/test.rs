@@ -9,7 +9,7 @@ use similar_asserts::assert_eq;
 use standardized_types::oauth2::authorization_server_metadata::{
     AuthorizationServerMetadata, CodeChallengeMethod,
 };
-use standardized_types::openid4vci::AuthorizationDetail;
+use standardized_types::openid4vci::{AuthorizationDetail, CredentialIssuerMetadata};
 use url::Url;
 use uuid::Uuid;
 use wiremock::http::Method;
@@ -39,6 +39,7 @@ use crate::provider::blob_storage::provider::MockBlobStorageProvider;
 use crate::provider::credential_formatter::MockCredentialFormatter;
 use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
 use crate::provider::ecosystem::directory::MockEcosystemDirectory;
+use crate::provider::ecosystem::model::{IssuerMetadataRepresentation, ProtocolArtifact};
 use crate::provider::issuance_protocol::MockIssuanceProtocol;
 use crate::provider::issuance_protocol::dto::{Features, IssuanceProtocolCapabilities};
 use crate::provider::issuance_protocol::error::TxCodeError;
@@ -892,13 +893,13 @@ async fn test_continue_issuance() {
     let mut interaction_repository = MockInteractionRepository::new();
     interaction_repository
         .expect_get_interaction()
-        .return_once(move |_, _| {
+        .returning(move |id, _| {
             Ok(Interaction {
-                id: Uuid::new_v4().into(),
+                id: *id,
                 created_date: get_dummy_date(),
                 last_modified: get_dummy_date(),
                 data: Some(serde_json::to_vec(&interaction_data).unwrap()),
-                organisation: organisation.into(),
+                organisation: organisation.clone().into(),
                 nonce_id: None,
                 interaction_type: InteractionType::Verification,
                 expires_at: None,
@@ -918,6 +919,24 @@ async fn test_continue_issuance() {
                 key_algorithms: None,
                 requires_wallet_instance_attestation: false,
                 protocol: "protocol".to_string(),
+                ecosystem_artifact: ProtocolArtifact::HolderIssuanceInvitation {
+                    issuer_metadata: IssuerMetadataRepresentation::Unsigned(Box::new(
+                        CredentialIssuerMetadata {
+                            credential_issuer: "credential_issuer".to_string(),
+                            authorization_servers: None,
+                            credential_endpoint: "credential_endpoint".to_string(),
+                            nonce_endpoint: None,
+                            notification_endpoint: None,
+                            credential_configurations_supported: Default::default(),
+                            display: None,
+                            issuer_info: Default::default(),
+                            batch_credential_issuance: None,
+                            credential_request_encryption: None,
+                            credential_response_encryption: None,
+                        },
+                    )),
+                    credential_configuration_ids: vec![],
+                },
             })
         });
 

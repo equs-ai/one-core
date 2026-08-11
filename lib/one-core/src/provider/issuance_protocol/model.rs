@@ -5,6 +5,7 @@ use time::OffsetDateTime;
 
 use crate::model::credential::Credential;
 use crate::model::credential_schema::KeyStorageSecurity;
+use crate::provider::ecosystem::model::ProtocolArtifact;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,6 +33,7 @@ pub(crate) enum InvitationResponseEnum {
         key_storage_security: Option<Vec<KeyStorageSecurity>>,
         key_algorithms: Option<Vec<String>>,
         requires_wallet_instance_attestation: bool,
+        ecosystem_artifact: ProtocolArtifact,
     },
     AuthorizationFlow {
         organisation_id: OrganisationId,
@@ -42,6 +44,7 @@ pub(crate) enum InvitationResponseEnum {
         issuer_state: Option<String>,
         scope: Option<Vec<String>>,
         authorization_server: Option<String>,
+        ecosystem_artifact: ProtocolArtifact,
     },
 }
 
@@ -81,4 +84,5 @@ pub(crate) struct ContinueIssuanceResponseDTO {
     pub key_algorithms: Option<Vec<String>>,
     pub requires_wallet_instance_attestation: bool,
     pub protocol: String,
+    pub ecosystem_artifact: ProtocolArtifact,
 }

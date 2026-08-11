@@ -27,14 +27,13 @@ impl SSIHolderService {
             .issuance_protocol_provider
             .detect_protocol(&request.url)
         {
-            // TODO (ONE-9974): detect/validate ecosystem
-
             self.handle_issuance_invitation(
                 request.url,
                 organisation,
                 issuance_exchange,
                 issuance_protocol,
                 request.redirect_uri,
+                request.ecosystem,
             )
             .await?
         } else {

@@ -51,7 +51,6 @@ use crate::model::proof::{
 use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::key_verification::KeyVerification;
 use crate::proto::nfc::static_handover_handler::NfcStaticHandoverHandler;
-use crate::provider::ProviderExt;
 use crate::provider::credential_formatter::mdoc_formatter::util::EmbeddedCbor;
 use crate::provider::credential_formatter::model::VerificationFn;
 use crate::provider::transaction_data::Features::SupportsMultipleTxDataPerPresentation;
@@ -79,6 +78,7 @@ use crate::service::common_dto::{ListQueryDTO, TrustInformationDetailResponseDTO
 use crate::service::credential_schema::validator::validate_key_storage_security_supported;
 use crate::util::interactions::{add_new_interaction, clear_previous_interaction};
 use crate::util::key_selection::{CertificateFilter, KeyFilter, KeySelection, SelectedKey};
+use crate::validator::ecosystem::validate_ecosystem_selection_possible_autodetect;
 use crate::validator::{throw_if_org_id_not_matching_session, throw_if_org_not_matching_session};
 
 const DEFAULT_ENGAGEMENT: &str = "QR_CODE";
@@ -826,16 +826,18 @@ impl ProofService {
             });
         }
 
-        if let Some(ecosystem_id) = &request.ecosystem {
-            let ecosystem = self.ecosystem_provider.get(ecosystem_id)?;
-            ecosystem.ensure_enabled()?;
-        }
-
         let organisation = self
             .organisation_repository
             .get_organisation(&request.organisation_id)
             .await
             .error_while("getting organisation")?;
+
+        validate_ecosystem_selection_possible_autodetect(
+            &request.ecosystem,
+            &organisation,
+            self.ecosystem_provider.as_ref(),
+        )
+        .error_while("validating ecosystem")?;
 
         let transport = self
             .config

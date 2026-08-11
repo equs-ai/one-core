@@ -2315,6 +2315,7 @@ async fn test_handle_invitation_trust_mandatory_without_identifier_returns_error
             verifier_provider_issuer: None,
             configuration: Some(OrganisationConfiguration {
                 enforce_ecosystem_as_holder: true,
+                selected_ecosystems: vec!["EUDI".into()],
                 ..Default::default()
             }),
         })
@@ -2456,6 +2457,7 @@ async fn test_handle_invitation_trust_mandatory_with_x509_certificate_not_in_tru
             verifier_provider_issuer: None,
             configuration: Some(OrganisationConfiguration {
                 enforce_ecosystem_as_holder: true,
+                selected_ecosystems: vec!["EUDI".into()],
                 ..Default::default()
             }),
         })
