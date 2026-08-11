@@ -114,7 +114,7 @@ async fn test_check_revocation_non_revocable() {
     };
     credential_repository.expect_get_credential().returning({
         let credential = credential.clone();
-        move |_, _| Ok(credential.clone())
+        move |_| Ok(credential.clone())
     });
 
     let mut blob_storage_provider = MockBlobStorageProvider::new();
@@ -163,7 +163,7 @@ async fn test_check_revocation_already_revoked() {
         let credential_clone = credential.clone();
         credential_repository
             .expect_get_credential()
-            .returning(move |_, _| Ok(credential_clone.clone()));
+            .returning(move |_| Ok(credential_clone.clone()));
     }
 
     let validity_manager = setup_validity_manager(Repositories {
@@ -248,7 +248,7 @@ async fn test_check_revocation_becoming_revoked() {
     };
     credential_repository.expect_get_credential().returning({
         let credential = credential.clone();
-        move |_, _| Ok(credential.clone())
+        move |_| Ok(credential.clone())
     });
     credential_repository
         .expect_update_credential()
@@ -362,24 +362,24 @@ async fn test_check_revocation_batch_parent_becoming_revoked() {
     };
     credential_repository
         .expect_get_credential()
-        .with(eq(parent_credential_id), always())
+        .with(eq(parent_credential_id))
         .once()
         .returning({
             let mut credential = credential.clone();
             credential.id = parent_credential_id;
             credential.r#type = CredentialType::BatchParent;
-            move |_, _| Ok(credential.clone())
+            move |_| Ok(credential.clone())
         });
     credential_repository
         .expect_get_credential()
-        .with(eq(item_credential_id), always())
+        .with(eq(item_credential_id))
         .once()
         .returning({
             let mut credential = credential.clone();
             credential.id = item_credential_id;
             credential.r#type = CredentialType::BatchItem;
             credential.credential_blob_id = Some(credential_blob_id);
-            move |_, _| Ok(credential.clone())
+            move |_| Ok(credential.clone())
         });
     credential_repository
         .expect_get_credential_list()
@@ -484,33 +484,36 @@ async fn test_check_revocation_batch_parent_expires_when_all_items_and_refresh_t
     let credential = Credential {
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        interaction: Some(crate::model::interaction::Interaction {
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            last_modified: crate::clock::now_utc(),
-            data: Some(interaction_data),
-            organisation: dummy_organisation(None).into(),
-            nonce_id: None,
-            interaction_type: crate::model::interaction::InteractionType::Issuance,
-            expires_at: None,
-            ecosystem: None,
-            ecosystem_data: None,
-        }),
+        interaction: Some(
+            crate::model::interaction::Interaction {
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                data: Some(interaction_data),
+                organisation: dummy_organisation(None).into(),
+                nonce_id: None,
+                interaction_type: crate::model::interaction::InteractionType::Issuance,
+                expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
+            }
+            .into(),
+        ),
         ..generic_credential()
     };
     credential_repository
         .expect_get_credential()
-        .with(eq(parent_credential_id), always())
+        .with(eq(parent_credential_id))
         .once()
         .returning({
             let mut credential = credential.clone();
             credential.id = parent_credential_id;
             credential.r#type = CredentialType::BatchParent;
-            move |_, _| Ok(credential.clone())
+            move |_| Ok(credential.clone())
         });
     credential_repository
         .expect_get_credential()
-        .with(eq(item_credential_id), always())
+        .with(eq(item_credential_id))
         .once()
         .returning({
             let mut credential = credential.clone();
@@ -519,7 +522,7 @@ async fn test_check_revocation_batch_parent_expires_when_all_items_and_refresh_t
             credential.credential_blob_id = Some(credential_blob_id);
             // the item is itself individually expired
             credential.expires_at = Some(crate::clock::now_utc() - Duration::days(1));
-            move |_, _| Ok(credential.clone())
+            move |_| Ok(credential.clone())
         });
     credential_repository
         .expect_get_credential_list()
@@ -665,40 +668,43 @@ async fn test_check_revocation_batch_parent_stays_valid_when_refresh_token_expir
     let credential = Credential {
         state: CredentialStateEnum::Accepted,
         suspend_end_date: None,
-        interaction: Some(crate::model::interaction::Interaction {
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            last_modified: crate::clock::now_utc(),
-            data: Some(interaction_data),
-            organisation: dummy_organisation(None).into(),
-            nonce_id: None,
-            interaction_type: crate::model::interaction::InteractionType::Issuance,
-            expires_at: None,
-            ecosystem: None,
-            ecosystem_data: None,
-        }),
+        interaction: Some(
+            crate::model::interaction::Interaction {
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                data: Some(interaction_data),
+                organisation: dummy_organisation(None).into(),
+                nonce_id: None,
+                interaction_type: crate::model::interaction::InteractionType::Issuance,
+                expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
+            }
+            .into(),
+        ),
         ..generic_credential()
     };
     credential_repository
         .expect_get_credential()
-        .with(eq(parent_credential_id), always())
+        .with(eq(parent_credential_id))
         .once()
         .returning({
             let mut credential = credential.clone();
             credential.id = parent_credential_id;
             credential.r#type = CredentialType::BatchParent;
-            move |_, _| Ok(credential.clone())
+            move |_| Ok(credential.clone())
         });
     credential_repository
         .expect_get_credential()
-        .with(eq(item_credential_id), always())
+        .with(eq(item_credential_id))
         .once()
         .returning({
             let mut credential = credential.clone();
             credential.id = item_credential_id;
             credential.r#type = CredentialType::BatchItem;
             credential.credential_blob_id = Some(credential_blob_id);
-            move |_, _| Ok(credential.clone())
+            move |_| Ok(credential.clone())
         });
     credential_repository
         .expect_get_credential_list()
@@ -837,11 +843,11 @@ async fn test_check_revocation_batch_item_becoming_revoked() {
     let mut seq = Sequence::new();
     credential_repository
         .expect_get_credential()
-        .with(eq(item_credential_id), always())
+        .with(eq(item_credential_id))
         .once()
         .returning({
             let item_credential = item_credential.clone();
-            move |_, _| Ok(item_credential.clone())
+            move |_| Ok(item_credential.clone())
         })
         .in_sequence(&mut seq);
     credential_repository
@@ -941,13 +947,13 @@ async fn test_check_revocation_invalid_role() {
 
     credential_repository
         .expect_get_credential()
-        .with(eq(credential_issuer_role.id), always())
-        .returning(move |_, _| Ok(credential_issuer_role.clone()));
+        .with(eq(credential_issuer_role.id))
+        .returning(move |_| Ok(credential_issuer_role.clone()));
 
     credential_repository
         .expect_get_credential()
-        .with(eq(credential_verifier_role.id), always())
-        .returning(move |_, _| Ok(credential_verifier_role.clone()));
+        .with(eq(credential_verifier_role.id))
+        .returning(move |_| Ok(credential_verifier_role.clone()));
 
     let validity_manager = setup_validity_manager(Repositories {
         credential_repository,
@@ -985,7 +991,7 @@ async fn test_check_revocation_invalid_state() {
         let credential_clone = credential.clone();
         credential_repository
             .expect_get_credential()
-            .returning(move |_, _| Ok(credential_clone.clone()));
+            .returning(move |_| Ok(credential_clone.clone()));
     }
 
     let validity_manager = setup_validity_manager(Repositories {
@@ -1015,8 +1021,8 @@ async fn test_revoke_credential_success_with_accepted_credential() {
     credential_repository
         .expect_get_credential()
         .times(2)
-        .with(eq(clone.id), always())
-        .returning(move |_, _| Ok(clone.clone()));
+        .with(eq(clone.id))
+        .returning(move |_| Ok(clone.clone()));
 
     let mut revocation_method = MockRevocationMethod::default();
     revocation_method
@@ -1100,8 +1106,8 @@ async fn test_revoke_credential_success_with_suspended_credential() {
     credential_repository
         .expect_get_credential()
         .times(2)
-        .with(eq(clone.id), always())
-        .returning(move |_, _| Ok(clone.clone()));
+        .with(eq(clone.id))
+        .returning(move |_| Ok(clone.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     static REVOCATION_METHOD: LazyLock<RevocationMethodId> = LazyLock::new(|| "mock".into());
@@ -1149,8 +1155,8 @@ async fn test_suspend_credential_failed_cannot_suspend_revoked_credential() {
         credential_repository
             .expect_get_credential()
             .times(1)
-            .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(clone.clone()));
+            .with(eq(clone.id))
+            .returning(move |_| Ok(clone.clone()));
     }
     let validity_manager = setup_validity_manager(Repositories {
         credential_repository,
@@ -1190,8 +1196,8 @@ async fn test_suspend_credential_success() {
         credential_repository
             .expect_get_credential()
             .times(2)
-            .with(eq(clone.id), always())
-            .returning(move |_, _| Ok(clone.clone()));
+            .with(eq(clone.id))
+            .returning(move |_| Ok(clone.clone()));
     }
 
     let mut revocation_method = MockRevocationMethod::default();
@@ -1267,7 +1273,7 @@ async fn test_reactivate_credential_success() {
     credential_repository
         .expect_get_credential()
         .times(2)
-        .returning(move |_, _| Ok(cred_clone.clone()));
+        .returning(move |_| Ok(cred_clone.clone()));
 
     let mut formatter = MockCredentialFormatter::default();
     static REVOCATION_METHOD: LazyLock<RevocationMethodId> = LazyLock::new(|| "mock".into());
@@ -1333,8 +1339,8 @@ async fn test_reactivate_credential_failed_cannot_reactivate_revoked_credential(
     credential_repository
         .expect_get_credential()
         .times(1)
-        .with(eq(clone.id), always())
-        .returning(move |_, _| Ok(clone.clone()));
+        .with(eq(clone.id))
+        .returning(move |_| Ok(clone.clone()));
 
     let validity_manager = setup_validity_manager(Repositories {
         credential_repository,
@@ -1364,8 +1370,8 @@ async fn test_revoke_credential_invalid_role() {
     credential_repository
         .expect_get_credential()
         .times(1)
-        .with(eq(clone.id), always())
-        .returning(move |_, _| Ok(clone.clone()));
+        .with(eq(clone.id))
+        .returning(move |_| Ok(clone.clone()));
 
     let validity_manager = setup_validity_manager(Repositories {
         credential_repository,
@@ -1401,8 +1407,8 @@ async fn test_suspend_credential_failed_mdoc_batch_item() {
     credential_repository
         .expect_get_credential()
         .times(1)
-        .with(eq(clone.id), always())
-        .returning(move |_, _| Ok(clone.clone()));
+        .with(eq(clone.id))
+        .returning(move |_| Ok(clone.clone()));
 
     let mut revocation_method = MockRevocationMethod::default();
     revocation_method
@@ -1469,15 +1475,15 @@ async fn test_revoke_credential_batch_parent() {
         credential_repository
             .expect_get_credential()
             .once()
-            .with(eq(parent_credential.id), always())
-            .returning(move |_, _| Ok(clone.clone()));
+            .with(eq(parent_credential.id))
+            .returning(move |_| Ok(clone.clone()));
 
         let clone = child_credential.clone();
         credential_repository
             .expect_get_credential()
             .once()
-            .with(eq(child_credential.id), always())
-            .returning(move |_, _| Ok(clone.clone()));
+            .with(eq(child_credential.id))
+            .returning(move |_| Ok(clone.clone()));
 
         let clone = child_credential.clone();
         let _parent_credential_id = parent_credential.id;
@@ -1579,10 +1585,10 @@ async fn test_revoke_credential_batch_item() {
     credential_repository
         .expect_get_credential()
         .times(2)
-        .with(eq(child_credential.id), always())
+        .with(eq(child_credential.id))
         .returning({
             let clone = child_credential.clone();
-            move |_, _| Ok(clone.clone())
+            move |_| Ok(clone.clone())
         });
 
     let mut seq = Sequence::new();
@@ -1681,7 +1687,7 @@ async fn test_credential_ops_session_org_mismatch() {
     let mut credential_repository = MockCredentialRepository::default();
     credential_repository
         .expect_get_credential()
-        .returning(|_, _| {
+        .returning(|_| {
             Ok(Credential {
                 role: CredentialRole::Issuer,
                 ..generic_credential()
@@ -1778,18 +1784,21 @@ fn generic_credential() -> Credential {
             schema: claim_schema.clone().into(),
         }]
         .into(),
-        issuer_identifier: Some(Identifier {
-            id: Uuid::new_v4().into(),
-            created_date: now,
-            last_modified: now,
-            name: "identifier".to_string(),
-            data: IdentifierData::Did((issuer_did).into()),
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: Default::default(),
-        }),
+        issuer_identifier: Some(
+            Identifier {
+                id: Uuid::new_v4().into(),
+                created_date: now,
+                last_modified: now,
+                name: "identifier".to_string(),
+                data: IdentifierData::Did((issuer_did).into()),
+                is_remote: false,
+                state: IdentifierState::Active,
+                deleted_at: None,
+                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
+                trust_information: Default::default(),
+            }
+            .into(),
+        ),
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {

@@ -6,11 +6,10 @@ use shared_types::{CredentialId, InteractionId};
 use uuid::Uuid;
 
 use crate::model::credential::{
-    Credential, CredentialListQuery, CredentialRelations, CredentialRole, CredentialStateEnum,
-    GetCredentialList, UpdateCredentialRequest,
+    Credential, CredentialListQuery, CredentialRole, CredentialStateEnum, GetCredentialList,
+    UpdateCredentialRequest,
 };
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
-use crate::model::identifier::IdentifierRelations;
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::error::DataLayerError;
@@ -24,14 +23,7 @@ pub struct CredentialHistoryDecorator {
 
 impl CredentialHistoryDecorator {
     async fn get_stored(&self, credential_id: CredentialId) -> Result<Credential, DataLayerError> {
-        self.get_credential(
-            &credential_id,
-            &CredentialRelations {
-                interaction: Some(Default::default()),
-                ..Default::default()
-            },
-        )
-        .await
+        self.get_credential(&credential_id).await
     }
 
     async fn create_history_entry(
@@ -39,15 +31,7 @@ impl CredentialHistoryDecorator {
         credential_id: CredentialId,
         actions: impl IntoIterator<Item = HistoryAction> + Debug,
     ) {
-        let credential = self
-            .get_credential(
-                &credential_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {}),
-                    ..Default::default()
-                },
-            )
-            .await;
+        let credential = self.get_credential(&credential_id).await;
 
         match credential {
             Ok(credential) => {
@@ -138,7 +122,7 @@ impl CredentialRepository for CredentialHistoryDecorator {
             && stored.state == CredentialStateEnum::Pending
             && stored.role == CredentialRole::Issuer
             && update.state.is_none()
-            && Some(interaction_id) != stored.interaction.map(|i| i.id)
+            && Some(interaction_id) != stored.interaction.map(|i| i.id())
         {
             self.create_history_entry(credential_id, [HistoryAction::Shared])
                 .await;
@@ -195,21 +179,16 @@ impl CredentialRepository for CredentialHistoryDecorator {
         self.inner.delete_credential_blobs(request).await
     }
 
-    async fn get_credential(
-        &self,
-        id: &CredentialId,
-        relations: &CredentialRelations,
-    ) -> Result<Credential, DataLayerError> {
-        self.inner.get_credential(id, relations).await
+    async fn get_credential(&self, id: &CredentialId) -> Result<Credential, DataLayerError> {
+        self.inner.get_credential(id).await
     }
 
     async fn get_credentials_by_interaction_id(
         &self,
         interaction_id: &InteractionId,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError> {
         self.inner
-            .get_credentials_by_interaction_id(interaction_id, relations)
+            .get_credentials_by_interaction_id(interaction_id)
             .await
     }
 
@@ -223,11 +202,8 @@ impl CredentialRepository for CredentialHistoryDecorator {
     async fn get_credentials_by_claim_names(
         &self,
         claim_names: Vec<String>,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError> {
-        self.inner
-            .get_credentials_by_claim_names(claim_names, relations)
-            .await
+        self.inner.get_credentials_by_claim_names(claim_names).await
     }
 }
 
@@ -236,7 +212,7 @@ fn target_from_credential(credential: &Credential) -> Option<String> {
         CredentialRole::Holder => credential
             .issuer_identifier
             .as_ref()
-            .map(|identifier| identifier.id.to_string()),
+            .map(|identifier| identifier.id().to_string()),
         CredentialRole::Issuer => credential
             .holder_identifier
             .as_ref()

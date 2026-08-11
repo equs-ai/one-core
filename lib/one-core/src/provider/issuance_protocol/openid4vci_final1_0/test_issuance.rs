@@ -80,21 +80,24 @@ async fn test_issuer_submit_succeeds() {
             }
             .into(),
         ),
-        issuer_identifier: Some(Identifier {
-            data: IdentifierData::Did(
-                (Did {
-                    keys: vec![RelatedKey {
-                        role: KeyRole::AssertionMethod,
-                        key: key.to_owned(),
-                        reference: "1".to_string(),
-                    }]
+        issuer_identifier: Some(
+            Identifier {
+                data: IdentifierData::Did(
+                    (Did {
+                        keys: vec![RelatedKey {
+                            role: KeyRole::AssertionMethod,
+                            key: key.to_owned(),
+                            reference: "1".to_string(),
+                        }]
+                        .into(),
+                        ..dummy_did()
+                    })
                     .into(),
-                    ..dummy_did()
-                })
-                .into(),
-            ),
-            ..dummy_identifier()
-        }),
+                ),
+                ..dummy_identifier()
+            }
+            .into(),
+        ),
         key: Some(key.into()),
         ..dummy_credential().await
     };
@@ -107,12 +110,12 @@ async fn test_issuer_submit_succeeds() {
     let mut credential_repository = MockCredentialRepository::new();
     credential_repository
         .expect_get_credential()
-        .withf(move |_credential_id, _| {
+        .withf(move |_credential_id| {
             assert_eq!(_credential_id, &credential_id);
             true
         })
         .once()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             let mut credential = credential_copy;
             credential.schema = updated_schema.into();
             Ok(credential)
@@ -281,21 +284,24 @@ async fn generic_mdoc_credential(state: CredentialStateEnum) -> Credential {
             }
             .into(),
         ),
-        issuer_identifier: Some(Identifier {
-            data: IdentifierData::Did(
-                (Did {
-                    keys: vec![RelatedKey {
-                        role: KeyRole::AssertionMethod,
-                        key: key.to_owned(),
-                        reference: "1".to_string(),
-                    }]
+        issuer_identifier: Some(
+            Identifier {
+                data: IdentifierData::Did(
+                    (Did {
+                        keys: vec![RelatedKey {
+                            role: KeyRole::AssertionMethod,
+                            key: key.to_owned(),
+                            reference: "1".to_string(),
+                        }]
+                        .into(),
+                        ..dummy_did()
+                    })
                     .into(),
-                    ..dummy_did()
-                })
-                .into(),
-            ),
-            ..dummy_identifier()
-        }),
+                ),
+                ..dummy_identifier()
+            }
+            .into(),
+        ),
         key: Some(key.into()),
         schema: credential_schema.into(),
         ..dummy_credential().await
@@ -316,12 +322,12 @@ async fn test_issue_credential_for_mdoc_succeeds() {
     };
     credential_repository
         .expect_get_credential()
-        .withf(move |_credential_id, _| {
+        .withf(move |_credential_id| {
             assert_eq!(_credential_id, &credential_id);
             true
         })
         .once()
-        .return_once(move |_, _| {
+        .return_once(move |_| {
             let mut credential = credential_copy;
             credential.schema = updated_schema.into();
             Ok(credential)
@@ -445,12 +451,12 @@ async fn test_issue_credential_for_existing_mdoc_succeeds() {
     let mut credential_repository = MockCredentialRepository::new();
     credential_repository
         .expect_get_credential()
-        .withf(move |_credential_id, _| {
+        .withf(move |_credential_id| {
             assert_eq!(_credential_id, &credential_id);
             true
         })
         .times(2)
-        .returning(move |_, _| {
+        .returning(move |_| {
             let mut credential = credential_copy.clone();
             credential.schema = updated_schema.clone().into();
             Ok(credential)
@@ -599,12 +605,12 @@ async fn test_issue_credential_for_existing_mdoc_with_expected_update_in_the_fut
     let mut credential_repository = MockCredentialRepository::new();
     credential_repository
         .expect_get_credential()
-        .withf(move |_credential_id, _| {
+        .withf(move |_credential_id| {
             assert_eq!(_credential_id, &credential_id);
             true
         })
         .times(2)
-        .returning(move |_, _| Ok(credential_copy.clone()));
+        .returning(move |_| Ok(credential_copy.clone()));
 
     let mut config = dummy_config();
     config.format.insert(
@@ -828,18 +834,21 @@ async fn dummy_credential() -> Credential {
         .await
         .unwrap()
         .into(),
-        interaction: Some(Interaction {
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            data: Some(b"interaction data".to_vec()),
-            last_modified: crate::clock::now_utc(),
-            organisation: dummy_organisation(None).into(),
-            nonce_id: None,
-            interaction_type: InteractionType::Issuance,
-            expires_at: None,
-            ecosystem: None,
-            ecosystem_data: None,
-        }),
+        interaction: Some(
+            Interaction {
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                data: Some(b"interaction data".to_vec()),
+                last_modified: crate::clock::now_utc(),
+                organisation: dummy_organisation(None).into(),
+                nonce_id: None,
+                interaction_type: InteractionType::Issuance,
+                expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
+            }
+            .into(),
+        ),
         key: None,
         profile: None,
         credential_blob_id: None,

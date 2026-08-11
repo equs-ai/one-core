@@ -4,22 +4,19 @@ use autometrics::autometrics;
 use futures::FutureExt;
 use one_core::model::claim::Claim;
 use one_core::model::credential::{
-    Credential, CredentialListIncludeEntityTypeEnum, CredentialListQuery, CredentialRelations,
-    GetCredentialList, UpdateCredentialRequest,
+    Credential, CredentialListIncludeEntityTypeEnum, CredentialListQuery, GetCredentialList,
+    UpdateCredentialRequest,
 };
-use one_core::model::identifier::{Identifier, IdentifierRelations};
 use one_core::proto::transaction_manager::IsolationLevel;
 use one_core::repository::credential_repository::CredentialRepository;
 use one_core::repository::error::{DataLayerError, EntityKind};
-use one_core::repository::identifier_repository::IdentifierRepository;
-use one_dto_mapper::convert_inner;
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::sea_query::{Expr, IntoCondition};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, Select, Set, SqlErr, Unchanged,
 };
-use shared_types::{CredentialId, IdentifierId, InteractionId};
+use shared_types::{CredentialId, InteractionId};
 
 use super::CredentialProvider;
 use super::entity_model::CredentialListEntityModel;
@@ -32,60 +29,24 @@ use crate::list_query_generic::{SelectWithFilterJoin, SelectWithListQuery};
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
 
 impl CredentialProvider {
-    async fn credential_model_to_repository_model(
-        &self,
-        credential: credential::Model,
-        relations: &CredentialRelations,
-    ) -> Result<Credential, DataLayerError> {
-        let issuer_identifier = get_related_identifier(
-            self.identifier_repository.as_ref(),
-            credential.issuer_identifier_id.as_ref(),
-            relations.issuer_identifier.as_ref(),
+    fn credential_model_to_repository_model(&self, credential: credential::Model) -> Credential {
+        model_to_credential(
+            credential,
+            &self.cloned(),
+            &self.claim_repository,
+            &self.credential_schema_repository,
+            &self.key_repository,
+            &self.identifier_repository,
+            &self.certificate_repository,
+            &self.interaction_repository,
         )
-        .await?;
-
-        let interaction = if let Some(_interaction_relations) = &relations.interaction {
-            match &credential.interaction_id {
-                None => None,
-                Some(interaction_id) => Some(
-                    self.interaction_repository
-                        .get_interaction(interaction_id, None)
-                        .await?,
-                ),
-            }
-        } else {
-            None
-        };
-
-        Ok(Credential {
-            issuer_identifier,
-            interaction,
-            ..model_to_credential(
-                credential,
-                &self.cloned(),
-                &self.claim_repository,
-                &self.credential_schema_repository,
-                &self.key_repository,
-                &self.identifier_repository,
-                &self.certificate_repository,
-            )
-        })
     }
 
-    async fn credentials_to_repository(
-        &self,
-        credentials: Vec<credential::Model>,
-        relations: &CredentialRelations,
-    ) -> Result<Vec<Credential>, DataLayerError> {
-        let mut result: Vec<Credential> = Vec::new();
-        for credential in credentials.into_iter() {
-            result.push(
-                self.credential_model_to_repository_model(credential, relations)
-                    .await?,
-            );
-        }
-
-        Ok(result)
+    fn credentials_to_repository(&self, credentials: Vec<credential::Model>) -> Vec<Credential> {
+        credentials
+            .into_iter()
+            .map(|model| self.credential_model_to_repository_model(model))
+            .collect()
     }
 
     async fn update_claims(
@@ -134,6 +95,7 @@ fn get_credential_list_query(query_params: CredentialListQuery) -> Select<creden
             credential::Column::Profile,
             credential::Column::ParentId,
             credential::Column::KeyId,
+            credential::Column::InteractionId,
             credential::Column::HolderIdentifierId,
             credential::Column::IssuerCertificateId,
             credential::Column::CredentialBlobId,
@@ -266,7 +228,7 @@ impl CredentialRepository for CredentialProvider {
         let issuer_identifier_id = request
             .issuer_identifier
             .as_ref()
-            .map(|identifier| identifier.id);
+            .map(|identifier| identifier.id());
 
         let issuer_certificate_id = request.issuer_certificate.as_ref().map(|cert| cert.id());
 
@@ -280,7 +242,7 @@ impl CredentialRepository for CredentialProvider {
         let interaction_id = request
             .interaction
             .as_ref()
-            .map(|interaction| interaction.id);
+            .map(|interaction| interaction.id());
 
         let key_id = request.key.as_ref().map(|key| key.id());
 
@@ -295,7 +257,7 @@ impl CredentialRepository for CredentialProvider {
             issuer_certificate_id,
             holder_identifier_id,
             interaction_id,
-            convert_inner(key_id),
+            key_id,
             request.credential_blob_id,
             request.wallet_unit_attestation_blob_id,
             request.wallet_instance_attestation_blob_id,
@@ -346,11 +308,7 @@ impl CredentialRepository for CredentialProvider {
         Ok(())
     }
 
-    async fn get_credential(
-        &self,
-        id: &CredentialId,
-        relations: &CredentialRelations,
-    ) -> Result<Credential, DataLayerError> {
+    async fn get_credential(&self, id: &CredentialId) -> Result<Credential, DataLayerError> {
         let credential = credential::Entity::find_by_id(id)
             .one(&self.db)
             .await
@@ -360,14 +318,12 @@ impl CredentialRepository for CredentialProvider {
                 id: (*id).into(),
             })?;
 
-        self.credential_model_to_repository_model(credential, relations)
-            .await
+        Ok(self.credential_model_to_repository_model(credential))
     }
 
     async fn get_credentials_by_interaction_id(
         &self,
         interaction_id: &InteractionId,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError> {
         let credentials = credential::Entity::find()
             .filter(credential::Column::InteractionId.eq(interaction_id.to_string()))
@@ -375,7 +331,7 @@ impl CredentialRepository for CredentialProvider {
             .await
             .map_err(|e| DataLayerError::Db(e.into()))?;
 
-        self.credentials_to_repository(credentials, relations).await
+        Ok(self.credentials_to_repository(credentials))
     }
 
     async fn get_credential_list(
@@ -409,6 +365,7 @@ impl CredentialRepository for CredentialProvider {
                 &self.key_repository,
                 &self.certificate_repository,
                 &self.identifier_repository,
+                &self.interaction_repository,
                 &self.trust_information_repository,
                 &self.db,
             )?,
@@ -519,7 +476,6 @@ impl CredentialRepository for CredentialProvider {
     async fn get_credentials_by_claim_names(
         &self,
         claim_names: Vec<String>,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError> {
         let credentials = credential::Entity::find()
             .join(JoinType::InnerJoin, credential::Relation::Claim.def())
@@ -538,7 +494,7 @@ impl CredentialRepository for CredentialProvider {
             .await
             .map_err(|e| DataLayerError::Db(e.into()))?;
 
-        self.credentials_to_repository(credentials, relations).await
+        Ok(self.credentials_to_repository(credentials))
     }
 
     async fn delete_credential_blobs(
@@ -556,21 +512,4 @@ impl CredentialRepository for CredentialProvider {
             .map_err(|e| DataLayerError::Db(e.into()))?;
         Ok(())
     }
-}
-
-async fn get_related_identifier(
-    repo: &dyn IdentifierRepository,
-    id: Option<&IdentifierId>,
-    relations: Option<&IdentifierRelations>,
-) -> Result<Option<Identifier>, DataLayerError> {
-    let identifier = match id.zip(relations) {
-        None => None,
-        Some((id, _relations)) => {
-            let identifier = repo.get(*id).await?;
-
-            Some(identifier)
-        }
-    };
-
-    Ok(identifier)
 }

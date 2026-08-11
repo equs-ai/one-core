@@ -594,7 +594,7 @@ async fn test_get_presentation_definition_v2() {
         });
     credential_repository
         .expect_get_credential()
-        .return_once(move |_, _| Ok(credential));
+        .return_once(move |_| Ok(credential));
 
     let mut formatter_provider = MockCredentialFormatterProvider::new();
     formatter_provider

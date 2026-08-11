@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use shared_types::{CredentialId, InteractionId, NonceId, ProofId};
 
 use super::error::DataLayerError;
 use crate::model::common::LockType;
 use crate::model::interaction::{Interaction, UpdateInteractionRequest};
+use crate::model::relation::AsyncModelLoader;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
@@ -39,4 +42,11 @@ pub trait InteractionRepository: Send + Sync {
     // interaction expiration check
     async fn update_expired_credentials(&self) -> Result<Vec<CredentialId>, DataLayerError>;
     async fn update_expired_proofs(&self) -> Result<Vec<ProofId>, DataLayerError>;
+}
+
+#[async_trait::async_trait]
+impl AsyncModelLoader<Interaction> for Arc<dyn InteractionRepository> {
+    async fn load(&self, id: &InteractionId) -> Result<Interaction, DataLayerError> {
+        self.get_interaction(id, None).await
+    }
 }

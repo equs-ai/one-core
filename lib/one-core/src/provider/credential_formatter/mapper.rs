@@ -173,16 +173,20 @@ async fn issuer_for_credential(
     credential: &Credential,
     core_base_url: &str,
 ) -> Result<Issuer, FormatterError> {
-    if let Some(IdentifierData::Did(issuer_did)) = credential
-        .issuer_identifier
+    let issuer_identifier = match credential.issuer_identifier.as_ref() {
+        Some(identifier) => Some(identifier.as_ref().await?.to_owned()),
+        None => None,
+    };
+
+    if let Some(IdentifierData::Did(issuer_did)) = issuer_identifier
         .as_ref()
         .map(|identifier| &identifier.data)
     {
         let issuer_did = issuer_did.as_ref().await?;
         return Ok(Issuer::Url(issuer_did.did.clone().into_url()));
     }
-    let issuer_identifier_id = credential
-        .issuer_identifier
+
+    let issuer_identifier_id = issuer_identifier
         .as_ref()
         .ok_or(FormatterError::CouldNotFormat(
             "missing credential issuer identifier".to_string(),

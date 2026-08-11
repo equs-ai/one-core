@@ -1,3 +1,4 @@
+use proc_macros::Model;
 use serde::{Deserialize, Serialize};
 use shared_types::{EcosystemId, InteractionId, NonceId};
 use strum::{AsRefStr, EnumString};
@@ -6,9 +7,10 @@ use time::OffsetDateTime;
 use crate::model::organisation::Organisation;
 use crate::model::relation::Related;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct Interaction {
+    #[model(id)]
     pub id: InteractionId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,

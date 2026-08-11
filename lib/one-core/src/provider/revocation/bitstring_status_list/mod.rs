@@ -139,20 +139,21 @@ impl RevocationMethod for BitstringStatusList {
         &self,
         credential: &Credential,
     ) -> Result<Vec<CredentialRevocationInfo>, RevocationError> {
-        let issuer_identifier =
-            credential
-                .issuer_identifier
-                .as_ref()
-                .ok_or(RevocationError::MappingError(
-                    "issuer identifier is None".to_string(),
-                ))?;
+        let issuer_identifier = credential
+            .issuer_identifier
+            .as_ref()
+            .ok_or(RevocationError::MappingError(
+                "issuer identifier is None".to_string(),
+            ))?
+            .as_ref()
+            .await?;
 
         let credential_schema = credential.schema.as_ref().await?;
 
         let mut revocation_infos = vec![
             self.create_credential_entry(
                 credential.id,
-                issuer_identifier,
+                &issuer_identifier,
                 RevocationListPurpose::Revocation,
             )
             .await?,
@@ -162,7 +163,7 @@ impl RevocationMethod for BitstringStatusList {
             revocation_infos.push(
                 self.create_credential_entry(
                     credential.id,
-                    issuer_identifier,
+                    &issuer_identifier,
                     RevocationListPurpose::Suspension,
                 )
                 .await?,
@@ -177,14 +178,14 @@ impl RevocationMethod for BitstringStatusList {
         credential: &Credential,
         new_state: RevocationState,
     ) -> Result<(), RevocationError> {
-        let issuer_identifier =
-            credential
-                .issuer_identifier
-                .as_ref()
-                .cloned()
-                .ok_or(RevocationError::MappingError(
-                    "issuer identifier is None".to_string(),
-                ))?;
+        let issuer_identifier = credential
+            .issuer_identifier
+            .as_ref()
+            .ok_or(RevocationError::MappingError(
+                "issuer identifier is None".to_string(),
+            ))?
+            .as_ref()
+            .await?;
 
         let purpose = if new_state == RevocationState::Revoked {
             RevocationListPurpose::Revocation

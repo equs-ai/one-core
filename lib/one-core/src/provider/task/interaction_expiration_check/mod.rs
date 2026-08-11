@@ -6,9 +6,8 @@ use uuid::Uuid;
 use self::dto::InteractionExpirationCheckResultDTO;
 use super::Task;
 use crate::error::ContextWithErrorCode;
-use crate::model::credential::{Credential, CredentialRelations, CredentialRole};
+use crate::model::credential::{Credential, CredentialRole};
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
-use crate::model::identifier::IdentifierRelations;
 use crate::model::proof::ProofRelations;
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::repository::credential_repository::CredentialRepository;
@@ -59,13 +58,7 @@ impl Task for InteractionExpirationCheckProvider {
         for credential_id in &updated_credentials {
             let credential = self
                 .credential_repository
-                .get_credential(
-                    credential_id,
-                    &CredentialRelations {
-                        issuer_identifier: Some(IdentifierRelations {}),
-                        ..Default::default()
-                    },
-                )
+                .get_credential(credential_id)
                 .await
                 .error_while("getting credential")?;
 
@@ -154,7 +147,7 @@ fn target_from_credential(credential: &Credential) -> Option<String> {
         CredentialRole::Holder => credential
             .issuer_identifier
             .as_ref()
-            .map(|identifier| identifier.id.to_string()),
+            .map(|identifier| identifier.id().to_string()),
         CredentialRole::Issuer => credential
             .holder_identifier
             .as_ref()

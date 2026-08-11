@@ -37,7 +37,7 @@ use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_try_into;
 use crate::model::certificate::CertificateRole;
 use crate::model::claim::ClaimRelations;
-use crate::model::credential::{CredentialFilterValue, CredentialListQuery, CredentialRelations};
+use crate::model::credential::{CredentialFilterValue, CredentialListQuery};
 use crate::model::did::KeyRole;
 use crate::model::history::{HistoryAction, HistoryFilterValue, HistoryListQuery};
 use crate::model::identifier::{IdentifierRelations, IdentifierType};
@@ -104,10 +104,7 @@ impl ProofService {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(Default::default()),
@@ -700,9 +697,12 @@ impl ProofService {
             )
             .await
             .error_while("updating proof")?;
-        clear_previous_interaction(&*self.interaction_repository, &proof.interaction)
-            .await
-            .error_while("clearing interaction")?;
+        clear_previous_interaction(
+            &*self.interaction_repository,
+            proof.interaction.as_ref().map(|i| &i.id),
+        )
+        .await
+        .error_while("clearing interaction")?;
         tracing::info!("Shared proof request {}", proof.id);
         Ok(ShareProofResponseDTO { url, expires_at })
     }

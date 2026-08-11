@@ -27,9 +27,7 @@ use crate::mapper::credential_schema_claim::backfill_default_translations;
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::{Claim, ClaimRelations};
 use crate::model::claim_schema::ClaimSchema;
-use crate::model::credential::{
-    Credential, CredentialRelations, CredentialRole, CredentialStateEnum, CredentialType,
-};
+use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum, CredentialType};
 use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity, LayoutType};
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::{Did, DidType, KeyRole, RelatedKey};
@@ -439,10 +437,7 @@ async fn test_get_proof_exists() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
@@ -678,10 +673,7 @@ async fn test_get_proof_with_array_holder() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
@@ -954,10 +946,7 @@ async fn test_get_proof_with_array_in_object_holder() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
@@ -1245,10 +1234,7 @@ async fn test_get_proof_with_object_array_holder() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
@@ -1518,10 +1504,7 @@ async fn test_get_proof_with_array() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
@@ -1801,10 +1784,7 @@ async fn test_get_proof_with_array_in_object() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),
@@ -2100,10 +2080,7 @@ async fn test_get_proof_with_object_array() {
                     }),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
-                        credential: Some(CredentialRelations {
-                            issuer_identifier: Some(IdentifierRelations {}),
-                            ..Default::default()
-                        }),
+                        credential: Some(Default::default()),
                     }),
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_certificate: Some(CertificateRelations::default()),

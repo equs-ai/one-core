@@ -24,12 +24,11 @@ use crate::config::validator::protocol::validate_protocol_did_compatibility;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::CertificateRole;
 use crate::model::credential::{
-    Credential, CredentialFilterValue, CredentialListIncludeEntityTypeEnum, CredentialRelations,
-    CredentialRole, CredentialStateEnum, CredentialType, SortableCredentialColumn,
-    UpdateCredentialRequest,
+    Credential, CredentialFilterValue, CredentialListIncludeEntityTypeEnum, CredentialRole,
+    CredentialStateEnum, CredentialType, SortableCredentialColumn, UpdateCredentialRequest,
 };
 use crate::model::did::KeyRole;
-use crate::model::identifier::{IdentifierRelations, IdentifierState, IdentifierType};
+use crate::model::identifier::{IdentifierState, IdentifierType};
 use crate::model::interaction::InteractionType;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
@@ -195,12 +194,7 @@ impl CredentialService {
     ) -> Result<(), CredentialServiceError> {
         let credential = self
             .credential_repository
-            .get_credential(
-                credential_id,
-                &CredentialRelations {
-                    ..Default::default()
-                },
-            )
+            .get_credential(credential_id)
             .await
             .error_while("getting credential")?;
 
@@ -266,13 +260,7 @@ impl CredentialService {
     {
         let credential = self
             .credential_repository
-            .get_credential(
-                credential_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(Default::default()),
-                    interaction: Some(Default::default()),
-                },
-            )
+            .get_credential(credential_id)
             .await
             .error_while("getting credential")?;
 
@@ -522,10 +510,9 @@ impl CredentialService {
                 "Missing issuer identifier".to_string(),
             ));
         };
-
-        if issuer_identifier.state != IdentifierState::Active {
+        if issuer_identifier.as_ref().await?.state != IdentifierState::Active {
             return Err(CredentialServiceError::IdentifierIsDeactivated(
-                issuer_identifier.id,
+                issuer_identifier.id(),
             ));
         }
 
@@ -566,9 +553,12 @@ impl CredentialService {
             )
             .await
             .error_while("updating credential")?;
-        clear_previous_interaction(&*self.interaction_repository, &credential.interaction)
-            .await
-            .error_while("clearing interaction")?;
+        clear_previous_interaction(
+            &*self.interaction_repository,
+            credential.interaction.as_ref().map(|i| i.id_ref()),
+        )
+        .await
+        .error_while("clearing interaction")?;
         tracing::info!("Shared credential {credential_id}");
         Ok(ShareCredentialResponseDTO {
             url,
@@ -583,12 +573,7 @@ impl CredentialService {
     ) -> Result<TrustInformationDetailResponseDTO, CredentialServiceError> {
         let credential = self
             .credential_repository
-            .get_credential(
-                &id,
-                &CredentialRelations {
-                    ..Default::default()
-                },
-            )
+            .get_credential(&id)
             .await
             .error_while("getting credential")?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
@@ -623,13 +608,7 @@ impl CredentialService {
     ) -> Result<Credential, CredentialServiceError> {
         let credential = self
             .credential_repository
-            .get_credential(
-                id,
-                &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {}),
-                    interaction: Some(Default::default()),
-                },
-            )
+            .get_credential(id)
             .await
             .error_while("getting credential")?;
 

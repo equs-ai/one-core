@@ -160,13 +160,14 @@ impl RevocationMethod for TokenStatusList {
         &self,
         credential: &Credential,
     ) -> Result<Vec<CredentialRevocationInfo>, RevocationError> {
-        let issuer_identifier =
-            credential
-                .issuer_identifier
-                .as_ref()
-                .ok_or(RevocationError::MappingError(
-                    "issuer identifier is None".to_string(),
-                ))?;
+        let issuer_identifier = credential
+            .issuer_identifier
+            .as_ref()
+            .ok_or(RevocationError::MappingError(
+                "issuer identifier is None".to_string(),
+            ))?
+            .as_ref()
+            .await?;
 
         let issuer_certificate = if matches!(issuer_identifier.data, IdentifierData::Certificate(_))
         {
@@ -185,7 +186,7 @@ impl RevocationMethod for TokenStatusList {
         let entry = self
             .create_entry(
                 RevocationListEntityId::Credential(credential.id),
-                issuer_identifier,
+                &issuer_identifier,
                 issuer_certificate.as_ref(),
             )
             .await?;
@@ -198,13 +199,14 @@ impl RevocationMethod for TokenStatusList {
         credential: &Credential,
         new_state: RevocationState,
     ) -> Result<(), RevocationError> {
-        let issuer_identifier =
-            credential
-                .issuer_identifier
-                .as_ref()
-                .ok_or(RevocationError::MappingError(
-                    "issuer identifier is None".to_string(),
-                ))?;
+        let issuer_identifier = credential
+            .issuer_identifier
+            .as_ref()
+            .ok_or(RevocationError::MappingError(
+                "issuer identifier is None".to_string(),
+            ))?
+            .as_ref()
+            .await?;
 
         let issuer_certificate = if matches!(issuer_identifier.data, IdentifierData::Certificate(_))
         {
@@ -255,7 +257,7 @@ impl RevocationMethod for TokenStatusList {
 
         let list_credential = format_status_list_credential(
             &current_list.id,
-            issuer_identifier,
+            &issuer_identifier,
             issuer_certificate.as_ref(),
             encoded_list,
             &*self.key_provider,

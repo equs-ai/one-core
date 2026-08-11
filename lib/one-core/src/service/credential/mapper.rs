@@ -159,6 +159,11 @@ pub(crate) async fn credential_detail_response_from_model(
         Some(holder_identifier) => Some(holder_identifier.as_ref().await?.to_owned().into()),
     };
 
+    let issuer = match &value.issuer_identifier {
+        None => None,
+        Some(issuer_identifier) => Some(issuer_identifier.as_ref().await?.to_owned().into()),
+    };
+
     Ok(CredentialDetailResponseDTO {
         id: value.id,
         created_date: value.created_date,
@@ -170,11 +175,11 @@ pub(crate) async fn credential_detail_response_from_model(
         last_modified: value.last_modified,
         claims: from_vec_claim(claims, &schema_model, config).await?,
         schema: schema_dto,
-        issuer: convert_inner(value.issuer_identifier),
+        issuer,
         redirect_uri: value.redirect_uri,
         role: value.role.into(),
         r#type: value.r#type.into(),
-        interaction_id: value.interaction.map(|i| i.id),
+        interaction_id: value.interaction.map(|i| i.id()),
         suspend_end_date: value.suspend_end_date,
         mdoc_mso_validity,
         holder,
@@ -433,6 +438,12 @@ pub(super) async fn to_credential_list_response(
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<CredentialListItemResponseDTO, CredentialServiceError> {
     let schema = credential.schema.as_ref().await?.to_owned();
+
+    let issuer = match &credential.issuer_identifier {
+        None => None,
+        Some(issuer_identifier) => Some(issuer_identifier.as_ref().await?.to_owned().into()),
+    };
+
     Ok(CredentialListItemResponseDTO {
         id: credential.id,
         created_date: credential.created_date,
@@ -448,7 +459,7 @@ pub(super) async fn to_credential_list_response(
             formatter_provider,
         )
         .await?,
-        issuer: convert_inner(credential.issuer_identifier),
+        issuer,
         role: credential.role.into(),
         r#type: credential.r#type.into(),
         suspend_end_date: credential.suspend_end_date,
@@ -500,7 +511,7 @@ pub(super) fn from_create_request(
         consumed_at: None,
         protocol: request.protocol,
         claims: claims.into(),
-        issuer_identifier: Some(issuer_identifier),
+        issuer_identifier: Some(issuer_identifier.into()),
         issuer_certificate: issuer_certificate.map(Into::into),
         holder_identifier: None,
         schema: schema.into(),

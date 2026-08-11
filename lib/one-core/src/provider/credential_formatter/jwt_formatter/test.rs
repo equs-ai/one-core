@@ -863,10 +863,17 @@ async fn test_parse_credential() {
     );
 
     let_assert!(
-        Some(Identifier {
+        Identifier {
             data: IdentifierData::Did(issuer_did),
             ..
-        }) = credential.issuer_identifier.as_ref()
+        } = credential
+            .issuer_identifier
+            .as_ref()
+            .unwrap()
+            .as_ref()
+            .await
+            .unwrap()
+            .to_owned()
     );
     assert_eq!(
         issuer_did.as_ref().await.unwrap().did.to_string(),

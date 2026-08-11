@@ -44,6 +44,7 @@ use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::DataRepository;
 use one_crypto::encryption::encrypt_string;
 use one_crypto::utilities::generate_alphanumeric;
+use one_dto_mapper::convert_inner;
 use rcgen::CertificateParams;
 use sea_orm::sqlx::{Executor, raw_sql};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
@@ -983,11 +984,11 @@ pub async fn create_credential(
         state,
         suspend_end_date: params.suspend_end_date,
         claims: claims.into(),
-        issuer_identifier: Some(issuer_identifier.to_owned()),
+        issuer_identifier: Some(issuer_identifier.to_owned().into()),
         issuer_certificate: None,
         holder_identifier: params.holder_identifier.map(Into::into),
         schema: credential_schema.to_owned().into(),
-        interaction: params.interaction,
+        interaction: convert_inner(params.interaction),
         key: params.key.map(Into::into),
         profile: None,
         credential_blob_id: params.credential_blob_id,

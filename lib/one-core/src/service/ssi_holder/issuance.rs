@@ -21,9 +21,7 @@ use super::validator::{
 use crate::config::core_config::{BlobStorageType, FormatType};
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::blob::{Blob, BlobType};
-use crate::model::credential::{
-    Credential, CredentialRelations, CredentialStateEnum, UpdateCredentialRequest,
-};
+use crate::model::credential::{Credential, CredentialStateEnum, UpdateCredentialRequest};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::proto::oauth_client::OAuthClientProvider;
@@ -317,13 +315,7 @@ impl SSIHolderService {
     ) -> Result<(), HolderServiceError> {
         let credentials = self
             .credential_repository
-            .get_credentials_by_interaction_id(
-                interaction_id,
-                &CredentialRelations {
-                    interaction: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get_credentials_by_interaction_id(interaction_id)
             .await
             .error_while("getting credentials")?;
 

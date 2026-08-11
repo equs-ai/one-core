@@ -333,7 +333,7 @@ async fn comparable_issuer(
         .ok_or(IssuanceProtocolError::Failed(
             "missing parsed credential issuer".to_string(),
         ))?;
-    match &issuer.data {
+    match &issuer.as_ref().await?.data {
         IdentifierData::Key(key) => Ok(ComparableIssuer::Key {
             public_key: key.as_ref().await?.public_key.clone(),
         }),

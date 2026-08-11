@@ -16,6 +16,7 @@ use one_core::repository::did_repository::DidRepository;
 use one_core::repository::error::DataLayerError;
 use one_core::repository::identifier_repository::IdentifierRepository;
 use one_core::repository::identifier_trust_information_repository::IdentifierTrustInformationRepository;
+use one_core::repository::interaction_repository::InteractionRepository;
 use one_core::repository::key_repository::KeyRepository;
 use one_core::repository::organisation_repository::OrganisationRepository;
 use one_dto_mapper::convert_inner;
@@ -202,6 +203,7 @@ pub(crate) fn credential_claims(
     })
 }
 
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn model_to_credential(
     credential: credential::Model,
     credential_repository: &Arc<dyn CredentialRepository>,
@@ -210,6 +212,7 @@ pub(crate) fn model_to_credential(
     key_repository: &Arc<dyn KeyRepository>,
     identifier_repository: &Arc<dyn IdentifierRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
+    interaction_repository: &Arc<dyn InteractionRepository>,
 ) -> Credential {
     Credential {
         claims: credential_claims(credential.id, claim_repository),
@@ -227,7 +230,9 @@ pub(crate) fn model_to_credential(
         state: credential.state.into(),
         suspend_end_date: credential.suspend_end_date,
         profile: credential.profile,
-        issuer_identifier: None,
+        issuer_identifier: credential
+            .issuer_identifier_id
+            .map(|id| Related::new(id, identifier_repository.clone())),
         issuer_certificate: credential
             .issuer_certificate_id
             .map(|id| Related::new(id, certificate_repository.clone())),
@@ -238,7 +243,9 @@ pub(crate) fn model_to_credential(
             credential.credential_schema_id,
             credential_schema_repository.clone(),
         ),
-        interaction: None,
+        interaction: credential
+            .interaction_id
+            .map(|id| Related::new(id, interaction_repository.clone())),
         key: credential
             .key_id
             .map(|id| Related::new(id, key_repository.clone())),
@@ -309,6 +316,7 @@ pub(super) fn credential_list_model_to_repository_model(
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
     identifier_repository: &Arc<dyn IdentifierRepository>,
+    interaction_repository: &Arc<dyn InteractionRepository>,
     trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Credential, DataLayerError> {
@@ -370,48 +378,51 @@ pub(super) fn credential_list_model_to_repository_model(
 
     let issuer_identifier = match credential.issuer_identifier_id {
         None => None,
-        Some(issuer_identifier_id) => Some(Identifier {
-            id: issuer_identifier_id,
-            created_date: credential
-                .issuer_identifier_created_date
-                .ok_or(DataLayerError::MappingError)?,
-            last_modified: credential
-                .issuer_identifier_last_modified
-                .ok_or(DataLayerError::MappingError)?,
-            name: credential
-                .issuer_identifier_name
-                .ok_or(DataLayerError::MappingError)?,
-            data: identifier_data_from_ids(
-                credential
-                    .issuer_identifier_type
+        Some(issuer_identifier_id) => Some(
+            Identifier {
+                id: issuer_identifier_id,
+                created_date: credential
+                    .issuer_identifier_created_date
+                    .ok_or(DataLayerError::MappingError)?,
+                last_modified: credential
+                    .issuer_identifier_last_modified
+                    .ok_or(DataLayerError::MappingError)?,
+                name: credential
+                    .issuer_identifier_name
+                    .ok_or(DataLayerError::MappingError)?,
+                data: identifier_data_from_ids(
+                    credential
+                        .issuer_identifier_type
+                        .ok_or(DataLayerError::MappingError)?
+                        .into(),
+                    issuer_identifier_id,
+                    credential.issuer_identifier_did_id,
+                    credential.issuer_identifier_key_id,
+                    did_repository,
+                    key_repository,
+                    certificate_repository,
+                )?,
+                organisation: Related::new(
+                    credential
+                        .issuer_identifier_organisation_id
+                        .ok_or(DataLayerError::MappingError)?,
+                    organisation_repository.to_owned(),
+                ),
+                is_remote: credential
+                    .issuer_identifier_is_remote
+                    .ok_or(DataLayerError::MappingError)?,
+                state: credential
+                    .issuer_identifier_state
                     .ok_or(DataLayerError::MappingError)?
                     .into(),
-                issuer_identifier_id,
-                credential.issuer_identifier_did_id,
-                credential.issuer_identifier_key_id,
-                did_repository,
-                key_repository,
-                certificate_repository,
-            )?,
-            organisation: Related::new(
-                credential
-                    .issuer_identifier_organisation_id
-                    .ok_or(DataLayerError::MappingError)?,
-                organisation_repository.to_owned(),
-            ),
-            is_remote: credential
-                .issuer_identifier_is_remote
-                .ok_or(DataLayerError::MappingError)?,
-            state: credential
-                .issuer_identifier_state
-                .ok_or(DataLayerError::MappingError)?
-                .into(),
-            deleted_at: None,
-            trust_information: identifier_trust_information(
-                issuer_identifier_id,
-                trust_information_repository,
-            ),
-        }),
+                deleted_at: None,
+                trust_information: identifier_trust_information(
+                    issuer_identifier_id,
+                    trust_information_repository,
+                ),
+            }
+            .into(),
+        ),
     };
 
     Ok(Credential {
@@ -438,7 +449,9 @@ pub(super) fn credential_list_model_to_repository_model(
             .holder_identifier_id
             .map(|id| Related::new(id, identifier_repository.to_owned())),
         schema: Related::from(schema),
-        interaction: None,
+        interaction: credential
+            .interaction_id
+            .map(|id| Related::new(id, interaction_repository.to_owned())),
         key: credential
             .key_id
             .map(|id| Related::new(id, key_repository.to_owned())),
@@ -465,6 +478,7 @@ pub(super) fn credentials_to_repository(
     key_repository: &Arc<dyn KeyRepository>,
     certificate_repository: &Arc<dyn CertificateRepository>,
     identifier_repository: &Arc<dyn IdentifierRepository>,
+    interaction_repository: &Arc<dyn InteractionRepository>,
     trust_information_repository: &Arc<dyn IdentifierTrustInformationRepository>,
     db: &TransactionManagerImpl,
 ) -> Result<Vec<Credential>, DataLayerError> {
@@ -479,6 +493,7 @@ pub(super) fn credentials_to_repository(
             key_repository,
             certificate_repository,
             identifier_repository,
+            interaction_repository,
             trust_information_repository,
             db,
         )?);

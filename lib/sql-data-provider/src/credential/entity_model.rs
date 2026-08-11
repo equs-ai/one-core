@@ -1,7 +1,7 @@
 use sea_orm::FromQueryResult;
 use shared_types::{
     BlobId, CertificateId, CredentialId, CredentialSchemaId, DidId, EcosystemId, IdentifierId,
-    KeyId, OrganisationId,
+    InteractionId, KeyId, OrganisationId,
 };
 use time::OffsetDateTime;
 
@@ -27,6 +27,7 @@ pub(super) struct CredentialListEntityModel {
     pub profile: Option<String>,
     pub parent_id: Option<CredentialId>,
     pub key_id: Option<KeyId>,
+    pub interaction_id: Option<InteractionId>,
     pub holder_identifier_id: Option<IdentifierId>,
     pub issuer_certificate_id: Option<CertificateId>,
     pub credential_blob_id: Option<BlobId>,

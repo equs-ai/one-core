@@ -5,8 +5,7 @@ use shared_types::{CredentialId, InteractionId};
 
 use super::error::DataLayerError;
 use crate::model::credential::{
-    Credential, CredentialListQuery, CredentialRelations, GetCredentialList,
-    UpdateCredentialRequest,
+    Credential, CredentialListQuery, GetCredentialList, UpdateCredentialRequest,
 };
 use crate::model::relation::AsyncModelLoader;
 
@@ -22,16 +21,11 @@ pub trait CredentialRepository: Send + Sync {
         request: HashSet<shared_types::CredentialId>,
     ) -> Result<(), DataLayerError>;
 
-    async fn get_credential(
-        &self,
-        id: &CredentialId,
-        relations: &CredentialRelations,
-    ) -> Result<Credential, DataLayerError>;
+    async fn get_credential(&self, id: &CredentialId) -> Result<Credential, DataLayerError>;
 
     async fn get_credentials_by_interaction_id(
         &self,
         interaction_id: &InteractionId,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError>;
 
     async fn get_credential_list(
@@ -48,14 +42,12 @@ pub trait CredentialRepository: Send + Sync {
     async fn get_credentials_by_claim_names(
         &self,
         claim_names: Vec<String>,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError>;
 }
 
 #[async_trait::async_trait]
 impl AsyncModelLoader<Credential> for Arc<dyn CredentialRepository> {
     async fn load(&self, id: &CredentialId) -> Result<Credential, DataLayerError> {
-        self.get_credential(id, &CredentialRelations::default())
-            .await
+        self.get_credential(id).await
     }
 }

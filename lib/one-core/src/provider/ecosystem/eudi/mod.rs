@@ -178,6 +178,7 @@ impl Ecosystem for EudiEcosystem {
         let Some(issuer_identifier) = &credential.issuer_identifier else {
             return Err(EcosystemError::MissingIdentifier);
         };
+        let issuer_identifier = issuer_identifier.as_ref().await?;
 
         if !matches!(issuer_identifier.data, IdentifierData::Certificate(_)) {
             return Err(EcosystemError::InvalidIdentifier(issuer_identifier.id));

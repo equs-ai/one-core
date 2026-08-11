@@ -41,11 +41,11 @@ pub(crate) async fn add_new_interaction(
 
 pub(crate) async fn clear_previous_interaction(
     interaction_repository: &dyn InteractionRepository,
-    interaction: &Option<Interaction>,
+    interaction_id: Option<&InteractionId>,
 ) -> Result<(), ServiceError> {
-    if let Some(interaction) = interaction.as_ref() {
+    if let Some(interaction_id) = interaction_id {
         interaction_repository
-            .delete_interaction(&interaction.id)
+            .delete_interaction(interaction_id)
             .await
             .error_while("deleting interaction")?;
     }

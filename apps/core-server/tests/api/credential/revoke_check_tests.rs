@@ -996,7 +996,13 @@ async fn test_revoke_check_token_update() {
     assert!(resp[0]["reason"].is_null());
 
     let updated_credentials = context.db.credentials.get(&credential.id).await;
-    let interaction = updated_credentials.interaction.unwrap();
+    let interaction = updated_credentials
+        .interaction
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap()
+        .to_owned();
 
     // Interaction data updated.
     assert_ne!(interaction.data, Some(interaction_data));

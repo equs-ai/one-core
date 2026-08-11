@@ -31,7 +31,9 @@ impl CredentialValidityManagerImpl {
         let interaction = credential
             .interaction
             .as_ref()
-            .ok_or(Error::MappingError("Missing interaction".to_string()))?;
+            .ok_or(Error::MappingError("Missing interaction".to_string()))?
+            .as_ref()
+            .await?;
 
         let protocol = self
             .issuance_protocol_provider
@@ -43,7 +45,7 @@ impl CredentialValidityManagerImpl {
             Some(credential.id)
         };
         let new_state = match protocol
-            .holder_refresh_credential(interaction, refresh_credential_id)
+            .holder_refresh_credential(&interaction, refresh_credential_id)
             .await
         {
             Ok(_) => CredentialStateEnum::Accepted,

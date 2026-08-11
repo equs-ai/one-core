@@ -752,7 +752,7 @@ async fn test_reject_credential() {
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
     credential_repository
         .expect_update_credential()
         .once()
@@ -1107,34 +1107,37 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
         suspend_end_date: None,
         claims: Default::default(),
         profile: None,
-        issuer_identifier: Some(Identifier {
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            last_modified: crate::clock::now_utc(),
-            name: "identifier".to_string(),
-            data: IdentifierData::Did(
-                (Did {
-                    deleted_at: None,
-                    id: Uuid::new_v4().into(),
-                    created_date: crate::clock::now_utc(),
-                    last_modified: crate::clock::now_utc(),
-                    name: "issuer_did".to_string(),
-                    did: "did:key:123".parse().unwrap(),
-                    did_type: DidType::Remote,
-                    did_method: "KEY".into(),
-                    keys: Default::default(),
-                    organisation: dummy_organisation(None).into(),
-                    deactivated: false,
-                    log: None,
-                })
-                .into(),
-            ),
-            is_remote: true,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(None).into(),
-            trust_information: Default::default(),
-        }),
+        issuer_identifier: Some(
+            Identifier {
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                name: "identifier".to_string(),
+                data: IdentifierData::Did(
+                    (Did {
+                        deleted_at: None,
+                        id: Uuid::new_v4().into(),
+                        created_date: crate::clock::now_utc(),
+                        last_modified: crate::clock::now_utc(),
+                        name: "issuer_did".to_string(),
+                        did: "did:key:123".parse().unwrap(),
+                        did_type: DidType::Remote,
+                        did_method: "KEY".into(),
+                        keys: Default::default(),
+                        organisation: dummy_organisation(None).into(),
+                        deactivated: false,
+                        log: None,
+                    })
+                    .into(),
+                ),
+                is_remote: true,
+                state: IdentifierState::Active,
+                deleted_at: None,
+                organisation: dummy_organisation(None).into(),
+                trust_information: Default::default(),
+            }
+            .into(),
+        ),
         issuer_certificate: None,
         holder_identifier: None,
         schema: crate::model::credential_schema::CredentialSchema {
@@ -1179,18 +1182,21 @@ fn dummy_credential(organisation_id: Option<OrganisationId>) -> Credential {
             embedded_disclosure_policy: None,
         }
         .into(),
-        interaction: Some(Interaction {
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            last_modified: crate::clock::now_utc(),
-            data: Some(b"interaction data".to_vec()),
-            organisation: dummy_organisation(organisation_id).into(),
-            nonce_id: None,
-            interaction_type: InteractionType::Verification,
-            expires_at: None,
-            ecosystem: None,
-            ecosystem_data: None,
-        }),
+        interaction: Some(
+            Interaction {
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                data: Some(b"interaction data".to_vec()),
+                organisation: dummy_organisation(organisation_id).into(),
+                nonce_id: None,
+                interaction_type: InteractionType::Verification,
+                expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
+            }
+            .into(),
+        ),
         key: None,
         credential_blob_id: Some(Uuid::new_v4().into()),
         wallet_unit_attestation_blob_id: None,
@@ -1367,7 +1373,7 @@ async fn test_reject_credential_credential_org_mismatch() {
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(move |_, _| Ok(vec![dummy_credential(Some(organisation_id))]));
+        .return_once(move |_| Ok(vec![dummy_credential(Some(organisation_id))]));
     let service = SSIHolderService {
         credential_repository: Arc::new(credential_repository),
         identifier_repository: Arc::new(identifier_repository),

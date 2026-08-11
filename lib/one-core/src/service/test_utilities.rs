@@ -322,10 +322,13 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
             .into(),
         }]
         .into(),
-        issuer_identifier: Some(Identifier {
-            data: IdentifierData::Did((dummy_did()).into()),
-            ..dummy_identifier()
-        }),
+        issuer_identifier: Some(
+            Identifier {
+                data: IdentifierData::Did((dummy_did()).into()),
+                ..dummy_identifier()
+            }
+            .into(),
+        ),
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {
@@ -372,18 +375,21 @@ pub fn dummy_credential_with_exchange(exchange: &str) -> Credential {
             embedded_disclosure_policy: None,
         }
         .into(),
-        interaction: Some(Interaction {
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            last_modified: crate::clock::now_utc(),
-            data: Some(b"interaction data".to_vec()),
-            organisation: dummy_organisation(None).into(),
-            nonce_id: None,
-            interaction_type: InteractionType::Issuance,
-            expires_at: None,
-            ecosystem: None,
-            ecosystem_data: None,
-        }),
+        interaction: Some(
+            Interaction {
+                id: Uuid::new_v4().into(),
+                created_date: crate::clock::now_utc(),
+                last_modified: crate::clock::now_utc(),
+                data: Some(b"interaction data".to_vec()),
+                organisation: dummy_organisation(None).into(),
+                nonce_id: None,
+                interaction_type: InteractionType::Issuance,
+                expires_at: None,
+                ecosystem: None,
+                ecosystem_data: None,
+            }
+            .into(),
+        ),
         key: None,
         credential_blob_id: None,
         wallet_unit_attestation_blob_id: None,

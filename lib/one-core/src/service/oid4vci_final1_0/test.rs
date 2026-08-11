@@ -336,17 +336,11 @@ fn dummy_credential(
         state,
         suspend_end_date: None,
         claims: Default::default(),
-        issuer_identifier: Some(dummy_identifier()),
+        issuer_identifier: Some(dummy_identifier().into()),
         issuer_certificate: None,
         holder_identifier: None,
         schema: schema.into(),
-        interaction: Some(dummy_interaction(
-            None,
-            pre_authorized_code,
-            None,
-            None,
-            None,
-        )),
+        interaction: Some(dummy_interaction(None, pre_authorized_code, None, None, None).into()),
         key: None,
         profile: None,
         credential_blob_id: Some(Uuid::new_v4().into()),
@@ -1141,12 +1135,19 @@ async fn test_create_token() {
         false,
         schema.clone(),
     );
-    let interaction_id = credential.interaction.as_ref().unwrap().id;
-    let interaction = credential.interaction.clone().unwrap();
+    let interaction_id = credential.interaction.as_ref().unwrap().id();
+    let interaction = credential
+        .interaction
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap()
+        .to_owned();
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
 
     credential_repository
         .expect_update_credential()
@@ -1258,11 +1259,18 @@ async fn test_create_token_pre_authorized_code_used() {
         true,
         clone,
     );
-    let interaction = credential.interaction.clone().unwrap();
+    let interaction = credential
+        .interaction
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap()
+        .to_owned();
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
 
     interaction_repository
         .expect_get_interaction()
@@ -1319,11 +1327,18 @@ async fn test_create_token_wrong_credential_state() {
         false,
         clone,
     );
-    let interaction = credential.interaction.clone().unwrap();
+    let interaction = credential
+        .interaction
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap()
+        .to_owned();
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
     interaction_repository
         .expect_get_interaction()
         .once()
@@ -1386,7 +1401,7 @@ async fn test_create_credential_success() {
         credential_repository
             .expect_get_credentials_by_interaction_id()
             .once()
-            .return_once(move |_, _| Ok(vec![clone]));
+            .return_once(move |_| Ok(vec![clone]));
 
         let interaction_id = Uuid::from_str("3fa85f64-5717-4562-b3fc-2c963f66afa6")
             .unwrap()
@@ -1577,7 +1592,7 @@ async fn test_create_credential_success_sd_jwt_vc() {
         credential_repository
             .expect_get_credentials_by_interaction_id()
             .once()
-            .return_once(move |_, _| Ok(vec![clone]));
+            .return_once(move |_| Ok(vec![clone]));
 
         let interaction_id = Uuid::from_str("3fa85f64-5717-4562-b3fc-2c963f66afa6")
             .unwrap()
@@ -1770,14 +1785,14 @@ async fn test_create_credential_success_mdoc() {
             .once()
             .return_once({
                 let clone = credential.clone();
-                move |_, _| Ok(vec![clone])
+                move |_| Ok(vec![clone])
             });
         credential_repository
             .expect_get_credential()
             .once()
             .return_once({
                 let clone = credential.clone();
-                move |_, _| Ok(clone)
+                move |_| Ok(clone)
             });
 
         interaction_repository
@@ -2220,7 +2235,7 @@ async fn test_create_credential_issuer_failed() {
         credential_repository
             .expect_get_credentials_by_interaction_id()
             .once()
-            .return_once(move |_, _| Ok(vec![clone]));
+            .return_once(move |_| Ok(vec![clone]));
 
         let interaction_id = Uuid::from_str("3fa85f64-5717-4562-b3fc-2c963f66afa6")
             .unwrap()
@@ -2385,7 +2400,7 @@ async fn test_create_credential_nonce_reused() {
         credential_repository
             .expect_get_credentials_by_interaction_id()
             .once()
-            .return_once(move |_, _| Ok(vec![clone]));
+            .return_once(move |_| Ok(vec![clone]));
 
         interaction_repository
             .expect_get_interaction()
@@ -2541,12 +2556,19 @@ async fn test_for_mdoc_schema_pre_authorized_grant_type_creates_refresh_token() 
         false,
         schema.clone(),
     );
-    let interaction_id = credential.interaction.as_ref().unwrap().id;
-    let interaction = credential.interaction.clone().unwrap();
+    let interaction_id = credential.interaction.as_ref().unwrap().id();
+    let interaction = credential
+        .interaction
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .await
+        .unwrap()
+        .to_owned();
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
 
     credential_repository
         .expect_update_credential()
@@ -2632,7 +2654,7 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
         Some(refresh_token_expires_at),
     );
     let credential = Credential {
-        interaction: Some(interaction.clone()),
+        interaction: Some(interaction.clone().into()),
         ..dummy_credential(
             "OPENID4VCI_FINAL1",
             CredentialStateEnum::Accepted,
@@ -2643,9 +2665,9 @@ async fn test_valid_refresh_token_grant_type_creates_refresh_and_tokens() {
 
     credential_repository
         .expect_get_credentials_by_interaction_id()
-        .withf(move |interaction_id_, _| *interaction_id_ == interaction_id)
+        .withf(move |interaction_id_| *interaction_id_ == interaction_id)
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
 
     interaction_repository
         .expect_get_interaction()
@@ -2726,7 +2748,7 @@ async fn test_refresh_token_request_fails_if_refresh_token_is_expired() {
         Some(refresh_token_expires_at),
     );
     let credential = Credential {
-        interaction: Some(interaction.clone()),
+        interaction: Some(interaction.clone().into()),
         ..dummy_credential(
             "OPENID4VCI_FINAL1",
             CredentialStateEnum::Accepted,
@@ -2741,9 +2763,9 @@ async fn test_refresh_token_request_fails_if_refresh_token_is_expired() {
 
     credential_repository
         .expect_get_credentials_by_interaction_id()
-        .withf(move |interaction_id_, _| *interaction_id_ == interaction_id)
+        .withf(move |interaction_id_| *interaction_id_ == interaction_id)
         .once()
-        .return_once(move |_, _| Ok(vec![credential]));
+        .return_once(move |_| Ok(vec![credential]));
 
     let service = setup_service(Mocks {
         credential_schema_repository,
@@ -2795,7 +2817,7 @@ async fn test_create_token_eudi_compliant_without_attestation_fails() {
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(|_, _| Ok(vec![credential]));
+        .return_once(|_| Ok(vec![credential]));
 
     let service = setup_service(Mocks {
         credential_schema_repository,
@@ -2851,7 +2873,7 @@ async fn test_create_token_eudi_compliant_with_only_attestation_fails() {
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(|_, _| Ok(vec![credential]));
+        .return_once(|_| Ok(vec![credential]));
 
     let service = setup_service(Mocks {
         credential_schema_repository,
@@ -2906,7 +2928,7 @@ async fn test_create_token_non_eudi_with_attestation_fails() {
     credential_repository
         .expect_get_credentials_by_interaction_id()
         .once()
-        .return_once(|_, _| Ok(vec![credential]));
+        .return_once(|_| Ok(vec![credential]));
 
     let service = setup_service(Mocks {
         credential_schema_repository,

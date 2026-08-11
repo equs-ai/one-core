@@ -70,13 +70,11 @@ use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMix
 use crate::mapper::openid4vp::format_type_to_dcql_format;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
-use crate::model::credential::{
-    Credential, CredentialRelations, CredentialStateEnum, CredentialType,
-};
+use crate::model::credential::{Credential, CredentialStateEnum, CredentialType};
 use crate::model::credential_schema::{CredentialSchema, KeyStorageSecurity};
 use crate::model::did::KeyRole;
 use crate::model::history::TrustResolutionResult;
-use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::identifier_trust_information::{IdentifierTrustInformation, SchemaFormat};
 use crate::model::interaction::{Interaction, UpdateInteractionRequest};
 use crate::model::key::Key;
@@ -309,7 +307,7 @@ impl OpenID4VCIFinal1_0 {
                 // mdoc MSO refresh -> rate-limiting by mso_minimum_refresh_time
                 let credential = self
                     .credential_repository
-                    .get_credential(credential_id, &Default::default())
+                    .get_credential(credential_id)
                     .await
                     .error_while("getting credential")?;
 
@@ -1825,6 +1823,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .ok_or(IssuanceProtocolError::Failed(
                 "interaction is None".to_string(),
             ))?
+            .as_ref()
+            .await?
             .to_owned();
 
         let mut interaction_data: HolderInteractionData =
@@ -1887,7 +1887,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
                 .ok_or(IssuanceProtocolError::Failed(
                     "issuer_identifier missing".to_string(),
                 ))?
-                .id;
+                .id();
 
             let offer = create_credential_offer(
                 protocol_base_url,
@@ -1949,13 +1949,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
     ) -> Result<SerializedCredential, IssuanceProtocolError> {
         let mut credential = self
             .credential_repository
-            .get_credential(
-                credential_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {}),
-                    ..Default::default()
-                },
-            )
+            .get_credential(credential_id)
             .await
             .error_while("getting credential")?;
 
@@ -2029,17 +2023,18 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
             .as_ref()
             .await?;
 
-        let issuer_identifier =
-            credential
-                .issuer_identifier
-                .as_ref()
-                .ok_or(IssuanceProtocolError::Failed(
-                    "missing issuer identifier".to_string(),
-                ))?;
+        let issuer_identifier = credential
+            .issuer_identifier
+            .as_ref()
+            .ok_or(IssuanceProtocolError::Failed(
+                "missing issuer identifier".to_string(),
+            ))?
+            .as_ref()
+            .await?;
 
         let auth_fn = self.key_provider.get_signature_provider(
             &key,
-            self.jwk_key_id_from_identifier(issuer_identifier, &key)
+            self.jwk_key_id_from_identifier(&issuer_identifier, &key)
                 .await?,
             self.key_algorithm_provider.clone(),
         )?;
@@ -2057,13 +2052,8 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
         credential_data.issuer_certificate =
             if let Some(cert) = credential.issuer_certificate.as_ref() {
                 Some(cert.as_ref().await?.to_owned())
-            } else if let Some(
-                IdentifierData::Certificate(certificates)
-                | IdentifierData::CertificateAuthority(certificates),
-            ) = credential
-                .issuer_identifier
-                .as_ref()
-                .map(|identifier| &identifier.data)
+            } else if let IdentifierData::Certificate(certificates)
+            | IdentifierData::CertificateAuthority(certificates) = &issuer_identifier.data
             {
                 certificates.as_ref().await?.first().cloned()
             } else {
@@ -2224,12 +2214,7 @@ impl IssuanceProtocol for OpenID4VCIFinal1_0 {
 
                 let credential = self
                     .credential_repository
-                    .get_credential(
-                        &credential_id,
-                        &CredentialRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get_credential(&credential_id)
                     .await
                     .error_while("getting credential")?;
 

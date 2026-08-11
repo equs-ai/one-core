@@ -7,10 +7,10 @@ use uuid::Uuid;
 
 use super::dto::CredentialSetResponseDTO;
 use crate::model::credential::{
-    Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations, CredentialRole,
-    CredentialStateEnum, CredentialType,
+    Credential, CredentialFilterValue, CredentialListQuery, CredentialRole, CredentialStateEnum,
+    CredentialType,
 };
-use crate::model::identifier::{Identifier, IdentifierRelations};
+use crate::model::identifier::Identifier;
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::organisation::Organisation;
@@ -113,16 +113,7 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
 
     Ok(
         join_all(credentials.into_iter().map(|credential| async move {
-            match credential_repository
-                .get_credential(
-                    &credential.id,
-                    &CredentialRelations {
-                        issuer_identifier: Some(IdentifierRelations {}),
-                        ..Default::default()
-                    },
-                )
-                .await
-            {
+            match credential_repository.get_credential(&credential.id).await {
                 Ok(credential) => Ok(Some(credential)),
                 Err(DataLayerError::EntityNotFound { .. }) => Ok(None),
                 Err(error) => Err(error),

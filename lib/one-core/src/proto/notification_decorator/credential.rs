@@ -6,7 +6,7 @@ use shared_types::{CredentialId, InteractionId};
 use crate::config::core_config::CoreConfig;
 use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::credential::{
-    Credential, CredentialListQuery, CredentialRelations, CredentialStateEnum, GetCredentialList,
+    Credential, CredentialListQuery, CredentialStateEnum, GetCredentialList,
     UpdateCredentialRequest,
 };
 use crate::proto::notification_scheduler::{NotificationPayload, NotificationScheduler};
@@ -28,12 +28,7 @@ impl CredentialNotificationDecorator {
         status: CredentialStateEnum,
     ) -> Result<(), DataLayerError> {
         let stored = self
-            .get_credential(
-                &credential_id,
-                &CredentialRelations {
-                    ..Default::default()
-                },
-            )
+            .get_credential(&credential_id)
             .await
             .error_while("sending notification")?;
 
@@ -120,21 +115,16 @@ impl CredentialRepository for CredentialNotificationDecorator {
         self.inner.delete_credential_blobs(request).await
     }
 
-    async fn get_credential(
-        &self,
-        id: &CredentialId,
-        relations: &CredentialRelations,
-    ) -> Result<Credential, DataLayerError> {
-        self.inner.get_credential(id, relations).await
+    async fn get_credential(&self, id: &CredentialId) -> Result<Credential, DataLayerError> {
+        self.inner.get_credential(id).await
     }
 
     async fn get_credentials_by_interaction_id(
         &self,
         interaction_id: &InteractionId,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError> {
         self.inner
-            .get_credentials_by_interaction_id(interaction_id, relations)
+            .get_credentials_by_interaction_id(interaction_id)
             .await
     }
 
@@ -148,10 +138,7 @@ impl CredentialRepository for CredentialNotificationDecorator {
     async fn get_credentials_by_claim_names(
         &self,
         claim_names: Vec<String>,
-        relations: &CredentialRelations,
     ) -> Result<Vec<Credential>, DataLayerError> {
-        self.inner
-            .get_credentials_by_claim_names(claim_names, relations)
-            .await
+        self.inner.get_credentials_by_claim_names(claim_names).await
     }
 }

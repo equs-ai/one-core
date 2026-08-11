@@ -27,8 +27,8 @@ use crate::mapper::oidc::detect_format_with_crypto_suite;
 use crate::model::claim::Claim;
 use crate::model::common::SortDirection;
 use crate::model::credential::{
-    Clearable, CredentialFilterValue, CredentialListQuery, CredentialRelations,
-    CredentialStateEnum, CredentialType, SortableCredentialColumn, UpdateCredentialRequest,
+    Clearable, CredentialFilterValue, CredentialListQuery, CredentialStateEnum, CredentialType,
+    SortableCredentialColumn, UpdateCredentialRequest,
 };
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::history::HistoryErrorMetadata;
@@ -485,12 +485,7 @@ impl SSIHolderService {
 
         let credential = self
             .credential_repository
-            .get_credential(
-                &credential_id,
-                &CredentialRelations {
-                    ..Default::default()
-                },
-            )
+            .get_credential(&credential_id)
             .await
             .error_while("getting credential")?;
         let (blob_id, consumed_item) = match credential.r#type {
@@ -533,12 +528,7 @@ impl SSIHolderService {
                 // reload with relations
                 let item = self
                     .credential_repository
-                    .get_credential(
-                        &item.id,
-                        &CredentialRelations {
-                            ..Default::default()
-                        },
-                    )
+                    .get_credential(&item.id)
                     .await
                     .error_while("loading batch item")?;
                 let blob_id = item

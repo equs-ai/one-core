@@ -23,9 +23,7 @@ use crate::mapper::oidc::map_from_oidc_format_to_core_detailed;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
-use crate::model::credential::{
-    Credential, CredentialRelations, CredentialStateEnum, CredentialType,
-};
+use crate::model::credential::{Credential, CredentialStateEnum, CredentialType};
 use crate::model::credential_schema::{
     CredentialSchema, LayoutType, UpdateCredentialSchemaRequest,
 };
@@ -425,12 +423,7 @@ impl OpenID4VCIFinal1_0 {
     ) -> Result<Vec<CredentialId>, IssuanceProtocolError> {
         let batch_parent = self
             .credential_repository
-            .get_credentials_by_interaction_id(
-                &interaction.id,
-                &CredentialRelations {
-                    ..Default::default()
-                },
-            )
+            .get_credentials_by_interaction_id(&interaction.id)
             .await
             .error_while("getting credentials")?
             .into_iter()
@@ -601,8 +594,11 @@ impl OpenID4VCIFinal1_0 {
         validate_issuance_time(&credential.issuance_date, formatter.get_leeway())
             .error_while("validating issuance time")?;
 
-        let identifier_details = match credential
-            .issuer_identifier
+        let issuer_identifier = match credential.issuer_identifier.as_ref() {
+            None => None,
+            Some(identifier) => Some(identifier.as_ref().await?.to_owned()),
+        };
+        let identifier_details = match issuer_identifier
             .as_ref()
             .map(|identifier| &identifier.data)
         {
@@ -664,12 +660,12 @@ impl OpenID4VCIFinal1_0 {
             None
         };
 
-        credential.issuer_identifier = Some(issuer_identifier);
+        credential.issuer_identifier = Some(issuer_identifier.into());
         credential.issuer_certificate = issuer_certificate.map(Into::into);
         credential.redirect_uri = redirect_uri.cloned();
         credential.state = CredentialStateEnum::Accepted;
         credential.protocol = self.config_id.to_owned();
-        credential.interaction = Some(interaction.to_owned());
+        credential.interaction = Some(interaction.to_owned().into());
         attach_matching_holder_binding(&mut credential, holder_bindings).await?;
         Ok(credential)
     }

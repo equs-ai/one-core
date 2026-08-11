@@ -55,7 +55,7 @@ pub(crate) async fn credential_from_proved(
         r#type: CredentialType::Single,
         state: proved_credential.credential.state,
         claims: proved_credential.credential.claims,
-        issuer_identifier: Some(issuer_identifier),
+        issuer_identifier: Some(issuer_identifier.into()),
         issuer_certificate,
         holder_identifier: Some(holder_identifier.into()),
         schema: from_provider_schema(

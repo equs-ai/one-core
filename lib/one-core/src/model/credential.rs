@@ -9,8 +9,8 @@ use time::OffsetDateTime;
 use super::claim::Claim;
 use super::common::GetListResponse;
 use super::credential_schema::CredentialSchema;
-use super::identifier::{Identifier, IdentifierRelations};
-use super::interaction::{Interaction, InteractionRelations};
+use super::identifier::Identifier;
+use super::interaction::Interaction;
 use super::key::Key;
 use super::list_query::ListQuery;
 use crate::model::certificate::Certificate;
@@ -45,20 +45,17 @@ pub struct Credential {
 
     // Relations:
     pub claims: RelatedVec<Claim>,
-    pub issuer_identifier: Option<Identifier>,
+    pub issuer_identifier: Option<Related<Identifier>>,
     pub issuer_certificate: Option<Related<Certificate>>,
     pub holder_identifier: Option<Related<Identifier>>,
     pub schema: Related<CredentialSchema>,
-    pub interaction: Option<Interaction>,
+    pub interaction: Option<Related<Interaction>>,
     pub key: Option<Related<Key>>,
     pub parent: Option<Related<Credential>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct CredentialRelations {
-    pub issuer_identifier: Option<IdentifierRelations>,
-    pub interaction: Option<InteractionRelations>,
-}
+pub struct CredentialRelations {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Display)]
 pub enum CredentialStateEnum {

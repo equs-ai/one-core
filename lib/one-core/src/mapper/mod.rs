@@ -225,7 +225,7 @@ pub(crate) fn extracted_credential_to_model(
         suspend_end_date: None,
         profile: None,
         claims: model_claims.into(),
-        issuer_identifier: Some(issuer_identifier),
+        issuer_identifier: Some(issuer_identifier.into()),
         issuer_certificate,
         holder_identifier: holder_identifier.map(Into::into),
         schema: credential_schema.into(),

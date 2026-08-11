@@ -10,11 +10,11 @@ use crate::error::{
     ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt, NestedError,
 };
 use crate::model::credential::{
-    Clearable, Credential, CredentialFilterValue, CredentialRelations, CredentialRole,
-    CredentialStateEnum, CredentialType, UpdateCredentialRequest,
+    Clearable, Credential, CredentialFilterValue, CredentialRole, CredentialStateEnum,
+    CredentialType, UpdateCredentialRequest,
 };
 use crate::model::credential_schema::CredentialSchema;
-use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
+use crate::model::identifier::{Identifier, IdentifierData};
 use crate::model::interaction::Interaction;
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListQuery;
@@ -155,13 +155,7 @@ impl CredentialValidityManagerImpl {
     ) -> Result<(), Error> {
         let credential = self
             .credential_repository
-            .get_credential(
-                &credential_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {}),
-                    ..Default::default()
-                },
-            )
+            .get_credential(&credential_id)
             .await
             .error_while("getting credential")?;
 
@@ -303,7 +297,9 @@ impl CredentialValidityManagerImpl {
         let issuer_identifier = credential
             .issuer_identifier
             .as_ref()
-            .ok_or(Error::MappingError("issuer_identifier is None".to_string()))?;
+            .ok_or(Error::MappingError("issuer_identifier is None".to_string()))?
+            .as_ref()
+            .await?;
 
         let credential_data_by_role = match credential.role {
             CredentialRole::Holder => {
@@ -317,7 +313,7 @@ impl CredentialValidityManagerImpl {
             match revocation_method
                 .check_credential_revocation_status(
                     &status,
-                    &issuer_details(issuer_identifier).await?,
+                    &issuer_details(&issuer_identifier).await?,
                     credential_data_by_role.to_owned(),
                     force_refresh,
                 )
@@ -479,12 +475,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
     ) -> Result<(), Error> {
         let credential = self
             .credential_repository
-            .get_credential(
-                credential_id,
-                &CredentialRelations {
-                    ..Default::default()
-                },
-            )
+            .get_credential(credential_id)
             .await
             .error_while("getting credential")?;
 
@@ -660,13 +651,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
     ) -> Result<CredentialValidityCheckResult, Error> {
         let credential = self
             .credential_repository
-            .get_credential(
-                &credential_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {}),
-                    interaction: Some(Default::default()),
-                },
-            )
+            .get_credential(&credential_id)
             .await
             .error_while("getting credential")?;
         throw_if_credential_schema_not_in_session_org(&credential, &*self.session_provider)
@@ -744,13 +729,7 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                 for batch_item in batch_items {
                     let batch_item = self
                         .credential_repository
-                        .get_credential(
-                            &batch_item.id,
-                            &CredentialRelations {
-                                issuer_identifier: Some(IdentifierRelations {}),
-                                ..Default::default()
-                            },
-                        )
+                        .get_credential(&batch_item.id)
                         .await
                         .error_while("getting batch item")?;
 
@@ -778,12 +757,12 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                     }
                 }
 
+                let interaction = match credential.interaction.as_ref() {
+                    Some(interaction) => Some(interaction.as_ref().await?.to_owned()),
+                    None => None,
+                };
                 let status = self
-                    .finalize_batch_parent_state(
-                        &credential,
-                        credential.interaction.as_ref(),
-                        &item_states,
-                    )
+                    .finalize_batch_parent_state(&credential, interaction.as_ref(), &item_states)
                     .await?;
 
                 Ok(CredentialValidityCheckResult {
@@ -833,9 +812,13 @@ impl CredentialValidityManager for CredentialValidityManagerImpl {
                             .collect::<Result<Vec<_>, _>>()
                             .error_while("getting batch items states")?;
 
+                        let interaction = match credential.interaction.as_ref() {
+                            Some(interaction) => Some(interaction.as_ref().await?.to_owned()),
+                            None => None,
+                        };
                         self.finalize_batch_parent_state(
                             &parent,
-                            credential.interaction.as_ref(),
+                            interaction.as_ref(),
                             &item_states,
                         )
                         .await?;

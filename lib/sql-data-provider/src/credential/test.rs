@@ -6,14 +6,13 @@ use one_core::clock::now_utc;
 use one_core::model::claim::Claim;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
-    Clearable, Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations,
-    CredentialRole, CredentialStateEnum, CredentialType, UpdateCredentialRequest,
+    Clearable, Credential, CredentialFilterValue, CredentialListQuery, CredentialRole,
+    CredentialStateEnum, CredentialType, UpdateCredentialRequest,
 };
 use one_core::model::credential_schema::{CredentialSchema, LayoutType};
 use one_core::model::credential_schema_format::CredentialSchemaFormat;
 use one_core::model::did::Did;
 use one_core::model::identifier::{Identifier, IdentifierData, IdentifierState};
-use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::list_filter::{ComparisonType, ListFilterValue, StringMatch, ValueComparison};
 use one_core::model::list_query::ListPagination;
 use one_core::repository::certificate_repository::{
@@ -372,7 +371,7 @@ async fn test_create_credential_success() {
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
             claims: claims.into(),
-            issuer_identifier: Some(identifier),
+            issuer_identifier: Some(identifier.into()),
             issuer_certificate: None,
             holder_identifier: None,
             schema: credential_schema.into(),
@@ -431,7 +430,7 @@ async fn test_create_credential_empty_claims() {
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
             claims: Default::default(),
-            issuer_identifier: Some(identifier),
+            issuer_identifier: Some(identifier.into()),
             issuer_certificate: None,
             holder_identifier: None,
             schema: credential_schema.into(),
@@ -502,7 +501,7 @@ async fn test_create_credential_already_exists() {
             state: CredentialStateEnum::Created,
             suspend_end_date: None,
             claims: claims.into(),
-            issuer_identifier: Some(identifier),
+            issuer_identifier: Some(identifier.into()),
             issuer_certificate: None,
             holder_identifier: None,
             schema: credential_schema.into(),
@@ -557,10 +556,7 @@ async fn test_delete_credential_success() {
         .await
         .unwrap();
 
-    let credential = provider
-        .get_credential(&credential.id, &CredentialRelations::default())
-        .await
-        .unwrap();
+    let credential = provider.get_credential(&credential.id).await.unwrap();
     assert!(credential.deleted_at.is_some());
 }
 
@@ -970,15 +966,7 @@ async fn test_get_credential_success() {
         }),
     );
 
-    let credential = provider
-        .get_credential(
-            &credential_id,
-            &CredentialRelations {
-                interaction: Some(Default::default()),
-                ..Default::default()
-            },
-        )
-        .await;
+    let credential = provider.get_credential(&credential_id).await;
 
     assert!(credential.is_ok());
     let credential = credential.unwrap();
@@ -995,9 +983,8 @@ async fn test_get_credential_success() {
     assert_eq!(credential_claims[0].id, claims[1].id);
     assert_eq!(credential_claims[1].id, claims[0].id);
 
-    let empty_relations_mean_no_other_repository_calls = provider
-        .get_credential(&credential_id, &CredentialRelations::default())
-        .await;
+    let empty_relations_mean_no_other_repository_calls =
+        provider.get_credential(&credential_id).await;
     assert!(empty_relations_mean_no_other_repository_calls.is_ok());
 }
 
@@ -1007,9 +994,7 @@ async fn test_get_credential_fail_not_found() {
 
     let provider = credential_repository(db.clone(), None);
 
-    let credential = provider
-        .get_credential(&Uuid::new_v4().into(), &CredentialRelations::default())
-        .await;
+    let credential = provider.get_credential(&Uuid::new_v4().into()).await;
 
     assert!(matches!(
         credential,
@@ -1043,36 +1028,9 @@ async fn test_update_credential_success() {
     .unwrap()
     .id;
 
-    let mut interaction_repository = MockInteractionRepository::default();
-    interaction_repository
-        .expect_get_interaction()
-        .once()
-        .returning(|id, _| {
-            Ok(Interaction {
-                id: id.to_owned(),
-                created_date: get_dummy_date(),
-                last_modified: get_dummy_date(),
-                data: None,
-                organisation: dummy_organisation(None).into(),
-                nonce_id: None,
-                interaction_type: InteractionType::Issuance,
-                expires_at: None,
-                ecosystem: None,
-                ecosystem_data: None,
-            })
-        });
+    let provider = credential_repository(db.clone(), None);
 
-    let provider = credential_repository(
-        db.clone(),
-        Some(Repositories {
-            interaction_repository: Arc::new(interaction_repository),
-            ..Repositories::default()
-        }),
-    );
-
-    let credential_before_update = provider
-        .get_credential(&credential_id, &CredentialRelations::default())
-        .await;
+    let credential_before_update = provider.get_credential(&credential_id).await;
     assert!(credential_before_update.is_ok());
     let credential_before_update = credential_before_update.unwrap();
     assert_eq!(credential_id, credential_before_update.id);
@@ -1111,21 +1069,13 @@ async fn test_update_credential_success() {
             .await
             .is_ok()
     );
-    let credential_after_update = provider
-        .get_credential(
-            &credential_id,
-            &CredentialRelations {
-                interaction: Some(Default::default()),
-                ..Default::default()
-            },
-        )
-        .await;
+    let credential_after_update = provider.get_credential(&credential_id).await;
     assert!(credential_after_update.is_ok());
     let credential_after_update = credential_after_update.unwrap();
     assert_eq!(blob_id, credential_after_update.credential_blob_id.unwrap());
     assert_eq!(
         interaction_id,
-        credential_after_update.interaction.unwrap().id
+        credential_after_update.interaction.unwrap().id()
     );
     assert_eq!(credential_after_update.state, CredentialStateEnum::Pending);
 }
@@ -1162,37 +1112,15 @@ async fn test_update_credential_success_no_claims() {
     .unwrap()
     .id;
 
-    let mut interaction_repository = MockInteractionRepository::default();
-    interaction_repository
-        .expect_get_interaction()
-        .once()
-        .returning(|id, _| {
-            Ok(Interaction {
-                id: id.to_owned(),
-                created_date: get_dummy_date(),
-                last_modified: get_dummy_date(),
-                data: None,
-                organisation: dummy_organisation(None).into(),
-                nonce_id: None,
-                interaction_type: InteractionType::Issuance,
-                expires_at: None,
-                ecosystem: None,
-                ecosystem_data: None,
-            })
-        });
-
     let provider = credential_repository(
         db.clone(),
         Some(Repositories {
             claim_repository: Arc::new(claim_repository),
-            interaction_repository: Arc::new(interaction_repository),
             ..Repositories::default()
         }),
     );
 
-    let credential_before_update = provider
-        .get_credential(&credential_id, &CredentialRelations::default())
-        .await;
+    let credential_before_update = provider.get_credential(&credential_id).await;
     assert!(credential_before_update.is_ok());
     let credential_before_update = credential_before_update.unwrap();
     assert_eq!(credential_id, credential_before_update.id);
@@ -1232,21 +1160,13 @@ async fn test_update_credential_success_no_claims() {
             .await
             .is_ok()
     );
-    let credential_after_update = provider
-        .get_credential(
-            &credential_id,
-            &CredentialRelations {
-                interaction: Some(Default::default()),
-                ..Default::default()
-            },
-        )
-        .await;
+    let credential_after_update = provider.get_credential(&credential_id).await;
     assert!(credential_after_update.is_ok());
     let credential_after_update = credential_after_update.unwrap();
     assert_eq!(blob_id, credential_after_update.credential_blob_id.unwrap());
     assert_eq!(
         interaction_id,
-        credential_after_update.interaction.unwrap().id
+        credential_after_update.interaction.unwrap().id()
     );
     assert_eq!(credential_after_update.state, CredentialStateEnum::Pending);
 }
@@ -1290,16 +1210,10 @@ async fn test_delete_credential_blobs_success() {
 
     let provider = credential_repository(db, None);
 
-    let credential = provider
-        .get_credential(&credential.id, &CredentialRelations::default())
-        .await
-        .unwrap();
+    let credential = provider.get_credential(&credential.id).await.unwrap();
     assert!(credential.credential_blob_id.is_some());
 
-    let credential_two = provider
-        .get_credential(&credential_two.id, &CredentialRelations::default())
-        .await
-        .unwrap();
+    let credential_two = provider.get_credential(&credential_two.id).await.unwrap();
     assert!(credential_two.credential_blob_id.is_some());
 
     provider
@@ -1307,15 +1221,9 @@ async fn test_delete_credential_blobs_success() {
         .await
         .unwrap();
 
-    let credential = provider
-        .get_credential(&credential.id, &CredentialRelations::default())
-        .await
-        .unwrap();
+    let credential = provider.get_credential(&credential.id).await.unwrap();
     assert!(credential.credential_blob_id.is_none());
 
-    let credential_two = provider
-        .get_credential(&credential_two.id, &CredentialRelations::default())
-        .await
-        .unwrap();
+    let credential_two = provider.get_credential(&credential_two.id).await.unwrap();
     assert!(credential_two.credential_blob_id.is_none());
 }

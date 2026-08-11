@@ -108,7 +108,7 @@ async fn test_task_holder_check_credential_status_being_revoked() {
     let credential_clone = credential.clone();
     credential_repository
         .expect_get_credential()
-        .returning(move |_, _| Ok(credential_clone.clone()));
+        .returning(move |_| Ok(credential_clone.clone()));
 
     credential_repository
         .expect_get_credential_list()
@@ -271,18 +271,21 @@ fn generic_credential() -> Credential {
             schema: claim_schema.clone().into(),
         }]
         .into(),
-        issuer_identifier: Some(Identifier {
-            id: Uuid::new_v4().into(),
-            created_date: now,
-            last_modified: now,
-            name: "identifier".to_string(),
-            data: IdentifierData::Did((issuer_did).into()),
-            is_remote: false,
-            state: IdentifierState::Active,
-            deleted_at: None,
-            organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
-            trust_information: Default::default(),
-        }),
+        issuer_identifier: Some(
+            Identifier {
+                id: Uuid::new_v4().into(),
+                created_date: now,
+                last_modified: now,
+                name: "identifier".to_string(),
+                data: IdentifierData::Did((issuer_did).into()),
+                is_remote: false,
+                state: IdentifierState::Active,
+                deleted_at: None,
+                organisation: dummy_organisation(Some(uuid::Uuid::new_v4().into())).into(),
+                trust_information: Default::default(),
+            }
+            .into(),
+        ),
         issuer_certificate: None,
         holder_identifier: None,
         schema: CredentialSchema {

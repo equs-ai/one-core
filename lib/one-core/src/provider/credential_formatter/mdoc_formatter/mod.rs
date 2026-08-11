@@ -611,7 +611,7 @@ impl CredentialFormatter for MdocFormatter {
             wallet_unit_attestation_blob_id: None,
             wallet_instance_attestation_blob_id: None,
             issuer_certificate: first_certificate(&issuer_identifier).await?.map(Into::into),
-            issuer_identifier: Some(issuer_identifier),
+            issuer_identifier: Some(issuer_identifier.into()),
             holder_identifier: Some(holder_identifier.into()),
             schema: credential_schema.into(),
             interaction: None,

@@ -45,13 +45,13 @@ use crate::mapper::exchange::{
 use crate::model::blob::{Blob, BlobType};
 use crate::model::common::LockType;
 use crate::model::credential::{
-    Credential, CredentialRelations, CredentialStateEnum, CredentialType, UpdateCredentialRequest,
+    Credential, CredentialStateEnum, CredentialType, UpdateCredentialRequest,
 };
 use crate::model::credential_schema::CredentialSchema;
 use crate::model::credential_schema_format::CredentialSchemaFormat;
 use crate::model::did::KeyRole;
 use crate::model::history::TrustResolutionResult;
-use crate::model::identifier::{Identifier, IdentifierRelations};
+use crate::model::identifier::Identifier;
 use crate::model::interaction::UpdateInteractionRequest;
 use crate::model::relation::Related;
 use crate::proto::identifier_creator::{IdentifierName, IdentifierRole, RemoteIdentifierRelation};
@@ -221,13 +221,7 @@ impl OID4VCIFinal1_0Service {
     ) -> Result<CredentialOffer, OID4VCIFinal1_0ServiceError> {
         let credential = self
             .credential_repository
-            .get_credential(
-                &credential_id,
-                &CredentialRelations {
-                    interaction: Some(Default::default()),
-                    issuer_identifier: Some(Default::default()),
-                },
-            )
+            .get_credential(&credential_id)
             .await
             .error_while("getting credential")?;
 
@@ -281,12 +275,12 @@ impl OID4VCIFinal1_0Service {
             .ok_or(OID4VCIFinal1_0ServiceError::MappingError(
                 "Missing issuer_identifier".to_owned(),
             ))?
-            .id;
+            .id();
 
         Ok(create_credential_offer(
             protocol_base_url,
             &credential.protocol,
-            &interaction.id.to_string(),
+            &interaction.id().to_string(),
             &credential_schema,
             identifier_id,
         )
@@ -324,13 +318,7 @@ impl OID4VCIFinal1_0Service {
 
         let credentials = self
             .credential_repository
-            .get_credentials_by_interaction_id(
-                &interaction.id,
-                &CredentialRelations {
-                    interaction: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get_credentials_by_interaction_id(&interaction.id)
             .await
             .error_while("getting credentials")?;
 
@@ -904,13 +892,7 @@ impl OID4VCIFinal1_0Service {
 
         let credentials = self
             .credential_repository
-            .get_credentials_by_interaction_id(
-                &interaction.id,
-                &CredentialRelations {
-                    issuer_identifier: Some(IdentifierRelations {}),
-                    interaction: Some(Default::default()),
-                },
-            )
+            .get_credentials_by_interaction_id(&interaction.id)
             .await
             .error_while("getting credentials")?;
 
@@ -968,13 +950,7 @@ impl OID4VCIFinal1_0Service {
 
         let credentials = self
             .credential_repository
-            .get_credentials_by_interaction_id(
-                &interaction_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get_credentials_by_interaction_id(&interaction_id)
             .await
             .error_while("getting credentials")?;
 
@@ -994,7 +970,7 @@ impl OID4VCIFinal1_0Service {
                     .ok_or(OID4VCIFinal1_0ServiceError::MappingError(
                         "missing issuer_identifier".to_string(),
                     ))?
-                    .id,
+                    .id(),
             )
         } else {
             None
@@ -1294,13 +1270,7 @@ impl OID4VCIFinal1_0Service {
         let now = crate::clock::now_utc();
         let parent_credential = self
             .credential_repository
-            .get_credential(
-                &parent_credential_id,
-                &CredentialRelations {
-                    issuer_identifier: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
+            .get_credential(&parent_credential_id)
             .await
             .error_while("loading credential")?;
 

@@ -3,14 +3,15 @@ use std::sync::Arc;
 use one_core::model::claim::Claim;
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential::{
-    Credential, CredentialFilterValue, CredentialListQuery, CredentialRelations, CredentialRole,
-    CredentialStateEnum, CredentialType, UpdateCredentialRequest,
+    Credential, CredentialFilterValue, CredentialListQuery, CredentialRole, CredentialStateEnum,
+    CredentialType, UpdateCredentialRequest,
 };
 use one_core::model::credential_schema::CredentialSchema;
 use one_core::model::identifier::{Identifier, IdentifierData};
 use one_core::model::list_filter::ListFilterCondition;
 use one_core::model::relation::Related;
 use one_core::repository::credential_repository::CredentialRepository;
+use one_dto_mapper::convert_inner;
 use shared_types::CredentialId;
 use sql_data_provider::test_utilities::get_dummy_date;
 use uuid::Uuid;
@@ -28,16 +29,7 @@ impl CredentialsDB {
     }
 
     pub async fn get(&self, credential_id: &CredentialId) -> Credential {
-        self.repository
-            .get_credential(
-                credential_id,
-                &CredentialRelations {
-                    interaction: Some(Default::default()),
-                    issuer_identifier: Some(Default::default()),
-                },
-            )
-            .await
-            .unwrap()
+        self.repository.get_credential(credential_id).await.unwrap()
     }
 
     pub async fn list(
@@ -193,7 +185,7 @@ impl CredentialsDB {
             state,
             suspend_end_date: params.suspend_end_date,
             claims: claims.into(),
-            issuer_identifier: Some(issuer_identifier.to_owned()),
+            issuer_identifier: Some(issuer_identifier.to_owned().into()),
             issuer_certificate: params
                 .issuer_certificate
                 .or(match &issuer_identifier.data {
@@ -206,7 +198,7 @@ impl CredentialsDB {
                 .map(Into::into),
             holder_identifier: params.holder_identifier.map(Into::into),
             schema: credential_schema.to_owned().into(),
-            interaction: params.interaction,
+            interaction: convert_inner(params.interaction),
             key: params.key.map(Into::into),
             profile: params.profile,
             credential_blob_id: params.credential_blob_id,
