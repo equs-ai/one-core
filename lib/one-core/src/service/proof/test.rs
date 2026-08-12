@@ -35,13 +35,10 @@ use crate::model::history::GetHistoryList;
 use crate::model::identifier::{Identifier, IdentifierData, IdentifierRelations};
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::key::Key;
-use crate::model::organisation::OrganisationRelations;
 use crate::model::proof::{
     GetProofList, Proof, ProofClaim, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum,
 };
-use crate::model::proof_schema::{
-    ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
-};
+use crate::model::proof_schema::{ProofInputClaimSchema, ProofInputSchema, ProofSchema};
 use crate::proto::bluetooth_low_energy::ble_resource::BleWaiter;
 use crate::proto::bluetooth_low_energy::low_level::ble_central::MockBleCentral;
 use crate::proto::bluetooth_low_energy::low_level::ble_peripheral::MockBlePeripheral;
@@ -216,8 +213,8 @@ fn construct_proof_with_state(proof_id: &ProofId, state: ProofStateEnum) -> Proo
             name: "".to_string(),
             expire_duration: 0,
             imported_source_url: None,
-            organisation: Some(dummy_organisation(None)),
-            input_schemas: None,
+            organisation: dummy_organisation(None).into(),
+            input_schemas: Default::default(),
         }),
         claims: None,
         verifier_identifier: Some(Identifier {
@@ -324,8 +321,8 @@ async fn test_get_proof_exists() {
             deleted_at: None,
             name: "proof schema".to_string(),
             expire_duration: 0,
-            organisation: Some(dummy_organisation(None)),
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: dummy_organisation(None).into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: ClaimSchema {
                         id: Uuid::new_v4().into(),
@@ -391,7 +388,8 @@ async fn test_get_proof_exists() {
                 .await
                 .unwrap()
                 .into(),
-            }]),
+            }]
+            .into(),
         }),
         claims: Some(vec![]),
         verifier_identifier: Some(Identifier {
@@ -431,10 +429,7 @@ async fn test_get_proof_exists() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -667,10 +662,7 @@ async fn test_get_proof_with_array_holder() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -940,10 +932,7 @@ async fn test_get_proof_with_array_in_object_holder() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -1228,10 +1217,7 @@ async fn test_get_proof_with_object_array_holder() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -1441,8 +1427,8 @@ async fn test_get_proof_with_array() {
             deleted_at: None,
             name: "proof schema".to_string(),
             expire_duration: 0,
-            organisation: Some(organisation.clone()),
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: organisation.clone().into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: claim_schema.clone(),
                     required: true,
@@ -1450,7 +1436,8 @@ async fn test_get_proof_with_array() {
                 }]
                 .into(),
                 credential_schema: credential_schema.clone().into(),
-            }]),
+            }]
+            .into(),
         }),
         claims: Some(
             credential_claims
@@ -1498,10 +1485,7 @@ async fn test_get_proof_with_array() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -1721,8 +1705,8 @@ async fn test_get_proof_with_array_in_object() {
             deleted_at: None,
             name: "proof schema".to_string(),
             expire_duration: 0,
-            organisation: Some(organisation.clone()),
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: organisation.clone().into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: claim_schemas[0].clone(),
                     required: true,
@@ -1730,7 +1714,8 @@ async fn test_get_proof_with_array_in_object() {
                 }]
                 .into(),
                 credential_schema: credential_schema.clone().into(),
-            }]),
+            }]
+            .into(),
         }),
         claims: Some(
             credential_claims
@@ -1778,10 +1763,7 @@ async fn test_get_proof_with_array_in_object() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -2017,8 +1999,8 @@ async fn test_get_proof_with_object_array() {
             deleted_at: None,
             name: "proof schema".to_string(),
             expire_duration: 0,
-            organisation: Some(organisation.clone()),
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: organisation.clone().into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: claim_schemas[0].clone(),
                     required: true,
@@ -2026,7 +2008,8 @@ async fn test_get_proof_with_object_array() {
                 }]
                 .into(),
                 credential_schema: credential_schema.clone().into(),
-            }]),
+            }]
+            .into(),
         }),
         claims: Some(
             credential_claims
@@ -2074,10 +2057,7 @@ async fn test_get_proof_with_object_array() {
             .with(
                 eq(proof.id.to_owned()),
                 eq(ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -2194,8 +2174,8 @@ async fn test_get_proof_list_success() {
             deleted_at: None,
             name: "proof schema".to_string(),
             expire_duration: 0,
-            organisation: None,
-            input_schemas: None,
+            organisation: dummy_organisation(None).into(),
+            input_schemas: Default::default(),
         }),
         claims: None,
         verifier_identifier: Some(Identifier {
@@ -2320,8 +2300,8 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -2331,8 +2311,8 @@ async fn test_create_proof_using_formatter_doesnt_support_did_identifiers() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -2417,8 +2397,8 @@ async fn test_create_proof_using_invalid_did_method() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -2428,8 +2408,8 @@ async fn test_create_proof_using_invalid_did_method() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -2548,8 +2528,8 @@ async fn test_create_proof_using_identifier() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -2559,8 +2539,8 @@ async fn test_create_proof_using_identifier() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -2686,8 +2666,8 @@ async fn test_create_proof_without_related_key() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -2697,8 +2677,8 @@ async fn test_create_proof_without_related_key() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -2829,8 +2809,8 @@ async fn test_create_proof_with_related_key() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -2840,8 +2820,8 @@ async fn test_create_proof_with_related_key() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -2975,8 +2955,8 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .return_once(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .return_once(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -2986,8 +2966,8 @@ async fn test_create_proof_fail_duplicit_transaction_data() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -3133,8 +3113,8 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .return_once(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .return_once(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -3144,8 +3124,8 @@ async fn test_create_proof_fail_unsupported_wallet_storage_type() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![proof_input_schema]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![proof_input_schema].into(),
             })
         });
 
@@ -3262,8 +3242,8 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -3273,8 +3253,8 @@ async fn test_create_proof_failed_no_key_with_authentication_method_role() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -3373,8 +3353,8 @@ async fn test_create_proof_failed_incompatible_exchange() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -3384,8 +3364,8 @@ async fn test_create_proof_failed_incompatible_exchange() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -3439,8 +3419,8 @@ async fn test_create_proof_did_deactivated_error() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -3450,8 +3430,8 @@ async fn test_create_proof_did_deactivated_error() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -3531,7 +3511,7 @@ async fn test_create_proof_schema_deleted() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .returning(|id, _| {
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -3541,8 +3521,8 @@ async fn test_create_proof_schema_deleted() {
                 deleted_at: Some(crate::clock::now_utc()),
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: None,
+                organisation: dummy_organisation(None).into(),
+                input_schemas: Default::default(),
             })
         });
 
@@ -3601,8 +3581,8 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .withf(move |id, _| &request.proof_schema_id == id)
-        .returning(|id, _| {
+        .withf(move |id| &request.proof_schema_id == id)
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -3612,8 +3592,8 @@ async fn test_create_proof_failed_incompatible_verification_key_storage() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: Some(vec![generic_proof_input_schema()]),
+                organisation: dummy_organisation(None).into(),
+                input_schemas: vec![generic_proof_input_schema()].into(),
             })
         });
 
@@ -4224,10 +4204,7 @@ async fn test_delete_proof_ok_for_allowed_state(
                 && relations
                     == &ProofRelations {
                         interaction: Some(Default::default()),
-                        schema: Some(ProofSchemaRelations {
-                            organisation: Some(OrganisationRelations::default()),
-                            proof_inputs: None,
-                        }),
+                        schema: Some(Default::default()),
                         ..Default::default()
                     }
         })
@@ -4303,10 +4280,7 @@ async fn test_delete_proof_ok_for_requested_state() {
                 && relations
                     == &ProofRelations {
                         interaction: Some(Default::default()),
-                        schema: Some(ProofSchemaRelations {
-                            organisation: Some(OrganisationRelations::default()),
-                            proof_inputs: None,
-                        }),
+                        schema: Some(Default::default()),
                         ..Default::default()
                     }
         })
@@ -4375,10 +4349,7 @@ async fn test_delete_proof_fails_for_invalid_state(
                 && relations
                     == &ProofRelations {
                         interaction: Some(Default::default()),
-                        schema: Some(ProofSchemaRelations {
-                            organisation: Some(OrganisationRelations::default()),
-                            proof_inputs: None,
-                        }),
+                        schema: Some(Default::default()),
                         ..Default::default()
                     }
         })
@@ -4483,10 +4454,7 @@ async fn test_retract_proof_with_bluetooth_ok() {
                 && relations
                     == &ProofRelations {
                         interaction: Some(Default::default()),
-                        schema: Some(ProofSchemaRelations {
-                            organisation: Some(OrganisationRelations::default()),
-                            proof_inputs: None,
-                        }),
+                        schema: Some(Default::default()),
                         ..Default::default()
                     }
         })
@@ -4576,10 +4544,7 @@ async fn test_retract_proof_success_holder_iso_mdl() {
                 && relations
                     == &ProofRelations {
                         interaction: Some(Default::default()),
-                        schema: Some(ProofSchemaRelations {
-                            organisation: Some(OrganisationRelations::default()),
-                            proof_inputs: None,
-                        }),
+                        schema: Some(Default::default()),
                         ..Default::default()
                     }
         })
@@ -4617,7 +4582,7 @@ async fn test_create_proof_session_org_mismatch() {
     proof_schema_repository
         .expect_get_proof_schema()
         .once()
-        .returning(|id, _| {
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -4627,8 +4592,8 @@ async fn test_create_proof_session_org_mismatch() {
                 deleted_at: Some(crate::clock::now_utc()),
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: None,
+                organisation: dummy_organisation(None).into(),
+                input_schemas: Default::default(),
             })
         });
     let service = setup_service(Repositories {

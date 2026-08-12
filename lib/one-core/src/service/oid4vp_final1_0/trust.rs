@@ -34,17 +34,11 @@ impl OID4VPFinal1_0Service {
                 .ok_or(OID4VPFinal1_0ServiceError::MappingError(
                     "missing proof schema".to_string(),
                 ))?;
-        let organisation =
-            proof_schema
-                .organisation
-                .as_ref()
-                .ok_or(OID4VPFinal1_0ServiceError::MappingError(
-                    "missing organisation".to_string(),
-                ))?;
+        let organisation_id = proof_schema.organisation.id();
 
         let trust_mode = self
             .wrp_validator
-            .verifier_trust_mode(organisation.id)
+            .verifier_trust_mode(organisation_id)
             .await
             .error_while("getting verifier trust mode")?;
 
@@ -59,12 +53,12 @@ impl OID4VPFinal1_0Service {
             entity_type: HistoryEntityType::Proof,
             metadata: None,
             metadata_blob_id: None,
-            organisation_id: Some(organisation.id),
+            organisation_id: Some(organisation_id),
             user: self.session_provider.session().user(),
         };
 
         let all_credentials_trusted = self
-            .resolve_trust(proof_result, organisation.id, trust_mode, history_template)
+            .resolve_trust(proof_result, organisation_id, trust_mode, history_template)
             .await?;
 
         if !all_credentials_trusted && trust_mode == TrustMode::TrustMandatory {

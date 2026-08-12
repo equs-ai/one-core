@@ -33,13 +33,11 @@ use one_core::model::identifier::{
 };
 use one_core::model::interaction::{Interaction, InteractionType};
 use one_core::model::key::{Key, KeyRelations};
-use one_core::model::organisation::{Organisation, OrganisationRelations};
+use one_core::model::organisation::Organisation;
 use one_core::model::proof::{
     Proof, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum,
 };
-use one_core::model::proof_schema::{
-    ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
-};
+use one_core::model::proof_schema::{ProofInputClaimSchema, ProofInputSchema, ProofSchema};
 use one_core::model::relation::{Related, RelatedVec};
 use one_core::repository::DataRepository;
 use one_crypto::encryption::encrypt_string;
@@ -806,7 +804,7 @@ pub async fn create_proof_schema(
 ) -> ProofSchema {
     let data_layer = DataLayer::build(db_conn.to_owned(), vec![]);
 
-    let input_schemas = proof_input_schemas
+    let input_schemas: Vec<_> = proof_input_schemas
         .iter()
         .map(|proof_input_schema| {
             let claim_schemas: Vec<_> = proof_input_schema
@@ -844,10 +842,10 @@ pub async fn create_proof_schema(
         created_date: get_dummy_date(),
         last_modified: get_dummy_date(),
         name: name.to_owned(),
-        organisation: Some(organisation.to_owned()),
+        organisation: organisation.to_owned().into(),
         deleted_at: None,
         expire_duration: 0,
-        input_schemas: Some(input_schemas),
+        input_schemas: input_schemas.into(),
     };
 
     data_layer
@@ -1085,10 +1083,7 @@ pub async fn get_proof(db_conn: &DbConn, proof_id: &ProofId) -> Proof {
                     claim: ClaimRelations {},
                     credential: Some(CredentialRelations::default()),
                 }),
-                schema: Some(ProofSchemaRelations {
-                    organisation: Some(OrganisationRelations {}),
-                    proof_inputs: Some(Default::default()),
-                }),
+                schema: Some(Default::default()),
                 verifier_identifier: Some(IdentifierRelations {}),
                 verifier_key: Some(KeyRelations::default()),
                 verifier_certificate: Some(Default::default()),

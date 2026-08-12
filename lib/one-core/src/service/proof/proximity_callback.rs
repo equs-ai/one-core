@@ -15,9 +15,7 @@ use crate::error::ContextWithErrorCode;
 use crate::error::ErrorCode::BR_0000;
 use crate::model::blob::{Blob, BlobType};
 use crate::model::history::HistoryErrorMetadata;
-use crate::model::organisation::OrganisationRelations;
 use crate::model::proof::{Proof, ProofRelations, ProofStateEnum, UpdateProofRequest};
-use crate::model::proof_schema::ProofSchemaRelations;
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::model::{
     OpenID4VPVerifierInteractionContent, SubmissionRequestData, VpSubmissionData,
@@ -50,10 +48,7 @@ impl ProofService {
             .get_proof(
                 &proof_id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
                 },
@@ -159,9 +154,7 @@ impl ProofService {
             ))?
             .organisation
             .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "missing organisation".to_string(),
-            ))?;
+            .await?;
 
         let interaction = proof
             .interaction
@@ -228,7 +221,7 @@ impl ProofService {
                 persist_accepted_proof(
                     &proof,
                     accept_proof_result,
-                    organisation,
+                    &organisation,
                     proof_blob_id,
                     &*self.proof_repository,
                     &*self.credential_repository,

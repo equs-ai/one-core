@@ -1,14 +1,9 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use autometrics::autometrics;
 use futures::FutureExt;
 use one_core::model::proof_schema::{
-    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaListQuery,
-    ProofSchemaRelations,
+    GetProofSchemaList, ProofInputSchema, ProofSchema, ProofSchemaListQuery,
 };
-use one_core::model::relation::{AsyncVecLoader, BatchModelLoader, Related, RelatedVec};
-use one_core::repository::claim_schema_repository::ClaimSchemaRepository;
 use one_core::repository::error::{DataLayerError, EntityKind};
 use one_core::repository::proof_schema_repository::ProofSchemaRepository;
 use sea_orm::{
@@ -18,11 +13,11 @@ use shared_types::ProofSchemaId;
 use time::OffsetDateTime;
 
 use super::ProofSchemaProvider;
-use crate::common::list_query_with_base_model;
+use super::mapper::proof_schema_from_models;
+use crate::common::list_query_with_custom_model;
 use crate::entity::{proof_input_claim_schema, proof_input_schema, proof_schema};
 use crate::list_query_generic::SelectWithListQuery;
 use crate::mapper::{to_data_layer_error, to_update_data_layer_error};
-use crate::transaction_context::TransactionManagerImpl;
 
 #[autometrics]
 #[async_trait::async_trait]
@@ -31,42 +26,32 @@ impl ProofSchemaRepository for ProofSchemaProvider {
         &self,
         request: ProofSchema,
     ) -> Result<ProofSchemaId, DataLayerError> {
-        if request.organisation.is_none() {
-            return Err(DataLayerError::IncorrectParameters);
-        }
-
         let proof_schema_id = request.id;
-        let proof_schema = proof_schema::ActiveModel::try_from(&request)?;
+        let proof_schema = proof_schema::ActiveModel::from(&request);
 
-        let proof_input_schemas = request
-            .input_schemas
-            .ok_or(DataLayerError::IncorrectParameters)?;
+        let proof_input_schemas = request.input_schemas.as_ref().await?;
         if proof_input_schemas.is_empty() {
             return Err(DataLayerError::IncorrectParameters);
         }
 
         let now = one_core::clock::now_utc();
-        let proof_input_schemas_active_model = proof_input_schemas
+        let proof_input_schemas_active_model: Vec<_> = proof_input_schemas
             .iter()
             .enumerate()
-            .map(|(order, schema)| {
-                let input_schema = proof_input_schema::ActiveModel {
-                    order: Set(order as _),
-                    created_date: Set(now),
-                    last_modified: Set(now),
-                    credential_schema: Set(schema.credential_schema.id()),
-                    proof_schema: Set(proof_schema_id),
-                    ..Default::default()
-                };
-
-                Ok::<_, DataLayerError>(input_schema)
+            .map(|(order, schema)| proof_input_schema::ActiveModel {
+                order: Set(order as _),
+                created_date: Set(now),
+                last_modified: Set(now),
+                credential_schema: Set(schema.credential_schema.id()),
+                proof_schema: Set(proof_schema_id),
+                ..Default::default()
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect();
 
-        let proof_input_schemas_with_order: Vec<(u32, ProofInputSchema)> =
+        let proof_input_schemas_with_order: Vec<(u32, &ProofInputSchema)> =
             proof_input_schemas_active_model
                 .iter()
-                .zip(proof_input_schemas)
+                .zip(&proof_input_schemas)
                 .map(|(p1, p2)| (*p1.order.as_ref() as u32, p2))
                 .collect();
 
@@ -137,11 +122,7 @@ impl ProofSchemaRepository for ProofSchemaProvider {
         Ok(proof_schema_id)
     }
 
-    async fn get_proof_schema(
-        &self,
-        id: &ProofSchemaId,
-        relations: &ProofSchemaRelations,
-    ) -> Result<ProofSchema, DataLayerError> {
+    async fn get_proof_schema(&self, id: &ProofSchemaId) -> Result<ProofSchema, DataLayerError> {
         let proof_schema_model = crate::entity::proof_schema::Entity::find_by_id(id)
             .one(&self.db)
             .await
@@ -151,22 +132,13 @@ impl ProofSchemaRepository for ProofSchemaProvider {
                 id: (*id).into(),
             })?;
 
-        let organisation_id = proof_schema_model.organisation_id.to_owned();
-        let mut proof_schema = ProofSchema::from(proof_schema_model);
-
-        if let Some(_input_relations) = &relations.proof_inputs {
-            proof_schema.input_schemas = Some(self.get_related_input_schemas(id).await?);
-        }
-
-        if let Some(_organisation_relations) = &relations.organisation {
-            proof_schema.organisation = Some(
-                self.organisation_repository
-                    .get_organisation(&organisation_id)
-                    .await?,
-            );
-        }
-
-        Ok(proof_schema)
+        Ok(proof_schema_from_models(
+            proof_schema_model,
+            &self.db,
+            &self.organisation_repository,
+            &self.credential_schema_repository,
+            &self.claim_schema_repository,
+        ))
     }
 
     async fn get_proof_schema_list(
@@ -179,7 +151,16 @@ impl ProofSchemaRepository for ProofSchemaProvider {
             .order_by_desc(proof_schema::Column::CreatedDate)
             .order_by_desc(proof_schema::Column::Id);
 
-        list_query_with_base_model(query, query_params, &self.db).await
+        list_query_with_custom_model(query, query_params, &self.db, |model| {
+            Ok(proof_schema_from_models(
+                model,
+                &self.db,
+                &self.organisation_repository,
+                &self.credential_schema_repository,
+                &self.claim_schema_repository,
+            ))
+        })
+        .await
     }
 
     async fn delete_proof_schema(
@@ -200,81 +181,5 @@ impl ProofSchemaRepository for ProofSchemaProvider {
             .map_err(to_update_data_layer_error)?;
 
         Ok(())
-    }
-}
-
-impl ProofSchemaProvider {
-    async fn get_related_input_schemas(
-        &self,
-        proof_schema_id: &ProofSchemaId,
-    ) -> Result<Vec<ProofInputSchema>, DataLayerError> {
-        let mut inputs = Vec::new();
-
-        let input_schemas = crate::entity::proof_input_schema::Entity::find()
-            .filter(proof_input_schema::Column::ProofSchema.eq(proof_schema_id.to_string()))
-            .order_by_asc(proof_input_schema::Column::Order)
-            .all(&self.db)
-            .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
-
-        let schemas_loader = BatchModelLoader::new(
-            input_schemas.iter().map(|model| model.credential_schema),
-            self.credential_schema_repository.clone(),
-        );
-
-        for input_schema in input_schemas {
-            inputs.push(ProofInputSchema {
-                claim_schemas: RelatedVec::new(ProofInputClaimSchemasLoader {
-                    db: self.db.clone(),
-                    proof_input_schema_id: input_schema.id,
-                    claim_schema_repository: self.claim_schema_repository.clone(),
-                }),
-                credential_schema: Related::new(
-                    input_schema.credential_schema,
-                    schemas_loader.clone(),
-                ),
-            })
-        }
-        Ok(inputs)
-    }
-}
-
-struct ProofInputClaimSchemasLoader {
-    db: TransactionManagerImpl,
-    proof_input_schema_id: i64,
-    claim_schema_repository: Arc<dyn ClaimSchemaRepository>,
-}
-
-#[async_trait::async_trait]
-impl AsyncVecLoader<ProofInputClaimSchema> for ProofInputClaimSchemasLoader {
-    async fn load(&self) -> Result<Vec<ProofInputClaimSchema>, DataLayerError> {
-        let input_schema_claim_schema = crate::entity::proof_input_claim_schema::Entity::find()
-            .filter(
-                proof_input_claim_schema::Column::ProofInputSchemaId.eq(self.proof_input_schema_id),
-            )
-            .order_by_asc(proof_input_claim_schema::Column::Order)
-            .all(&self.db)
-            .await
-            .map_err(|e| DataLayerError::Db(e.into()))?;
-
-        let claim_schema_ids = input_schema_claim_schema
-            .iter()
-            .map(|item| item.claim_schema_id)
-            .collect();
-
-        let claim_schemas = self
-            .claim_schema_repository
-            .get_claim_schema_list(claim_schema_ids)
-            .await?;
-
-        Ok(input_schema_claim_schema
-            .into_iter()
-            .zip(claim_schemas)
-            .map(|(model, schema)| ProofInputClaimSchema {
-                schema,
-                required: model.required,
-                order: model.order as u32,
-            })
-            .collect())
     }
 }

@@ -26,7 +26,6 @@ use crate::model::list_filter::{
     ValueComparison,
 };
 use crate::model::list_query::{ListPagination, ListQuery, ListSorting};
-use crate::model::proof_schema::ProofSchemaRelations;
 use crate::model::relation::RelatedVec;
 use crate::model::trust_list_subscription::TrustListSubscription;
 use crate::provider::blob_storage::provider::BlobStorageProvider;
@@ -379,13 +378,7 @@ async fn proof_schema_filter(
     config: &CoreConfig,
 ) -> Result<ListFilterCondition<IdentifierFilterValue>, IdentifierServiceError> {
     let schema = proof_schema_repository
-        .get_proof_schema(
-            proof_schema_id,
-            &ProofSchemaRelations {
-                organisation: None,
-                proof_inputs: Some(Default::default()),
-            },
-        )
+        .get_proof_schema(proof_schema_id)
         .await
         .map_err(|error| match error {
             DataLayerError::EntityNotFound { .. } => {
@@ -394,12 +387,8 @@ async fn proof_schema_filter(
             error => error.error_while("retrieving proof schema").into(),
         })?;
     let mut trust_verification_types = ListFilterCondition::<IdentifierFilterValue>::default();
-    for input_schema in schema
-        .input_schemas
-        .ok_or(IdentifierServiceError::MappingError(
-            "missing input schemas".to_string(),
-        ))?
-    {
+    let input_schemas = schema.input_schemas.as_ref().await?;
+    for input_schema in &input_schemas {
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         let filter_value = filter_value_from_credential_schema(
             config,

@@ -482,18 +482,7 @@ pub fn dummy_proof_with_protocol(protocol: &str) -> Proof {
         role: ProofRole::Verifier,
         requested_date: None,
         completed_date: None,
-        schema: Some(ProofSchema {
-            ecosystem: None,
-            id: Uuid::new_v4().into(),
-            created_date: crate::clock::now_utc(),
-            last_modified: crate::clock::now_utc(),
-            imported_source_url: Some("CORE_URL".to_string()),
-            deleted_at: None,
-            name: "dummy".to_string(),
-            expire_duration: 0,
-            organisation: Some(dummy_organisation(None)),
-            input_schemas: None,
-        }),
+        schema: Some(dummy_proof_schema()),
         claims: None,
         verifier_identifier: None,
         verifier_key: None,
@@ -546,8 +535,8 @@ pub fn dummy_proof_schema() -> ProofSchema {
         imported_source_url: Some("CORE_URL".to_string()),
         name: "Proof schema".to_string(),
         expire_duration: 100,
-        organisation: None,
-        input_schemas: None,
+        organisation: dummy_organisation(None).into(),
+        input_schemas: Default::default(),
     }
 }
 

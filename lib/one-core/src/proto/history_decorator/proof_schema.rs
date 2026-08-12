@@ -5,9 +5,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
-use crate::model::proof_schema::{
-    GetProofSchemaList, ProofSchema, ProofSchemaListQuery, ProofSchemaRelations,
-};
+use crate::model::proof_schema::{GetProofSchemaList, ProofSchema, ProofSchemaListQuery};
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::repository::error::DataLayerError;
 use crate::repository::history_repository::HistoryRepository;
@@ -27,11 +25,7 @@ impl ProofSchemaRepository for ProofSchemaHistoryDecorator {
         request: ProofSchema,
     ) -> Result<ProofSchemaId, DataLayerError> {
         let name = request.name.to_owned();
-        let organisation_id = request
-            .organisation
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("organisation is None"))?
-            .id;
+        let organisation_id = request.organisation.id();
 
         let local_import_source_url = self
             .core_base_url
@@ -65,26 +59,15 @@ impl ProofSchemaRepository for ProofSchemaHistoryDecorator {
         id: &ProofSchemaId,
         deleted_at: OffsetDateTime,
     ) -> Result<(), DataLayerError> {
-        let proof_schema = self
-            .inner
-            .get_proof_schema(
-                id,
-                &ProofSchemaRelations {
-                    organisation: Some(Default::default()),
-                    ..Default::default()
-                },
-            )
-            .await?;
-        let organisation = proof_schema
-            .organisation
-            .ok_or_else(|| anyhow::anyhow!("organisation is None"))?;
+        let proof_schema = self.inner.get_proof_schema(id).await?;
+        let organisation_id = proof_schema.organisation.id();
 
         self.inner.delete_proof_schema(id, deleted_at).await?;
 
         self.write_history(
             *id,
             proof_schema.name,
-            organisation.id,
+            organisation_id,
             HistoryAction::Deleted,
         )
         .await;
@@ -92,12 +75,8 @@ impl ProofSchemaRepository for ProofSchemaHistoryDecorator {
         Ok(())
     }
 
-    async fn get_proof_schema(
-        &self,
-        id: &ProofSchemaId,
-        relations: &ProofSchemaRelations,
-    ) -> Result<ProofSchema, DataLayerError> {
-        self.inner.get_proof_schema(id, relations).await
+    async fn get_proof_schema(&self, id: &ProofSchemaId) -> Result<ProofSchema, DataLayerError> {
+        self.inner.get_proof_schema(id).await
     }
 
     async fn get_proof_schema_list(

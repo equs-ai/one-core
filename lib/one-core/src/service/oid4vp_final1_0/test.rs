@@ -147,7 +147,7 @@ async fn test_submit_proof_failed_on_validator_failure() {
                 }),
                 state: ProofStateEnum::Pending,
                 schema: Some(ProofSchema {
-                    input_schemas: Some(vec![ProofInputSchema {
+                    input_schemas: vec![ProofInputSchema {
                         claim_schemas: vec![
                             ProofInputClaimSchema {
                                 schema: ClaimSchema {
@@ -171,8 +171,9 @@ async fn test_submit_proof_failed_on_validator_failure() {
                         ]
                         .into(),
                         credential_schema: credential_schema.into(),
-                    }]),
-                    organisation: Some(dummy_organisation(None)),
+                    }]
+                    .into(),
+                    organisation: dummy_organisation(None).into(),
                     ..dummy_proof_schema()
                 }),
                 interaction: Some(interaction),
@@ -287,7 +288,7 @@ async fn test_submit_proof_failed_on_trust_failure() {
                 }),
                 state: ProofStateEnum::Pending,
                 schema: Some(ProofSchema {
-                    input_schemas: Some(vec![ProofInputSchema {
+                    input_schemas: vec![ProofInputSchema {
                         claim_schemas: vec![
                             ProofInputClaimSchema {
                                 schema: ClaimSchema {
@@ -311,8 +312,9 @@ async fn test_submit_proof_failed_on_trust_failure() {
                         ]
                         .into(),
                         credential_schema: credential_schema.into(),
-                    }]),
-                    organisation: Some(dummy_organisation(None)),
+                    }]
+                    .into(),
+                    organisation: dummy_organisation(None).into(),
                     ..dummy_proof_schema()
                 }),
                 interaction: Some(interaction),

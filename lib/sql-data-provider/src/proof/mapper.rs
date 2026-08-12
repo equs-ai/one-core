@@ -178,8 +178,13 @@ fn proof_from_list_item_model(
                 .ok_or(DataLayerError::MappingError)? as u32,
             imported_source_url: value.schema_imported_source_url,
             ecosystem: value.schema_ecosystem,
-            organisation: None,
-            input_schemas: None,
+            organisation: Related::new(
+                value
+                    .schema_organisation_id
+                    .ok_or(DataLayerError::MappingError)?,
+                organisation_repository.clone(),
+            ),
+            input_schemas: Default::default(),
         }),
     };
 

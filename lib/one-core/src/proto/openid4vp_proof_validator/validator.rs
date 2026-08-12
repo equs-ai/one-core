@@ -160,13 +160,15 @@ impl OpenId4VpProofValidatorProto {
             ))?
             .to_owned();
 
-        let proof_input_schemas = proof
-            .schema
+        let proof_schema = proof.schema.as_ref().ok_or(OpenID4VCError::MappingError(
+            "missing proof schema".to_string(),
+        ))?;
+
+        let proof_input_schemas = proof_schema
+            .input_schemas
             .as_ref()
-            .and_then(|schema| schema.input_schemas.as_ref())
-            .ok_or(OpenID4VCError::MappingError(
-                "missing proof input schema".to_string(),
-            ))?;
+            .await
+            .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?;
 
         if vp_token.len() != dcql_query.credentials.len() {
             return Err(OpenID4VCError::ValidationError(
@@ -298,8 +300,13 @@ impl OpenId4VpProofValidatorProto {
             "missing proof schema".to_string(),
         ))?;
 
-        let proof_schema_inputs = match proof_schema.input_schemas.as_ref() {
-            Some(input_schemas) if !input_schemas.is_empty() => input_schemas.to_vec(),
+        let proof_schema_inputs = match proof_schema
+            .input_schemas
+            .as_ref()
+            .await
+            .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?
+        {
+            input_schemas if !input_schemas.is_empty() => input_schemas.to_vec(),
             _ => {
                 return Err(OpenID4VCError::Other(
                     "Missing proof input schema".to_owned(),

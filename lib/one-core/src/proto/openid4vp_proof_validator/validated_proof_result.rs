@@ -45,12 +45,12 @@ async fn validate_proof(
 
     let input_schemas = proof_schema
         .input_schemas
-        .ok_or(OpenID4VCError::MappingError(
-            "input schemas is None".to_string(),
-        ))?;
+        .as_ref()
+        .await
+        .map_err(|e| OpenID4VCError::MappingError(e.to_string()))?;
 
     let mut credential_schema_by_id = HashMap::new();
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let credential_schema = input_schema
             .credential_schema
             .as_ref()
@@ -172,14 +172,13 @@ async fn validate_proof_completeness(
     proof_schema: &ProofSchema,
     proved_claims: &[ValidatedProofClaimDTO],
 ) -> Result<(), OpenID4VCError> {
-    for input_schema in
-        proof_schema
-            .input_schemas
-            .as_ref()
-            .ok_or(OpenID4VCError::ValidationError(
-                "Missing proof input schemas".to_string(),
-            ))?
-    {
+    let input_schemas = proof_schema
+        .input_schemas
+        .as_ref()
+        .await
+        .map_err(|e| OpenID4VCError::ValidationError(e.to_string()))?;
+
+    for input_schema in &input_schemas {
         let credential_schema_id = input_schema.credential_schema.id();
         for proof_claim_input_schema in &input_schema
             .claim_schemas

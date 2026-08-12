@@ -1,10 +1,11 @@
+use std::sync::Arc;
+
 use shared_types::ProofSchemaId;
 use time::OffsetDateTime;
 
 use super::error::DataLayerError;
-use crate::model::proof_schema::{
-    GetProofSchemaList, ProofSchema, ProofSchemaListQuery, ProofSchemaRelations,
-};
+use crate::model::proof_schema::{GetProofSchemaList, ProofSchema, ProofSchemaListQuery};
+use crate::model::relation::AsyncModelLoader;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]
@@ -14,11 +15,7 @@ pub trait ProofSchemaRepository: Send + Sync {
         request: ProofSchema,
     ) -> Result<ProofSchemaId, DataLayerError>;
 
-    async fn get_proof_schema(
-        &self,
-        id: &ProofSchemaId,
-        relations: &ProofSchemaRelations,
-    ) -> Result<ProofSchema, DataLayerError>;
+    async fn get_proof_schema(&self, id: &ProofSchemaId) -> Result<ProofSchema, DataLayerError>;
 
     async fn get_proof_schema_list(
         &self,
@@ -30,4 +27,11 @@ pub trait ProofSchemaRepository: Send + Sync {
         id: &ProofSchemaId,
         deleted_at: OffsetDateTime,
     ) -> Result<(), DataLayerError>;
+}
+
+#[async_trait::async_trait]
+impl AsyncModelLoader<ProofSchema> for Arc<dyn ProofSchemaRepository> {
+    async fn load(&self, id: &ProofSchemaId) -> Result<ProofSchema, DataLayerError> {
+        self.get_proof_schema(id).await
+    }
 }

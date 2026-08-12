@@ -12,7 +12,6 @@ use crate::model::proof::{
     GetProofList, Proof, ProofListQuery, ProofRelations, ProofRole, ProofStateEnum,
     UpdateProofRequest,
 };
-use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::session_provider::{SessionExt, SessionProvider};
 use crate::repository::error::DataLayerError;
 use crate::repository::history_repository::HistoryRepository;
@@ -30,10 +29,7 @@ impl ProofHistoryDecorator {
             .get_proof(
                 proof_id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(Default::default()),
-                        ..Default::default()
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     verifier_identifier: Some(Default::default()),
                     ..Default::default()
@@ -210,12 +206,8 @@ fn target_from_proof(proof: &Proof) -> Option<String> {
 }
 
 fn organisation_id_from_proof(proof: &Proof) -> Option<OrganisationId> {
-    if let Some(organisation) = proof
-        .schema
-        .as_ref()
-        .and_then(|schema| schema.organisation.as_ref())
-    {
-        return Some(organisation.id);
+    if let Some(organisation_id) = proof.schema.as_ref().map(|schema| schema.organisation.id()) {
+        return Some(organisation_id);
     }
 
     if let Some(organisation_id) = proof

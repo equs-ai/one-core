@@ -204,6 +204,7 @@ impl Ecosystem for EudiEcosystem {
 
         Ok(())
     }
+
     async fn validate_proof(&self, proof: &Proof) -> Result<(), EcosystemError> {
         let Some(verifier_identifier) = &proof.verifier_identifier else {
             return Err(EcosystemError::MissingIdentifier);
@@ -224,13 +225,9 @@ impl Ecosystem for EudiEcosystem {
                     "Missing proof schema".to_string(),
                 ));
             };
-            let Some(input_schemas) = &proof_schema.input_schemas else {
-                return Err(EcosystemError::MappingError(
-                    "Missing input_schemas".to_string(),
-                ));
-            };
 
-            for input_schema in input_schemas {
+            let input_schemas = proof_schema.input_schemas.as_ref().await?;
+            for input_schema in &input_schemas {
                 let credential_schema = input_schema.credential_schema.as_ref().await?;
                 let schema_format =
                     credential_schema_to_schema_format(&credential_schema, &self.config).await?;

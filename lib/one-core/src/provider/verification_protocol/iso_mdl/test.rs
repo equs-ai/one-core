@@ -168,7 +168,7 @@ async fn test_presentation_reject_ok() {
             deleted_at: None,
             name: "".to_string(),
             expire_duration: 0,
-            input_schemas: Some(vec![ProofInputSchema {
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: Default::default(),
                 credential_schema: CredentialSchema {
                     expiration: None,
@@ -203,8 +203,9 @@ async fn test_presentation_reject_ok() {
                     ecosystem: None,
                 }
                 .into(),
-            }]),
-            organisation: None,
+            }]
+            .into(),
+            organisation: dummy_organisation(Some(organisation_id)).into(),
         }),
         claims: None,
         verifier_identifier: None,

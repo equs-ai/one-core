@@ -33,11 +33,7 @@ pub(super) fn throw_if_proof_not_in_session_org(
     session_provider: &dyn SessionProvider,
 ) -> Result<(), ProofServiceError> {
     // verifier case
-    let mut organisation_id = proof
-        .schema
-        .as_ref()
-        .and_then(|schema| schema.organisation.as_ref())
-        .map(|o| o.id);
+    let mut organisation_id = proof.schema.as_ref().map(|schema| schema.organisation.id());
 
     // holder case
     if organisation_id.is_none()
@@ -64,13 +60,7 @@ pub(super) async fn validate_format_and_exchange_protocol_compatibility(
     proof_schema: &ProofSchema,
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<(), ProofServiceError> {
-    let input_schemas =
-        proof_schema
-            .input_schemas
-            .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "input_schemas is None".to_string(),
-            ))?;
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
 
     let exchange_type = config
         .verification_protocol
@@ -78,7 +68,7 @@ pub(super) async fn validate_format_and_exchange_protocol_compatibility(
         .error_while("getting protocol config")?
         .r#type;
 
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let credential_schema = input_schema.credential_schema.as_ref().await?;
 
         let schema_format = credential_schema.format().await?;
@@ -111,16 +101,10 @@ pub(super) async fn validate_transaction_data(
         return Ok(());
     }
 
-    let input_schemas =
-        proof_schema
-            .input_schemas
-            .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "input_schemas is None".to_string(),
-            ))?;
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
 
     let mut credential_schemas_by_id = HashMap::new();
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         credential_schemas_by_id.insert(credential_schema.id, credential_schema.to_owned());
     }
@@ -152,20 +136,14 @@ pub(super) async fn validate_did_and_format_compatibility(
     verifier_did: &Did,
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<(), ProofServiceError> {
-    let input_schemas =
-        proof_schema
-            .input_schemas
-            .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "input_schemas is None".to_string(),
-            ))?;
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
 
     let key_agreement_key = verifier_did
         .find_first_matching_key(&KeyFilter::did_role(KeyRole::KeyAgreement))
         .await
         .error_while("finding key agreement key")?;
 
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         let schema_format = credential_schema.format().await?;
         let formatter = formatter_provider.get_credential_formatter(&schema_format)?;
@@ -270,13 +248,7 @@ pub(super) async fn validate_verification_key_storage_compatibility(
     formatter_provider: &dyn CredentialFormatterProvider,
     config: &CoreConfig,
 ) -> Result<(), ProofServiceError> {
-    let input_schemas =
-        proof_schema
-            .input_schemas
-            .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "input_schemas is None".to_string(),
-            ))?;
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
 
     let storage_type = config
         .key_storage
@@ -284,7 +256,7 @@ pub(super) async fn validate_verification_key_storage_compatibility(
         .error_while("getting protocol config")?
         .r#type;
 
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         let schema_format = credential_schema.format().await?;
         let formatter = formatter_provider.get_credential_formatter(&schema_format)?;

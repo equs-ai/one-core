@@ -196,8 +196,8 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
             name: "test-share-proof".into(),
             expire_duration: 123,
             imported_source_url: None,
-            organisation: None,
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: dummy_organisation(None).into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: ClaimSchema {
                         id: Uuid::new_v4().into(),
@@ -209,7 +209,8 @@ fn test_verifier_proof(format: CredentialFormat, verifier_key: Option<RelatedKey
                 }]
                 .into(),
                 credential_schema: test_credential_schema(format).into(),
-            }]),
+            }]
+            .into(),
         }),
         claims: None,
         verifier_identifier: Some(Identifier {
@@ -318,11 +319,12 @@ fn test_holder_proof(
             name: "test-holder-proof".into(),
             expire_duration: 300,
             imported_source_url: None,
-            organisation: None,
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: dummy_organisation(None).into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: Default::default(),
                 credential_schema: test_credential_schema(format).into(),
-            }]),
+            }]
+            .into(),
         }),
         claims: None,
         verifier_identifier: None,

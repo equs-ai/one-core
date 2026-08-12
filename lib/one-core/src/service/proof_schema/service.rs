@@ -26,10 +26,8 @@ use crate::mapper::list_response_into;
 use crate::model::credential_schema::{CredentialSchema, CredentialSchemaListQuery};
 use crate::model::list_filter::ListFilterValue;
 use crate::model::list_query::ListPagination;
-use crate::model::organisation::{Organisation, OrganisationRelations};
-use crate::model::proof_schema::{
-    ProofInputSchema, ProofSchema, ProofSchemaRelations, SortableProofSchemaColumn,
-};
+use crate::model::organisation::Organisation;
+use crate::model::proof_schema::{ProofInputSchema, ProofSchema, SortableProofSchemaColumn};
 use crate::proto::credential_schema::dto::{
     ImportCredentialSchemaRequestDTO, ImportCredentialSchemaV2RequestDTO,
 };
@@ -46,7 +44,7 @@ use crate::service::credential_schema::dto::{
 };
 use crate::service::credential_schema::validator::validate_key_storage_security_supported;
 use crate::service::proof_schema::dto::ImportProofSchemaDTO;
-use crate::validator::{throw_if_org_id_not_matching_session, throw_if_org_not_matching_session};
+use crate::validator::throw_if_org_id_not_matching_session;
 
 impl ProofSchemaService {
     /// Returns details of a proof schema
@@ -60,16 +58,10 @@ impl ProofSchemaService {
     ) -> Result<GetProofSchemaResponseDTO, ProofSchemaServiceError> {
         let result = self
             .proof_schema_repository
-            .get_proof_schema(
-                id,
-                &ProofSchemaRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    proof_inputs: Some(Default::default()),
-                },
-            )
+            .get_proof_schema(id)
             .await
             .error_while("getting proof schema")?;
-        throw_if_org_not_matching_session(result.organisation.as_ref(), &*self.session_provider)
+        throw_if_org_id_not_matching_session(result.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
         if result.deleted_at.is_some() {
@@ -220,16 +212,10 @@ impl ProofSchemaService {
     ) -> Result<(), ProofSchemaServiceError> {
         let schema = self
             .proof_schema_repository
-            .get_proof_schema(
-                id,
-                &ProofSchemaRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    proof_inputs: None,
-                },
-            )
+            .get_proof_schema(id)
             .await
             .error_while("getting proof schema")?;
-        throw_if_org_not_matching_session(schema.organisation.as_ref(), &*self.session_provider)
+        throw_if_org_id_not_matching_session(schema.organisation.id_ref(), &*self.session_provider)
             .error_while("checking session")?;
 
         let now = crate::clock::now_utc();
@@ -251,17 +237,11 @@ impl ProofSchemaService {
     ) -> Result<ProofSchemaShareResponseDTO, ProofSchemaServiceError> {
         let proof_schema = self
             .proof_schema_repository
-            .get_proof_schema(
-                &id,
-                &ProofSchemaRelations {
-                    organisation: Some(OrganisationRelations::default()),
-                    ..Default::default()
-                },
-            )
+            .get_proof_schema(&id)
             .await
             .error_while("getting proof schema")?;
-        throw_if_org_not_matching_session(
-            proof_schema.organisation.as_ref(),
+        throw_if_org_id_not_matching_session(
+            proof_schema.organisation.id_ref(),
             &*self.session_provider,
         )
         .error_while("checking session")?;
@@ -432,8 +412,8 @@ pub(crate) async fn create_imported_proof_schema(
         deleted_at: None,
         name: schema.name,
         expire_duration: schema.expire_duration,
-        organisation: Some(organisation.clone()),
-        input_schemas: Some(input_schemas),
+        organisation: organisation.clone().into(),
+        input_schemas: input_schemas.into(),
         imported_source_url: Some(imported_source_url),
     };
     proof_schema_repository

@@ -203,15 +203,6 @@ pub(super) async fn get_verifier_proof_detail(
             "claims is None".to_string(),
         ))?;
 
-    let organisation = schema
-        .organisation
-        .as_ref()
-        .ok_or(ProofServiceError::MappingError(
-            "organisation is None".to_string(),
-        ))?;
-
-    let organisation_id = organisation.id;
-
     let mut credential_for_credential_schema: HashMap<
         CredentialSchemaId,
         CredentialDetailResponseDTO<DetailCredentialClaimResponseDTO>,
@@ -252,18 +243,16 @@ pub(super) async fn get_verifier_proof_detail(
         credential_for_credential_schema.insert(credential_schema_id, credential_detail);
     }
 
-    let proof_input_schemas = match schema.input_schemas.as_ref() {
-        Some(proof_input_schemas) if !proof_input_schemas.is_empty() => proof_input_schemas,
-        _ => {
-            return Err(ProofServiceError::MappingError(
-                "input_schemas are missing".to_string(),
-            ));
-        }
-    };
+    let proof_input_schemas = schema.input_schemas.as_ref().await?;
+    if proof_input_schemas.is_empty() {
+        return Err(ProofServiceError::MappingError(
+            "input_schemas are missing".to_string(),
+        ));
+    }
 
     let mut proof_inputs = vec![];
 
-    for input_schema in proof_input_schemas {
+    for input_schema in &proof_input_schemas {
         let mut input_claim_schemas = input_schema.claim_schemas.as_ref().await?.clone();
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         let credential_claim_schemas = credential_schema.claim_schemas.as_ref().await?;
@@ -411,6 +400,7 @@ pub(super) async fn get_verifier_proof_detail(
             credential_schema: credential_schema_dto,
         })
     }
+    drop(proof_input_schemas);
 
     let redirect_uri = proof.redirect_uri.to_owned();
     let subscriber_information = proof.subscriber_information.to_owned();
@@ -429,6 +419,8 @@ pub(super) async fn get_verifier_proof_detail(
     } else {
         vec![]
     };
+
+    let organisation_id = schema.organisation.id();
 
     let list_item_response: ProofListItemResponseDTO = proof.try_into()?;
 

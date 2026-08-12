@@ -39,7 +39,7 @@ async fn test_create_proof_schema_success() {
     assert_eq!(proof_schema.name, "proof-schema-name");
     assert_eq!(proof_schema.expire_duration, 0);
 
-    let input_schemas = proof_schema.input_schemas.unwrap();
+    let input_schemas = proof_schema.input_schemas.as_ref().await.unwrap();
     assert_eq!(input_schemas.len(), 1);
     assert_eq!(
         input_schemas[0].claim_schemas.as_ref().await.unwrap().len(),
@@ -113,7 +113,7 @@ async fn test_create_nested_proof_schema_success() {
     assert_eq!(proof_schema.name, "proof-schema-name");
     assert_eq!(proof_schema.expire_duration, 0);
 
-    let input_schemas = proof_schema.input_schemas.unwrap();
+    let input_schemas = proof_schema.input_schemas.as_ref().await.unwrap();
     assert_eq!(input_schemas.len(), 1);
     assert_eq!(
         input_schemas[0].claim_schemas.as_ref().await.unwrap().len(),

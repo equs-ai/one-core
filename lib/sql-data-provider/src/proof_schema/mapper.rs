@@ -1,11 +1,19 @@
-use anyhow::anyhow;
+use std::sync::Arc;
+
 use one_core::model::list_filter::ListFilterCondition;
-use one_core::model::proof_schema::{ProofSchema, SortableProofSchemaColumn};
+use one_core::model::proof_schema::{
+    ProofInputClaimSchema, ProofInputSchema, ProofSchema, SortableProofSchemaColumn,
+};
+use one_core::model::relation::{AsyncVecLoader, BatchModelLoader, Related, RelatedVec};
+use one_core::repository::claim_schema_repository::ClaimSchemaRepository;
+use one_core::repository::credential_schema_repository::CredentialSchemaRepository;
 use one_core::repository::error::DataLayerError;
+use one_core::repository::organisation_repository::OrganisationRepository;
 use one_core::service::proof_schema::dto::ProofSchemaFilterValue;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::{IntoCondition, Query, SimpleExpr};
-use sea_orm::{ColumnTrait, IntoSimpleExpr, JoinType, Set};
+use sea_orm::{ColumnTrait, EntityTrait, IntoSimpleExpr, JoinType, QueryFilter, QueryOrder, Set};
+use shared_types::ProofSchemaId;
 
 use crate::entity::{
     credential_schema, credential_schema_format, proof_input_schema, proof_schema,
@@ -14,21 +22,31 @@ use crate::list_query_generic::{
     IntoFilterCondition, IntoSortingColumn, get_comparison_condition, get_equals_condition,
     get_string_match_condition,
 };
+use crate::transaction_context::TransactionManagerImpl;
 
-impl From<proof_schema::Model> for ProofSchema {
-    fn from(value: proof_schema::Model) -> Self {
-        Self {
-            id: value.id,
-            created_date: value.created_date,
-            last_modified: value.last_modified,
-            deleted_at: value.deleted_at,
-            name: value.name,
-            expire_duration: value.expire_duration as u32,
-            organisation: None,
-            input_schemas: None,
-            imported_source_url: value.imported_source_url,
-            ecosystem: value.ecosystem,
-        }
+pub(super) fn proof_schema_from_models(
+    model: proof_schema::Model,
+    db: &TransactionManagerImpl,
+    organisation_repository: &Arc<dyn OrganisationRepository>,
+    credential_schema_repository: &Arc<dyn CredentialSchemaRepository>,
+    claim_schema_repository: &Arc<dyn ClaimSchemaRepository>,
+) -> ProofSchema {
+    ProofSchema {
+        id: model.id,
+        created_date: model.created_date,
+        last_modified: model.last_modified,
+        deleted_at: model.deleted_at,
+        name: model.name,
+        expire_duration: model.expire_duration as u32,
+        organisation: Related::new(model.organisation_id, organisation_repository.clone()),
+        input_schemas: RelatedVec::new(ProofInputSchemasLoader {
+            proof_schema_id: model.id,
+            db: db.clone(),
+            credential_schema_repository: credential_schema_repository.clone(),
+            claim_schema_repository: claim_schema_repository.clone(),
+        }),
+        imported_source_url: model.imported_source_url,
+        ecosystem: model.ecosystem,
     }
 }
 
@@ -88,27 +106,100 @@ impl IntoFilterCondition for ProofSchemaFilterValue {
     }
 }
 
-impl TryFrom<&ProofSchema> for proof_schema::ActiveModel {
-    type Error = DataLayerError;
-
-    fn try_from(value: &ProofSchema) -> Result<Self, Self::Error> {
-        Ok(Self {
+impl From<&ProofSchema> for proof_schema::ActiveModel {
+    fn from(value: &ProofSchema) -> Self {
+        Self {
             id: Set(value.id),
             created_date: Set(value.created_date),
             last_modified: Set(value.last_modified),
             name: Set(value.name.to_owned()),
             imported_source_url: Set(value.imported_source_url.clone()),
-            organisation_id: Set(value
-                .organisation
-                .as_ref()
-                .ok_or(DataLayerError::Db(anyhow!(
-                    "Missing organisation for proof schema {}",
-                    value.id
-                )))?
-                .id),
+            organisation_id: Set(value.organisation.id()),
             deleted_at: Set(None),
             expire_duration: Set(value.expire_duration as i64),
             ecosystem: Set(value.ecosystem.clone()),
-        })
+        }
+    }
+}
+
+struct ProofInputSchemasLoader {
+    proof_schema_id: ProofSchemaId,
+    db: TransactionManagerImpl,
+    credential_schema_repository: Arc<dyn CredentialSchemaRepository>,
+    claim_schema_repository: Arc<dyn ClaimSchemaRepository>,
+}
+
+#[async_trait::async_trait]
+impl AsyncVecLoader<ProofInputSchema> for ProofInputSchemasLoader {
+    async fn load(&self) -> Result<Vec<ProofInputSchema>, DataLayerError> {
+        let mut inputs = Vec::new();
+
+        let input_schemas = crate::entity::proof_input_schema::Entity::find()
+            .filter(proof_input_schema::Column::ProofSchema.eq(self.proof_schema_id.to_string()))
+            .order_by_asc(proof_input_schema::Column::Order)
+            .all(&self.db)
+            .await
+            .map_err(|e| DataLayerError::Db(e.into()))?;
+
+        let schemas_loader = BatchModelLoader::new(
+            input_schemas.iter().map(|model| model.credential_schema),
+            self.credential_schema_repository.clone(),
+        );
+
+        for input_schema in input_schemas {
+            inputs.push(ProofInputSchema {
+                claim_schemas: RelatedVec::new(ProofInputClaimSchemasLoader {
+                    db: self.db.clone(),
+                    proof_input_schema_id: input_schema.id,
+                    claim_schema_repository: self.claim_schema_repository.clone(),
+                }),
+                credential_schema: Related::new(
+                    input_schema.credential_schema,
+                    schemas_loader.clone(),
+                ),
+            })
+        }
+        Ok(inputs)
+    }
+}
+
+struct ProofInputClaimSchemasLoader {
+    db: TransactionManagerImpl,
+    proof_input_schema_id: i64,
+    claim_schema_repository: Arc<dyn ClaimSchemaRepository>,
+}
+
+#[async_trait::async_trait]
+impl AsyncVecLoader<ProofInputClaimSchema> for ProofInputClaimSchemasLoader {
+    async fn load(&self) -> Result<Vec<ProofInputClaimSchema>, DataLayerError> {
+        let input_schema_claim_schema = crate::entity::proof_input_claim_schema::Entity::find()
+            .filter(
+                crate::entity::proof_input_claim_schema::Column::ProofInputSchemaId
+                    .eq(self.proof_input_schema_id),
+            )
+            .order_by_asc(crate::entity::proof_input_claim_schema::Column::Order)
+            .all(&self.db)
+            .await
+            .map_err(|e| DataLayerError::Db(e.into()))?;
+
+        let claim_schema_ids = input_schema_claim_schema
+            .iter()
+            .map(|item| item.claim_schema_id)
+            .collect();
+
+        let claim_schemas = self
+            .claim_schema_repository
+            .get_claim_schema_list(claim_schema_ids)
+            .await?;
+
+        Ok(input_schema_claim_schema
+            .into_iter()
+            .zip(claim_schemas)
+            .map(|(model, schema)| ProofInputClaimSchema {
+                schema,
+                required: model.required,
+                order: model.order as u32,
+            })
+            .collect())
     }
 }

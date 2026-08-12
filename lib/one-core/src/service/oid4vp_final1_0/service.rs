@@ -22,9 +22,7 @@ use crate::model::history::HistoryErrorMetadata;
 use crate::model::identifier::{Identifier, IdentifierRelations};
 use crate::model::identifier_trust_information::IdentifierTrustInformation;
 use crate::model::key::KeyRelations;
-use crate::model::organisation::OrganisationRelations;
 use crate::model::proof::{Proof, ProofRelations, ProofStateEnum, UpdateProofRequest};
-use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::openid4vp_proof_validator::ValidatedProofResult;
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
 use crate::provider::verification_protocol::openid4vp::final1_0::mappers::{
@@ -68,10 +66,7 @@ impl OID4VPFinal1_0Service {
                     verifier_identifier: Some(IdentifierRelations {}),
                     verifier_key: Some(Default::default()),
                     verifier_certificate: Some(Default::default()),
-                    schema: Some(ProofSchemaRelations {
-                        proof_inputs: Some(Default::default()),
-                        ..Default::default()
-                    }),
+                    schema: Some(Default::default()),
                     ..Default::default()
                 },
                 None,
@@ -264,10 +259,7 @@ impl OID4VPFinal1_0Service {
             .get_proof_by_interaction_id(
                 &interaction_id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(OrganisationRelations::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     verifier_key: Some(KeyRelations::default()),
                     ..Default::default()
@@ -300,9 +292,7 @@ impl OID4VPFinal1_0Service {
             ))?
             .organisation
             .as_ref()
-            .ok_or(OID4VPFinal1_0ServiceError::MappingError(
-                "missing organisation".to_string(),
-            ))?;
+            .await?;
 
         let interaction = proof
             .interaction
@@ -378,7 +368,7 @@ impl OID4VPFinal1_0Service {
                 persist_accepted_proof(
                     &proof,
                     validated_proof_result,
-                    organisation,
+                    &organisation,
                     proof_blob_id,
                     &*self.proof_repository,
                     &*self.credential_repository,

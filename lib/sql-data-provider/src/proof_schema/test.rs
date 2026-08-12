@@ -7,10 +7,9 @@ use one_core::model::credential_schema::{CredentialSchema, KeyStorageSecurity, L
 use one_core::model::credential_schema_format::CredentialSchemaFormat;
 use one_core::model::list_filter::{ListFilterValue, StringMatch};
 use one_core::model::list_query::{ListPagination, ListSorting};
-use one_core::model::organisation::OrganisationRelations;
 use one_core::model::proof_schema::{
     ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaListQuery,
-    ProofSchemaRelations, SortableProofSchemaColumn,
+    SortableProofSchemaColumn,
 };
 use one_core::repository::claim_schema_repository::{
     self, ClaimSchemaRepository, MockClaimSchemaRepository,
@@ -120,6 +119,7 @@ async fn test_create_proof_schema_invalid_params() {
     let TestSetupWithProofSchema {
         repository,
         proof_schema_id,
+        organisation_id,
         ..
     } = setup_with_proof_schema(
         get_claim_schema_repository_mock(),
@@ -138,8 +138,8 @@ async fn test_create_proof_schema_invalid_params() {
             deleted_at: None,
             name: "test".to_string(),
             expire_duration: 0,
-            organisation: None,
-            input_schemas: None,
+            organisation: dummy_organisation(Some(organisation_id)).into(),
+            input_schemas: Default::default(),
         })
         .await;
 
@@ -171,8 +171,8 @@ async fn test_create_proof_schema_already_exists() {
             deleted_at: None,
             name: "test".to_string(),
             expire_duration: 0,
-            organisation: Some(dummy_organisation(Some(organisation_id))),
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: dummy_organisation(Some(organisation_id)).into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: ClaimSchema {
                         id: Uuid::new_v4().into(),
@@ -222,7 +222,8 @@ async fn test_create_proof_schema_already_exists() {
                     embedded_disclosure_policy: None,
                 }
                 .into(),
-            }]),
+            }]
+            .into(),
         })
         .await;
 
@@ -290,8 +291,8 @@ async fn test_create_proof_schema_success() {
             deleted_at: None,
             name: "test".to_string(),
             expire_duration: 0,
-            organisation: Some(dummy_organisation(Some(organisation_id))),
-            input_schemas: Some(vec![ProofInputSchema {
+            organisation: dummy_organisation(Some(organisation_id)).into(),
+            input_schemas: vec![ProofInputSchema {
                 claim_schemas: vec![ProofInputClaimSchema {
                     schema: ClaimSchema {
                         id: new_claim_schemas[0].id,
@@ -341,7 +342,8 @@ async fn test_create_proof_schema_success() {
                     embedded_disclosure_policy: None,
                 }
                 .into(),
-            }]),
+            }]
+            .into(),
         })
         .await;
 
@@ -435,14 +437,12 @@ async fn test_get_proof_schema_missing() {
     )
     .await;
 
-    let result = repository
-        .get_proof_schema(&Uuid::new_v4().into(), &ProofSchemaRelations::default())
-        .await;
+    let result = repository.get_proof_schema(&Uuid::new_v4().into()).await;
     assert!(matches!(result, Err(DataLayerError::EntityNotFound { .. })));
 }
 
 #[tokio::test]
-async fn test_get_proof_schema_no_relations() {
+async fn test_get_proof_schema() {
     let TestSetupWithProofSchema {
         repository,
         proof_schema_id,
@@ -455,10 +455,7 @@ async fn test_get_proof_schema_no_relations() {
     )
     .await;
 
-    let result = repository
-        .get_proof_schema(&proof_schema_id, &ProofSchemaRelations::default())
-        .await
-        .unwrap();
+    let result = repository.get_proof_schema(&proof_schema_id).await.unwrap();
 
     assert_eq!(result.id, proof_schema_id);
     assert_eq!(result.name, proof_schema_name);
@@ -488,10 +485,7 @@ async fn test_get_proof_schema_deleted() {
     .await
     .unwrap();
 
-    let result = repository
-        .get_proof_schema(&proof_schema_id, &ProofSchemaRelations::default())
-        .await
-        .unwrap();
+    let result = repository.get_proof_schema(&proof_schema_id).await.unwrap();
 
     assert_eq!(result.id, proof_schema_id);
     assert_eq!(result.deleted_at.unwrap(), delete_date);
@@ -520,12 +514,6 @@ async fn test_get_proof_schema_with_relations() {
                 .collect())
         });
 
-    let mut organisation_repository = MockOrganisationRepository::default();
-    organisation_repository
-        .expect_get_organisation()
-        .times(1)
-        .returning(|id| Ok(dummy_organisation(Some(*id))));
-
     let TestSetup {
         repository,
         organisation_id,
@@ -533,7 +521,7 @@ async fn test_get_proof_schema_with_relations() {
         ..
     } = setup_empty(
         Arc::from(claim_schema_repository),
-        Arc::from(organisation_repository),
+        Arc::from(MockOrganisationRepository::default()),
         Arc::from(MockCredentialSchemaRepository::default()),
     )
     .await;
@@ -584,24 +572,15 @@ async fn test_get_proof_schema_with_relations() {
     .await
     .unwrap();
 
-    let result = repository
-        .get_proof_schema(
-            &proof_schema_id,
-            &ProofSchemaRelations {
-                organisation: Some(OrganisationRelations::default()),
-                proof_inputs: Some(Default::default()),
-            },
-        )
-        .await
-        .unwrap();
+    let result = repository.get_proof_schema(&proof_schema_id).await.unwrap();
 
     assert_eq!(result.id, proof_schema_id);
 
-    assert!(result.organisation.is_some());
-    assert_eq!(result.organisation.unwrap().id, organisation_id);
+    assert_eq!(result.organisation.id(), organisation_id);
 
-    assert!(result.input_schemas.is_some());
-    let input_schema = result.input_schemas.unwrap()[0].to_owned();
+    let input_schemas = result.input_schemas.as_ref().await.unwrap().to_owned();
+    assert_eq!(input_schemas.len(), 1);
+    let input_schema = input_schemas[0].to_owned();
     let claim_schemas = input_schema
         .claim_schemas
         .as_ref()
@@ -636,49 +615,6 @@ async fn test_get_proof_schema_with_input_proof_relations() {
                 .collect())
         });
 
-    let mut organisation_repository = MockOrganisationRepository::default();
-    organisation_repository
-        .expect_get_organisation()
-        .returning(|id| Ok(dummy_organisation(Some(id.to_owned()))));
-
-    let mut credential_schema_repository = MockCredentialSchemaRepository::default();
-    credential_schema_repository
-        .expect_get_credential_schema()
-        .returning(|id| {
-            Ok(CredentialSchema {
-                expiration: None,
-                ecosystem: None,
-                batch_size: None,
-                allow_revocation: false,
-                id: id.to_owned(),
-                deleted_at: None,
-                key_storage_security: Some(KeyStorageSecurity::Basic),
-                imported_source_url: "CORE_URL".to_string(),
-                created_date: get_dummy_date(),
-                last_modified: get_dummy_date(),
-                name: "schema".to_string(),
-                formats: vec![CredentialSchemaFormat {
-                    id: Uuid::new_v4().into(),
-                    created_date: one_core::clock::now_utc(),
-                    last_modified: one_core::clock::now_utc(),
-                    credential_schema_id: id.to_owned(),
-                    format: "JWT".into(),
-                    schema_id: id.to_string(),
-                    claim_mappings: Default::default(),
-                }]
-                .into(),
-                claim_schemas: Default::default(),
-                organisation: dummy_organisation(None).into(),
-                layout_type: LayoutType::Card,
-                layout_properties: None,
-                allow_suspension: true,
-                requires_wallet_instance_attestation: false,
-                transaction_code: None,
-                translations: Default::default(),
-                embedded_disclosure_policy: None,
-            })
-        });
-
     let TestSetup {
         repository,
         organisation_id,
@@ -686,8 +622,8 @@ async fn test_get_proof_schema_with_input_proof_relations() {
         ..
     } = setup_empty(
         Arc::from(claim_schema_repository),
-        Arc::from(organisation_repository),
-        Arc::from(credential_schema_repository),
+        Arc::from(MockOrganisationRepository::default()),
+        Arc::from(MockCredentialSchemaRepository::default()),
     )
     .await;
 
@@ -773,24 +709,13 @@ async fn test_get_proof_schema_with_input_proof_relations() {
     .await
     .unwrap();
 
-    let result = repository
-        .get_proof_schema(
-            &proof_schema_id,
-            &ProofSchemaRelations {
-                organisation: Some(OrganisationRelations::default()),
-                proof_inputs: Some(Default::default()),
-            },
-        )
-        .await
-        .unwrap();
+    let result = repository.get_proof_schema(&proof_schema_id).await.unwrap();
 
     assert_eq!(result.id, proof_schema_id);
 
-    assert!(result.organisation.is_some());
-    assert_eq!(result.organisation.unwrap().id, organisation_id);
+    assert_eq!(result.organisation.id(), organisation_id);
 
-    let proof_inputs: Vec<one_core::model::proof_schema::ProofInputSchema> =
-        result.input_schemas.unwrap();
+    let proof_inputs = result.input_schemas.as_ref().await.unwrap().to_owned();
     assert_eq!(proof_inputs.len(), 2);
     assert_eq!(proof_inputs[0].credential_schema.id(), credential_schema_id);
     assert_eq!(

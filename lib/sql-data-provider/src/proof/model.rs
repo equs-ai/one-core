@@ -48,4 +48,5 @@ pub(super) struct ProofListItemModel {
     pub schema_expire_duration: Option<i64>,
     pub schema_imported_source_url: Option<String>,
     pub schema_ecosystem: Option<EcosystemId>,
+    pub schema_organisation_id: Option<OrganisationId>,
 }

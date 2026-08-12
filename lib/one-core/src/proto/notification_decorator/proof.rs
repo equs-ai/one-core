@@ -10,7 +10,6 @@ use crate::model::history::HistoryErrorMetadata;
 use crate::model::proof::{
     GetProofList, Proof, ProofListQuery, ProofRelations, ProofStateEnum, UpdateProofRequest,
 };
-use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::notification_scheduler::{NotificationPayload, NotificationScheduler};
 use crate::provider::verification_protocol::model::CommonParams;
 use crate::repository::error::DataLayerError;
@@ -34,10 +33,7 @@ impl ProofNotificationDecorator {
             .get_proof(
                 proof_id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(Default::default()),
-                        ..Default::default()
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
                 },
@@ -158,12 +154,8 @@ impl ProofRepository for ProofNotificationDecorator {
 }
 
 fn organisation_id_from_proof(proof: &Proof) -> Option<OrganisationId> {
-    if let Some(organisation) = proof
-        .schema
-        .as_ref()
-        .and_then(|schema| schema.organisation.as_ref())
-    {
-        return Some(organisation.id);
+    if let Some(organisation_id) = proof.schema.as_ref().map(|schema| schema.organisation.id()) {
+        return Some(organisation_id);
     }
 
     if let Some(organisation_id) = proof

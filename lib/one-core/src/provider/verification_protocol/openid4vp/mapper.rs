@@ -120,12 +120,8 @@ pub(crate) async fn create_open_id_for_vp_presentation_definition(
     format_to_type_mapper: FormatMapper, // Credential schema format to format type mapper
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<OpenID4VPPresentationDefinition, VerificationProtocolError> {
-    let Some(proof_input) = proof_schema.input_schemas.as_ref() else {
-        return Err(VerificationProtocolError::Failed(
-            "Missing proof input schemas".to_owned(),
-        ));
-    };
-    if proof_input.is_empty() {
+    let proof_schema_inputs = proof_schema.input_schemas.as_ref().await?;
+    if proof_schema_inputs.is_empty() {
         return Err(VerificationProtocolError::Failed(
             "Missing proof input schemas".to_owned(),
         ));
@@ -133,7 +129,7 @@ pub(crate) async fn create_open_id_for_vp_presentation_definition(
 
     // using vec to keep the original order of claims/credentials in the proof request
     let mut requested_credentials: Vec<(CredentialSchema, Vec<ProofInputClaimSchema>)> = vec![];
-    for input in proof_input {
+    for input in &proof_schema_inputs {
         let credential_schema = input.credential_schema.as_ref().await?;
 
         let claims = input

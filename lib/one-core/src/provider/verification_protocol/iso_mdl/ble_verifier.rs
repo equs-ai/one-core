@@ -97,13 +97,8 @@ pub(crate) async fn setup_verifier_session(
         .map_err(VerificationProtocolError::Other)?;
 
     let mut doc_requests = vec![];
-    for input_schema in schema
-        .input_schemas
-        .as_ref()
-        .ok_or(VerificationProtocolError::Failed(
-            "missing input_schemas".to_string(),
-        ))?
-    {
+    let input_schemas = schema.input_schemas.as_ref().await?;
+    for input_schema in &input_schemas {
         doc_requests.push(
             proof_input_schema_to_doc_request(
                 input_schema,

@@ -25,9 +25,8 @@ use crate::model::credential_schema::{
     CredentialSchema, GetCredentialSchemaList, KeyStorageSecurity, LayoutType,
 };
 use crate::model::credential_schema_format::CredentialSchemaFormat;
-use crate::model::organisation::OrganisationRelations;
 use crate::model::proof_schema::{
-    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
+    GetProofSchemaList, ProofInputClaimSchema, ProofInputSchema, ProofSchema,
 };
 use crate::proto::credential_schema::importer::{
     CredentialSchemaImporterProto, MockCredentialSchemaImporter,
@@ -130,7 +129,7 @@ async fn test_get_proof_schema_deleted() {
         let res_clone = proof_schema.clone();
         proof_schema_repository
             .expect_get_proof_schema()
-            .returning(move |_id, _relations| Ok(res_clone.clone()));
+            .returning(move |_id| Ok(res_clone.clone()));
     }
 
     let service = setup_service(Repositories {
@@ -149,7 +148,7 @@ async fn test_get_proof_schema_missing() {
     proof_schema_repository
         .expect_get_proof_schema()
         .times(1)
-        .returning(|id, _relations| {
+        .returning(|id| {
             Err(DataLayerError::EntityNotFound {
                 kind: EntityKind::ProofSchema,
                 id: (*id).into(),
@@ -178,8 +177,8 @@ async fn test_get_proof_schema_list_success() {
         deleted_at: None,
         name: "name".to_string(),
         expire_duration: 0,
-        organisation: None,
-        input_schemas: None,
+        organisation: dummy_organisation(None).into(),
+        input_schemas: Default::default(),
     };
     {
         let res_clone = proof_schema.clone();
@@ -276,7 +275,7 @@ async fn test_delete_proof_schema_success() {
 
     proof_schema_repository
         .expect_get_proof_schema()
-        .returning(|_, _| {
+        .returning(|_| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
@@ -286,8 +285,8 @@ async fn test_delete_proof_schema_success() {
                 deleted_at: None,
                 name: "name".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: None,
+                organisation: dummy_organisation(None).into(),
+                input_schemas: Default::default(),
             })
         });
 
@@ -317,7 +316,7 @@ async fn test_delete_proof_schema_failure() {
 
     proof_schema_repository
         .expect_get_proof_schema()
-        .returning(|_, _| {
+        .returning(|_| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: Uuid::new_v4().into(),
@@ -327,8 +326,8 @@ async fn test_delete_proof_schema_failure() {
                 deleted_at: None,
                 name: "name".to_string(),
                 expire_duration: 0,
-                organisation: Some(dummy_organisation(None)),
-                input_schemas: None,
+                organisation: dummy_organisation(None).into(),
+                input_schemas: Default::default(),
             })
         });
 
@@ -460,10 +459,7 @@ async fn test_create_proof_schema_success() {
         .expect_create_proof_schema()
         .times(1)
         .withf(move |proof_schema| {
-            let input_schemas = proof_schema.input_schemas.as_ref().unwrap();
-            assert_eq!(1, input_schemas.len());
-
-            proof_schema.organisation.as_ref().unwrap().id == organisation_id
+            proof_schema.organisation.id() == organisation_id
                 && proof_schema.name == create_request_clone.name
                 && proof_schema.expire_duration == create_request_clone.expire_duration.unwrap()
         })
@@ -1079,10 +1075,7 @@ async fn test_create_proof_schema_array_success() {
         .expect_create_proof_schema()
         .times(1)
         .withf(move |proof_schema| {
-            let input_schemas = proof_schema.input_schemas.as_ref().unwrap();
-            assert_eq!(1, input_schemas.len());
-
-            proof_schema.organisation.as_ref().unwrap().id == organisation_id
+            proof_schema.organisation.id() == organisation_id
                 && proof_schema.name == create_request_clone.name
                 && proof_schema.expire_duration == create_request_clone.expire_duration.unwrap()
         })
@@ -2498,8 +2491,8 @@ fn generic_proof_schema() -> ProofSchema {
         deleted_at: None,
         name: "name".to_string(),
         expire_duration: 0,
-        organisation: Some(dummy_organisation(None)),
-        input_schemas: Some(vec![]),
+        organisation: dummy_organisation(None).into(),
+        input_schemas: Default::default(),
     }
 }
 
@@ -2530,7 +2523,7 @@ async fn test_get_proof_schema_success_nested_claims() {
     };
 
     let mut proof_schema = generic_proof_schema();
-    proof_schema.input_schemas = Some(vec![ProofInputSchema {
+    proof_schema.input_schemas = vec![ProofInputSchema {
         claim_schemas: vec![ProofInputClaimSchema {
             schema: location_x_claim_schema.to_owned(),
             required: true,
@@ -2543,7 +2536,8 @@ async fn test_get_proof_schema_success_nested_claims() {
         ])
         .await
         .into(),
-    }]);
+    }]
+    .into();
 
     let service = setup_service(Repositories {
         proof_schema_repository: proof_schema_repo_expecting_get(proof_schema.clone()),
@@ -2603,7 +2597,7 @@ async fn test_get_proof_schema_success_nested_claims_not_mandatory() {
     };
 
     let mut proof_schema = generic_proof_schema();
-    proof_schema.input_schemas = Some(vec![ProofInputSchema {
+    proof_schema.input_schemas = vec![ProofInputSchema {
         claim_schemas: vec![ProofInputClaimSchema {
             schema: location_cs.to_owned(),
             required: true,
@@ -2617,7 +2611,8 @@ async fn test_get_proof_schema_success_nested_claims_not_mandatory() {
         ])
         .await
         .into(),
-    }]);
+    }]
+    .into();
 
     let service = setup_service(Repositories {
         proof_schema_repository: proof_schema_repo_expecting_get(proof_schema.clone()),
@@ -2677,7 +2672,7 @@ async fn test_get_proof_schema_success_nested_claims_parent_not_mandatory() {
     };
 
     let mut proof_schema = generic_proof_schema();
-    proof_schema.input_schemas = Some(vec![ProofInputSchema {
+    proof_schema.input_schemas = vec![ProofInputSchema {
         claim_schemas: vec![
             ProofInputClaimSchema {
                 schema: bar_cs.to_owned(),
@@ -2694,7 +2689,8 @@ async fn test_get_proof_schema_success_nested_claims_parent_not_mandatory() {
         credential_schema: credential_schema_with_claims(vec![bar_cs, location_cs, location_x_cs])
             .await
             .into(),
-    }]);
+    }]
+    .into();
 
     let service = setup_service(Repositories {
         proof_schema_repository: proof_schema_repo_expecting_get(proof_schema.clone()),
@@ -2731,14 +2727,8 @@ fn proof_schema_repo_expecting_get(proof_schema: ProofSchema) -> MockProofSchema
     proof_schema_repository
         .expect_get_proof_schema()
         .times(1)
-        .with(
-            eq(proof_schema.id.to_owned()),
-            eq(ProofSchemaRelations {
-                organisation: Some(OrganisationRelations::default()),
-                proof_inputs: Some(Default::default()),
-            }),
-        )
-        .returning(move |_id, _relations| Ok(proof_schema.clone()));
+        .with(eq(proof_schema.id.to_owned()))
+        .returning(move |_id| Ok(proof_schema.clone()));
     proof_schema_repository
 }
 
@@ -2923,7 +2913,7 @@ async fn test_proof_schema_ops_failure_session_org_mismatch() {
     let mut proof_schema_repository = MockProofSchemaRepository::default();
     proof_schema_repository
         .expect_get_proof_schema()
-        .returning(move |_id, _relations| Ok(proof_schema.clone()));
+        .returning(move |_id| Ok(proof_schema.clone()));
 
     let service = setup_service(Repositories {
         proof_schema_repository,

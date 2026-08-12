@@ -2,10 +2,8 @@ use std::sync::Arc;
 
 use one_core::model::claim_schema::ClaimSchema;
 use one_core::model::credential_schema::CredentialSchema;
-use one_core::model::organisation::{Organisation, OrganisationRelations};
-use one_core::model::proof_schema::{
-    ProofInputClaimSchema, ProofInputSchema, ProofSchema, ProofSchemaRelations,
-};
+use one_core::model::organisation::Organisation;
+use one_core::model::proof_schema::{ProofInputClaimSchema, ProofInputSchema, ProofSchema};
 use one_core::repository::proof_schema_repository::ProofSchemaRepository;
 use shared_types::{ClaimSchemaId, ProofSchemaId};
 use sql_data_provider::test_utilities::get_dummy_date;
@@ -75,10 +73,10 @@ impl ProofSchemasDB {
             imported_source_url: Some("CORE_URL".to_string()),
             last_modified: get_dummy_date(),
             name: name.to_owned(),
-            organisation: Some(organisation.to_owned()),
+            organisation: organisation.to_owned().into(),
             deleted_at: None,
             expire_duration: 10,
-            input_schemas: Some(input_schemas),
+            input_schemas: input_schemas.into(),
         };
 
         let id = self
@@ -91,16 +89,7 @@ impl ProofSchemasDB {
     }
 
     pub async fn get(&self, id: &ProofSchemaId) -> ProofSchema {
-        self.repository
-            .get_proof_schema(
-                id,
-                &ProofSchemaRelations {
-                    organisation: Some(OrganisationRelations {}),
-                    proof_inputs: Some(Default::default()),
-                },
-            )
-            .await
-            .unwrap()
+        self.repository.get_proof_schema(id).await.unwrap()
     }
 
     pub async fn delete(&self, id: &ProofSchemaId) {

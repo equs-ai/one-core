@@ -17,16 +17,10 @@ pub async fn create_dcql_query(
     format_to_type_mapper: &FormatMapper,
     credential_formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<DcqlQuery, VerificationProtocolError> {
-    let input_schemas =
-        proof_schema
-            .input_schemas
-            .as_ref()
-            .ok_or(VerificationProtocolError::Failed(
-                "Input schemas not found".to_string(),
-            ))?;
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
 
     let mut credential_queries = Vec::with_capacity(input_schemas.len());
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         let claim_schemas = input_schema.claim_schemas.as_ref().await?;
         let formats = credential_schema.formats.as_ref().await?;

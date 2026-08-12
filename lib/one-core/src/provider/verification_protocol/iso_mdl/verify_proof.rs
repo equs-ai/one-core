@@ -94,13 +94,7 @@ pub(crate) async fn validate_proof(
     validate_issuance_time(&presentation.issued_at, leeway)?;
     validate_expiration_time(&presentation.expires_at, leeway)?;
 
-    let input_schemas = proof_schema
-        .input_schemas
-        .as_ref()
-        .ok_or(ServiceError::MappingError(
-            "input_schemas are missing".to_string(),
-        ))?;
-
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
     if input_schemas.is_empty() {
         return Err(ServiceError::MappingError(
             "input_schemas are empty".to_string(),
@@ -108,7 +102,7 @@ pub(crate) async fn validate_proof(
     }
 
     let mut remaining_requested_claims_with_mapping = HashMap::new();
-    for input_schema in input_schemas {
+    for input_schema in &input_schemas {
         let input_claims = input_schema.claim_schemas.as_ref().await?;
         let credential_schema = input_schema.credential_schema.as_ref().await?;
         let formats = credential_schema.formats.as_ref().await?;
@@ -283,21 +277,11 @@ pub(crate) async fn accept_proof(
     let proof_schema = proof.schema.as_ref().ok_or(ServiceError::MappingError(
         "proof schema is None".to_string(),
     ))?;
-    let organisation = proof_schema
-        .organisation
-        .as_ref()
-        .ok_or(ServiceError::MappingError(
-            "proof schema organisation is None".to_string(),
-        ))?;
+    let organisation = proof_schema.organisation.as_ref().await?;
 
     let mut credential_schemas = HashMap::new();
-    for proof_input in proof_schema
-        .input_schemas
-        .as_ref()
-        .ok_or(ServiceError::MappingError(
-            "proof input schemas is None".to_string(),
-        ))?
-    {
+    let input_schemas = proof_schema.input_schemas.as_ref().await?;
+    for proof_input in &input_schemas {
         let credential_schema = proof_input.credential_schema.as_ref().await?;
         credential_schemas.insert(credential_schema.id, credential_schema.clone());
     }
@@ -311,7 +295,7 @@ pub(crate) async fn accept_proof(
     {
         let (issuer_identifier, issuer_identifier_relation) = identifier_creator
             .get_or_create_remote_identifier(
-                organisation,
+                &organisation,
                 &credential.issuer,
                 IdentifierName::PrefixForId(IdentifierRole::Issuer.to_string()),
             )

@@ -130,7 +130,7 @@ async fn test_import_proof_schema_ok() {
 
     let proof_schema = context.db.proof_schemas.get(&proof_schema.id).await;
 
-    let proof_input_schemas = proof_schema.input_schemas.as_ref().unwrap();
+    let proof_input_schemas = proof_schema.input_schemas.as_ref().await.unwrap();
     assert_eq!(1, proof_input_schemas.len());
 
     let credential_schema = proof_input_schemas[0]
@@ -283,7 +283,7 @@ async fn test_import_proof_schema_for_existing_credential_schema() {
 
     let proof_schema = context.db.proof_schemas.get(&proof_schema.id).await;
 
-    let proof_input_schemas = proof_schema.input_schemas.as_ref().unwrap();
+    let proof_input_schemas = proof_schema.input_schemas.as_ref().await.unwrap();
     assert_eq!(1, proof_input_schemas.len());
 
     let credential_schema = proof_input_schemas[0]
@@ -418,7 +418,7 @@ async fn test_import_proof_schema_nested_array() {
 
     let proof_schema = context.db.proof_schemas.get(&proof_schema.id).await;
 
-    let proof_input_schemas = proof_schema.input_schemas.as_ref().unwrap();
+    let proof_input_schemas = proof_schema.input_schemas.as_ref().await.unwrap();
     assert_eq!(1, proof_input_schemas.len());
 
     let credential_schema = proof_input_schemas[0]

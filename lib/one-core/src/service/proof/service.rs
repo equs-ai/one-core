@@ -48,7 +48,6 @@ use crate::model::proof::{
     Proof, ProofClaimRelations, ProofRelations, ProofRole, ProofStateEnum, SortableProofColumn,
     UpdateProofRequest,
 };
-use crate::model::proof_schema::ProofSchemaRelations;
 use crate::proto::key_verification::KeyVerification;
 use crate::proto::nfc::static_handover_handler::NfcStaticHandoverHandler;
 use crate::provider::credential_formatter::mdoc_formatter::util::EmbeddedCbor;
@@ -79,7 +78,7 @@ use crate::service::credential_schema::validator::validate_key_storage_security_
 use crate::util::interactions::{add_new_interaction, clear_previous_interaction};
 use crate::util::key_selection::{CertificateFilter, KeyFilter, KeySelection, SelectedKey};
 use crate::validator::ecosystem::validate_ecosystem_selection_possible_autodetect;
-use crate::validator::{throw_if_org_id_not_matching_session, throw_if_org_not_matching_session};
+use crate::validator::throw_if_org_id_not_matching_session;
 
 const DEFAULT_ENGAGEMENT: &str = "QR_CODE";
 
@@ -98,10 +97,7 @@ impl ProofService {
             .get_proof(
                 id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(Default::default()),
-                        proof_inputs: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},
                         credential: Some(Default::default()),
@@ -310,13 +306,7 @@ impl ProofService {
         let proof_schema_id = request.proof_schema_id;
         let proof_schema = self
             .proof_schema_repository
-            .get_proof_schema(
-                &proof_schema_id,
-                &ProofSchemaRelations {
-                    organisation: Some(Default::default()),
-                    proof_inputs: Some(Default::default()),
-                },
-            )
+            .get_proof_schema(&proof_schema_id)
             .await
             .map_err(|error| match error {
                 DataLayerError::EntityNotFound { .. } => {
@@ -324,8 +314,8 @@ impl ProofService {
                 }
                 error => error.error_while("getting proof schema").into(),
             })?;
-        throw_if_org_not_matching_session(
-            proof_schema.organisation.as_ref(),
+        throw_if_org_id_not_matching_session(
+            proof_schema.organisation.id_ref(),
             &*self.session_provider,
         )
         .error_while("checking session")?;
@@ -346,9 +336,7 @@ impl ProofService {
         for credential_schema in proof_schema
             .input_schemas
             .as_ref()
-            .ok_or(ProofServiceError::MappingError(
-                "input_schemas is None".to_string(),
-            ))?
+            .await?
             .iter()
             .map(|input| &input.credential_schema)
         {
@@ -567,13 +555,7 @@ impl ProofService {
                     Uuid::new_v4().into(),
                     &*self.interaction_repository,
                     serde_json::to_vec(&data).ok(),
-                    proof_schema
-                        .organisation
-                        .as_ref()
-                        .ok_or(ProofServiceError::MappingError(
-                            "Missing organisation".to_string(),
-                        ))?
-                        .to_owned(),
+                    proof_schema.organisation.to_owned(),
                     InteractionType::Verification,
                     None,
                     request.ecosystem.clone(),
@@ -639,8 +621,9 @@ impl ProofService {
         let organisation = proof
             .schema
             .as_ref()
-            .and_then(|schema| schema.organisation.as_ref())
-            .ok_or_else(|| ProofServiceError::MappingError("Missing organisation".to_string()))?;
+            .ok_or_else(|| ProofServiceError::MappingError("Missing proof_schema".to_string()))?
+            .organisation
+            .to_owned();
 
         let exchange = self.protocol_provider.get_protocol(&proof.protocol)?;
 
@@ -675,7 +658,7 @@ impl ProofService {
             interaction_id,
             &*self.interaction_repository,
             interaction_data,
-            organisation.to_owned(),
+            organisation,
             InteractionType::Verification,
             expires_at,
             proof.ecosystem,
@@ -717,10 +700,7 @@ impl ProofService {
                         claim: Default::default(),
                         credential: Some(Default::default()),
                     }),
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(Default::default()),
-                        proof_inputs: None,
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
                 },
@@ -1015,10 +995,7 @@ impl ProofService {
                 &proof_id,
                 &ProofRelations {
                     interaction: Some(Default::default()),
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(Default::default()),
-                        proof_inputs: None,
-                    }),
+                    schema: Some(Default::default()),
                     ..Default::default()
                 },
                 None,
@@ -1071,10 +1048,7 @@ impl ProofService {
             .get_proof(
                 &id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        organisation: Some(Default::default()),
-                        ..Default::default()
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     ..Default::default()
                 },
@@ -1137,10 +1111,7 @@ impl ProofService {
             .get_proof(
                 id,
                 &ProofRelations {
-                    schema: Some(ProofSchemaRelations {
-                        proof_inputs: Some(Default::default()),
-                        organisation: Some(Default::default()),
-                    }),
+                    schema: Some(Default::default()),
                     interaction: Some(Default::default()),
                     claims: Some(ProofClaimRelations {
                         claim: ClaimRelations {},

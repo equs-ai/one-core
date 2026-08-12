@@ -342,8 +342,8 @@ async fn test_create_proof_success() {
             deleted_at: None,
             name: "proof schema".to_string(),
             expire_duration: 0,
-            organisation: None,
-            input_schemas: None,
+            organisation: dummy_organisation(None).into(),
+            input_schemas: Default::default(),
         }),
         claims: None,
         verifier_key: Some(Key {
@@ -498,7 +498,7 @@ async fn test_get_proof_with_relations() {
     proof_schema_repository
         .expect_get_proof_schema()
         .times(1)
-        .returning(|id, _| {
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -508,8 +508,8 @@ async fn test_get_proof_with_relations() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: None,
-                input_schemas: None,
+                organisation: dummy_organisation(None).into(),
+                input_schemas: Default::default(),
             })
         });
 
@@ -793,7 +793,7 @@ async fn test_get_proof_by_interaction_id_success() {
     proof_schema_repository
         .expect_get_proof_schema()
         .times(1)
-        .returning(|id, _| {
+        .returning(|id| {
             Ok(ProofSchema {
                 ecosystem: None,
                 id: id.to_owned(),
@@ -803,8 +803,8 @@ async fn test_get_proof_by_interaction_id_success() {
                 deleted_at: None,
                 name: "proof schema".to_string(),
                 expire_duration: 0,
-                organisation: None,
-                input_schemas: None,
+                organisation: dummy_organisation(None).into(),
+                input_schemas: Default::default(),
             })
         });
 

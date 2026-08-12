@@ -1,3 +1,4 @@
+use proc_macros::Model;
 use shared_types::{EcosystemId, ProofSchemaId};
 use time::OffsetDateTime;
 
@@ -5,13 +6,14 @@ use super::claim_schema::ClaimSchema;
 use super::common::GetListResponse;
 use super::credential_schema::CredentialSchema;
 use super::list_query::ListQuery;
-use super::organisation::{Organisation, OrganisationRelations};
+use super::organisation::Organisation;
 use crate::model::relation::{Related, RelatedVec};
 use crate::service::proof_schema::dto::ProofSchemaFilterValue;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Model)]
 #[cfg_attr(any(test, feature = "mock"), derive(PartialEq))]
 pub struct ProofSchema {
+    #[model(id)]
     pub id: ProofSchemaId,
     pub created_date: OffsetDateTime,
     pub last_modified: OffsetDateTime,
@@ -22,8 +24,8 @@ pub struct ProofSchema {
     pub ecosystem: Option<EcosystemId>,
 
     // Relations
-    pub organisation: Option<Organisation>,
-    pub input_schemas: Option<Vec<ProofInputSchema>>,
+    pub organisation: Related<Organisation>,
+    pub input_schemas: RelatedVec<ProofInputSchema>,
 }
 
 #[derive(Clone, Debug)]
@@ -57,10 +59,4 @@ pub type GetProofSchemaList = GetListResponse<ProofSchema>;
 pub type ProofSchemaListQuery = ListQuery<SortableProofSchemaColumn, ProofSchemaFilterValue>;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ProofSchemaRelations {
-    pub organisation: Option<OrganisationRelations>,
-    pub proof_inputs: Option<ProofInputSchemaRelations>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct ProofInputSchemaRelations {}
+pub struct ProofSchemaRelations {}

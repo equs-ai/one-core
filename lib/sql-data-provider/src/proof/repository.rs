@@ -342,12 +342,12 @@ impl ProofProvider {
     ) -> Result<Proof, DataLayerError> {
         let mut proof: Proof = proof_model.clone().into();
 
-        if let Some(proof_schema_relations) = &relations.schema
+        if let Some(_proof_schema_relations) = &relations.schema
             && let Some(proof_schema_id) = proof_model.proof_schema_id
         {
             proof.schema = Some(
                 self.proof_schema_repository
-                    .get_proof_schema(&proof_schema_id, proof_schema_relations)
+                    .get_proof_schema(&proof_schema_id)
                     .await?,
             );
         }

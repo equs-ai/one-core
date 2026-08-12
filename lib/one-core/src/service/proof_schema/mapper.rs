@@ -35,12 +35,9 @@ pub(super) async fn convert_proof_schema_to_response(
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<GetProofSchemaResponseDTO, ProofSchemaServiceError> {
     let mut proof_input_schemas = vec![];
-    for input_schema in value
-        .input_schemas
-        .ok_or(ProofSchemaServiceError::MappingError(
-            "proof_input_schemas is None".to_string(),
-        ))?
-    {
+
+    let input_schemas = value.input_schemas.as_ref().await?;
+    for input_schema in &input_schemas {
         proof_input_schemas.push(
             convert_input_schema_to_response(input_schema, datatype_config, formatter_provider)
                 .await?,
@@ -53,12 +50,7 @@ pub(super) async fn convert_proof_schema_to_response(
         last_modified: value.last_modified,
         name: value.name,
         imported_source_url: value.imported_source_url,
-        organisation_id: value
-            .organisation
-            .ok_or(ProofSchemaServiceError::MappingError(
-                "organisation is None".to_string(),
-            ))?
-            .id,
+        organisation_id: value.organisation.id(),
         expire_duration: value.expire_duration,
         proof_input_schemas,
     })
@@ -146,7 +138,7 @@ fn extract_proof_input_claim_schemas_nested(
 }
 
 async fn convert_input_schema_to_response(
-    value: ProofInputSchema,
+    value: &ProofInputSchema,
     datatype_config: &DatatypeConfig,
     formatter_provider: &dyn CredentialFormatterProvider,
 ) -> Result<ProofInputSchemaResponseDTO, ProofSchemaServiceError> {
@@ -392,9 +384,9 @@ pub fn proof_schema_from_create_request(
         imported_source_url: base_url.map(|url| format!("{url}/ssi/proof-schema/v1/{id}")),
         name: request.name,
         expire_duration: request.expire_duration.unwrap_or(0),
-        organisation: Some(organisation),
+        organisation: organisation.into(),
         deleted_at: None,
-        input_schemas: Some(input_schemas),
+        input_schemas: input_schemas.into(),
     })
 }
 
