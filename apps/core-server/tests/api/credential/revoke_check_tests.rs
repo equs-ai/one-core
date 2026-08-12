@@ -1967,10 +1967,10 @@ async fn test_revoke_check_batch_parent_expires_when_all_items_and_refresh_token
     assert_eq!(updated_expired_item.state, CredentialStateEnum::Expired);
 }
 
-/// Even once the shared refresh token has expired, the parent stays valid as long as any item is
-/// still individually valid - the batch as a whole is only dead once both signals agree.
+/// The shared refresh token can expire the parent even if an item is still individually valid:
+/// once the batch can no longer be renewed, it's dead regardless of item state.
 #[tokio::test]
-async fn test_revoke_check_batch_parent_stays_accepted_when_refresh_token_expired_but_item_valid() {
+async fn test_revoke_check_batch_parent_expires_when_refresh_token_expired_even_if_item_valid() {
     // GIVEN
     let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;
 
@@ -2077,16 +2077,140 @@ async fn test_revoke_check_batch_parent_stays_accepted_when_refresh_token_expire
         .revocation_check(parent_credential.id, None)
         .await;
 
-    // THEN - the parent stays ACCEPTED
+    // THEN - the parent becomes EXPIRED anyway (it can no longer be renewed)
     assert_eq!(resp.status(), 200);
     let resp = resp.json_value().await;
-    assert_eq!("ACCEPTED", resp[0]["status"]);
+    assert_eq!("EXPIRED", resp[0]["status"]);
     assert_eq!(true, resp[0]["success"]);
 
     let updated_parent = context.db.credentials.get(&parent_credential.id).await;
-    assert_eq!(updated_parent.state, CredentialStateEnum::Accepted);
+    assert_eq!(updated_parent.state, CredentialStateEnum::Expired);
     let updated_active_item = context.db.credentials.get(&active_item.id).await;
     assert_eq!(updated_active_item.state, CredentialStateEnum::Accepted);
+}
+
+/// The parent's own business-level `expires_at` is authoritative: once it's passed, the parent
+/// is EXPIRED regardless of the refresh token still being valid and its items still being valid.
+#[tokio::test]
+async fn test_revoke_check_batch_parent_expires_when_own_expires_at_passed() {
+    // GIVEN
+    let (context, organisation, _, identifier, ..) = TestContext::new_with_did(None).await;
+
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "test",
+            &organisation,
+            TestingCreateSchemaParams {
+                format: Some("JWT".into()),
+                batch_size: Some(1),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let interaction_data = dummy_interaction_data(
+        &context,
+        &credential_schema,
+        InteractionDataParams {
+            refresh_token_expired: false,
+            ..Default::default()
+        },
+    );
+    let interaction = context
+        .db
+        .interactions
+        .create(
+            None,
+            &interaction_data,
+            &organisation,
+            InteractionType::Issuance,
+            None,
+        )
+        .await;
+
+    let parent_credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Accepted,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams {
+                r#type: Some(one_core::model::credential::CredentialType::BatchParent),
+                role: Some(CredentialRole::Holder),
+                expires_at: Some(one_core::clock::now_utc() - time::Duration::days(1)),
+                interaction: Some(interaction.clone()),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // an irrevocable, not individually expired credential (no `credentialStatus`) so the status
+    // check succeeds without needing a configured revocation method
+    let key_pair = EDDSASigner::generate_key_pair();
+    let header_json = json!({
+      "alg": "EDDSA",
+      "typ": "JWT"
+    });
+    let credential_payload = json!({
+      "iss": "did:key:z6MkktrwmJpuMHHkkqY3g5xUP6KKB1eXxLo6KZDZ5LpfBhrc",
+      "sub": "did:key:z6MkhhtucZ67S8yAvHPoJtMVx28z3BfcPN1gpjfni5DT7qSe",
+      "vc": {
+        "@context": ["https://www.w3.org/2018/credentials/v1"],
+        "type": ["VerifiableCredential"],
+        "credentialSubject": {}
+      }
+    });
+    let credential_jwt = sign_jwt_helper(&header_json, &credential_payload, &key_pair);
+    let blob = context
+        .db
+        .blobs
+        .create(TestingBlobParams {
+            value: Some(credential_jwt.as_bytes().to_vec()),
+            ..Default::default()
+        })
+        .await;
+
+    let valid_item = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Accepted,
+            &identifier,
+            "OPENID4VCI_DRAFT13",
+            TestingCredentialParams {
+                r#type: Some(one_core::model::credential::CredentialType::BatchItem),
+                parent_id: Some(parent_credential.id),
+                role: Some(CredentialRole::Holder),
+                credential_blob_id: Some(blob.id),
+                interaction: Some(interaction.clone()),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // WHEN - the parent's own `expires_at` has passed, even though the item and refresh token
+    // are still valid
+    let resp = context
+        .api
+        .credentials
+        .revocation_check(parent_credential.id, None)
+        .await;
+
+    // THEN - the parent becomes EXPIRED
+    assert_eq!(resp.status(), 200);
+    let resp = resp.json_value().await;
+    assert_eq!("EXPIRED", resp[0]["status"]);
+    assert_eq!(true, resp[0]["success"]);
+
+    let updated_parent = context.db.credentials.get(&parent_credential.id).await;
+    assert_eq!(updated_parent.state, CredentialStateEnum::Expired);
+    let updated_valid_item = context.db.credentials.get(&valid_item.id).await;
+    assert_eq!(updated_valid_item.state, CredentialStateEnum::Accepted);
 }
 
 async fn valid_mdoc_credential() -> SerializedCredential {

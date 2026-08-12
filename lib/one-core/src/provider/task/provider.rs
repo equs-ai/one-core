@@ -8,8 +8,8 @@ use super::Task;
 use super::certificate_check::CertificateCheck;
 use super::holder_check_credential_status::HolderCheckCredentialStatus;
 use super::interaction_expiration_check::InteractionExpirationCheckProvider;
+use super::lifecycle_check::LifecycleCheckProvider;
 use super::retain_proof_check::RetainProofCheck;
-use super::suspend_check::SuspendCheckProvider;
 use super::trust_list_subscription_update::TrustListSubscriptionUpdateTask;
 use super::webhook_notify::WebhookNotify;
 use crate::config::ConfigValidationError;
@@ -96,6 +96,7 @@ pub(crate) fn task_provider_from_config(
     verifier_provider_client: Arc<dyn VerifierProviderClient>,
 ) -> Result<Arc<dyn TaskProvider>, ConfigValidationError> {
     let mut tasks: HashMap<TaskId, Arc<dyn Task>> = HashMap::new();
+    let config_arc = Arc::new(config.clone());
 
     for (name, field) in config.task.iter() {
         if !field.enabled {
@@ -103,9 +104,10 @@ pub(crate) fn task_provider_from_config(
         }
 
         let task: Arc<dyn Task> = match &field.r#type {
-            TaskType::SuspendCheck => Arc::new(SuspendCheckProvider::new(
+            TaskType::LifecycleCheck => Arc::new(LifecycleCheckProvider::new(
                 credential_repository.clone(),
                 credential_validity_manager.clone(),
+                config_arc.clone(),
             )),
             TaskType::RetainProofCheck => Arc::new(RetainProofCheck::new(
                 claim_repository.clone(),

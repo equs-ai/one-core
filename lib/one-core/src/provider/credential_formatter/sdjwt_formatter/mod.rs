@@ -106,9 +106,6 @@ impl CredentialFormatter for SDJWTFormatter {
         if vcdm.valid_from.is_none() {
             vcdm.valid_from = Some(now);
         }
-        if vcdm.valid_until.is_none() {
-            vcdm.valid_until = Some(now + self.params.expiration_seconds);
-        }
 
         if !self.params.embed_layout_properties {
             vcdm.remove_layout_properties();
@@ -191,6 +188,10 @@ impl CredentialFormatter for SDJWTFormatter {
 
     fn get_leeway(&self) -> Duration {
         self.params.leeway_seconds
+    }
+
+    fn get_default_expiration(&self) -> Duration {
+        self.params.expiration_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

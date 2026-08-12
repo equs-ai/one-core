@@ -182,10 +182,7 @@ async fn test_format_credential() {
     )
     .unwrap();
 
-    assert_eq!(
-        payload.expires_at,
-        Some(payload.issued_at.unwrap() + expiration_seconds),
-    );
+    assert_eq!(payload.expires_at, None);
     assert_eq!(payload.invalid_before, Some(payload.issued_at.unwrap()),);
 
     assert_eq!(payload.issuer, Some(String::from("did:issuer:test")));
@@ -379,6 +376,11 @@ async fn test_format_credential_with_array() {
         })
     );
 
+    assert_eq!(
+        payload.expires_at,
+        Some(payload.issued_at.unwrap() + Duration::days(365 * 2)),
+    );
+
     let vc = payload.custom.vc;
 
     assert_eq!(
@@ -519,6 +521,11 @@ async fn test_format_credential_with_array_sd() {
             key_id: None,
             jwk: ProofOfPossessionJwk::Jwk { jwk: dummy_jwk() },
         })
+    );
+
+    assert_eq!(
+        payload.expires_at,
+        Some(payload.issued_at.unwrap() + Duration::days(365 * 2)),
     );
 
     let vc = payload.custom.vc;

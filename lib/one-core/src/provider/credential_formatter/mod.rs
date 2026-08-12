@@ -104,6 +104,10 @@ pub trait CredentialFormatter: Provider + Send + Sync {
     /// clocks from causing validation failures.
     fn get_leeway(&self) -> Duration;
 
+    /// Returns this format's default credential validity duration, used when no
+    /// business-level expiration is configured on the credential schema.
+    fn get_default_expiration(&self) -> Duration;
+
     /// See the [API docs][cfc] for a complete list of credential format capabilities.
     ///
     /// [cfc]: https://docs.procivis.ch/api/resources/credential_schemas#credential-format-capabilities

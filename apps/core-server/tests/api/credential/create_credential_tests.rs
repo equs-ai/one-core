@@ -6,12 +6,14 @@ use one_core::model::did::{DidType, KeyRole, RelatedKey};
 use one_core::model::identifier::IdentifierType;
 use shared_types::CredentialId;
 use similar_asserts::assert_eq;
+use time::Duration;
 use uuid::Uuid;
 
 use crate::fixtures::{TestingDidParams, TestingIdentifierParams};
 use crate::utils::api_clients::credentials::CreateCredentialTestParams;
 use crate::utils::context::TestContext;
 use crate::utils::db_clients::certificates::TestingCertificateParams;
+use crate::utils::db_clients::credential_schemas::TestingCreateSchemaParams;
 use crate::utils::db_clients::keys::ecdsa_testing_params;
 use crate::utils::field_match::FieldHelpers;
 
@@ -65,6 +67,104 @@ async fn test_create_credential_success() {
     );
     assert_eq!("OPENID4VCI_FINAL1", credential.protocol);
     assert_eq!(credential.profile, None);
+}
+
+#[tokio::test]
+async fn test_create_credential_sets_expires_at_from_schema() {
+    // GIVEN
+    let (context, organisation, did, ..) = TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "test",
+            &organisation,
+            TestingCreateSchemaParams {
+                expiration: Some(Duration::days(10)),
+                ..Default::default()
+            },
+        )
+        .await;
+    let claim_id = credential_schema.claim_schemas.as_ref().await.unwrap()[0].id;
+
+    // WHEN
+    let before = one_core::clock::now_utc();
+    let resp = context
+        .api
+        .credentials
+        .create(
+            credential_schema.id,
+            "OPENID4VCI_FINAL1",
+            serde_json::json!([
+                {
+                    "claimId": claim_id.to_string(),
+                    "value": "foo",
+                    "path": "firstName"
+                }
+            ]),
+            CreateCredentialTestParams {
+                issuer_did: Some(did.id.to_string().into()),
+                ..Default::default()
+            },
+        )
+        .await;
+    let after = one_core::clock::now_utc();
+
+    // THEN
+    assert_eq!(resp.status(), 201);
+    let resp = resp.json_value().await;
+
+    let credential = context.db.credentials.get(&resp["id"].parse()).await;
+    let expires_at = credential.expires_at.unwrap();
+    assert!(expires_at >= before + Duration::days(10));
+    assert!(expires_at <= after + Duration::days(10));
+}
+
+#[tokio::test]
+async fn test_create_credential_no_schema_expiration_no_expiry_in_credential() {
+    // GIVEN
+    let (context, organisation, did, ..) = TestContext::new_with_did(None).await;
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "test",
+            &organisation,
+            TestingCreateSchemaParams {
+                expiration: None,
+                ..Default::default()
+            },
+        )
+        .await;
+    let claim_id = credential_schema.claim_schemas.as_ref().await.unwrap()[0].id;
+
+    // WHEN
+    let resp = context
+        .api
+        .credentials
+        .create(
+            credential_schema.id,
+            "OPENID4VCI_FINAL1",
+            serde_json::json!([
+                {
+                    "claimId": claim_id.to_string(),
+                    "value": "foo",
+                    "path": "firstName"
+                }
+            ]),
+            CreateCredentialTestParams {
+                issuer_did: Some(did.id.to_string().into()),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 201);
+    let resp = resp.json_value().await;
+
+    let credential = context.db.credentials.get(&resp["id"].parse()).await;
+    assert_eq!(credential.expires_at, None);
 }
 
 #[tokio::test]

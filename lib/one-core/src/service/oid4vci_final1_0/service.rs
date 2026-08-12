@@ -662,10 +662,23 @@ impl OID4VCIFinal1_0Service {
 
         let issuance_protocol = self.protocol_provider.get_protocol(&credential.protocol)?;
 
-        let credential_schema = credential.schema.as_ref().await?;
-        let expires_at = credential_schema
-            .expiration
-            .map(|expiration| crate::clock::now_utc() + expiration);
+        let format_type = self
+            .config
+            .format
+            .get_fields(&format.format)
+            .error_while("getting format config")?
+            .r#type;
+        let formatter = self
+            .formatter_provider
+            .get_credential_formatter(&format.format)?;
+        let format_default_expiration = formatter.get_default_expiration();
+
+        let now = crate::clock::now_utc();
+        let expires_at = credential.expires_at;
+        let default_batch_item_expires_at = now + format_default_expiration;
+        let batch_item_expires_at = expires_at
+            .map(|e| e.min(default_batch_item_expires_at))
+            .unwrap_or(default_batch_item_expires_at);
 
         let credentials = match credential.r#type {
             CredentialType::Single => {
@@ -673,16 +686,11 @@ impl OID4VCIFinal1_0Service {
                     .pop()
                     .ok_or(OpenID4VCIError::InvalidOrMissingProof)?;
 
-                let format_type = self
-                    .config
-                    .format
-                    .get_fields(&format.format)
-                    .error_while("getting format config")?
-                    .r#type;
-
                 if format_type == FormatType::Mdoc {
                     // store the issued credential as a batch_item under the main credential
-                    let batch_item = self.prepare_batch_item(credential.id).await?;
+                    let batch_item = self
+                        .prepare_batch_item(credential.id, batch_item_expires_at)
+                        .await?;
                     let batch_item_id = self
                         .credential_repository
                         .create_credential(batch_item)
@@ -695,8 +703,7 @@ impl OID4VCIFinal1_0Service {
                                 credential.id,
                                 UpdateCredentialRequest {
                                     state: Some(CredentialStateEnum::Accepted),
-                                    issuance_date: Some(crate::clock::now_utc()),
-                                    expires_at,
+                                    issuance_date: Some(now),
                                     ..Default::default()
                                 },
                             )
@@ -710,7 +717,7 @@ impl OID4VCIFinal1_0Service {
                             batch_item_id,
                             format.id,
                             issuance_protocol.as_ref(),
-                            expires_at,
+                            now,
                         )
                         .await?,
                     ]
@@ -722,14 +729,16 @@ impl OID4VCIFinal1_0Service {
                             credential.id,
                             format.id,
                             issuance_protocol.as_ref(),
-                            expires_at,
+                            now,
                         )
                         .await?,
                     ]
                 }
             }
             CredentialType::BatchParent => {
-                let batch_item_template = self.prepare_batch_item(credential.id).await?;
+                let batch_item_template = self
+                    .prepare_batch_item(credential.id, batch_item_expires_at)
+                    .await?;
                 let mut credentials = vec![];
                 for holder_identifier in holder_identifiers {
                     let batch_item_id = self
@@ -740,13 +749,14 @@ impl OID4VCIFinal1_0Service {
                         })
                         .await
                         .error_while("creating batch item copy")?;
+
                     credentials.push(
                         self.issue_single_credential(
                             holder_identifier,
                             batch_item_id,
                             format.id,
                             issuance_protocol.as_ref(),
-                            expires_at,
+                            now,
                         )
                         .await?,
                     );
@@ -758,8 +768,7 @@ impl OID4VCIFinal1_0Service {
                             credential.id,
                             UpdateCredentialRequest {
                                 state: Some(CredentialStateEnum::Accepted),
-                                issuance_date: Some(crate::clock::now_utc()),
-                                expires_at,
+                                issuance_date: Some(now),
                                 ..Default::default()
                             },
                         )
@@ -816,7 +825,7 @@ impl OID4VCIFinal1_0Service {
         credential_id: CredentialId,
         format_id: CredentialSchemaFormatId,
         issuance_protocol: &dyn IssuanceProtocol,
-        expires_at: Option<OffsetDateTime>,
+        issuance_date: OffsetDateTime,
     ) -> Result<CredentialResponseEntry, OID4VCIFinal1_0ServiceError> {
         let wua_blob_id = if let Some(attestation) = holder_identifier.key_attestation {
             let blob_storage = self
@@ -850,8 +859,7 @@ impl OID4VCIFinal1_0Service {
             .update_credential(
                 credential_id,
                 UpdateCredentialRequest {
-                    issuance_date: Some(crate::clock::now_utc()),
-                    expires_at,
+                    issuance_date: Some(issuance_date),
                     holder_identifier_id: Some(holder_identifier_id),
                     wallet_unit_attestation_blob_id: wua_blob_id,
                     ..Default::default()
@@ -1266,6 +1274,7 @@ impl OID4VCIFinal1_0Service {
     async fn prepare_batch_item(
         &self,
         parent_credential_id: CredentialId,
+        expires_at: OffsetDateTime,
     ) -> Result<Credential, OID4VCIFinal1_0ServiceError> {
         let now = crate::clock::now_utc();
         let parent_credential = self
@@ -1286,7 +1295,7 @@ impl OID4VCIFinal1_0Service {
             webhook_url: None,
             interaction: None,
             claims: Default::default(),
-
+            expires_at: Some(expires_at),
             // state and last_modified are reused from the parent credential,
             // so that they can be checked in the issuance protocol (e.g. MSO refresh rate limiting)
             // they will be updated inside the issuance protocol logic

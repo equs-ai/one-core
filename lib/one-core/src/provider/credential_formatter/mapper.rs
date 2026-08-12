@@ -140,6 +140,7 @@ pub(crate) async fn vcdm_from_credential_and_published_claims(
     vcdm.id = credential_id;
     vcdm.context.extend(context);
     vcdm.credential_status.extend(credential_status);
+    vcdm.valid_until = credential.expires_at;
     Ok(vcdm)
 }
 

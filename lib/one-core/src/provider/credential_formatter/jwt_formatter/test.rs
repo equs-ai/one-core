@@ -246,10 +246,7 @@ async fn test_format_credential() {
     )
     .unwrap();
 
-    assert_eq!(
-        payload.expires_at,
-        Some(payload.issued_at.unwrap() + expiration_seconds),
-    );
+    assert_eq!(payload.expires_at, None);
     assert_eq!(payload.invalid_before, None);
 
     assert_eq!(payload.issuer, Some(String::from("did:issuer:test")));

@@ -257,10 +257,6 @@ impl CredentialFormatter for SDJWTVCFormatter {
         if vcdm.valid_from.is_none() {
             vcdm.valid_from = Some(now);
         }
-        if vcdm.valid_until.is_none() {
-            vcdm.valid_until = Some(now + self.params.expiration_seconds);
-        }
-
         let schema_id = vcdm
             .credential_schema
             .as_ref()
@@ -367,6 +363,10 @@ impl CredentialFormatter for SDJWTVCFormatter {
 
     fn get_leeway(&self) -> Duration {
         self.params.leeway_seconds
+    }
+
+    fn get_default_expiration(&self) -> Duration {
+        self.params.expiration_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

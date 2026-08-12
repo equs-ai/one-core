@@ -415,33 +415,33 @@ impl CredentialValidityManagerImpl {
     }
 
     /// Aggregates per-item states into the batch parent's state. A batch parent is only ever
-    /// EXPIRED once every item has individually expired *and* the shared OAuth refresh token has
-    /// also expired (so the batch can no longer be renewed either). If any item is still valid,
-    /// the parent stays valid regardless of the refresh token; conversely, if the refresh token
-    /// is still valid, an all-expired batch can still be renewed, so the parent's state is left
-    /// as-is rather than guessed.
+    /// EXPIRED once its own business-level `expires_at` has passed, or sooner if the shared
+    /// OAuth refresh token has already expired - `expires_at` is authoritative regardless of
+    /// item states, and a still-valid refresh token past `expires_at` does not keep the batch
+    /// alive. Otherwise, the parent's state is the best-state aggregation among its items.
     async fn finalize_batch_parent_state(
         &self,
         parent: &Credential,
         interaction: Option<&Interaction>,
         item_revocation_states: &[RevocationState],
     ) -> Result<CredentialStateEnum, Error> {
-        if item_revocation_states.is_empty() {
-            if self.batch_refresh_token_expired(interaction)? {
-                if parent.state != CredentialStateEnum::Expired {
-                    self.credential_repository
-                        .update_credential(
-                            parent.id,
-                            UpdateCredentialRequest {
-                                state: Some(CredentialStateEnum::Expired),
-                                ..Default::default()
-                            },
-                        )
-                        .await
-                        .error_while("updating batch parent credential")?;
-                }
-                return Ok(CredentialStateEnum::Expired);
+        if is_batch_parent_expired(parent, interaction, crate::clock::now_utc())? {
+            if parent.state != CredentialStateEnum::Expired {
+                self.credential_repository
+                    .update_credential(
+                        parent.id,
+                        UpdateCredentialRequest {
+                            state: Some(CredentialStateEnum::Expired),
+                            ..Default::default()
+                        },
+                    )
+                    .await
+                    .error_while("updating batch parent credential")?;
             }
+            return Ok(CredentialStateEnum::Expired);
+        }
+
+        if item_revocation_states.is_empty() {
             return Ok(parent.state);
         }
 
@@ -449,21 +449,29 @@ impl CredentialValidityManagerImpl {
             .await?;
         Ok(get_best_state(item_revocation_states).into())
     }
+}
 
-    fn batch_refresh_token_expired(
-        &self,
-        interaction: Option<&Interaction>,
-    ) -> Result<bool, Error> {
-        let Some(interaction) = interaction else {
-            return Ok(false);
-        };
-        let data: HolderInteractionData = deserialize_interaction_data(interaction.data.as_ref())
-            .error_while("parsing holder interaction data")?;
-
-        Ok(data
-            .refresh_token_expires_at
-            .is_some_and(|expires_at| expires_at < crate::clock::now_utc()))
+pub(crate) fn is_batch_parent_expired(
+    parent: &Credential,
+    interaction: Option<&Interaction>,
+    now: OffsetDateTime,
+) -> Result<bool, Error> {
+    if parent.expires_at.is_some_and(|expires_at| expires_at < now) {
+        return Ok(true);
     }
+    batch_refresh_token_expired(interaction)
+}
+
+fn batch_refresh_token_expired(interaction: Option<&Interaction>) -> Result<bool, Error> {
+    let Some(interaction) = interaction else {
+        return Ok(false);
+    };
+    let data: HolderInteractionData = deserialize_interaction_data(interaction.data.as_ref())
+        .error_while("parsing holder interaction data")?;
+
+    Ok(data
+        .refresh_token_expires_at
+        .is_some_and(|expires_at| expires_at < crate::clock::now_utc()))
 }
 
 #[async_trait::async_trait]

@@ -443,6 +443,12 @@ Fp40RTAKBggqhkjOPQQDAgNJADBGAiEAiRmxICo5Gxa4dlcK0qeyGDqyBOA9s/EI
     let mso: EmbeddedCbor<MobileSecurityObject> =
         ciborium::from_reader(cose_sign1.payload.unwrap().as_slice()).unwrap();
 
+    crate::util::test_utilities::assert_time_diff_less_than(
+        &mso.inner().validity_info.valid_until.0,
+        &(crate::clock::now_utc() + Duration::seconds(10)),
+        &Duration::seconds(5),
+    );
+
     // check value digests
     assert_eq!(1, mso.inner().value_digests.len());
     assert_eq!(1, mso.inner().value_digests["a"].len());

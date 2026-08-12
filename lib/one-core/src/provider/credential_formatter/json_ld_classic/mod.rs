@@ -88,9 +88,6 @@ impl CredentialFormatter for JsonLdClassic {
         if vcdm.valid_from.is_none() {
             vcdm.valid_from = Some(now);
         }
-        if vcdm.valid_until.is_none() {
-            vcdm.valid_until = Some(now + self.params.expiration_seconds);
-        }
 
         let holder_did = match credential_data
             .holder_identifier
@@ -193,6 +190,10 @@ impl CredentialFormatter for JsonLdClassic {
 
     fn get_leeway(&self) -> Duration {
         self.params.leeway_seconds
+    }
+
+    fn get_default_expiration(&self) -> Duration {
+        self.params.expiration_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

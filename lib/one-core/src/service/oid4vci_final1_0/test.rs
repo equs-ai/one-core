@@ -13,6 +13,7 @@ use standardized_types::jwk::{PublicJwk, PublicJwkEc};
 use standardized_types::oauth2::TokenType;
 use standardized_types::oauth2::token::TokenRequest;
 use standardized_types::openid4vci::*;
+use time::Duration;
 use uuid::Uuid;
 
 use super::OID4VCIFinal1_0Service;
@@ -1515,6 +1516,16 @@ async fn test_create_credential_success() {
             ))
         });
 
+    let mut formatter = MockCredentialFormatter::default();
+    formatter
+        .expect_get_default_expiration()
+        .return_const(Duration::days(30));
+    let mut formatter_provider = MockCredentialFormatterProvider::default();
+    formatter_provider
+        .expect_get_credential_formatter()
+        .with(eq(CredentialFormat::from("JWT")))
+        .return_once(move |_| Ok(Arc::new(formatter)));
+
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
         credential_repository,
@@ -1524,6 +1535,7 @@ async fn test_create_credential_success() {
         identifier_creator,
         key_algorithm_provider,
         did_method_provider,
+        formatter_provider,
         ..Default::default()
     });
 
@@ -1704,6 +1716,16 @@ async fn test_create_credential_success_sd_jwt_vc() {
             ))
         });
 
+    let mut formatter = MockCredentialFormatter::default();
+    formatter
+        .expect_get_default_expiration()
+        .return_const(Duration::days(30));
+    let mut formatter_provider = MockCredentialFormatterProvider::default();
+    formatter_provider
+        .expect_get_credential_formatter()
+        .with(eq(CredentialFormat::from("SD_JWT_VC")))
+        .return_once(move |_| Ok(Arc::new(formatter)));
+
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
         credential_repository,
@@ -1713,6 +1735,7 @@ async fn test_create_credential_success_sd_jwt_vc() {
         identifier_creator,
         key_algorithm_provider,
         did_method_provider,
+        formatter_provider,
         ..Default::default()
     });
 
@@ -1916,6 +1939,16 @@ async fn test_create_credential_success_mdoc() {
             ))
         });
 
+    let mut formatter = MockCredentialFormatter::default();
+    formatter
+        .expect_get_default_expiration()
+        .return_const(Duration::days(30));
+    let mut formatter_provider = MockCredentialFormatterProvider::default();
+    formatter_provider
+        .expect_get_credential_formatter()
+        .with(eq(CredentialFormat::from("MDOC")))
+        .return_once(move |_| Ok(Arc::new(formatter)));
+
     let service = setup_service(Mocks {
         credential_schema_repository,
         credential_repository,
@@ -1925,6 +1958,7 @@ async fn test_create_credential_success_mdoc() {
         identifier_creator,
         key_algorithm_provider,
         did_method_provider,
+        formatter_provider,
         ..Default::default()
     });
 
@@ -2344,6 +2378,16 @@ async fn test_create_credential_issuer_failed() {
             ))
         });
 
+    let mut formatter = MockCredentialFormatter::default();
+    formatter
+        .expect_get_default_expiration()
+        .return_const(Duration::days(30));
+    let mut formatter_provider = MockCredentialFormatterProvider::default();
+    formatter_provider
+        .expect_get_credential_formatter()
+        .with(eq(CredentialFormat::from("JWT")))
+        .return_once(move |_| Ok(Arc::new(formatter)));
+
     let service = setup_service(Mocks {
         credential_schema_repository: repository,
         credential_repository,
@@ -2353,6 +2397,7 @@ async fn test_create_credential_issuer_failed() {
         key_algorithm_provider,
         did_method_provider,
         identifier_creator,
+        formatter_provider,
         ..Default::default()
     });
 

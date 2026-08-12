@@ -443,7 +443,7 @@ impl From<VcdmCredential> for JwtVcdmCredential {
             valid_from: value.valid_from,
             issuance_date: value.issuance_date,
             valid_until: value.valid_until,
-            expiration_date: value.expiration_date,
+            expiration_date: value.expiration_date.or(value.valid_until),
             credential_subject: value.credential_subject,
             credential_status: value.credential_status,
             proof: value.proof,

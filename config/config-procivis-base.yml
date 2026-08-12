@@ -561,9 +561,9 @@ keySecurityLevel:
           priority: 20
           keyStorages: ["AZURE_VAULT"]
 task:
-  SUSPEND_CHECK:
-    type: "SUSPEND_CHECK"
-    display: "task.suspendCheck"
+  LIFECYCLE_CHECK:
+    type: "LIFECYCLE_CHECK"
+    display: "task.lifecycleCheck"
     order: 0
   RETAIN_PROOF_CHECK:
     type: "RETAIN_PROOF_CHECK"

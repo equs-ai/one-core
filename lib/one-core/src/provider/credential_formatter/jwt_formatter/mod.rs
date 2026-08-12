@@ -108,10 +108,7 @@ impl CredentialFormatter for JWTFormatter {
 
         let mut vcdm = credential_data.vcdm;
         let invalid_before = vcdm.valid_from.or(vcdm.issuance_date);
-        let expires_at = vcdm
-            .valid_until
-            .or(vcdm.expiration_date)
-            .or(Some(now + self.params.expiration_seconds));
+        let expires_at = vcdm.valid_until.or(vcdm.expiration_date);
         let credential_id = vcdm.id.clone().map(|id| id.to_string());
 
         let issuer = vcdm.issuer.as_url().to_string();
@@ -240,6 +237,10 @@ impl CredentialFormatter for JWTFormatter {
 
     fn get_leeway(&self) -> Duration {
         self.params.leeway_seconds
+    }
+
+    fn get_default_expiration(&self) -> Duration {
+        self.params.expiration_seconds
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {

@@ -201,11 +201,7 @@ async fn test_format_credential() {
     )
     .unwrap();
 
-    assert_time_diff_less_than(
-        &payload.expires_at.unwrap(),
-        &(payload.issued_at.unwrap() + expiration),
-        &Duration::seconds(5),
-    );
+    assert_eq!(payload.expires_at, None);
     assert_time_diff_less_than(
         &payload.invalid_before.unwrap(),
         &payload.issued_at.unwrap(),

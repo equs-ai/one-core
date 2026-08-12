@@ -21,8 +21,9 @@ use one_crypto::hasher::sha256::SHA256;
 use serde_json::json;
 use shared_types::{CredentialFormat, CredentialId, DidValue, InteractionId};
 use similar_asserts::assert_eq;
-use time::Duration;
+use time::format_description::well_known::Rfc3339;
 use time::macros::format_description;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::api_oidc_tests::common::{proof_jwt, proof_jwt_for};
@@ -195,6 +196,259 @@ async fn test_post_issuer_credential_fail_expired_access_token() {
         ..Default::default()
     };
     test_post_issuer_credential_with(params, None).await;
+}
+
+#[tokio::test]
+async fn test_post_issuer_credential_sets_expires_at_from_schema() {
+    let issuer_setup = issuer_setup(None).await;
+    let credential_schema = issuer_setup
+        .context
+        .db
+        .credential_schemas
+        .create(
+            "schema-1",
+            &issuer_setup.organisation,
+            TestingCreateSchemaParams {
+                schema_id: Some("test-schema-id".to_string()),
+                expiration: Some(Duration::days(10)),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let params = PostCredentialTestParams {
+        use_kid_in_proof: true,
+        credential_schema: Some(credential_schema),
+        ..Default::default()
+    };
+    // `expires_at` is fixed relative to the credential's creation (not its later issuance), so
+    // bracket the fixture call with real timestamps rather than asserting exact equality - the
+    // fixture's own `created_date` is a fixed dummy value, not real wall-clock time
+    let before = one_core::clock::now_utc();
+    let (context, credential_id) =
+        test_post_issuer_credential_with(params, Some(issuer_setup)).await;
+    let after = one_core::clock::now_utc();
+
+    let credential = context.db.credentials.get(&credential_id).await;
+    let expires_at = credential.expires_at.unwrap();
+    assert!(expires_at >= before + Duration::days(10));
+    assert!(expires_at <= after + Duration::days(10));
+}
+
+#[tokio::test]
+async fn test_post_issuer_credential_embeds_expires_at_in_formatted_credential() {
+    let TestIssuerSetup {
+        interaction_id,
+        access_token,
+        organisation,
+        context,
+        key,
+        issuer_identifier,
+    } = issuer_setup(None).await;
+
+    let schema_id = "test-schema-id".to_string();
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "schema-1",
+            &organisation,
+            TestingCreateSchemaParams {
+                schema_id: Some(schema_id.clone()),
+                expiration: Some(Duration::days(10)),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let interaction_data =
+        dummy_issuer_interaction_data(&access_token, IssuerInteractionDataParams::default());
+    let interaction = context
+        .db
+        .interactions
+        .create(
+            Some(interaction_id),
+            &interaction_data,
+            &organisation,
+            InteractionType::Issuance,
+            None,
+        )
+        .await;
+
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Offered,
+            &issuer_identifier,
+            "OPENID4VCI_FINAL1",
+            TestingCredentialParams {
+                interaction: Some(interaction),
+                key: Some(key),
+                expires_at: credential_schema
+                    .expiration
+                    .map(|expiration| one_core::clock::now_utc() + expiration),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let nonce = context
+        .api
+        .ssi
+        .generate_nonce("OPENID4VCI_FINAL1")
+        .await
+        .json_value()
+        .await["c_nonce"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let jwt = proof_jwt(true, Some(&nonce)).await;
+
+    let resp = context
+        .api
+        .ssi
+        .issuer_create_credential(credential_schema.id, &schema_id, &jwt)
+        .await;
+    assert_eq!(200, resp.status());
+    let resp_body = resp.json_value().await;
+
+    let updated_credential = context.db.credentials.get(&credential.id).await;
+    let expires_at = updated_credential.expires_at.unwrap();
+
+    let response_jwt = resp_body["credentials"][0]["credential"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let blob = context
+        .db
+        .blobs
+        .get(&updated_credential.credential_blob_id.unwrap())
+        .await
+        .unwrap();
+    let stored_jwt = String::from_utf8(blob.value).unwrap();
+
+    assert_eq!(
+        response_jwt, stored_jwt,
+        "the credential returned over the wire must match the one persisted to the blob"
+    );
+
+    for jwt in [&stored_jwt, &response_jwt] {
+        let payload_b64 = jwt.split('.').nth(1).unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(
+            &Base64UrlSafeNoPadding::decode_to_vec(payload_b64, None).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            payload["exp"].as_i64().unwrap(),
+            expires_at.unix_timestamp()
+        );
+
+        // the embedded VCDM 1.1 `expirationDate` (`vcdm.expiration_date`) must also reflect the
+        // credential's real expiry, not just the outer JWT `exp` claim (`vcdm.valid_until`)
+        let vc_expiration_date = payload["vc"]["expirationDate"].as_str().unwrap();
+        assert_eq!(
+            OffsetDateTime::parse(vc_expiration_date, &Rfc3339).unwrap(),
+            expires_at
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_post_issuer_credential_no_schema_expiration_means_no_expiry() {
+    let TestIssuerSetup {
+        interaction_id,
+        access_token,
+        organisation,
+        context,
+        key,
+        issuer_identifier,
+    } = issuer_setup(None).await;
+
+    let schema_id = "test-schema-id".to_string();
+    let credential_schema = context
+        .db
+        .credential_schemas
+        .create(
+            "schema-1",
+            &organisation,
+            TestingCreateSchemaParams {
+                schema_id: Some(schema_id.clone()),
+                expiration: None,
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let interaction_data =
+        dummy_issuer_interaction_data(&access_token, IssuerInteractionDataParams::default());
+    let interaction = context
+        .db
+        .interactions
+        .create(
+            Some(interaction_id),
+            &interaction_data,
+            &organisation,
+            InteractionType::Issuance,
+            None,
+        )
+        .await;
+
+    let credential = context
+        .db
+        .credentials
+        .create(
+            &credential_schema,
+            CredentialStateEnum::Offered,
+            &issuer_identifier,
+            "OPENID4VCI_FINAL1",
+            TestingCredentialParams {
+                interaction: Some(interaction),
+                key: Some(key),
+                expires_at: credential_schema
+                    .expiration
+                    .map(|expiration| one_core::clock::now_utc() + expiration),
+                ..Default::default()
+            },
+        )
+        .await;
+
+    let nonce = context
+        .api
+        .ssi
+        .generate_nonce("OPENID4VCI_FINAL1")
+        .await
+        .json_value()
+        .await["c_nonce"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let jwt = proof_jwt(true, Some(&nonce)).await;
+
+    let resp = context
+        .api
+        .ssi
+        .issuer_create_credential(credential_schema.id, &schema_id, &jwt)
+        .await;
+    assert_eq!(200, resp.status());
+    let resp_body = resp.json_value().await;
+
+    let updated_credential = context.db.credentials.get(&credential.id).await;
+    assert_eq!(updated_credential.expires_at, None);
+
+    // the serialized credential must not carry an `exp` claim, nor an embedded
+    // `expirationDate`, when the schema has no configured expiration
+    let response_jwt = resp_body["credentials"][0]["credential"].as_str().unwrap();
+    let payload_b64 = response_jwt.split('.').nth(1).unwrap();
+    let payload: serde_json::Value =
+        serde_json::from_slice(&Base64UrlSafeNoPadding::decode_to_vec(payload_b64, None).unwrap())
+            .unwrap();
+
+    assert!(payload.get("exp").is_none());
+    assert!(payload["vc"].get("expirationDate").is_none());
 }
 
 #[tokio::test]
@@ -676,6 +930,12 @@ async fn test_post_issuer_credential_with(
             TestingCredentialParams {
                 interaction: Some(interaction),
                 key: Some(key),
+                // production credentials get `expires_at` computed once at creation time
+                // (`from_create_request`), well before they're ever offered - mirror that here
+                // since this fixture creates the row directly in the `Offered` state
+                expires_at: credential_schema
+                    .expiration
+                    .map(|expiration| one_core::clock::now_utc() + expiration),
                 ..Default::default()
             },
         )

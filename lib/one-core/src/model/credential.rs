@@ -71,6 +71,22 @@ pub enum CredentialStateEnum {
     Expired,
 }
 
+impl CredentialStateEnum {
+    pub fn is_terminal(&self) -> bool {
+        !Self::non_terminal_states().contains(self)
+    }
+
+    pub fn non_terminal_states() -> &'static [Self] {
+        &[
+            CredentialStateEnum::Created,
+            CredentialStateEnum::Pending,
+            CredentialStateEnum::Offered,
+            CredentialStateEnum::Accepted,
+            CredentialStateEnum::Suspended,
+        ]
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum SortableCredentialColumn {
     CreatedDate,

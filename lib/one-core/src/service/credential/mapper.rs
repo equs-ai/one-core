@@ -497,13 +497,14 @@ pub(super) fn from_create_request(
     } else {
         CredentialType::Single
     };
+    let expires_at = schema.expiration.map(|e| now + e);
 
     Credential {
         ecosystem: None,
         id: credential_id,
         created_date: now,
         issuance_date: None,
-        expires_at: None,
+        expires_at,
         state: CredentialStateEnum::Created,
         suspend_end_date: None,
         last_modified: now,

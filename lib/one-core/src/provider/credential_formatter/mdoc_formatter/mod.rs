@@ -390,6 +390,10 @@ impl CredentialFormatter for MdocFormatter {
         self.params.leeway_seconds
     }
 
+    fn get_default_expiration(&self) -> Duration {
+        self.params.expiration_seconds
+    }
+
     fn get_capabilities(&self) -> FormatterCapabilities {
         FormatterCapabilities {
             features: vec![

@@ -98,6 +98,7 @@ pub(crate) async fn get_presentation_credentials_by_schema_id(
                         CredentialStateEnum::Accepted,
                         CredentialStateEnum::Suspended,
                         CredentialStateEnum::Revoked,
+                        CredentialStateEnum::Expired,
                     ])
                     & CredentialFilterValue::Roles(vec![CredentialRole::Holder])
                     & CredentialFilterValue::Deleted(false)

@@ -693,9 +693,9 @@ pub type TaskConfig = ConfigBlock<TaskId, TaskType>;
     Debug, Copy, Clone, Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
 )]
 pub enum TaskType {
-    #[serde(rename = "SUSPEND_CHECK")]
-    #[strum(serialize = "SUSPEND_CHECK")]
-    SuspendCheck,
+    #[serde(rename = "LIFECYCLE_CHECK")]
+    #[strum(serialize = "LIFECYCLE_CHECK")]
+    LifecycleCheck,
     #[serde(rename = "RETAIN_PROOF_CHECK")]
     #[strum(serialize = "RETAIN_PROOF_CHECK")]
     RetainProofCheck,

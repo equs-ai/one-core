@@ -41,7 +41,8 @@ use crate::util::test_utilities::prepare_caching_loader;
 
 #[tokio::test]
 async fn test_format_with_layout() {
-    let token = create_token(true).await;
+    let now = crate::clock::now_utc();
+    let token = create_token(true, Some(now + Duration::seconds(10))).await;
     assert_eq!(
         token["credentialSchema"]["metadata"]["layoutProperties"]["background"]["color"].as_str(),
         Some("color"),
@@ -50,15 +51,31 @@ async fn test_format_with_layout() {
         token["credentialSchema"]["metadata"]["layoutType"].as_str(),
         Some("CARD"),
     );
+    assert_eq!(
+        token["validUntil"].as_str(),
+        Some(
+            (now + Duration::seconds(10))
+                .format(&time::format_description::well_known::Rfc3339)
+                .unwrap()
+        )
+        .as_deref(),
+    );
 }
 
 #[tokio::test]
 async fn test_format_with_layout_disabled() {
-    let token = create_token(false).await;
+    let token = create_token(false, Some(crate::clock::now_utc() + Duration::seconds(10))).await;
     assert!(token["credentialSchema"]["metadata"].is_null());
 }
 
-async fn create_token(include_layout: bool) -> Value {
+#[tokio::test]
+async fn test_format_no_valid_until_has_no_valid_until_or_expiration_date() {
+    let token = create_token(true, None).await;
+    assert!(token.get("validUntil").is_none());
+    assert!(token.get("expirationDate").is_none());
+}
+
+async fn create_token(include_layout: bool, valid_until: Option<time::OffsetDateTime>) -> Value {
     let issuer_did = Issuer::Url(
         "did:key:z6Mkw7WbDmMJ5X8w1V7D4eFFJoVqMdkaGZQuFkp5ZZ4r1W3y"
             .parse()
@@ -110,11 +127,13 @@ async fn create_token(include_layout: bool) -> Value {
         .unwrap()
         .with_id(holder_did.clone().into_url());
 
-    let vcdm = VcdmCredential::new_v2(issuer_did, credential_subject)
+    let mut vcdm = VcdmCredential::new_v2(issuer_did, credential_subject)
         .with_valid_from(now)
-        .with_valid_until(now + Duration::seconds(10))
         .add_context(schema_context)
         .add_credential_schema(schema);
+    if let Some(valid_until) = valid_until {
+        vcdm = vcdm.with_valid_until(valid_until);
+    }
 
     let credential_data = CredentialData {
         vcdm,

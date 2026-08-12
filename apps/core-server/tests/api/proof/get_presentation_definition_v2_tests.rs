@@ -949,6 +949,69 @@ async fn test_get_presentation_definition_2_inapplicable_credential_validity() {
 }
 
 #[tokio::test]
+async fn test_get_presentation_definition_2_inapplicable_credential_expired() {
+    // GIVEN
+    let (context, org, _, identifier, key) = TestContext::new_with_did(None).await;
+    let schema = complex_sd_jwt_vc_credential_schema(&context, &org).await;
+    let claims = vec![
+        claim_data(
+            "required_claim",
+            "required_claim",
+            Some("value"),
+            true,
+            &schema,
+        )
+        .await,
+    ];
+    create_credential(
+        &context,
+        &identifier,
+        &schema,
+        claims,
+        CredentialStateEnum::Expired,
+    )
+    .await;
+
+    let dcql_query = simple_dcql_query(&schema).await;
+    let proof = proof_for_dcql_query(
+        &context,
+        &org,
+        &identifier,
+        key,
+        &dcql_query,
+        "OPENID4VP_FINAL1",
+        None,
+    )
+    .await;
+
+    // WHEN
+    let resp = context
+        .api
+        .proofs
+        .presentation_definition_v2(proof.id)
+        .await;
+
+    // THEN
+    assert_eq!(resp.status(), 200);
+    let body = resp.json_value().await;
+    body["credentialQueries"]["test_query_id"]["failureHint"]["credentialSchema"]["id"]
+        .assert_eq(&schema.id);
+    body["credentialQueries"]["test_query_id"]["failureHint"]["reason"]
+        .assert_eq(&"VALIDITY".to_string());
+    let credential_sets = json!([
+      {
+        "options": [
+          [
+            "test_query_id"
+          ]
+        ],
+        "required": true
+      }
+    ]);
+    body["credentialSets"].assert_eq(&credential_sets);
+}
+
+#[tokio::test]
 async fn test_get_presentation_definition_2_batch_credential_success() {
     // GIVEN
     let (context, org, _, identifier, key) = TestContext::new_with_did(None).await;

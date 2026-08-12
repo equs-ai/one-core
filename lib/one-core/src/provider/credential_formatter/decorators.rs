@@ -86,6 +86,10 @@ impl<T: Provider + CredentialFormatter + Display + ?Sized> CredentialFormatter
         self.inner().get_leeway()
     }
 
+    fn get_default_expiration(&self) -> Duration {
+        self.inner().get_default_expiration()
+    }
+
     fn get_capabilities(&self) -> FormatterCapabilities {
         self.inner().get_capabilities()
     }
@@ -226,6 +230,10 @@ impl CredentialFormatter for CapabilityChecked {
 
     fn get_leeway(&self) -> Duration {
         self.0.get_leeway()
+    }
+
+    fn get_default_expiration(&self) -> Duration {
+        self.0.get_default_expiration()
     }
 
     fn get_capabilities(&self) -> FormatterCapabilities {
