@@ -7,6 +7,7 @@ use shared_types::CredentialId;
 use uuid::Uuid;
 
 use super::Task;
+use crate::error::ContextWithErrorCode;
 use crate::model::claim::ClaimRelations;
 use crate::model::credential::{CredentialFilterValue, CredentialRelations, GetCredentialQuery};
 use crate::model::history::{HistoryAction, HistoryEntityType, HistoryFilterValue};
@@ -20,7 +21,6 @@ use crate::repository::history_repository::HistoryRepository;
 use crate::repository::proof_repository::ProofRepository;
 use crate::service::error::{EntityNotFoundError, MissingProviderError, ServiceError};
 use crate::service::proof::dto::ProofFilterValue;
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub struct RetainProofCheck {
     claim_repository: Arc<dyn ClaimRepository>,

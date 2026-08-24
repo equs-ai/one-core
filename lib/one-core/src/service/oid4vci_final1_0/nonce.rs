@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use super::error::OID4VCIFinal1_0ServiceError;
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::proto::jwt::Jwt;
 use crate::proto::jwt::model::{DecomposedJwt, JWTPayload};
 use crate::provider::credential_formatter::error::FormatterError;
@@ -15,7 +16,6 @@ use crate::provider::credential_formatter::model::SignatureProvider;
 use crate::provider::issuance_protocol::openid4vci_final1_0::model::OpenID4VCNonceParams;
 use crate::provider::key_algorithm::error::KeyAlgorithmError;
 use crate::validator::{validate_expiration_time, validate_issuance_time};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct NonceJwtPayload {

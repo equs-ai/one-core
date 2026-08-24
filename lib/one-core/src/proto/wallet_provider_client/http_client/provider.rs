@@ -2,6 +2,7 @@ use serde::Deserialize;
 use shared_types::WalletUnitId;
 use url::Url;
 
+use crate::error::{ContextWithErrorCode, ErrorCode};
 use crate::proto::wallet_provider_client::WalletProviderClient;
 use crate::proto::wallet_provider_client::dto::IssueWalletAttestationResponse;
 use crate::proto::wallet_provider_client::error::WalletProviderClientError;
@@ -15,7 +16,6 @@ use crate::service::wallet_provider::dto::{
     ActivateWalletUnitRequestDTO, IssueWalletUnitAttestationRequestDTO,
     RegisterWalletUnitRequestDTO, RegisterWalletUnitResponseDTO, WalletProviderMetadataResponseDTO,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode};
 
 #[async_trait::async_trait]
 impl WalletProviderClient for HTTPWalletProviderClient {

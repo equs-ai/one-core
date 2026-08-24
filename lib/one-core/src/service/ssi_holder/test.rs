@@ -17,6 +17,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use crate::config::core_config;
 use crate::config::core_config::TransportType;
+use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::{Credential, CredentialRole, CredentialStateEnum};
@@ -75,7 +76,6 @@ use crate::service::test_utilities::{
     dummy_blob, dummy_did, dummy_identifier, dummy_key, dummy_organisation, dummy_proof,
     generic_config, generic_formatter_capabilities, get_dummy_date,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 #[tokio::test]
 async fn test_reject_proof_request_succeeds_and_sets_state_to_rejected_when_latest_state_is_requested()

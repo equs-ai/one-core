@@ -1,6 +1,6 @@
 use shared_types::{IdentifierId, OrganisationId};
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum OrganisationServiceError {

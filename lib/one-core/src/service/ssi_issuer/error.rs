@@ -1,7 +1,7 @@
 use shared_types::CredentialSchemaId;
 use thiserror::Error;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum IssuerServiceError {

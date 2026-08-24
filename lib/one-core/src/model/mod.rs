@@ -1,4 +1,4 @@
-pub use one_core_asdk::model::*;
+pub use one_core_portable::model::*;
 pub mod backup;
 pub mod blob;
 pub mod certificate;

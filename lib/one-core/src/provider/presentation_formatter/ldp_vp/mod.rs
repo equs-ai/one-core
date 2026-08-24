@@ -12,6 +12,7 @@ pub mod model;
 mod test;
 
 use crate::config::core_config::{FormatType, KeyAlgorithmType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::proto::http_client::HttpClient;
 use crate::provider::caching_loader::json_ld_context::{ContextCache, JsonLdCachingLoader};
@@ -34,7 +35,6 @@ use crate::provider::presentation_formatter::model::{
 };
 use crate::util::rdf_canonization::json_ld_processor_options;
 use crate::util::vcdm_jsonld_contexts::is_context_list_valid;
-use one_core_asdk::error::ContextWithErrorCode;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]

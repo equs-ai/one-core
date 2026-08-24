@@ -1,5 +1,6 @@
 use super::{JsonLdBbsplus, data_integrity};
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::VerificationFn;
 use crate::provider::credential_formatter::vcdm::VcdmCredential;
@@ -7,7 +8,6 @@ use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::key::MultiMessageSignatureKeyHandle;
 use crate::util::rdf_canonization::json_ld_processor_options;
 use crate::util::vcdm_jsonld_contexts::is_context_list_valid;
-use one_core_asdk::error::ContextWithErrorCode;
 
 impl JsonLdBbsplus {
     /// Verifies the proof of the credential. To do so the proof must be removed from the

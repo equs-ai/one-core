@@ -2,8 +2,8 @@ use shared_types::IdentifierId;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::identifier::IdentifierType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum SignatureServiceError {

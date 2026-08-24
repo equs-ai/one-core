@@ -1,6 +1,6 @@
 pub mod validator;
 
-pub use one_core_asdk::config::*;
+pub use one_core_portable::config::*;
 
 #[cfg(test)]
 #[cfg(all(
@@ -10,7 +10,7 @@ pub use one_core_asdk::config::*;
 ))]
 mod test;
 
-// The following entities are moved to one-core-asdk:
+// The following entities are moved to one-core-portable:
 // 1. ConfigParsingError
 // 2. IncompatibleProviderRef
 // 3. ProviderReference

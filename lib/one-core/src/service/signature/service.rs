@@ -4,6 +4,7 @@ use one_dto_mapper::convert_inner;
 use uuid::Uuid;
 
 use super::SignatureService;
+use crate::error::ContextWithErrorCode;
 use crate::model::certificate::CertificateRelations;
 use crate::model::did::DidRelations;
 use crate::model::history::{
@@ -21,7 +22,6 @@ use crate::validator::permissions::RequiredPermissions;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 
 impl SignatureService {
     pub async fn sign(

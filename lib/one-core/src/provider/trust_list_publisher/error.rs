@@ -2,8 +2,8 @@ use std::string::FromUtf8Error;
 
 use thiserror::Error;
 
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::mapper::x509::CertificateParsingError;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum TrustListPublisherError {

@@ -3,9 +3,9 @@ use serde::Serialize;
 use crate::config::core_config::{
     ConfigBlock, ConfigExt, DidConfig, DidType, IdentifierConfig, IdentifierType,
 };
+use crate::error::ContextWithErrorCode;
 use crate::model::identifier::Identifier;
 use crate::service::error::{BusinessLogicError, ServiceError, ValidationError};
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub fn validate_identifier(
     verifier_identifier: Identifier,

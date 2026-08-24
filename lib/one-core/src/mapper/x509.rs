@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use anyhow::Context;
 use ct_codecs::{Base64, Decoder, Encoder};
 use one_crypto::signer::ecdsa::ECDSASigner;
 use standardized_types::x509::AuthorityKeyIdentifier;
-use std::sync::Arc;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::extensions::ParsedExtension;
 use x509_parser::oid_registry::{
@@ -11,9 +12,9 @@ use x509_parser::oid_registry::{
 use x509_parser::pem::Pem;
 
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::key::Key;
 use crate::provider::key_storage::KeyStorage;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 pub fn pem_chain_into_x5c(pem_chain: &str) -> Result<Vec<String>, CertificateParsingError> {
     Pem::iter_from_buffer(pem_chain.as_bytes())

@@ -4,9 +4,9 @@ use super::RevocationListService;
 use super::dto::RevocationListResponseDTO;
 use super::error::RevocationServiceError;
 use crate::config::core_config::RevocationType;
+use crate::error::ContextWithErrorCode;
 use crate::model::revocation_list::RevocationListRelations;
 use crate::service::error::MissingProviderError;
-use one_core_asdk::error::ContextWithErrorCode;
 
 impl RevocationListService {
     pub async fn get_revocation_list_by_id(

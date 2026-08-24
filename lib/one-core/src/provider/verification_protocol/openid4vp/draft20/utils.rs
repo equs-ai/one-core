@@ -9,6 +9,7 @@ use url::Url;
 use super::model::{
     OpenID4VP20AuthorizationRequest, OpenID4VP20AuthorizationRequestQueryParams, OpenID4Vp20Params,
 };
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::{
@@ -34,7 +35,6 @@ use crate::provider::verification_protocol::openid4vp::validator::{
     validate_against_redirect_uris, validate_san_dns_matching_client_id,
 };
 use crate::validator::x509::is_dns_name_matching;
-use one_core_asdk::error::ContextWithErrorCode;
 
 async fn parse_referenced_data_from_x509_san_dns_token(
     request_token: DecomposedJwt<OpenID4VP20AuthorizationRequest>,

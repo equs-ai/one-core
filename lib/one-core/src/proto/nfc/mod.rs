@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use crate::error::{ErrorCode, ErrorCodeMixin};
 pub(crate) mod apdu;
 pub(crate) mod command;
 pub mod hce;

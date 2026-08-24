@@ -16,6 +16,7 @@ use super::{
     TransferSummaryReport,
 };
 use crate::config::core_config::TransportType;
+use crate::error::ContextWithErrorCode;
 use crate::proto::bluetooth_low_energy::BleError;
 use crate::proto::bluetooth_low_energy::ble_resource::{Abort, BleWaiter, OnConflict};
 use crate::proto::bluetooth_low_energy::low_level::ble_central::{BleCentral, TrackingBleCentral};
@@ -35,7 +36,6 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::holder_flow::{
     HolderCommonVPInteractionData, ProximityHolderTransport,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub(crate) struct BleHolderTransport {
     ble: BleWaiter,

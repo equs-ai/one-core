@@ -13,6 +13,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::config::core_config::{KeyAlgorithmType, RevocationType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::did::KeyRole;
 use crate::model::identifier::Identifier;
@@ -34,7 +35,6 @@ use crate::provider::signer::registration_certificate::model::{
 use crate::provider::signer::validity::{SignatureValidity, calculate_signature_validity};
 use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
 use crate::validator::permissions::RequiredPermissions;
-use one_core_asdk::error::ContextWithErrorCode;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

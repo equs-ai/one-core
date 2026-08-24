@@ -53,4 +53,4 @@ impl TryFrom<Key> for KeyResponseDTO {
     }
 }
 
-// impl From<GetKeyList> for GetKeyListResponseDTO is moved to one-core-asdk
+// impl From<GetKeyList> for GetKeyListResponseDTO is moved to one-core-portable

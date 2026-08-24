@@ -4,7 +4,7 @@ use shared_types::IdentifierId;
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum SignerError {

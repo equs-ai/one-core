@@ -3,8 +3,8 @@ use shared_types::{
 };
 use thiserror::Error;
 
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::trust_list_role::TrustListRoleEnum;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum TrustCollectionServiceError {

@@ -1,7 +1,7 @@
 use shared_types::{IdentifierId, KeyId, OrganisationId};
 
 use crate::config::core_config::IdentifierType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IdentifierServiceError {

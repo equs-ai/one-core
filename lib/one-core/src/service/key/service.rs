@@ -7,6 +7,7 @@ use uuid::Uuid;
 use super::KeyService;
 use super::dto::KeyRequestDTO;
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::key::{GetKeyListResponseDTO, KeyListQuery, KeyRelations};
 use crate::model::organisation::OrganisationRelations;
@@ -22,7 +23,6 @@ use crate::service::key::validator::validate_generate_request;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl KeyService {
     /// Returns details of a key

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use crate::error::{ErrorCode, ErrorCodeMixin};
 
 pub mod rumqttc_client;
 

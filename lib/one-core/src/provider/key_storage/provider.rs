@@ -15,13 +15,13 @@ use super::remote_secure_element::RemoteSecureElementKeyProvider;
 use super::secure_element::{NativeKeyStorage, SecureElementKeyProvider};
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, KeyAlgorithmType, KeyStorageType};
+use crate::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::proto::http_client::HttpClient;
 use crate::provider::credential_formatter::model::{AuthenticationFn, SignatureProvider};
 use crate::provider::key_algorithm::error::KeyAlgorithmError;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_asdk::error::ContextWithErrorCode;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait KeyProvider: Send + Sync {

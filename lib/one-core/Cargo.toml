@@ -9,7 +9,7 @@ rust-version.workspace = true
 version                = "0.1.0"
 
 [dependencies]
-one-core-asdk                = { path = "../one-core-asdk" }
+one-core-portable                = { path = "../one-core-portable" }
 aes-gcm                      = { version = "0.10.3", features = ["std"] }
 anyhow.workspace             = true
 asn1-rs.workspace            = true
@@ -87,7 +87,7 @@ yasna                        = { version = "0.5" }
 zip                          = { version = "7.0", default-features = false, features = ["lzma", "deflate"] }
 
 [dev-dependencies]
-one-core-asdk                = { path = "../one-core-asdk", features = ["test-utils"] }
+one-core-portable                = { path = "../one-core-portable", features = ["test-utils"] }
 assert2                   = { version = "0.3" }
 jsonschema                = { version = "0.38", default-features = false }
 mockall.workspace         = true
@@ -103,11 +103,11 @@ wiremock                  = { version = "0.6" }
 shadow-rs.workspace = true
 
 [features]
-config_env  = ["figment/env", "one-core-asdk/config_env"]
-config_json = ["figment/json", "one-core-asdk/config_json"]
-config_yaml = ["figment/yaml", "one-core-asdk/config_yaml"]
+config_env  = ["figment/env", "one-core-portable/config_env"]
+config_json = ["figment/json", "one-core-portable/config_json"]
+config_yaml = ["figment/yaml", "one-core-portable/config_yaml"]
 default     = ["config_yaml"]
-mock        = ["mockall", "one-crypto/mock", "one-core-asdk/mock"]
+mock        = ["mockall", "one-crypto/mock", "one-core-portable/mock"]
 
 [lints]
 workspace = true

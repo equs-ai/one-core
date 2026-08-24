@@ -12,6 +12,7 @@ use x509_parser::prelude::{GeneralName, ParsedExtension, X509Certificate};
 
 use super::error::SignerError;
 use super::x509_certificate::dto::{IssuerAlternativeNameRequest, IssuerAlternativeNameType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::SigningKeyAdapter;
 use crate::model::certificate::Certificate;
 use crate::model::identifier::Identifier;
@@ -19,7 +20,6 @@ use crate::model::key::Key;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::RevocationMethod;
 use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub(super) struct IdentifierInfo<'a> {
     pub identifier: &'a Identifier,

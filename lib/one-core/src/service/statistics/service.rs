@@ -1,6 +1,7 @@
 use one_dto_mapper::convert_inner;
 use shared_types::OrganisationId;
 
+use crate::error::ContextWithErrorCode;
 use crate::model::common::SortDirection;
 use crate::model::history::{
     IssuerStatsQuery, SystemInteractionStatsQuery, SystemManagementStatsQuery, VerifierStatsQuery,
@@ -18,7 +19,6 @@ use crate::service::statistics::dto::{
 };
 use crate::service::statistics::error::StatisticsError;
 use crate::validator::throw_if_org_not_matching_session;
-use one_core_asdk::error::ContextWithErrorCode;
 
 impl StatisticsService {
     pub async fn organisation_stats(

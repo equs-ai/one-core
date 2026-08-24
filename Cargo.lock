@@ -3934,7 +3934,7 @@ dependencies = [
  "multihash",
  "ndef-rs",
  "num-traits",
- "one-core-asdk",
+ "one-core-portable",
  "one-crypto",
  "one-dto-mapper",
  "ouroboros",
@@ -3983,7 +3983,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "one-core-asdk"
+name = "one-core-portable"
 version = "0.1.0"
 dependencies = [
  "anyhow",

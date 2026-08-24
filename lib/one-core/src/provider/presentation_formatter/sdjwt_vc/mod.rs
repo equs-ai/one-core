@@ -7,6 +7,7 @@ use serde_json::Value;
 use shared_types::DidValue;
 use time::Duration;
 
+use crate::error::ContextWithErrorCode;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::http_client::HttpClient;
 use crate::proto::jwt::Jwt;
@@ -26,7 +27,6 @@ use crate::provider::presentation_formatter::model::{
     CredentialToPresent, ExtractPresentationCtx, ExtractedPresentation, FormatPresentationCtx,
     FormattedPresentation,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 
 #[cfg(test)]
 mod test;

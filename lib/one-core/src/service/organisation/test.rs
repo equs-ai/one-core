@@ -8,6 +8,7 @@ use uuid::Uuid;
 use super::OrganisationService;
 use super::dto::CreateOrganisationRequestDTO;
 use super::error::OrganisationServiceError;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::organisation::{
     GetOrganisationList, OrganisationListQuery, OrganisationRelations,
 };
@@ -15,7 +16,6 @@ use crate::repository::error::DataLayerError;
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::test_utilities::dummy_organisation;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(organisation_repository: MockOrganisationRepository) -> OrganisationService {
     OrganisationService {

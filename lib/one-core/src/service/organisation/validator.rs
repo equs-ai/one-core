@@ -2,6 +2,7 @@ use shared_types::{IdentifierId, OrganisationId};
 
 use super::error::OrganisationServiceError;
 use crate::config::core_config::{ConfigExt, CoreConfig, KeyAlgorithmType};
+use crate::error::ContextWithErrorCode;
 use crate::model::certificate::CertificateRelations;
 use crate::model::did::DidRelations;
 use crate::model::identifier::IdentifierRelations;
@@ -10,7 +11,6 @@ use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::organisation_repository::OrganisationRepository;
 use crate::service::wallet_provider::error::WalletProviderError;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub(super) async fn validate_wallet_provider_issuer(
     id: Option<&OrganisationId>,

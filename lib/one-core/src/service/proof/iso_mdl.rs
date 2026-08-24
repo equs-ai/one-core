@@ -4,6 +4,7 @@ use uuid::Uuid;
 use super::ProofService;
 use super::error::ProofServiceError;
 use crate::config::core_config::{TransportType, VerificationEngagement};
+use crate::error::ContextWithErrorCode;
 use crate::model::proof::{Proof, ProofRole, ProofStateEnum};
 use crate::model::proof_schema::ProofSchema;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::Handover;
@@ -13,7 +14,6 @@ use crate::provider::verification_protocol::iso_mdl::ble_verifier::{
 use crate::provider::verification_protocol::iso_mdl::device_engagement::{
     DeviceEngagement, RetrievalOptions,
 };
-use one_core_asdk::error::ContextWithErrorCode;
 
 impl ProofService {
     pub(super) async fn handle_iso_mdl_verifier(

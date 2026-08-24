@@ -5,6 +5,7 @@ use shared_types::{KeyId, OrganisationId, TrustCollectionId};
 
 use super::dto::{HolderWalletUnitResponseDTO, TrustCollectionInfoDTO};
 use super::error::HolderWalletUnitError;
+use crate::error::ContextWithErrorCode;
 use crate::model::holder_wallet_unit::HolderWalletUnit;
 use crate::model::key::Key;
 use crate::model::list_filter::ListFilterValue;
@@ -20,7 +21,6 @@ use crate::provider::key_storage::model::StorageGeneratedKey;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 use crate::service::wallet_provider::dto::ProviderTrustCollectionDTO;
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub(super) fn key_from_generated_key(
     key_id: KeyId,

@@ -12,6 +12,7 @@ use super::dto::{
 };
 use super::error::ProofSchemaServiceError;
 use crate::config::core_config::{DatatypeConfig, DatatypeType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::{NESTED_CLAIM_MARKER, remove_first_nesting_layer};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::CredentialSchema;
@@ -19,7 +20,6 @@ use crate::model::list_filter::{ListFilterValue, StringMatch};
 use crate::model::list_query::ListPagination;
 use crate::model::organisation::Organisation;
 use crate::model::proof_schema::{ProofInputClaimSchema, ProofInputSchema, ProofSchema};
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub(super) fn convert_proof_schema_to_response(
     value: ProofSchema,

@@ -1,4 +1,4 @@
-pub use one_core_asdk::config::validator::*;
+pub use one_core_portable::config::validator::*;
 pub mod did;
 pub mod format;
 pub mod protocol;

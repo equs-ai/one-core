@@ -11,6 +11,8 @@ use super::proof_request::generate_authorization_request_params_draft20;
 use crate::config::core_config::VerificationProtocolType::{
     OpenId4VpDraft20, OpenId4VpDraft20Swiyu,
 };
+use crate::error::ErrorCode::BR_0000;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::get_encryption_key_jwk_from_proof;
 use crate::model::blob::{Blob, BlobType};
 use crate::model::claim_schema::ClaimSchemaRelations;
@@ -45,8 +47,6 @@ use crate::service::error::MissingProviderError;
 use crate::service::ssi_validator::validate_verification_protocol_type;
 use crate::util::openid4vp::persist_accepted_proof;
 use crate::validator::{throw_if_proof_state_not_eq, validate_verification_protocol_config_exists};
-use one_core_asdk::error::ErrorCode::BR_0000;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl OID4VPDraft20Service {
     pub async fn get_client_request(

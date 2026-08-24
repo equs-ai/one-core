@@ -4,6 +4,7 @@ use similar_asserts::assert_eq;
 use url::Url;
 use uuid::Uuid;
 
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::trust_collection::TrustCollection;
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::model::trust_list_subscription::{
@@ -19,7 +20,6 @@ use crate::proto::trust_list_subscription_sync::{
 };
 use crate::repository::trust_list_subscription_repository::MockTrustListSubscriptionRepository;
 use crate::util::test_utilities::mock_http_get_request;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 const DUMMY_URL: &str = "https://example.com/trust-list";
 

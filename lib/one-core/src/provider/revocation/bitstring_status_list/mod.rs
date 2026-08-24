@@ -13,6 +13,7 @@ use uuid::Uuid;
 use self::model::StatusPurpose;
 use self::resolver::StatusListCachingLoader;
 use crate::config::core_config::{KeyAlgorithmType, RevocationType};
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::Certificate;
 use crate::model::common::LockType;
 use crate::model::credential::Credential;
@@ -47,7 +48,6 @@ use crate::provider::revocation::utils::status_purpose_to_revocation_state;
 use crate::repository::error::DataLayerError;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub mod model;
 pub mod resolver;

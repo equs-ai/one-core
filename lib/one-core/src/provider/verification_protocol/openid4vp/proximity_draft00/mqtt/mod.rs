@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use super::key_agreement_key::KeyAgreementKey;
 use crate::config::core_config::TransportType;
+use crate::error::ContextWithErrorCode;
 use crate::proto::mqtt_client::{MqttClient, MqttTopic};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
@@ -22,7 +23,6 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::holder
     HolderCommonVPInteractionData, ProximityHolderTransport,
 };
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::peer_encryption::PeerEncryption;
-use one_core_asdk::error::ContextWithErrorCode;
 
 pub mod dto;
 pub mod model;

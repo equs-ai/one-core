@@ -6,9 +6,9 @@ use x509_parser::prelude::{
 };
 
 use super::{CertificateValidatorImpl, CrlMode, Error};
+use crate::error::ErrorCodeMixinExt;
 use crate::provider::caching_loader::CacheError;
 use crate::provider::caching_loader::android_attestation_crl::CertificateStatus;
-use one_core_asdk::error::ErrorCodeMixinExt;
 
 impl CertificateValidatorImpl {
     /// Returns `Ok` if not revoked, `Err(CertificateRevoked)` if certificate revoked,

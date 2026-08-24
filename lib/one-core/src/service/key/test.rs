@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use super::KeyService;
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::key::{GetKeyList, Key, KeyFilterValue, KeyListQuery};
 use crate::model::list_filter::{ListFilterValue, StringMatch};
 use crate::model::list_query::ListPagination;
@@ -23,7 +24,6 @@ use crate::service::key::dto::{
     KeyRequestDTO,
 };
 use crate::service::test_utilities::{dummy_organisation, generic_config};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(
     repository: MockKeyRepository,

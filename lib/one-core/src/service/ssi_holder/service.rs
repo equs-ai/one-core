@@ -4,9 +4,9 @@ use url::Url;
 use super::SSIHolderService;
 use super::dto::HandleInvitationResultDTO;
 use super::error::HolderServiceError;
+use crate::error::ContextWithErrorCode;
 use crate::service::storage_proxy::StorageProxyImpl;
 use crate::validator::throw_if_org_not_matching_session;
-use one_core_asdk::error::ContextWithErrorCode;
 
 impl SSIHolderService {
     pub async fn handle_invitation(

@@ -7,11 +7,11 @@ use shared_types::{
 use thiserror::Error;
 
 use crate::config::core_config::FormatType;
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential::CredentialStateEnum;
 use crate::model::credential_schema::KeyStorageSecurity;
 use crate::model::proof::ProofStateEnum;
 use crate::provider::issuance_protocol::error::{OpenID4VCIError, OpenIDIssuanceError};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum ServiceError {

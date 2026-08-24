@@ -16,6 +16,8 @@ use super::common::{
 use super::device_engagement::DeviceEngagement;
 use super::session::{Command, SessionData, SessionEstablishment, StatusCode};
 use crate::config::core_config::VerificationEngagement;
+use crate::error::ErrorCode::BR_0000;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::history::HistoryErrorMetadata;
 use crate::model::interaction::Interaction;
 use crate::model::proof::{ProofStateEnum, UpdateProofRequest};
@@ -36,8 +38,6 @@ use crate::provider::verification_protocol::{
 };
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::proof_repository::ProofRepository;
-use one_core_asdk::error::ErrorCode::BR_0000;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct MdocBleHolderInteractionData {

@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::config::ConfigValidationError;
 use crate::config::core_config::KeyAlgorithmType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum WalletProviderError {
