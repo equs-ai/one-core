@@ -5,6 +5,25 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
+use ciborium::Value;
+use coset::iana::{self, EnumI64};
+use coset::{CoseKey, CoseKeyBuilder, Header, HeaderBuilder, SignatureContext};
+use ct_codecs::{Base64, Base64UrlSafeNoPadding, Decoder, Encoder};
+use indexmap::{IndexMap, IndexSet};
+pub use one_core_portable::provider::credential_formatter::mdoc_formatter::*;
+use one_crypto::utilities::generate_random_bytes;
+use serde::Deserialize;
+use serde_with::{DurationSeconds, serde_as};
+use sha2::{Digest, Sha256, Sha384, Sha512};
+use shared_types::{CredentialId, CredentialSchemaId, DidValue};
+use standardized_types::jwk::{PublicJwk, PublicJwkEc};
+use time::format_description::FormatItem;
+use time::format_description::well_known::Rfc3339;
+use time::macros::format_description;
+use time::{Date, Duration, OffsetDateTime};
+use uuid::Uuid;
+
 use self::util::{
     Bstr, DataElementValue, DateTime, DeviceKey, DeviceKeyInfo, DigestAlgorithm, DigestIDs,
     EmbeddedCbor, IssuerSigned, IssuerSignedItem, MobileSecurityObject,
@@ -17,6 +36,7 @@ use crate::config::core_config::{
     DatatypeConfig, DatatypeType, DidType, IdentifierType, IssuanceProtocolType, KeyAlgorithmType,
     KeyStorageType, RevocationType, VerificationProtocolType,
 };
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::mapper::{NESTED_CLAIM_MARKER, decode_cbor_base64, encode_cbor_base64};
 use crate::model::claim::Claim;
@@ -41,25 +61,6 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::bitstring_status_list::model::StatusPurpose;
 use crate::service::credential_schema::dto::CreateCredentialSchemaRequestDTO;
-use async_trait::async_trait;
-use ciborium::Value;
-use coset::iana::{self, EnumI64};
-use coset::{CoseKey, CoseKeyBuilder, Header, HeaderBuilder, SignatureContext};
-use ct_codecs::{Base64, Base64UrlSafeNoPadding, Decoder, Encoder};
-use indexmap::{IndexMap, IndexSet};
-use one_core_portable::error::ContextWithErrorCode;
-pub use one_core_portable::provider::credential_formatter::mdoc_formatter::*;
-use one_crypto::utilities::generate_random_bytes;
-use serde::Deserialize;
-use serde_with::{DurationSeconds, serde_as};
-use sha2::{Digest, Sha256, Sha384, Sha512};
-use shared_types::{CredentialId, CredentialSchemaId, DidValue};
-use standardized_types::jwk::{PublicJwk, PublicJwkEc};
-use time::format_description::FormatItem;
-use time::format_description::well_known::Rfc3339;
-use time::macros::format_description;
-use time::{Date, Duration, OffsetDateTime};
-use uuid::Uuid;
 
 pub(crate) mod util;
 

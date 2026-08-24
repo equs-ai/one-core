@@ -12,7 +12,7 @@ use strum::Display;
 use thiserror::Error;
 use time::Duration;
 
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
+use crate::error::{ErrorCode, ErrorCodeMixin};
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]

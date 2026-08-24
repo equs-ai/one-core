@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use shared_types::{ClaimId, ClaimSchemaId, ProofId};
 use thiserror::Error;
 
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum DataLayerError {

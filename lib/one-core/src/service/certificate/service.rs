@@ -4,11 +4,11 @@ use shared_types::CertificateId;
 use super::CertificateService;
 use super::dto::CertificateResponseDTO;
 use super::error::CertificateServiceError;
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::certificate::CertificateRelations;
 use crate::model::identifier::IdentifierType;
 use crate::validator::throw_if_org_not_matching_session;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl CertificateService {
     pub async fn get_certificate(

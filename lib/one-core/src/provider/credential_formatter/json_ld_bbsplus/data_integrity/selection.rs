@@ -4,9 +4,9 @@ use json_ld::{BlankIdBuf, JsonLdProcessor, Loader, RemoteDocument, rdf_types};
 use sophia_api::quad::Spog;
 
 use super::skolemize::to_deskolemized_nquads;
+use crate::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::util::rdf_canonization::TermAdapter;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub struct SelectionResult {
     pub _selected_document: json_syntax::Value,

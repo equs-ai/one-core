@@ -10,6 +10,7 @@ use one_crypto::utilities::{build_hmac_sha256, generate_random_bytes};
 use time::OffsetDateTime;
 
 use super::canonicalize::{canonicalize_and_group, create_shuffled_id_label_map_function};
+use crate::error::ContextWithErrorCode;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::json_ld_bbsplus::model::{
     BbsBaseProofComponents, CBOR_PREFIX_BASE,
@@ -17,7 +18,6 @@ use crate::provider::credential_formatter::json_ld_bbsplus::model::{
 use crate::provider::credential_formatter::model::SignatureProvider;
 use crate::provider::credential_formatter::vcdm::{VcdmCredential, VcdmProof};
 use crate::util::rdf_canonization::rdf_canonize;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) async fn create_base_proof(
     unsecured_document: &VcdmCredential,

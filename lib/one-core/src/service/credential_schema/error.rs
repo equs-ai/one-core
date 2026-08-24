@@ -2,8 +2,8 @@ use shared_types::{
     ClaimSchemaId, CredentialFormat, CredentialSchemaId, OrganisationId, RevocationMethodId,
 };
 
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential_schema::KeyStorageSecurity;
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CredentialSchemaServiceError {

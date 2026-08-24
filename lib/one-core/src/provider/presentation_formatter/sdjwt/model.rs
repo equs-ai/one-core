@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::ContextWithErrorCode;
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::provider::did_method::error::DidMethodError;
 use crate::provider::presentation_formatter::model::ExtractedPresentation;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

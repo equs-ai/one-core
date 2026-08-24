@@ -2,6 +2,7 @@ use shared_types::{CredentialId, CredentialSchemaId};
 
 use super::OID4VCIFinal1_0SwiyuService;
 use super::mapper::to_swiyu_data_type;
+use crate::error::ContextWithErrorCode;
 use crate::model::claim_schema::ClaimSchemaRelations;
 use crate::model::credential_schema::CredentialSchemaRelations;
 use crate::provider::issuance_protocol::openid4vci_final1_0::model::{
@@ -13,7 +14,6 @@ use crate::service::oid4vci_final1_0::dto::{
     OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO,
 };
 use crate::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl OID4VCIFinal1_0SwiyuService {
     pub async fn oauth_authorization_server(

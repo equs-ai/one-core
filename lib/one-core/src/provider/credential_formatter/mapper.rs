@@ -11,6 +11,7 @@ use super::common::map_claims;
 use super::model::{CredentialData, CredentialSchema};
 use super::nest_claims;
 use super::vcdm::{ContextType, VcdmCredential, VcdmCredentialSubject};
+use crate::error::ContextWithErrorCode;
 use crate::model::certificate::Certificate;
 use crate::model::credential::Credential;
 use crate::model::identifier::Identifier;
@@ -21,7 +22,6 @@ use crate::provider::credential_formatter::model::{
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, DetailCredentialClaimResponseDTO,
 };
-use one_core_portable::error::ContextWithErrorCode;
 
 pub const W3C_SCHEMA_TYPE: &str = "ProcivisOneSchema2024";
 

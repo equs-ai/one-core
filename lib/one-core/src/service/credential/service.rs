@@ -18,6 +18,7 @@ use super::validator::{
     validate_redirect_uri, validate_webhook_url,
 };
 use crate::config::validator::protocol::validate_protocol_did_compatibility;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::mapper::list_response_try_into;
 use crate::model::certificate::CertificateRelations;
 use crate::model::claim::ClaimRelations;
@@ -43,7 +44,6 @@ use crate::validator::{
     throw_if_credential_schema_not_in_session_org, throw_if_org_not_matching_session,
     throw_if_org_relation_not_matching_session,
 };
-use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl CredentialService {
     /// Creates a credential according to request

@@ -3,6 +3,7 @@ use one_dto_mapper::convert_inner;
 use shared_types::BlobId;
 use uuid::Uuid;
 
+use crate::error::ContextWithErrorCode;
 use crate::mapper::encode_cbor_base64;
 use crate::mapper::openid4vp::credential_from_proved;
 use crate::model::common::LockType;
@@ -17,7 +18,6 @@ use crate::repository::proof_repository::ProofRepository;
 use crate::repository::validity_credential_repository::ValidityCredentialRepository;
 use crate::service::error::{EntityNotFoundError, ServiceError};
 use crate::validator::throw_if_proof_state_not_in;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[expect(clippy::too_many_arguments)]
 pub(crate) async fn persist_accepted_proof(

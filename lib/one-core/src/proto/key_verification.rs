@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use shared_types::DidValue;
 
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::{
@@ -15,7 +16,6 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Clone)]
 pub struct KeyVerification {
@@ -142,6 +142,7 @@ mod test {
     use standardized_types::jwk::{PublicJwk, PublicJwkEc};
 
     use super::*;
+    use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
     use crate::proto::certificate_validator::MockCertificateValidator;
     use crate::provider::did_method::error::DidMethodError;
     use crate::provider::did_method::model::{DidDocument, DidVerificationMethod};
@@ -151,7 +152,6 @@ mod test {
         KeyHandle, MockSignaturePublicKeyHandle, SignatureKeyHandle,
     };
     use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
-    use one_core_portable::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
     fn get_dummy_did_document() -> DidDocument {
         DidDocument {

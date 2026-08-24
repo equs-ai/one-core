@@ -10,6 +10,7 @@ use super::error::IdentifierServiceError;
 use super::mapper::to_create_did_request;
 use super::validator::validate_identifier_type;
 use crate::config::core_config;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::certificate::CertificateRelations;
 use crate::model::did::DidRelations;
 use crate::model::identifier::{IdentifierListQuery, IdentifierRelations};
@@ -20,7 +21,6 @@ use crate::repository::error::DataLayerError;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl IdentifierService {
     /// Returns details of an identifier

@@ -10,6 +10,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::config::core_config::{CoreConfig, KeyStorageType};
+use crate::error::ContextWithErrorCode;
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::common::GetListResponse;
@@ -28,7 +29,6 @@ use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::service::error::{BusinessLogicError, ServiceError};
 use crate::util::key_selection::KeyFilter;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) mod credential_schema_claim;
 pub(crate) mod etsi_lote;

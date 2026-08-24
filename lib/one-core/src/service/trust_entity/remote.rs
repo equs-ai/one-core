@@ -9,12 +9,12 @@ use super::dto::{
     UpdateTrustEntityActionFromDidRequestDTO, UpdateTrustEntityFromDidRequestDTO,
 };
 use super::error::TrustEntityServiceError;
+use crate::error::ContextWithErrorCode;
 use crate::model::did::{Did, DidRelations};
 use crate::model::identifier::IdentifierRelations;
 use crate::model::key::KeyRelations;
 use crate::proto::bearer_token::prepare_bearer_token;
 use crate::service::error::MissingProviderError;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl TrustEntityService {
     pub async fn create_remote_trust_entity_for_did(

@@ -4,12 +4,12 @@ use super::dto::{NoncePayload, WalletProviderParams};
 use super::error::WalletProviderError;
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{CoreConfig, RevocationType};
+use crate::error::ContextWithErrorCode;
 use crate::model::organisation::Organisation;
 use crate::proto::jwt::model::DecomposedJwt;
 use crate::validator::{
     validate_audience, validate_expiration_time, validate_issuance_time, validate_not_before_time,
 };
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn validate_org_wallet_provider(
     organisation: &Organisation,

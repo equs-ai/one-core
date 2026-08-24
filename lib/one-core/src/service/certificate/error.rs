@@ -1,6 +1,6 @@
 use shared_types::CertificateId;
 
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateServiceError {

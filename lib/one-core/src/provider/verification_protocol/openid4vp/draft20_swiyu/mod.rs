@@ -10,6 +10,7 @@ use time::Duration;
 use url::Url;
 
 use crate::config::core_config::{DidType, IdentifierType, TransportType};
+use crate::error::ContextWithErrorCode;
 use crate::model::organisation::Organisation;
 use crate::model::proof::Proof;
 use crate::proto::http_client::HttpClient;
@@ -37,7 +38,6 @@ use crate::provider::verification_protocol::{
     VerificationProtocol, deserialize_interaction_data, serialize_interaction_data,
 };
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct OpenID4VP20Swiyu {
     inner: OpenID4VP20HTTP,

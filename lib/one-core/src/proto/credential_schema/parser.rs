@@ -13,6 +13,7 @@ use super::dto::{
     ImportCredentialSchemaLayoutPropertiesDTO, ImportCredentialSchemaRequestDTO,
 };
 use crate::config::core_config::{ConfigExt, CoreConfig, DatatypeType, FormatType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{
@@ -26,7 +27,6 @@ use crate::provider::revocation::RevocationMethod;
 use crate::provider::revocation::model::Operation;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::service::error::MissingProviderError;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct CredentialSchemaImportParserImpl {
     config: Arc<CoreConfig>,
@@ -544,6 +544,7 @@ mod test {
     use crate::config::core_config::{
         ConfigEntryDisplay, CoreConfig, DatatypeType, Fields, FormatType, RevocationType,
     };
+    use crate::error::{ErrorCode, ErrorCodeMixin};
     use crate::model::claim_schema::ClaimSchema;
     use crate::model::credential_schema::CodeTypeEnum;
     use crate::proto::credential_schema::dto::{
@@ -559,7 +560,6 @@ mod test {
     use crate::provider::revocation::model::{Operation, RevocationMethodCapabilities};
     use crate::provider::revocation::provider::MockRevocationMethodProvider;
     use crate::service::test_utilities::{generic_config, get_dummy_date};
-    use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
     fn setup_parser(
         config: CoreConfig,

@@ -10,12 +10,12 @@ use super::dto::{
 };
 use super::error::WalletProviderError;
 use crate::config::core_config::WalletProviderType;
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::organisation::Organisation;
 use crate::model::wallet_unit::{WalletUnit, WalletUnitStatus};
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::{KeyAlgorithmProvider, ParsedKey};
 use crate::repository::error::DataLayerError;
-use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub(crate) fn wallet_unit_from_request(
     request: RegisterWalletUnitRequestDTO,

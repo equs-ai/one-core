@@ -21,6 +21,7 @@ use crate::config::core_config::{
     DidType, IdentifierType, IssuanceProtocolType, KeyAlgorithmType, KeyStorageType,
     RevocationType, VerificationProtocolType,
 };
+use crate::error::ContextWithErrorCode;
 use crate::model::certificate::Certificate;
 use crate::model::credential_schema::{LayoutProperties, LayoutType};
 use crate::model::identifier::Identifier;
@@ -28,7 +29,6 @@ use crate::proto::jwt::TokenError;
 use crate::provider::did_method::error::DidMethodError;
 use crate::provider::key_algorithm::error::KeyAlgorithmError;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub type AuthenticationFn = Box<dyn SignatureProvider>;
 pub type VerificationFn = Box<dyn TokenVerifier>;

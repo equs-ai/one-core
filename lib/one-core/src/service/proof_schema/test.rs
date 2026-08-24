@@ -18,6 +18,7 @@ use super::error::ProofSchemaServiceError;
 use crate::config::core_config::{
     ConfigEntryDisplay, CoreConfig, KeySecurityLevelFields, KeySecurityLevelType,
 };
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
 use crate::model::common::GetListResponse;
 use crate::model::credential_schema::{
@@ -56,7 +57,6 @@ use crate::service::test_utilities::{
     dummy_credential_schema, dummy_organisation, dummy_proof_schema, generic_config,
     generic_formatter_capabilities, get_dummy_date,
 };
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 const IMPORT_URL: &str = "http://import.credential.schema";
 

@@ -10,10 +10,10 @@ use strum::Display;
 
 use crate::config::core_config;
 use crate::config::core_config::BlobStorageConfig;
+use crate::error::ContextWithErrorCode;
 use crate::model::blob::{Blob, UpdateBlobRequest};
 use crate::provider::blob_storage_provider::error::BlobStorageError;
 use crate::repository::blob_repository::BlobRepository;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]

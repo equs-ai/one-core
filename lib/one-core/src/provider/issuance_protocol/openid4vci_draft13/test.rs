@@ -19,6 +19,7 @@ use wiremock::matchers::{body_json, body_partial_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use crate::config::core_config::{CoreConfig, Fields, FormatType, KeyAlgorithmType};
+use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::claim::Claim;
 use crate::model::claim_schema::ClaimSchema;
@@ -79,7 +80,6 @@ use crate::service::storage_proxy::MockStorageProxy;
 use crate::service::test_utilities::{
     dummy_did, dummy_identifier, dummy_key, dummy_organisation, get_dummy_date,
 };
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 #[derive(Default)]
 struct TestInputs {

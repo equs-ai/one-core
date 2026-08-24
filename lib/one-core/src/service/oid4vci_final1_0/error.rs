@@ -1,8 +1,8 @@
 use shared_types::{CredentialId, CredentialSchemaId, InteractionId};
 
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::model::credential::CredentialStateEnum;
 use crate::provider::issuance_protocol::error::{OpenID4VCIError, OpenIDIssuanceError};
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum OID4VCIFinal1_0ServiceError {

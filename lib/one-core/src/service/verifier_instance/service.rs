@@ -12,6 +12,7 @@ use super::dto::{
     RegisterVerifierInstanceResponseDTO,
 };
 use super::error::VerifierInstanceServiceError;
+use crate::error::ContextWithErrorCode;
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::verifier_instance::{VerifierInstance, VerifierInstanceRelations};
 use crate::proto::session_provider::SessionExt;
@@ -20,7 +21,6 @@ use crate::service::wallet_unit::mapper::{
     prepare_trust_collection_info, set_active_trust_collections,
 };
 use crate::validator::throw_if_org_not_matching_session;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl VerifierInstanceService {
     pub async fn register_verifier_instance(

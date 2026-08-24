@@ -9,6 +9,7 @@ use strum::Display;
 use url::Url;
 use x509_parser::oid_registry::OID_X509_EXT_SUBJECT_KEY_IDENTIFIER;
 
+use crate::error::ContextWithErrorCode;
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::key::Key;
 use crate::model::trust_list_role::TrustListRoleEnum;
@@ -20,7 +21,6 @@ use crate::provider::trust_list_subscriber::{
     TrustEntityResponse, TrustListSubscriber, TrustListSubscriberCapabilities,
     TrustListValidationSuccess,
 };
-use one_core_portable::error::ContextWithErrorCode;
 
 mod model;
 mod preprocessing;

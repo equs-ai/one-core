@@ -7,6 +7,7 @@ use coset::{RegisteredLabelWithPrivate, SignatureContext, iana};
 use serde::Deserialize;
 use shared_types::DidValue;
 use standardized_types::jwk::PublicJwk;
+use time::Duration;
 use url::Url;
 use uuid::Uuid;
 
@@ -17,6 +18,7 @@ use self::model::{
 use self::session_transcript::iso_18013_7::OID4VPDraftHandover;
 use self::session_transcript::{Handover, SessionTranscript};
 use crate::config::core_config::{FormatType, KeyAlgorithmType, VerificationProtocolType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::{last_cert_authority_key_identifier_from_pem_chain, pem_chain_into_x5c};
 use crate::mapper::{decode_cbor_base64, encode_cbor_base64};
 use crate::proto::certificate_validator::{CertificateValidator, CertificateValidatorImpl};
@@ -46,8 +48,6 @@ use crate::provider::presentation_formatter::model::{
 };
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::openid4vp_final1_0::OID4VPFinal1_0Handover;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
-use one_core_portable::error::ContextWithErrorCode;
-use time::Duration;
 
 pub(crate) mod model;
 pub(crate) mod session_transcript;
@@ -366,9 +366,7 @@ impl MsoMdocPresentationFormatter {
                             &nonce,
                             context.verifier_key.as_ref(),
                         )
-                        .map_err(|e| {
-                            FormatterError::CouldNotExtractPresentation(e.to_string())
-                        })?,
+                        .map_err(|e| FormatterError::CouldNotExtractPresentation(e.to_string()))?,
                     )
                 }
             }

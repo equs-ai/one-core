@@ -2,6 +2,7 @@ use super::dto::InitiateIssuanceRequestDTO;
 use super::error::HolderServiceError;
 use crate::config::core_config::CoreConfig;
 use crate::config::validator::protocol::validate_protocol_type;
+use crate::error::ContextWithErrorCode;
 use crate::model::credential::Credential;
 use crate::model::identifier::IdentifierType;
 use crate::proto::session_provider::SessionProvider;
@@ -10,7 +11,6 @@ use crate::provider::issuance_protocol::HolderBindingInput;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::validator::throw_if_org_relation_not_matching_session;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn validate_credentials_match_session_organisation(
     credentials: &[Credential],

@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use shared_types::DidValue;
 
 use super::model::VcClaim;
+use crate::error::ContextWithErrorCode;
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::{
     CredentialSchema, CredentialSchemaData, CredentialSubject, DetailCredential, IdentifierDetails,
 };
 use crate::provider::did_method::error::DidMethodError;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl From<CredentialSchemaData> for Option<CredentialSchema> {
     fn from(credential_schema: CredentialSchemaData) -> Self {

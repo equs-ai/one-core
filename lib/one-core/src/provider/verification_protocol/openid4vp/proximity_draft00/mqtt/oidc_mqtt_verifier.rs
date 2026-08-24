@@ -13,6 +13,7 @@ use url::Url;
 use super::model::{MQTTOpenID4VPInteractionDataVerifier, MQTTVerifierProtocolData};
 use super::{ConfigParams, SubscriptionHandle, extract_host_and_port};
 use crate::config::core_config::TransportType;
+use crate::error::ContextWithErrorCode;
 use crate::model::proof::Proof;
 use crate::proto::mqtt_client::{MqttClient, MqttTopic};
 use crate::provider::verification_protocol::error::VerificationProtocolError;
@@ -24,7 +25,6 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
     IdentityRequest, ProtocolVersion, WithProtocolVersion,
 };
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::peer_encryption::PeerEncryption;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct MqttVerifier {
     mqtt_client: Arc<dyn MqttClient>,

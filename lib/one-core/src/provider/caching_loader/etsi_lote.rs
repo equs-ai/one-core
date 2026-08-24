@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use crate::error::ContextWithErrorCode;
 use crate::provider::caching_loader::{CacheError, CachingLoader, Resolver, ResolverError};
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
-use one_core_portable::error::ContextWithErrorCode;
 
 pub struct EtsiLoteCache {
     inner: CachingLoader,

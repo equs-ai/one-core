@@ -14,6 +14,7 @@ use standardized_types::jwk::PublicJwk;
 use super::common::expect_one_key;
 use super::{DidCreated, DidKeys, DidUpdate};
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::did_method::DidMethod;
 use crate::provider::did_method::error::DidMethodError;
@@ -22,7 +23,6 @@ use crate::provider::did_method::keys::Keys;
 use crate::provider::did_method::model::{AmountOfKeys, DidCapabilities, DidDocument, Operation};
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub struct JWKDidMethod {
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,

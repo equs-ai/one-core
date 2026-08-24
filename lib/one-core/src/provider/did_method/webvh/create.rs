@@ -8,6 +8,7 @@ use super::common::{
     CRYPTOSUITE, DidLogParameters, canonicalize_multihash_encode, multihash_b58_encode, now_utc,
 };
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::ContextWithErrorCode;
 use crate::model::key::Key;
 use crate::provider::did_method::dto::DidVerificationMethodDTO;
 use crate::provider::did_method::error::DidMethodError;
@@ -16,7 +17,6 @@ use crate::provider::did_method::webvh::deserialize::DidMethodVersion;
 use crate::provider::did_method::webvh::serialize::{DidDocState, DidDocument, DidLogEntry};
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_storage::provider::KeyProvider;
-use one_core_portable::error::ContextWithErrorCode;
 
 const SCID_PLACEHOLDER: &str = "{SCID}";
 pub struct DidDocKeys {

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::config::core_config::{CoreConfig, FormatType, VerificationProtocolType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::oidc::map_to_openid4vp_format;
 use crate::proto::http_client::HttpClient;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
@@ -29,7 +30,6 @@ use crate::provider::verification_protocol::openid4vp::model::{
     VpSubmissionData,
 };
 use crate::provider::verification_protocol::openid4vp::service::encryption_info_from_metadata;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[expect(clippy::too_many_arguments)]
 pub(crate) async fn pex_submission_data(

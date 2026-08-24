@@ -1,11 +1,11 @@
 use shared_types::InteractionId;
 use time::OffsetDateTime;
 
+use crate::error::ContextWithErrorCode;
 use crate::model::interaction::{Interaction, InteractionType};
 use crate::model::organisation::Organisation;
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::service::error::ServiceError;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) async fn add_new_interaction(
     interaction_id: InteractionId,

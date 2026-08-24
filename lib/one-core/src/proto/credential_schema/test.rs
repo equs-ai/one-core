@@ -7,6 +7,7 @@ use similar_asserts::assert_eq;
 use uuid::Uuid;
 
 use crate::config::core_config::CoreConfig;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential_schema::{
     CredentialSchema, GetCredentialSchemaList, KeyStorageSecurity, LayoutType, TransactionCodeType,
@@ -27,7 +28,6 @@ use crate::provider::credential_formatter::provider::MockCredentialFormatterProv
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
 use crate::service::test_utilities::{dummy_organisation, generic_config, get_dummy_date};
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_parser(
     config: CoreConfig,

@@ -23,6 +23,7 @@ use super::validator::{
     check_background_properties, check_claims_presence_in_layout_properties, check_logo_properties,
 };
 use crate::config::core_config::CoreConfig;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::claim_schema::{ClaimSchema, ClaimSchemaRelations};
 use crate::model::credential_schema::{
     CredentialSchema, CredentialSchemaRelations, GetCredentialSchemaList, KeyStorageSecurity,
@@ -49,7 +50,6 @@ use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::test_utilities::{
     dummy_organisation, generic_config, generic_formatter_capabilities, get_dummy_date,
 };
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(
     credential_schema_repository: MockCredentialSchemaRepository,

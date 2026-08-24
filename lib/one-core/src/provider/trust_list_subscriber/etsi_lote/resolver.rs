@@ -3,6 +3,7 @@ use std::sync::Arc;
 use standardized_types::etsi_119_602::LoTEPayload;
 use time::OffsetDateTime;
 
+use crate::error::ContextWithErrorCode;
 use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::clock::Clock;
@@ -15,7 +16,6 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::etsi_lote::LoteContentType;
 use crate::provider::trust_list_subscriber::etsi_lote::preprocessing::preprocess_lote;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub struct EtsiLoteResolver {
     clock: Arc<dyn Clock>,

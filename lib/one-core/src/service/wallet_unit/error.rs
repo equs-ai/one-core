@@ -1,7 +1,7 @@
 use shared_types::{HolderWalletUnitId, OrganisationId, TrustCollectionId};
 use thiserror::Error;
 
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum HolderWalletUnitError {

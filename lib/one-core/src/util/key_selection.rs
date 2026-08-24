@@ -4,11 +4,11 @@ use x509_parser::pem::Pem;
 use x509_parser::prelude::KeyUsage;
 
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::certificate::{Certificate, CertificateState};
 use crate::model::did::{Did, KeyRole, RelatedKey};
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::key::Key;
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default, Clone, Debug)]
 pub struct KeyFilter {

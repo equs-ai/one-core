@@ -8,6 +8,7 @@ use time::Duration;
 use uuid::Uuid;
 
 use crate::config::core_config::FormatType;
+use crate::error::ContextWithErrorCode;
 use crate::proto::jwt::model::JWTPayload;
 use crate::proto::jwt::{Jwt, JwtPublicKeyInfo};
 use crate::provider::credential_formatter::error::FormatterError;
@@ -22,7 +23,6 @@ use crate::provider::presentation_formatter::model::{
     FormattedPresentation,
 };
 use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
-use one_core_portable::error::ContextWithErrorCode;
 
 mod mapper;
 mod model;

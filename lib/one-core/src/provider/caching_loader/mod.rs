@@ -20,7 +20,7 @@ use tokio::sync::Mutex;
 use super::remote_entity_storage::{
     RemoteEntity, RemoteEntityStorage, RemoteEntityStorageError, RemoteEntityType,
 };
-use one_core_portable::error::{
+use crate::error::{
     ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt, NestedError,
 };
 

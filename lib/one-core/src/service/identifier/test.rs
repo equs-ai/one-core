@@ -3,6 +3,7 @@ use std::sync::Arc;
 use similar_asserts::assert_eq;
 use uuid::Uuid;
 
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::identifier::{Identifier, IdentifierListQuery};
 use crate::proto::identifier_creator::MockIdentifierCreator;
 use crate::proto::session_provider::test::StaticSessionProvider;
@@ -12,7 +13,6 @@ use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::identifier::IdentifierService;
 use crate::service::identifier::dto::CreateIdentifierRequestDTO;
 use crate::service::test_utilities::{dummy_identifier, dummy_organisation, generic_config};
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[tokio::test]
 async fn test_get_identifier_list_session_org_mismatch() {

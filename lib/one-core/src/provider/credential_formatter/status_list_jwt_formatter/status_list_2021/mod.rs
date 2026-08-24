@@ -1,10 +1,10 @@
 use shared_types::DidValue;
 
 use self::model::VC;
+use crate::error::ContextWithErrorCode;
 use crate::proto::jwt::Jwt;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::VerificationFn;
-use one_core_portable::error::ContextWithErrorCode;
 
 mod model;
 

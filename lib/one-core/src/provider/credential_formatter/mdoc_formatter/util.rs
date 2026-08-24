@@ -13,13 +13,13 @@ use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::ContextWithErrorCode;
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CertificateValidator, EnforceKeyUsage, ParsedCertificate,
 };
 use crate::proto::cose::CoseSign1;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::CertificateDetails;
-use one_core_portable::error::ContextWithErrorCode;
 
 const EMBEDDED_CBOR_TAG: u64 = 24;
 const DATE_TIME_CBOR_TAG: u64 = 0;

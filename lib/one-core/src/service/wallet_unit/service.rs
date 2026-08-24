@@ -18,6 +18,7 @@ use super::dto::{
 use super::error::HolderWalletUnitError;
 use super::mapper::{key_from_generated_key, prepare_trust_collection_info};
 use crate::config::core_config::{KeyAlgorithmType, KeyStorageType};
+use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::model::history::{History, HistoryAction, HistoryEntityType, HistorySource};
 use crate::model::holder_wallet_unit::{
     CreateHolderWalletUnitRequest, HolderWalletUnitRelations, UpdateHolderWalletUnitRequest,
@@ -40,7 +41,6 @@ use crate::service::wallet_provider::dto::{
 };
 use crate::service::wallet_unit::mapper::set_active_trust_collections;
 use crate::validator::throw_if_org_not_matching_session;
-use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 impl WalletUnitService {
     pub async fn holder_register(

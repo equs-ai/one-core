@@ -9,6 +9,7 @@ use shared_types::KeyId;
 use standardized_types::jwk::PrivateJwk;
 
 use crate::config::core_config::KeyAlgorithmType;
+use crate::error::ContextWithErrorCode;
 use crate::mapper::params::deserialize_encryption_key;
 use crate::model::key::{Key, PrivateJwkExt};
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
@@ -17,7 +18,6 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::KeyStorage;
 use crate::provider::key_storage::error::KeyStorageError;
 use crate::provider::key_storage::model::{Features, KeyStorageCapabilities, StorageGeneratedKey};
-use one_core_portable::error::ContextWithErrorCode;
 
 #[cfg(test)]
 mod test;

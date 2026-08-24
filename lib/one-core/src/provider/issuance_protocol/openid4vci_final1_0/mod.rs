@@ -45,6 +45,7 @@ use super::{
     deserialize_interaction_data, serialize_interaction_data,
 };
 use crate::config::core_config::{CoreConfig, DidType as ConfigDidType, FormatType};
+use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::mapper::oidc::map_from_oidc_format_to_core_detailed;
 use crate::model::blob::{Blob, BlobType, UpdateBlobRequest};
 use crate::model::certificate::CertificateRelations;
@@ -108,7 +109,6 @@ use crate::util::key_selection::KeyFilter;
 use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
 use crate::validator::key_security::match_key_security_level;
 use crate::validator::validate_issuance_time;
-use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 pub(crate) mod mapper;
 pub mod model;

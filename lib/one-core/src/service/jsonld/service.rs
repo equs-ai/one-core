@@ -1,6 +1,6 @@
 use super::JsonLdService;
+use crate::error::ContextWithErrorCode;
 use crate::service::error::ServiceError;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl JsonLdService {
     pub async fn resolve_context(&self, url: String) -> Result<serde_json::Value, ServiceError> {

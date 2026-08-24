@@ -17,22 +17,21 @@ use super::resolver::{DidCachingLoader, DidResolver};
 use super::universal::UniversalDidMethod;
 use super::web::WebDidMethod;
 use super::{DidMethod, universal, web, webvh};
-use crate::config::core_config::KeyAlgorithmType;
 use crate::config::core_config::{
     CacheEntitiesConfig, CacheEntityCacheType, CacheEntityConfig, CoreConfig, DidType, Fields,
+    KeyAlgorithmType,
 };
 use crate::config::{ConfigValidationError, core_config};
+use crate::error::ContextWithErrorCode;
 use crate::proto::http_client::HttpClient;
 use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::eddsa::Eddsa;
 use crate::provider::key_algorithm::provider::{KeyAlgorithmProvider, KeyAlgorithmProviderImpl};
 use crate::provider::key_storage::provider::KeyProvider;
-use crate::provider::remote_entity_storage::RemoteEntityStorage;
-use crate::provider::remote_entity_storage::RemoteEntityType;
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
+use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]

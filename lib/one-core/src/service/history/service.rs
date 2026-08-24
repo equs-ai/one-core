@@ -3,9 +3,9 @@ use shared_types::HistoryId;
 use super::HistoryService;
 use super::dto::{CreateHistoryRequestDTO, GetHistoryListResponseDTO, HistoryResponseDTO};
 use super::error::HistoryServiceError;
+use crate::error::ContextWithErrorCode;
 use crate::model::history::{History, HistoryListQuery, HistorySource};
 use crate::proto::session_provider::SessionExt;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl HistoryService {
     /// Returns history list filtered by query

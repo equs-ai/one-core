@@ -11,6 +11,7 @@ use super::dto::{
 };
 use super::{StorageAccess, VerificationProtocolError};
 use crate::config::core_config::{CoreConfig, DatatypeConfig, DatatypeType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::claim_schema::ClaimSchema;
 use crate::model::credential::{Credential, CredentialStateEnum};
@@ -22,7 +23,6 @@ use crate::service::credential::dto::{
     CredentialAttestationBlobs, CredentialDetailResponseDTO, DetailCredentialClaimResponseDTO,
 };
 use crate::service::credential::mapper::credential_detail_response_from_model;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn interaction_from_handle_invitation(
     data: Option<Vec<u8>>,

@@ -21,6 +21,7 @@ use super::mapper::{
     update_request_from_dto,
 };
 use crate::config::core_config::TrustManagementType::SimpleTrustList;
+use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::mapper::x509::pem_chain_to_authority_key_identifiers;
 use crate::model::certificate::{Certificate, CertificateRelations, CertificateState};
 use crate::model::did::{DidRelations, DidType};
@@ -43,7 +44,6 @@ use crate::provider::trust_management::{TrustEntityKeyBatch, TrustOperation};
 use crate::repository::error::DataLayerError;
 use crate::service::error::MissingProviderError;
 use crate::service::trust_anchor::dto::{ListTrustAnchorsQueryDTO, TrustAnchorFilterValue};
-use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 impl TrustEntityService {
     pub async fn create_trust_entity(

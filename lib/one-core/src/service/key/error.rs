@@ -2,7 +2,7 @@ use shared_types::{KeyId, OrganisationId};
 use thiserror::Error;
 
 use crate::config::core_config::KeyAlgorithmType;
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum KeyServiceError {

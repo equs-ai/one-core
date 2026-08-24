@@ -12,6 +12,7 @@ use shared_types::{CredentialId, OrganisationId};
 use standardized_types::x509::AuthorityKeyIdentifier;
 
 use crate::config::core_config::{CoreConfig, FormatType};
+use crate::error::ContextWithErrorCode;
 use crate::mapper::credential_schema_claim::claim_schema_from_metadata_claim_schema;
 use crate::mapper::x509::get_akis_for_pem_chain;
 use crate::model::claim::Claim;
@@ -39,7 +40,6 @@ use crate::service::credential::dto::{
 use crate::service::credential::mapper::credential_detail_response_from_model;
 use crate::service::credential_schema::dto::CredentialSchemaDetailResponseDTO;
 use crate::service::storage_proxy::StorageAccess;
-use one_core_portable::error::ContextWithErrorCode;
 
 /// Retrieve the "presentation definition" for the given DCQL query.
 ///

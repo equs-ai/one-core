@@ -16,6 +16,7 @@ use super::mdoc::{mdoc_draft_handover, mdoc_presentation_context};
 use crate::config::core_config::{
     CoreConfig, DidType, FormatType, IdentifierType, TransportType, VerificationProtocolType,
 };
+use crate::error::ContextWithErrorCode;
 use crate::model::interaction::Interaction;
 use crate::model::organisation::Organisation;
 use crate::model::proof::{Proof, ProofStateEnum, UpdateProofRequest};
@@ -57,7 +58,6 @@ use crate::provider::verification_protocol::{
 };
 use crate::service::oid4vp_draft25::proof_request::generate_authorization_request_params_draft25;
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_portable::error::ContextWithErrorCode;
 
 mod dcql;
 pub mod mappers;

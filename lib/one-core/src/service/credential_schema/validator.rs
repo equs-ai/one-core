@@ -9,6 +9,7 @@ use crate::config::core_config::{ConfigExt, CoreConfig, DatatypeType, FormatType
 use crate::config::validator::datatype::validate_datatypes;
 use crate::config::validator::format::validate_format;
 use crate::config::validator::revocation::validate_revocation;
+use crate::error::ContextWithErrorCode;
 use crate::mapper::NESTED_CLAIM_MARKER;
 use crate::model::credential_schema::KeyStorageSecurity;
 use crate::provider::credential_formatter::CredentialFormatter;
@@ -17,7 +18,6 @@ use crate::provider::revocation::RevocationMethod;
 use crate::provider::revocation::model::Operation;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::credential_schema_repository::CredentialSchemaRepository;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) async fn credential_schema_already_exists(
     repository: &dyn CredentialSchemaRepository,

@@ -9,10 +9,10 @@ use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use thiserror::Error;
 
+use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::model::revocation_list::RevocationListEntryStatus;
 use crate::provider::credential_formatter::jwt_formatter::model::TokenStatusListSubject;
 use crate::provider::revocation::model::RevocationState;
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Debug, Error)]
 pub(super) enum TokenError {

@@ -7,13 +7,13 @@ use time::macros::offset;
 use time::{Duration, OffsetDateTime};
 
 use crate::config::core_config::{CacheEntityCacheType, CacheEntityConfig, CoreConfig};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 use crate::proto::http_client::HttpClient;
 use crate::provider::caching_loader::{CachingLoader, ResolveResult, Resolver};
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub struct JsonLdResolver {
     pub client: Arc<dyn HttpClient>,

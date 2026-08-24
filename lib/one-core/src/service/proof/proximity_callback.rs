@@ -10,6 +10,8 @@ use uuid::Uuid;
 use super::ProofService;
 use super::error::ProofServiceError;
 use crate::config::core_config::{TransportType, VerificationProtocolType};
+use crate::error::ContextWithErrorCode;
+use crate::error::ErrorCode::BR_0000;
 use crate::model::blob::{Blob, BlobType};
 use crate::model::claim_schema::ClaimSchemaRelations;
 use crate::model::credential_schema::CredentialSchemaRelations;
@@ -34,8 +36,6 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::mqtt::
 };
 use crate::service::error::MissingProviderError;
 use crate::util::openid4vp::persist_accepted_proof;
-use one_core_portable::error::ContextWithErrorCode;
-use one_core_portable::error::ErrorCode::BR_0000;
 
 impl ProofService {
     // TODO: This method is used as part of the OID4VP BLE/MQTT flow

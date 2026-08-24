@@ -8,12 +8,12 @@ use uuid::Uuid;
 use super::{Error, NotificationPayload, NotificationScheduler, NotificationSchedulerImpl};
 use crate::config::core_config::TaskType;
 use crate::config::{ConfigValidationError, ProviderReference};
+use crate::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use crate::model::notification::Notification;
 use crate::model::proof::ProofStateEnum;
 use crate::provider::task::webhook_notify::model::WebhookNotifyParams;
 use crate::service::credential::dto::CredentialStateEnum;
 use crate::validator::x509::is_dns_name_matching;
-use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 #[async_trait::async_trait]
 impl NotificationScheduler for NotificationSchedulerImpl {

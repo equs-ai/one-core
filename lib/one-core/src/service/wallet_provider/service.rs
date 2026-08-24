@@ -31,6 +31,7 @@ use super::validator::{
 };
 use crate::config::ConfigValidationError;
 use crate::config::core_config::{ConfigExt, Fields, KeyAlgorithmType, WalletProviderType};
+use crate::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::mapper::list_response_into;
 use crate::mapper::x509::pem_chain_into_x5c;
 use crate::model::certificate::CertificateRelations;
@@ -68,7 +69,6 @@ use crate::util::key_selection::KeyFilter;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 const WIA_JWT_TYPE: &str = "oauth-client-attestation+jwt";
 const WUA_JWT_TYPE: &str = "key-attestation+jwt";

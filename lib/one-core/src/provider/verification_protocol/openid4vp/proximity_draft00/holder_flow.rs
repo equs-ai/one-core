@@ -4,6 +4,7 @@ use shared_types::DidValue;
 use url::Url;
 
 use crate::config::core_config::{TransportType, VerificationProtocolType};
+use crate::error::ContextWithErrorCode;
 use crate::model::interaction::UpdateInteractionRequest;
 use crate::model::organisation::Organisation;
 use crate::proto::identifier_creator::{IdentifierCreator, IdentifierRole};
@@ -18,7 +19,6 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::{
     CreatePresentationParams, create_interaction_and_proof, create_presentation,
 };
 use crate::service::storage_proxy::StorageAccess;
-use one_core_portable::error::ContextWithErrorCode;
 
 #[async_trait]
 pub(crate) trait ProximityHolderTransport: Send + Sync {

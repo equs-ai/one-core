@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::creator::IdentifierCreatorProto;
 use super::{Error, IdentifierRole};
+use crate::error::ContextWithErrorCode;
 use crate::model::certificate::{
     Certificate, CertificateFilterValue, CertificateListQuery, CertificateState,
 };
@@ -19,7 +20,6 @@ use crate::proto::certificate_validator::{CertificateValidationOptions, ParsedCe
 use crate::proto::identifier_creator::RemoteIdentifierRelation;
 use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::service::error::MissingProviderError;
-use one_core_portable::error::ContextWithErrorCode;
 
 impl IdentifierCreatorProto {
     pub(super) async fn get_or_create_did_and_identifier(

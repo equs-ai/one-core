@@ -1,6 +1,6 @@
 use shared_types::{ClaimSchemaId, CredentialFormat, OrganisationId, ProofSchemaId};
 
-use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use crate::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProofSchemaServiceError {

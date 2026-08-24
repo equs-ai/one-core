@@ -4,6 +4,7 @@ use serde_json::Value;
 
 use self::dto::SuspendCheckResultDTO;
 use super::Task;
+use crate::error::ContextWithErrorCode;
 use crate::model::credential::{
     CredentialFilterValue, CredentialRole, CredentialStateEnum, GetCredentialQuery,
 };
@@ -12,7 +13,6 @@ use crate::proto::credential_validity_manager::CredentialValidityManager;
 use crate::provider::revocation::model::RevocationState;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::service::error::ServiceError;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub mod dto;
 

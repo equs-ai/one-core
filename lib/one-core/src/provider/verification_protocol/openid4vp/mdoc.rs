@@ -1,5 +1,6 @@
 use url::Url;
 
+use crate::error::ContextWithErrorCode;
 use crate::provider::presentation_formatter::model::FormatPresentationCtx;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::iso_18013_7::OID4VPDraftHandover;
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::{
@@ -7,7 +8,6 @@ use crate::provider::presentation_formatter::mso_mdoc::session_transcript::{
 };
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::iso_mdl::common::to_cbor;
-use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn mdoc_draft_handover(
     client_id: &str,
