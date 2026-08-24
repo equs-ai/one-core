@@ -6,7 +6,7 @@ use crate::proto::session_provider::SessionProvider;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::key_repository::KeyRepository;
 use crate::repository::organisation_repository::OrganisationRepository;
-use one_core_asdk::error::ErrorCode;
+use one_core_portable::error::ErrorCode;
 
 pub mod dto;
 pub mod error;

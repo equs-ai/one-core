@@ -18,7 +18,7 @@ use crate::model::credential_schema::{
     CredentialSchemaClaimsNestedView,
 };
 use crate::service::credential_schema::dto::CredentialSchemaLayoutPropertiesResponseDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl Default for JsonLDContextDTO {
     fn default() -> Self {

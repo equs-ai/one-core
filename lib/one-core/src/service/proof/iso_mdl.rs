@@ -13,7 +13,7 @@ use crate::provider::verification_protocol::iso_mdl::ble_verifier::{
 use crate::provider::verification_protocol::iso_mdl::device_engagement::{
     DeviceEngagement, RetrievalOptions,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl ProofService {
     pub(super) async fn handle_iso_mdl_verifier(

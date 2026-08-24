@@ -17,7 +17,7 @@ use crate::provider::verification_protocol::model::CommonParams;
 use crate::repository::error::DataLayerError;
 use crate::repository::proof_repository::ProofRepository;
 use crate::service::error::{ServiceError, ValidationError};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub struct ProofNotificationDecorator {
     pub inner: Arc<dyn ProofRepository>,

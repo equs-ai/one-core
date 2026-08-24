@@ -30,7 +30,7 @@ use crate::service::did::validator::validate_request_amount_of_keys;
 use crate::service::error::MissingProviderError;
 use crate::service::identifier::dto::CreateCertificateAuthorityRequestDTO;
 use crate::service::key::dto::KeyGenerateCSRRequestProfile;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl IdentifierCreatorProto {
     pub(super) async fn create_local_did_identifier(

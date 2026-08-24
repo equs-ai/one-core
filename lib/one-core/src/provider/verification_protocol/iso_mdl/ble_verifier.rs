@@ -36,8 +36,8 @@ use crate::provider::presentation_formatter::provider::PresentationFormatterProv
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::proof_repository::ProofRepository;
-use one_core_asdk::error::ContextWithErrorCode;
-use one_core_asdk::error::ErrorCode::BR_0000;
+use one_core_portable::error::ContextWithErrorCode;
+use one_core_portable::error::ErrorCode::BR_0000;
 
 #[derive(Debug, Clone)]
 pub(crate) struct VerifierSession {

@@ -93,7 +93,7 @@ use crate::repository::validity_credential_repository::MockValidityCredentialRep
 use crate::service::test_utilities::{
     dummy_identifier, dummy_organisation, generic_config, get_dummy_date,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Repositories {

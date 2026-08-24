@@ -17,7 +17,7 @@ use crate::repository::proof_repository::ProofRepository;
 use crate::repository::validity_credential_repository::ValidityCredentialRepository;
 use crate::service::error::{EntityNotFoundError, ServiceError};
 use crate::validator::throw_if_proof_state_not_in;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[expect(clippy::too_many_arguments)]
 pub(crate) async fn persist_accepted_proof(

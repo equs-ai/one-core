@@ -14,7 +14,7 @@ use crate::provider::issuance_protocol::model::CommonParams;
 use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::error::DataLayerError;
 use crate::service::error::{ServiceError, ValidationError};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub struct CredentialNotificationDecorator {
     pub inner: Arc<dyn CredentialRepository>,

@@ -19,7 +19,7 @@ use crate::model::list_filter::{ListFilterValue, StringMatch};
 use crate::model::list_query::ListPagination;
 use crate::model::organisation::Organisation;
 use crate::model::proof_schema::{ProofInputClaimSchema, ProofInputSchema, ProofSchema};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn convert_proof_schema_to_response(
     value: ProofSchema,

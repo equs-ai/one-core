@@ -40,7 +40,7 @@ use crate::service::did::dto::{CreateDidRequestDTO, CreateDidRequestKeysDTO};
 use crate::service::test_utilities::{
     dummy_identifier, dummy_key, dummy_organisation, generic_config,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Mocks {

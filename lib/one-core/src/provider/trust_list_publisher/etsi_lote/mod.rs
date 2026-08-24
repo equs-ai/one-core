@@ -42,7 +42,7 @@ use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::trust_entry_repository::TrustEntryRepository;
 use crate::repository::trust_list_publication_repository::TrustListPublicationRepository;
 use crate::util::key_selection::{KeySelection, SelectedKey};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct EtsiLotePublisher {
     pub method_id: TrustListPublisherId,

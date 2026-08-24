@@ -14,7 +14,7 @@ use crate::proto::certificate_validator::{CertificateValidationOptions, Certific
 use crate::repository::certificate_repository::CertificateRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::service::error::{EntityNotFoundError, ServiceError};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 
 pub mod dto;
 

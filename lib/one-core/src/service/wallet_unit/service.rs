@@ -40,7 +40,7 @@ use crate::service::wallet_provider::dto::{
 };
 use crate::service::wallet_unit::mapper::set_active_trust_collections;
 use crate::validator::throw_if_org_not_matching_session;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 impl WalletUnitService {
     pub async fn holder_register(

@@ -18,7 +18,7 @@ use crate::service::credential_schema::dto::{
     CredentialSchemaFilterValue, GetCredentialSchemaQueryDTO,
 };
 use crate::service::error::MissingProviderError;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 const DATE_TIME_NO_MILLIS: EncodedConfig = Config::DEFAULT
     .set_formatted_components(FormattedComponents::DateTime)

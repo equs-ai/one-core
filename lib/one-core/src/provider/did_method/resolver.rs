@@ -10,7 +10,7 @@ use crate::provider::did_method::DidMethod;
 use crate::provider::did_method::dto::DidDocumentDTO;
 use crate::provider::did_method::error::{DidMethodError, DidMethodProviderError};
 use crate::service::error::MissingProviderError;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub struct DidResolver {
     pub did_methods: IndexMap<String, Arc<dyn DidMethod>>,

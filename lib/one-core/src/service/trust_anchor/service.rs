@@ -11,7 +11,7 @@ use super::mapper::trust_anchor_from_request;
 use crate::config::core_config::TrustManagementType;
 use crate::config::validator::trust_management::validate_trust_management;
 use crate::repository::error::DataLayerError;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl TrustAnchorService {
     pub async fn create_trust_anchor(

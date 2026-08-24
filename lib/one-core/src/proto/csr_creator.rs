@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use one_core_asdk::error::ErrorCode;
+use one_core_portable::error::ErrorCode;
 use rcgen::{CertificateParams, CustomExtension, DistinguishedName, DnType, KeyUsagePurpose};
 use yasna::models::ObjectIdentifier;
 
@@ -11,7 +11,7 @@ use crate::model::key::Key;
 use crate::provider::key_algorithm::model::Features;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::key_storage::provider::KeyProvider;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixin, NestedError};
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]

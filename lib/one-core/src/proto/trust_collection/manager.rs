@@ -13,7 +13,7 @@ use crate::model::trust_collection::{
 };
 use crate::proto::transaction_manager::TransactionManager;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct TrustCollectionManagerImpl {
     repository: Arc<dyn TrustCollectionRepository>,

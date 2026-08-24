@@ -3,7 +3,7 @@ use super::dto::VerifierProviderMetadataResponseRestDTO;
 use crate::proto::verifier_provider_client::VerifierProviderClient;
 use crate::proto::verifier_provider_client::error::VerifierProviderClientError;
 use crate::service::verifier_provider::dto::VerifierProviderMetadataResponseDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[async_trait::async_trait]
 impl VerifierProviderClient for HTTPVerifierProviderClient {

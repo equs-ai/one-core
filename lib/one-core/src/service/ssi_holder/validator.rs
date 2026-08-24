@@ -10,7 +10,7 @@ use crate::provider::issuance_protocol::HolderBindingInput;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::validator::throw_if_org_relation_not_matching_session;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn validate_credentials_match_session_organisation(
     credentials: &[Credential],

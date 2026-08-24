@@ -15,7 +15,7 @@ use crate::model::notification::{
 use crate::proto::notification_sender::{NotificationResult, NotificationSender};
 use crate::repository::notification_repository::NotificationRepository;
 use crate::service::error::ServiceError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub mod dto;
 pub mod model;

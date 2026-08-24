@@ -99,7 +99,7 @@ use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
 use crate::validator::{validate_expiration_time, validate_issuance_time};
 use async_trait::async_trait;
 use indexmap::IndexMap;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 use one_crypto::encryption::{decrypt_string, encrypt_string};
 use one_crypto::utilities::generate_alphanumeric;
 use one_dto_mapper::convert_inner;

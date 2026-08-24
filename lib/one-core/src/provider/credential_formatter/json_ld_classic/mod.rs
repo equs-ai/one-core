@@ -39,7 +39,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::bitstring_status_list::model::StatusPurpose;
 use crate::util::rdf_canonization::{json_ld_processor_options, rdf_canonize};
 use crate::util::vcdm_jsonld_contexts::{is_context_list_valid, jsonld_forbidden_claim_names};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 #[cfg(test)]
 mod test;
 

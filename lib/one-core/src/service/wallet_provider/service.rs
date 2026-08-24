@@ -68,7 +68,7 @@ use crate::util::key_selection::KeyFilter;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 const WIA_JWT_TYPE: &str = "oauth-client-attestation+jwt";
 const WUA_JWT_TYPE: &str = "key-attestation+jwt";

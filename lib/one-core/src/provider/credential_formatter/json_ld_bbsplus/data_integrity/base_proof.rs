@@ -17,7 +17,7 @@ use crate::provider::credential_formatter::json_ld_bbsplus::model::{
 use crate::provider::credential_formatter::model::SignatureProvider;
 use crate::provider::credential_formatter::vcdm::{VcdmCredential, VcdmProof};
 use crate::util::rdf_canonization::rdf_canonize;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) async fn create_base_proof(
     unsecured_document: &VcdmCredential,

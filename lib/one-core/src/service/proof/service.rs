@@ -75,7 +75,7 @@ use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 const DEFAULT_ENGAGEMENT: &str = "QR_CODE";
 

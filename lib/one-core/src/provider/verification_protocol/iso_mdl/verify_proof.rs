@@ -28,7 +28,7 @@ use crate::repository::credential_repository::CredentialRepository;
 use crate::repository::proof_repository::ProofRepository;
 use crate::service::error::{MissingProviderError, ServiceError};
 use crate::validator::{validate_expiration_time, validate_issuance_time};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ValidatedProofClaimDTO {

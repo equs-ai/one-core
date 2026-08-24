@@ -12,7 +12,7 @@ use thiserror::Error;
 use crate::model::revocation_list::RevocationListEntryStatus;
 use crate::provider::credential_formatter::jwt_formatter::model::TokenStatusListSubject;
 use crate::provider::revocation::model::RevocationState;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Debug, Error)]
 pub(super) enum TokenError {

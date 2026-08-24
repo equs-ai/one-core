@@ -14,7 +14,7 @@ use crate::service::credential_schema::dto::{
     CredentialSchemaFilterValue, CredentialSchemaListIncludeEntityTypeEnum,
 };
 
-pub use one_core_asdk::model::credential_schema::*;
+pub use one_core_portable::model::credential_schema::*;
 
 pub type CredentialSchemaName = String;
 
@@ -85,7 +85,7 @@ pub enum LayoutType {
     SingleAttribute,
 }
 
-/// KeyStorageSecurity is moved to one-core-asdk
+/// KeyStorageSecurity is moved to one-core-portable
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TransactionCode {

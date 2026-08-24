@@ -19,7 +19,7 @@ use crate::repository::holder_wallet_unit_repository::HolderWalletUnitRepository
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
 use crate::repository::verifier_instance_repository::VerifierInstanceRepository;
 use crate::service::error::ServiceError;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 
 mod dto;
 #[cfg(test)]

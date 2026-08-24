@@ -12,7 +12,7 @@ use crate::service::wallet_provider::dto::AndroidBundle;
 use crate::service::wallet_provider::error::WalletProviderError::{
     self, AppIntegrityValidationError,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 // https://source.android.com/docs/security/features/keystore/attestation#attestation-extension
 static ATTESTATION_EXTENSION_OID: &str = "1.3.6.1.4.1.11129.2.1.17";

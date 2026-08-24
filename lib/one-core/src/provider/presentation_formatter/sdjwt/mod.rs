@@ -28,7 +28,7 @@ use crate::provider::presentation_formatter::model::{
     FormattedPresentation,
 };
 use crate::provider::presentation_formatter::sdjwt::model::Sdvp;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 mod model;
 

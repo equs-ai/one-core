@@ -56,7 +56,7 @@ use crate::service::test_utilities::{
     dummy_credential_schema, dummy_organisation, dummy_proof_schema, generic_config,
     generic_formatter_capabilities, get_dummy_date,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 const IMPORT_URL: &str = "http://import.credential.schema";
 

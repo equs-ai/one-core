@@ -6,7 +6,7 @@ use super::{CacheError, CachingLoader, ResolveResult, Resolver, ResolverError};
 use crate::proto::http_client::HttpClient;
 use crate::proto::http_client::reqwest_client::ReqwestClient;
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub struct X509CrlCache {
     inner: CachingLoader,

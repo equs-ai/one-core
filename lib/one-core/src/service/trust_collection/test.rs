@@ -32,7 +32,7 @@ use crate::service::trust_collection::dto::{
     CreateTrustCollectionRequestDTO, CreateTrustListSubscriptionRequestDTO,
 };
 use crate::service::trust_collection::error::TrustCollectionServiceError;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Mocks {

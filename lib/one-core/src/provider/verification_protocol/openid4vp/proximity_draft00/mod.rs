@@ -70,7 +70,7 @@ use crate::repository::proof_repository::ProofRepository;
 use crate::service::proof::dto::{CreateProofInteractionData, ShareProofRequestParamsDTO};
 use crate::service::storage_proxy::StorageAccess;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 mod async_verifier_flow;
 pub mod ble;

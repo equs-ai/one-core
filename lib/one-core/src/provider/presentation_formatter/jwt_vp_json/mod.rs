@@ -22,7 +22,7 @@ use crate::provider::presentation_formatter::model::{
     FormattedPresentation,
 };
 use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 mod mapper;
 mod model;

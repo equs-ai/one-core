@@ -10,7 +10,7 @@ use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::organisation_repository::OrganisationRepository;
 use crate::service::wallet_provider::error::WalletProviderError;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) async fn validate_wallet_provider_issuer(
     id: Option<&OrganisationId>,

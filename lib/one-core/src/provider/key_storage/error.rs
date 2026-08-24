@@ -5,7 +5,7 @@ use one_crypto::encryption::EncryptionError;
 use thiserror::Error;
 
 use crate::provider::key_storage::model::Features;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum KeyStorageProviderError {

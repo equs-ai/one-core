@@ -6,7 +6,7 @@ use crate::model::backup::UnexportableEntities;
 use crate::service::backup::dto::UnexportableEntitiesResponseDTO;
 use crate::service::credential::dto::CredentialAttestationBlobs;
 use crate::service::credential::mapper::credential_detail_response_from_model;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn unexportable_entities_to_response_dto(
     entities: UnexportableEntities,

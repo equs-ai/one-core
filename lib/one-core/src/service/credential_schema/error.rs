@@ -3,7 +3,7 @@ use shared_types::{
 };
 
 use crate::model::credential_schema::KeyStorageSecurity;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CredentialSchemaServiceError {

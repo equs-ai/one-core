@@ -20,7 +20,7 @@ use crate::provider::trust_list_subscriber::{
     TrustEntityResponse, TrustListSubscriber, TrustListSubscriberCapabilities,
     TrustListValidationSuccess,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 mod model;
 mod preprocessing;

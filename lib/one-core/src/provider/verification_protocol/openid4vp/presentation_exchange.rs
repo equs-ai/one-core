@@ -29,7 +29,7 @@ use crate::provider::verification_protocol::openid4vp::model::{
     VpSubmissionData,
 };
 use crate::provider::verification_protocol::openid4vp::service::encryption_info_from_metadata;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[expect(clippy::too_many_arguments)]
 pub(crate) async fn pex_submission_data(

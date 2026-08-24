@@ -27,7 +27,7 @@ use crate::provider::caching_loader::x509_crl::{X509CrlCache, X509CrlResolver};
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::provider::remote_entity_storage::MockRemoteEntityStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[tokio::test]
 async fn test_revocation_check_uses_crl_cache() {

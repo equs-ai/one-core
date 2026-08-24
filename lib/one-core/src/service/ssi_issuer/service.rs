@@ -24,7 +24,7 @@ use crate::service::credential_schema::dto::{
     CredentialSchemaFilterValue, CredentialSchemaListIncludeEntityTypeEnum,
     GetCredentialSchemaQueryDTO,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub const W3C_SCHEMA_TYPE: &str = "ProcivisOneSchema2024";
 

@@ -4,7 +4,7 @@ use super::dto::CertificateResponseDTO;
 use super::error::CertificateServiceError;
 use crate::model::certificate::Certificate;
 use crate::proto::certificate_validator::parse::parse_chain_to_x509_attributes;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl TryFrom<Certificate> for CertificateResponseDTO {
     type Error = CertificateServiceError;

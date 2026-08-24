@@ -16,7 +16,7 @@ use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::verification_protocol::error::VerificationProtocolError;
 use crate::provider::verification_protocol::openid4vp::final1_0::model::AuthorizationRequest;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn generate_authorization_request_params_final1_0(
     nonce: String,

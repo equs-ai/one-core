@@ -29,7 +29,7 @@ use crate::provider::trust_list_subscriber::provider::TrustListSubscriberProvide
 use crate::repository::history_repository::HistoryRepository;
 use crate::repository::trust_list_subscription_repository::TrustListSubscriptionRepository;
 use crate::service::error::{MissingProviderError, ServiceError};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixin};
 
 pub(crate) struct TrustListSubscriptionUpdateTask {
     subscriber_provider: Arc<dyn TrustListSubscriberProvider>,

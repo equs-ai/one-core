@@ -16,7 +16,7 @@ use crate::provider::credential_formatter::json_ld_bbsplus::model::BbsBaseProofC
 use crate::provider::credential_formatter::model::{PublicKeySource, TokenVerifier};
 use crate::provider::credential_formatter::vcdm::{VcdmCredential, VcdmProof};
 use crate::util::rdf_canonization::rdf_canonize;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub async fn verify_base_proof(
     vcdm: &VcdmCredential,
@@ -212,7 +212,7 @@ mod test {
     use crate::provider::key_algorithm::KeyAlgorithm;
     use crate::provider::key_algorithm::bbs::BBS;
     use crate::util::rdf_canonization::json_ld_processor_options;
-    use one_core_asdk::error::ContextWithErrorCode;
+    use one_core_portable::error::ContextWithErrorCode;
 
     #[tokio::test]
     // from https://www.w3.org/TR/vc-di-bbs/#example-signed-base-document

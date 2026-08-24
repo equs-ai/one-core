@@ -8,7 +8,7 @@ use crate::model::list_filter::ListFilterValue;
 use crate::model::trust_collection::{TrustCollectionFilterValue, TrustCollectionListQuery};
 use crate::provider::verifier::provider::VerifierProvider;
 use crate::repository::trust_collection_repository::TrustCollectionRepository;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub mod dto;
 pub mod error;

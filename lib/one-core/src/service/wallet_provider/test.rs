@@ -43,7 +43,7 @@ use crate::repository::wallet_unit_repository::MockWalletUnitRepository;
 use crate::service::test_utilities::{dummy_organisation, generic_config, get_dummy_date};
 use crate::service::wallet_provider::WalletProviderService;
 use crate::service::wallet_provider::dto::RegisterWalletUnitRequestDTO;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 const BASE_URL: &str = "https://localhost";
 

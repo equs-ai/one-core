@@ -22,7 +22,7 @@ use crate::service::wallet_provider::dto::{
 use crate::validator::{
     validate_expiration_time, validate_issuance_time, validate_not_before_time,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn throw_if_credential_request_invalid(
     schema: &CredentialSchema,

@@ -20,7 +20,7 @@ use crate::repository::history_repository::HistoryRepository;
 use crate::repository::proof_repository::ProofRepository;
 use crate::service::error::{EntityNotFoundError, MissingProviderError, ServiceError};
 use crate::service::proof::dto::ProofFilterValue;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub struct RetainProofCheck {
     claim_repository: Arc<dyn ClaimRepository>,

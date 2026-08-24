@@ -20,7 +20,7 @@ use crate::repository::did_repository::DidRepository;
 use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::key_repository::KeyRepository;
 use crate::{CertificateValidator, KeyAlgorithmProvider};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 
 pub(crate) struct IdentifierCreatorProto {
     pub(super) did_method_provider: Arc<dyn DidMethodProvider>,

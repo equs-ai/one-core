@@ -38,7 +38,7 @@ use crate::provider::key_storage::azure_vault::dto::{
 use crate::provider::key_storage::azure_vault::mapper::create_import_key_request;
 use crate::provider::key_storage::error::KeyStorageError;
 use crate::provider::key_storage::model::{Features, KeyStorageCapabilities, StorageGeneratedKey};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 mod dto;
 mod mapper;

@@ -13,7 +13,7 @@ use crate::service::oid4vci_final1_0::dto::{
     OAuthAuthorizationServerMetadataResponseDTO, OpenID4VCICredentialResponseDTO,
 };
 use crate::service::oid4vci_final1_0::error::OID4VCIFinal1_0ServiceError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl OID4VCIFinal1_0SwiyuService {
     pub async fn oauth_authorization_server(

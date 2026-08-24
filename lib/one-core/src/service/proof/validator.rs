@@ -28,7 +28,7 @@ use crate::validator::{
     throw_if_endpoint_version_incompatible, throw_if_org_relation_not_matching_session,
     throw_if_proof_state_not_eq,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn throw_if_proof_not_in_session_org(
     proof: &Proof,

@@ -18,7 +18,7 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::{
     CreatePresentationParams, create_interaction_and_proof, create_presentation,
 };
 use crate::service::storage_proxy::StorageAccess;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[async_trait]
 pub(crate) trait ProximityHolderTransport: Send + Sync {

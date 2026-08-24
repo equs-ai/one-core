@@ -6,7 +6,7 @@ use crate::model::did::{Did, KeyRole};
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::key::Key;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn holder_did_key_jwk_from_credential(
     credential: &Credential,

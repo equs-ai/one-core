@@ -50,7 +50,7 @@ use crate::provider::verification_protocol::{
 };
 use crate::service::oid4vp_draft20::proof_request::generate_authorization_request_params_draft20;
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub mod mappers;
 pub(crate) mod model;

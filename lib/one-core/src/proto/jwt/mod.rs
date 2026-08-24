@@ -21,7 +21,7 @@ use crate::provider::credential_formatter::model::{
     CredentialClaim, PublicKeySource, SignatureProvider, TokenVerifier, VerificationFn,
 };
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 
 #[cfg(test)]
 mod test;

@@ -1,5 +1,5 @@
 [package]
-name = "one-core-asdk"
+name = "one-core-portable"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true

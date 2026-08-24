@@ -6,7 +6,7 @@ use super::error::TrustAnchorServiceError;
 use crate::model::trust_anchor::TrustAnchor;
 use crate::model::trust_entity::{TrustEntity, TrustEntityType};
 use crate::provider::did_method::error::DidMethodError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn trust_anchor_from_request(
     request: CreateTrustAnchorRequestDTO,

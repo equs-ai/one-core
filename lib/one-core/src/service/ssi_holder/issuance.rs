@@ -49,7 +49,7 @@ use crate::validator::{
     throw_if_credential_state_not_eq, throw_if_org_not_matching_session,
     throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin};
 
 const STATE: &str = "state";
 const AUTHORIZATION_CODE: &str = "code";

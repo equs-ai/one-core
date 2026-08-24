@@ -17,7 +17,7 @@ use crate::provider::verification_protocol::openid4vp::jwe_presentation::encrypt
 use crate::provider::verification_protocol::openid4vp::model::{
     OpenID4VPDraftClientMetadata, OpenID4VPPresentationDefinition,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn create_open_id_for_vp_client_metadata_draft(
     jwk: Option<PublicJwk>,

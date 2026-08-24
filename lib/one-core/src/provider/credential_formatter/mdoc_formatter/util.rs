@@ -19,7 +19,7 @@ use crate::proto::certificate_validator::{
 use crate::proto::cose::CoseSign1;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::provider::credential_formatter::model::CertificateDetails;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 const EMBEDDED_CBOR_TAG: u64 = 24;
 const DATE_TIME_CBOR_TAG: u64 = 0;

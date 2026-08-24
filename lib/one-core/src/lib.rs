@@ -99,7 +99,7 @@ use crate::service::verifier_provider::VerifierProviderService;
 use crate::service::wallet_provider::WalletProviderService;
 use crate::service::wallet_unit::WalletUnitService;
 
-pub use one_core_asdk::*;
+pub use one_core_portable::*;
 
 pub mod config;
 pub mod mapper;

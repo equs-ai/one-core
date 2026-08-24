@@ -36,8 +36,8 @@ use crate::provider::verification_protocol::{
 };
 use crate::repository::interaction_repository::InteractionRepository;
 use crate::repository::proof_repository::ProofRepository;
-use one_core_asdk::error::ErrorCode::BR_0000;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_portable::error::ErrorCode::BR_0000;
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct MdocBleHolderInteractionData {

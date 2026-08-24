@@ -108,7 +108,7 @@ use crate::util::key_selection::KeyFilter;
 use crate::util::vcdm_jsonld_contexts::vcdm_v2_base_context;
 use crate::validator::key_security::match_key_security_level;
 use crate::validator::validate_issuance_time;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 pub(crate) mod mapper;
 pub mod model;

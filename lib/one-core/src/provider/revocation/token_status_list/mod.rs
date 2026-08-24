@@ -57,7 +57,7 @@ use crate::repository::identifier_repository::IdentifierRepository;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::repository::wallet_unit_repository::WalletUnitRepository;
 use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 pub mod resolver;
 pub mod util;

@@ -35,7 +35,7 @@ use crate::provider::verification_protocol::openid4vp::proximity_draft00::dto::{
 use crate::provider::verification_protocol::openid4vp::proximity_draft00::holder_flow::{
     HolderCommonVPInteractionData, ProximityHolderTransport,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct BleHolderTransport {
     ble: BleWaiter,

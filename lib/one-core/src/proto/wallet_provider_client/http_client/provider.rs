@@ -15,7 +15,7 @@ use crate::service::wallet_provider::dto::{
     ActivateWalletUnitRequestDTO, IssueWalletUnitAttestationRequestDTO,
     RegisterWalletUnitRequestDTO, RegisterWalletUnitResponseDTO, WalletProviderMetadataResponseDTO,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode};
 
 #[async_trait::async_trait]
 impl WalletProviderClient for HTTPWalletProviderClient {

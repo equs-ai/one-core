@@ -79,7 +79,7 @@ use crate::service::storage_proxy::MockStorageProxy;
 use crate::service::test_utilities::{
     dummy_did, dummy_identifier, dummy_key, dummy_organisation, get_dummy_date,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
 #[derive(Default)]
 struct TestInputs {

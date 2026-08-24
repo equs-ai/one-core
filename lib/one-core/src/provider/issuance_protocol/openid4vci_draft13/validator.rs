@@ -14,7 +14,7 @@ use crate::provider::issuance_protocol::openid4vci_draft13::model::{
     OpenID4VCIIssuerInteractionDataDTO, OpenID4VCITokenRequestDTO,
 };
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn throw_if_token_request_invalid(
     request: &OpenID4VCITokenRequestDTO,

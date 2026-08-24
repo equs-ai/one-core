@@ -23,7 +23,7 @@ use crate::provider::key_algorithm::bbs::BBS;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::provider::key_storage::provider::SignatureProviderImpl;
 use crate::util::rdf_canonization::json_ld_processor_options;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[tokio::test]
 async fn test_create_and_verify_base_and_derived_proof() {

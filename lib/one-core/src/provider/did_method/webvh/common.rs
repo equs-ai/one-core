@@ -12,7 +12,7 @@ use crate::provider::did_method::webvh::serialize::DidLogEntry;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_storage::provider::KeyProvider;
 use crate::service::error::MissingProviderError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) const CRYPTOSUITE: &str = "eddsa-jcs-2022";
 

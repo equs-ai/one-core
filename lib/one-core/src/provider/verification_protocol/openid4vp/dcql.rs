@@ -39,7 +39,7 @@ use crate::service::credential::dto::{
 use crate::service::credential::mapper::credential_detail_response_from_model;
 use crate::service::credential_schema::dto::CredentialSchemaDetailResponseDTO;
 use crate::service::storage_proxy::StorageAccess;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 /// Retrieve the "presentation definition" for the given DCQL query.
 ///
@@ -1243,4 +1243,4 @@ fn stringify_value(value: &ClaimValue) -> String {
     }
 }
 
-// impl From<FormatType> for CredentialFormat is moved to one-core-asdk
+// impl From<FormatType> for CredentialFormat is moved to one-core-portable

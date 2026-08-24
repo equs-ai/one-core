@@ -27,7 +27,7 @@ use crate::provider::credential_formatter::provider::MockCredentialFormatterProv
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::credential_schema_repository::MockCredentialSchemaRepository;
 use crate::service::test_utilities::{dummy_organisation, generic_config, get_dummy_date};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_parser(
     config: CoreConfig,

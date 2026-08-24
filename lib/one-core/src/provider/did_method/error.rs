@@ -3,7 +3,7 @@
 use shared_types::DidValueError;
 use thiserror::Error;
 
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum DidMethodError {

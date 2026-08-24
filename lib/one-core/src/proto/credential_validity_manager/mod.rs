@@ -31,7 +31,7 @@ use crate::service::error::{EntityNotFoundError, MissingProviderError};
 use crate::validator::{
     throw_if_credential_schema_not_in_session_org, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::{
+use one_core_portable::error::{
     ContextWithErrorCode, ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt, NestedError,
 };
 

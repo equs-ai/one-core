@@ -5,7 +5,7 @@ use super::dto::{CreateHistoryRequestDTO, GetHistoryListResponseDTO, HistoryResp
 use super::error::HistoryServiceError;
 use crate::model::history::{History, HistoryListQuery, HistorySource};
 use crate::proto::session_provider::SessionExt;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl HistoryService {
     /// Returns history list filtered by query

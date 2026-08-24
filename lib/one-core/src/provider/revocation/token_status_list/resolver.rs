@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 
 use crate::proto::http_client::HttpClient;
 use crate::provider::caching_loader::{CachingLoader, ResolveResult, Resolver, ResolverError};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub struct StatusListResolver {
     pub client: Arc<dyn HttpClient>,

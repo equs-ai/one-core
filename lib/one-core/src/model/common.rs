@@ -1,6 +1,6 @@
-pub use one_core_asdk::model::common::*;
+pub use one_core_portable::model::common::*;
 
-/// The following entities are moved to one-core-asdk:
+/// The following entities are moved to one-core-portable:
 ///     1. SortDirection
 ///     2. ExactColumn
 ///     3. GetListQueryParams

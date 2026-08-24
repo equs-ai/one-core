@@ -7,7 +7,7 @@ use crate::model::credential::CredentialStateEnum;
 use crate::model::proof::ProofStateEnum;
 use crate::proto::notification_sender::NotificationSender;
 use crate::repository::notification_repository::NotificationRepository;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub mod scheduler;
 

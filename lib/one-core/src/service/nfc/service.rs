@@ -8,7 +8,7 @@ use crate::proto::nfc::NfcError;
 use crate::proto::nfc::apdu::Response;
 use crate::proto::nfc::command::KnownCommand;
 use crate::proto::nfc::scanner::NfcScanner;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl NfcService {
     pub async fn read_iso_mdl_engagement(

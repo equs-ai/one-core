@@ -11,7 +11,7 @@ use crate::provider::credential_formatter::model::IdentifierDetails;
 use crate::service::certificate::dto::CreateCertificateRequestDTO;
 use crate::service::did::dto::CreateDidRequestDTO;
 use crate::service::identifier::dto::CreateCertificateAuthorityRequestDTO;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub(crate) mod creator;
 mod local;

@@ -11,7 +11,7 @@ use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::service::certificate::CertificateService;
 use crate::service::certificate::error::CertificateServiceError;
 use crate::service::test_utilities::{dummy_identifier, get_dummy_date};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[tokio::test]
 async fn test_get_cert_fail_session_org_mismatch() {

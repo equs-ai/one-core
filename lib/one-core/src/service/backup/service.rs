@@ -17,7 +17,7 @@ use crate::model::history::HistoryAction;
 use crate::model::organisation::OrganisationListQuery;
 use crate::repository::error::DataLayerError;
 use crate::service::backup::mapper::unexportable_entities_to_response_dto;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl BackupService {
     #[tracing::instrument(level = "debug", skip_all, err(Debug))]

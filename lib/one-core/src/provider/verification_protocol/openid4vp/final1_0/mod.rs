@@ -64,7 +64,7 @@ use crate::service::oid4vp_final1_0::proof_request::{
     generate_authorization_request_params_final1_0, select_key_agreement_key_from_proof,
 };
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) mod dcql;
 pub mod mappers;

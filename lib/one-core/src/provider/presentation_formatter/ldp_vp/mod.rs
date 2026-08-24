@@ -34,7 +34,7 @@ use crate::provider::presentation_formatter::model::{
 };
 use crate::util::rdf_canonization::json_ld_processor_options;
 use crate::util::vcdm_jsonld_contexts::is_context_list_valid;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]

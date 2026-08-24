@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::config::core_config::{IdentifierType, KeyAlgorithmType};
 use crate::model::trust_list_role::TrustListRoleEnum;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum TrustListPublicationServiceError {

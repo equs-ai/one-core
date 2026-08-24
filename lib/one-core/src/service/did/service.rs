@@ -27,7 +27,7 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl DidService {
     /// Returns did document for did:web

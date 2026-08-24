@@ -14,7 +14,7 @@ use crate::model::identifier::{Identifier, IdentifierFilterValue, IdentifierList
 use crate::model::list_filter::ListFilterValue;
 use crate::model::organisation::{OrganisationListQuery, OrganisationRelations};
 use crate::repository::error::DataLayerError;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl OrganisationService {
     /// Returns all existing organisations

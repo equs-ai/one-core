@@ -3,7 +3,7 @@ use shared_types::{ClaimSchemaId, CredentialId, CredentialSchemaId, DidId, Ident
 use crate::config::ConfigValidationError;
 use crate::model::credential::CredentialStateEnum;
 use crate::model::identifier::IdentifierType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CredentialServiceError {

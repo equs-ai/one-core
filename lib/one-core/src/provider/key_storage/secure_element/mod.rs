@@ -18,7 +18,7 @@ use crate::provider::key_algorithm::key::{
 use crate::provider::key_storage::KeyStorage;
 use crate::provider::key_storage::error::KeyStorageError;
 use crate::provider::key_storage::model::{Features, KeyStorageCapabilities, StorageGeneratedKey};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]

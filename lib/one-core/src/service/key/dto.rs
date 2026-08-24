@@ -1,12 +1,12 @@
-use one_core_asdk::model::common::GetListQueryParams;
+use one_core_portable::model::common::GetListQueryParams;
 use one_dto_mapper::Into;
 use shared_types::OrganisationId;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use one_core_asdk::model::key::SortableKeyColumn;
+use one_core_portable::model::key::SortableKeyColumn;
 
-pub use one_core_asdk::service::key::dto::*;
+pub use one_core_portable::service::key::dto::*;
 
 pub struct KeyRequestDTO {
     pub organisation_id: OrganisationId,
@@ -30,8 +30,8 @@ pub struct KeyResponseDTO {
     pub is_remote: bool,
 }
 
-// KeyListItemResponseDTO is moved to one-core-asdk
-// GetKeyListResponseDTO is moved to one-core-asdk
+// KeyListItemResponseDTO is moved to one-core-portable
+// GetKeyListResponseDTO is moved to one-core-portable
 
 pub type GetKeyQueryDTO = GetListQueryParams<SortableKeyColumn>;
 

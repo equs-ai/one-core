@@ -5,7 +5,7 @@ use crate::config::core_config::{
 };
 use crate::model::identifier::Identifier;
 use crate::service::error::{BusinessLogicError, ServiceError, ValidationError};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub fn validate_identifier(
     verifier_identifier: Identifier,

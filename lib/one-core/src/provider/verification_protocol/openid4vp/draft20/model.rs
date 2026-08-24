@@ -18,7 +18,7 @@ use crate::provider::verification_protocol::openid4vp::model::{
     default_presentation_url_scheme,
 };
 use crate::service::error::ServiceError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

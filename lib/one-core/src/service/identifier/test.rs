@@ -12,7 +12,7 @@ use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::identifier::IdentifierService;
 use crate::service::identifier::dto::CreateIdentifierRequestDTO;
 use crate::service::test_utilities::{dummy_identifier, dummy_organisation, generic_config};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[tokio::test]
 async fn test_get_identifier_list_session_org_mismatch() {

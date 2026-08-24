@@ -17,7 +17,7 @@ use crate::provider::key_storage::provider::KeyProvider;
 use crate::provider::revocation::provider::RevocationMethodProvider;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::service::error::{EntityNotFoundError, MissingProviderError, ServiceError};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]

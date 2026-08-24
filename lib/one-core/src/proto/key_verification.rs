@@ -15,7 +15,7 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
 use crate::provider::key_algorithm::key::KeyHandle;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Clone)]
 pub struct KeyVerification {
@@ -151,7 +151,7 @@ mod test {
         KeyHandle, MockSignaturePublicKeyHandle, SignatureKeyHandle,
     };
     use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
-    use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
+    use one_core_portable::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 
     fn get_dummy_did_document() -> DidDocument {
         DidDocument {

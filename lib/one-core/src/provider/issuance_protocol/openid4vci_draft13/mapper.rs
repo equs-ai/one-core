@@ -55,7 +55,7 @@ use crate::provider::issuance_protocol::openid4vci_draft13::model::{
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::service::credential_schema::dto::CredentialClaimSchemaDTO;
 use crate::service::error::ValidationError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn prepare_nested_representation(
     credential_schema: &CredentialSchema,

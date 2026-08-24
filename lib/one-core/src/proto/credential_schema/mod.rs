@@ -1,4 +1,4 @@
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub(crate) mod dto;
 pub(crate) mod importer;

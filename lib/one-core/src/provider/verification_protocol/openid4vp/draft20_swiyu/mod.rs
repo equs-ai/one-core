@@ -37,7 +37,7 @@ use crate::provider::verification_protocol::{
     VerificationProtocol, deserialize_interaction_data, serialize_interaction_data,
 };
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct OpenID4VP20Swiyu {
     inner: OpenID4VP20HTTP,

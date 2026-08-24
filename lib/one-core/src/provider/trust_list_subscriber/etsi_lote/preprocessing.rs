@@ -10,7 +10,7 @@ use crate::mapper::x509::x5c_into_pem_chain;
 use crate::proto::certificate_validator::parse::parse_chain_to_x509_attributes;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::etsi_lote::model::PreprocessedLote;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum LotePreprocessingError {

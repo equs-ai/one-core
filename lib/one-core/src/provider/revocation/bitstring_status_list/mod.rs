@@ -47,7 +47,7 @@ use crate::provider::revocation::utils::status_purpose_to_revocation_state;
 use crate::repository::error::DataLayerError;
 use crate::repository::revocation_list_repository::RevocationListRepository;
 use crate::util::key_selection::KeyFilter;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 pub mod model;
 pub mod resolver;

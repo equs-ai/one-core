@@ -32,7 +32,7 @@ use crate::service::credential::dto::{
 };
 use crate::service::credential::mapper::credential_detail_response_from_model;
 use crate::service::proof_schema::dto::ProofClaimSchemaResponseDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 fn build_claim_from_credential_claims(
     claims: &[ClaimSchema],

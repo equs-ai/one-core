@@ -19,7 +19,7 @@ use crate::proto::transaction_manager::{IsolationLevel, TransactionManager};
 use crate::provider::task::webhook_notify::model::{Retries, WebhookNotifyParams};
 use crate::repository::history_repository::HistoryRepository;
 use crate::repository::notification_repository::NotificationRepository;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait::async_trait]

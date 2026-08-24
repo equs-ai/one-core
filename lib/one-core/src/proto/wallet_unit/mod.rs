@@ -31,7 +31,7 @@ use crate::service::wallet_provider::dto::{
     IssueWalletUnitAttestationRequestDTO, IssueWalletUnitAttestationResponseDTO,
     IssueWiaRequestDTO, IssueWuaRequestDTO, WalletUnitAttestationClaims,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
 pub enum IssueWalletAttestationRequest<'a> {
     Wia,
     Wua(&'a Key, KeyStorageSecurityLevel),

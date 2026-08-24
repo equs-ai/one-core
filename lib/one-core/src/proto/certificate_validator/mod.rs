@@ -21,7 +21,7 @@ use crate::provider::remote_entity_storage::db_storage::DbStorage;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 use crate::service::certificate::dto::CertificateX509AttributesDTO;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 pub mod parse;
 mod revocation;

@@ -46,7 +46,7 @@ use crate::service::credential::dto::{
 };
 use crate::service::error::MissingProviderError;
 use crate::validator::{throw_if_endpoint_version_incompatible, throw_if_proof_state_not_eq};
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixin};
 
 impl SSIHolderService {
     pub async fn reject_proof_request(

@@ -23,7 +23,7 @@ use crate::provider::signer::x509_utils::{
     signing_key_adapter,
 };
 use crate::validator::permissions::RequiredPermissions;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) mod dto;
 mod mapper;

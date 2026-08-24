@@ -18,7 +18,7 @@ use crate::model::credential_schema::CredentialSchema;
 use crate::proto::notification_scheduler::NotificationScheduler;
 use crate::provider::credential_formatter::model::FormatterCapabilities;
 use crate::provider::issuance_protocol::model::CommonParams;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) fn throw_if_credential_state_eq(
     credential: &Credential,

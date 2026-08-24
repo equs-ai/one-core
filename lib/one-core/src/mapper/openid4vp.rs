@@ -7,7 +7,7 @@ use crate::model::organisation::Organisation;
 use crate::proto::identifier_creator::{IdentifierCreator, IdentifierRole};
 use crate::provider::verification_protocol::openid4vp::model::ProvedCredential;
 use crate::service::error::ServiceError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) async fn credential_from_proved(
     identifier_creator: &dyn IdentifierCreator,

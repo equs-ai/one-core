@@ -23,7 +23,7 @@ use crate::service::key::dto::{
     KeyRequestDTO,
 };
 use crate::service::test_utilities::{dummy_organisation, generic_config};
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(
     repository: MockKeyRepository,

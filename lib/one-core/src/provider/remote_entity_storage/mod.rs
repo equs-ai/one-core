@@ -18,7 +18,7 @@ use thiserror::Error;
 use time::OffsetDateTime;
 
 use crate::model::remote_entity_cache::RemoteEntityCacheEntry;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 pub mod db_storage;
 pub mod in_memory;

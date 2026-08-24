@@ -25,7 +25,7 @@ use crate::provider::verification_protocol::openid4vp::model::{
     ClientIdScheme, OpenID4VPClientMetadata, OpenID4VPPresentationDefinition,
 };
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 pub(crate) mod dcql;
 pub mod draft20;
 pub mod draft20_swiyu;

@@ -30,7 +30,7 @@ use crate::provider::issuance_protocol::openid4vci_draft13::model::{
     OpenID4VCIIssuerMetadataResponseDTO,
 };
 use crate::service::ssi_issuer::dto::SdJwtVcTypeMetadataResponseDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(crate) struct BuildCredentialSchemaResponse {
     pub claims: Vec<Claim>,

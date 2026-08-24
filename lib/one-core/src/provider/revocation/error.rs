@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::model::did::KeyRole;
 use crate::model::identifier::IdentifierType;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(Debug, Error)]
 pub enum RevocationError {

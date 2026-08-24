@@ -28,7 +28,7 @@ use crate::provider::signer::x509_utils::{
     CaSigningInfo, IdentifierInfo, RevocationInfo, prepare_params_and_ca_issuer,
 };
 use crate::validator::permissions::RequiredPermissions;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

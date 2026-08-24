@@ -49,7 +49,7 @@ use crate::repository::credential_schema_repository::MockCredentialSchemaReposit
 use crate::repository::error::DataLayerError;
 use crate::repository::interaction_repository::MockInteractionRepository;
 use crate::service::test_utilities::*;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 #[derive(Default)]
 struct Mocks {

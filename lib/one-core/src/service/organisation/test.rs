@@ -15,7 +15,7 @@ use crate::repository::error::DataLayerError;
 use crate::repository::identifier_repository::MockIdentifierRepository;
 use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::test_utilities::dummy_organisation;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(organisation_repository: MockOrganisationRepository) -> OrganisationService {
     OrganisationService {

@@ -34,7 +34,7 @@ use crate::provider::signer::registration_certificate::model::{
 use crate::provider::signer::validity::{SignatureValidity, calculate_signature_validity};
 use crate::util::key_selection::{KeyFilter, KeySelection, SelectedKey};
 use crate::validator::permissions::RequiredPermissions;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

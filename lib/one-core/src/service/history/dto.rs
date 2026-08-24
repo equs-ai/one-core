@@ -8,7 +8,7 @@ use crate::model::history::{
     History, HistoryAction, HistoryEntityType, HistoryErrorMetadata, HistoryMetadata, HistorySource,
 };
 use crate::service::backup::dto::UnexportableEntitiesResponseDTO;
-use one_core_asdk::error::ErrorCode;
+use one_core_portable::error::ErrorCode;
 
 #[derive(Debug, Clone, Serialize, Deserialize, From)]
 #[from(HistoryMetadata)]

@@ -15,7 +15,7 @@ use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::etsi_lote::LoteContentType;
 use crate::provider::trust_list_subscriber::etsi_lote::preprocessing::preprocess_lote;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub struct EtsiLoteResolver {
     clock: Arc<dyn Clock>,

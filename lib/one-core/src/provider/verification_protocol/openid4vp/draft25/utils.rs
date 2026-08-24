@@ -35,7 +35,7 @@ use crate::provider::verification_protocol::openid4vp::validator::{
     validate_x509_hash_matching_client_id,
 };
 use crate::validator::x509::is_dns_name_matching;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 async fn parse_referenced_data_from_x509_san_dns_token(
     request_token: DecomposedJwt<OpenID4VP25AuthorizationRequest>,

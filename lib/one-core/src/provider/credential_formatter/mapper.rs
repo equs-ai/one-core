@@ -21,7 +21,7 @@ use crate::provider::credential_formatter::model::{
 use crate::service::credential::dto::{
     CredentialDetailResponseDTO, DetailCredentialClaimResponseDTO,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub const W3C_SCHEMA_TYPE: &str = "ProcivisOneSchema2024";
 

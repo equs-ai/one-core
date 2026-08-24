@@ -29,7 +29,7 @@ use crate::util::key_selection::{KeySelection, SelectedKey};
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 impl TrustListPublicationService {
     pub async fn create_trust_list_publication(

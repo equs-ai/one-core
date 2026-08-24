@@ -49,7 +49,7 @@ use crate::provider::verification_protocol::deserialize_interaction_data;
 use crate::service::credential::dto::CredentialAttestationBlobs;
 use crate::service::credential::mapper::credential_detail_response_from_model;
 use crate::service::proof::dto::ShareProofRequestParamsDTO;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 mod ble;
 pub(crate) mod ble_holder;

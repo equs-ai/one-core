@@ -41,7 +41,7 @@ use crate::service::credential_schema::validator::validate_key_storage_security_
 use crate::validator::{
     throw_if_org_not_matching_session, throw_if_org_relation_not_matching_session,
 };
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl ProofSchemaService {
     /// Returns details of a proof schema

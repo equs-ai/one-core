@@ -46,7 +46,7 @@ use crate::provider::presentation_formatter::model::{
 };
 use crate::provider::presentation_formatter::mso_mdoc::session_transcript::openid4vp_final1_0::OID4VPFinal1_0Handover;
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 use time::Duration;
 
 pub(crate) mod model;

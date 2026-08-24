@@ -15,7 +15,7 @@ use crate::provider::credential_formatter::model::PublicKeySource;
 use crate::provider::key_algorithm::MockKeyAlgorithm;
 use crate::provider::key_algorithm::error::KeyAlgorithmError;
 use crate::provider::key_algorithm::provider::{KeyAlgorithmProvider, MockKeyAlgorithmProvider};
-use one_core_asdk::error::ErrorCodeMixinExt;
+use one_core_portable::error::ErrorCodeMixinExt;
 
 #[derive(Serialize, Deserialize, Debug, Default, Eq, PartialEq)]
 struct Payload {

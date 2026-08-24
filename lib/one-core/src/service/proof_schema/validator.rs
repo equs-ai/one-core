@@ -18,7 +18,7 @@ use crate::provider::credential_formatter::model::{Features, SelectiveDisclosure
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::repository::proof_schema_repository::ProofSchemaRepository;
 use crate::service::error::MissingProviderError;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub async fn proof_schema_name_already_exists(
     repository: &dyn ProofSchemaRepository,

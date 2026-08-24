@@ -43,7 +43,7 @@ use crate::provider::verification_protocol::{
     VerificationProtocolError, deserialize_interaction_data,
 };
 use crate::repository::interaction_repository::InteractionRepository;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 type ConnectionEventStream = Pin<Box<dyn Stream<Item = Vec<ConnectionEvent>> + Send>>;
 

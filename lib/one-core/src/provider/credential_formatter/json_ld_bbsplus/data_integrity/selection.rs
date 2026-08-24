@@ -6,7 +6,7 @@ use sophia_api::quad::Spog;
 use super::skolemize::to_deskolemized_nquads;
 use crate::provider::credential_formatter::error::FormatterError;
 use crate::util::rdf_canonization::TermAdapter;
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub struct SelectionResult {
     pub _selected_document: json_syntax::Value,

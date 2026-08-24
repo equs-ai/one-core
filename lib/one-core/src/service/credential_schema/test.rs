@@ -49,7 +49,7 @@ use crate::repository::organisation_repository::MockOrganisationRepository;
 use crate::service::test_utilities::{
     dummy_organisation, generic_config, generic_formatter_capabilities, get_dummy_date,
 };
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin};
 
 fn setup_service(
     credential_schema_repository: MockCredentialSchemaRepository,

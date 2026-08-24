@@ -62,7 +62,7 @@ use crate::provider::verification_protocol::openid4vp::{
     FormatMapper, TypeToDescriptorMapper, VerificationProtocolError,
 };
 use crate::service::error::{BusinessLogicError, ServiceError};
-use one_core_asdk::error::ContextWithErrorCode;
+use one_core_portable::error::ContextWithErrorCode;
 
 pub(super) fn presentation_definition_from_interaction_data(
     proof_id: ProofId,

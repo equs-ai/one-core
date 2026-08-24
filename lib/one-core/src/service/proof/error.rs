@@ -4,7 +4,7 @@ use crate::model::did::KeyRole;
 use crate::model::identifier::IdentifierType;
 use crate::model::proof::{ProofRole, ProofStateEnum};
 use crate::provider::verification_protocol::openid4vp::error::OpenID4VCError;
-use one_core_asdk::error::{ErrorCode, ErrorCodeMixin, NestedError};
+use one_core_portable::error::{ErrorCode, ErrorCodeMixin, NestedError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProofServiceError {

@@ -72,7 +72,7 @@ use crate::service::error::MissingProviderError;
 use crate::service::ssi_validator::validate_issuance_protocol_type;
 use crate::service::wallet_provider::dto::WalletInstanceAttestationClaims;
 use crate::validator::throw_if_credential_state_not_eq;
-use one_core_asdk::error::{ContextWithErrorCode, ErrorCodeMixinExt};
+use one_core_portable::error::{ContextWithErrorCode, ErrorCodeMixinExt};
 
 impl OID4VCIFinal1_0Service {
     pub async fn get_issuer_metadata(
