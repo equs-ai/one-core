@@ -1,10 +1,5 @@
 pub use one_core_portable::model::common::*;
 
-/// The following entities are moved to one-core-portable:
-///     1. SortDirection
-///     2. ExactColumn
-///     3. GetListQueryParams
-
 #[derive(Clone, Debug)]
 pub struct GetListResponse<ResponseItem> {
     pub values: Vec<ResponseItem>,

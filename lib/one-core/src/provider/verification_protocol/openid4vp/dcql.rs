@@ -1242,5 +1242,3 @@ fn stringify_value(value: &ClaimValue) -> String {
         ClaimValue::Boolean(bool) => format!("{bool}"),
     }
 }
-
-// impl From<FormatType> for CredentialFormat is moved to one-core-portable

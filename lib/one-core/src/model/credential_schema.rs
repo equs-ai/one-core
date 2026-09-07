@@ -85,8 +85,6 @@ pub enum LayoutType {
     SingleAttribute,
 }
 
-/// KeyStorageSecurity is moved to one-core-portable
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TransactionCode {
     pub r#type: TransactionCodeType,

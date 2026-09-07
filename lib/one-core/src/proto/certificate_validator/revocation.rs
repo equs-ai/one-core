@@ -100,7 +100,6 @@ impl CertificateValidatorImpl {
             ));
         }
 
-        // Try to match key identifiers if both are present
         let parent_ski = parent.extensions().iter().find_map(|ext| {
             if let ParsedExtension::SubjectKeyIdentifier(ski) = ext.parsed_extension() {
                 Some(ski)
@@ -117,7 +116,7 @@ impl CertificateValidatorImpl {
             }
         });
 
-        // If both identifiers exist, they must match
+        // A missing identifier on either side is tolerated; both present must match
         if let (Some(ski), Some(aki)) = (parent_ski, crl_aki)
             && ski != aki
         {
