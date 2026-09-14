@@ -6,13 +6,6 @@ pub use one_core_portable::model::key::*;
 use one_core_portable::service::key::dto::KeyListItemResponseDTO;
 use one_dto_mapper::convert_inner;
 
-// The following entities are moved to one-core-portable:
-// 1. Key
-// 2. KeyRelations
-// 3. SortableKeyColumn
-// 4. KeyFilterValue
-// 5. KeyListQuery
-
 pub type GetKeyList = GetListResponse<Key>;
 
 pub trait PrivateJwkExt {

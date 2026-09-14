@@ -9,10 +9,3 @@ pub use one_core_portable::config::*;
     feature = "config_env"
 ))]
 mod test;
-
-// The following entities are moved to one-core-portable:
-// 1. ConfigParsingError
-// 2. IncompatibleProviderRef
-// 3. ProviderReference
-// 4. ProviderReference
-// 5. ConfigValidationError
