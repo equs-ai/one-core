@@ -1,15 +1,20 @@
 [package]
 authors.workspace      = true
+description            = "Standardized credential and claim types for Procivis One Core"
 edition.workspace      = true
 license.workspace      = true
-name                   = "standardized-types"
+name                   = "equs-one-core-standardized-types"
+repository.workspace   = true
 rust-version.workspace = true
 version.workspace      = true
+
+[lib]
+name = "standardized_types"
 
 [dependencies]
 anyhow.workspace     = true
 ct-codecs.workspace  = true
-proc-macros          = { version = "0.1.0", path = "../../lib/proc-macros" }
+proc-macros          = { package = "equs-one-core-proc-macros", version = "0.1.0", path = "../../lib/proc-macros" }
 secrecy.workspace    = true
 serde                = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

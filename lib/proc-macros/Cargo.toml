@@ -1,12 +1,15 @@
 [package]
-name = "proc-macros"
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
-version.workspace = true
+authors.workspace      = true
+description            = "Procedural macros for Procivis One Core"
+edition.workspace      = true
+license.workspace      = true
+name                   = "equs-one-core-proc-macros"
+repository.workspace   = true
 rust-version.workspace = true
+version.workspace      = true
 
 [lib]
+name       = "proc_macros"
 proc-macro = true
 
 [dependencies]

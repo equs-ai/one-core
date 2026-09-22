@@ -15,15 +15,15 @@ strict = []
 
 [dependencies]
 async-trait.workspace    = true
-one-core                 = { version = "0.1.0", path = "../../lib/one-core", features = ["config_json"] }
-one-crypto               = { version = "0.1.0", path = "../../lib/one-crypto" }
+one-core                 = { package = "equs-one-core", version = "0.1.0", path = "../../lib/one-core", features = ["config_json"] }
+one-crypto               = { package = "equs-one-core-crypto", version = "0.1.0", path = "../../lib/one-crypto" }
 one-dto-mapper.workspace = true
 reqwest.workspace        = true
 rustls-platform-verifier = { workspace = true }
 secrecy.workspace        = true
 serde.workspace          = true
 serde_json.workspace     = true
-shared-types             = { version = "0.1.0", path = "../../lib/shared-types" }
+shared-types             = { package = "equs-one-core-shared-types", version = "0.1.0", path = "../../lib/shared-types" }
 sql-data-provider        = { version = "0.1.0", path = "../../lib/sql-data-provider" }
 strum.workspace          = true
 thiserror.workspace      = true

@@ -1220,7 +1220,12 @@ dependencies = [
  "axum-extra",
  "clap",
  "ct-codecs",
- "dcql",
+ "equs-one-core",
+ "equs-one-core-crypto",
+ "equs-one-core-dcql",
+ "equs-one-core-proc-macros",
+ "equs-one-core-shared-types",
+ "equs-one-core-standardized-types",
  "futures",
  "headers",
  "hex",
@@ -1229,10 +1234,7 @@ dependencies = [
  "indexmap 2.12.1",
  "indoc",
  "maplit",
- "one-core",
- "one-crypto",
  "one-dto-mapper",
- "proc-macros",
  "prometheus",
  "rand 0.8.5",
  "rcgen",
@@ -1247,10 +1249,8 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "shadow-rs",
- "shared-types",
  "similar-asserts",
  "sql-data-provider",
- "standardized-types",
  "strum 0.27.2",
  "thiserror 2.0.17",
  "time",
@@ -1558,18 +1558,6 @@ name = "data-encoding"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
-
-[[package]]
-name = "dcql"
-version = "0.1.0"
-dependencies = [
- "bon",
- "serde",
- "serde_json",
- "similar-asserts",
- "standardized-types",
- "thiserror 2.0.17",
-]
 
 [[package]]
 name = "deadpool"
@@ -1889,6 +1877,228 @@ name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "equs-one-core"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "asn1-rs",
+ "assert2",
+ "async-trait",
+ "bincode",
+ "bit-vec",
+ "bon",
+ "bs58",
+ "ciborium",
+ "convert_case",
+ "coset",
+ "crc",
+ "ct-codecs",
+ "dashmap",
+ "equs-one-core-crypto",
+ "equs-one-core-dcql",
+ "equs-one-core-portable",
+ "equs-one-core-shared-types",
+ "equs-one-core-standardized-types",
+ "figment",
+ "flate2",
+ "futures",
+ "hex",
+ "hex-literal",
+ "hkdf",
+ "human-sort",
+ "indexmap 2.12.1",
+ "indoc",
+ "itertools 0.14.0",
+ "json-ld",
+ "json-syntax",
+ "jsonptr",
+ "jsonschema",
+ "maplit",
+ "mime",
+ "mockall",
+ "mrtd",
+ "multihash",
+ "ndef-rs",
+ "num-traits",
+ "one-dto-mapper",
+ "ouroboros",
+ "pem",
+ "rand 0.8.5",
+ "rcgen",
+ "regex",
+ "reqwest",
+ "rstest",
+ "rumqttc-next",
+ "rustls",
+ "rustls-pki-types",
+ "rustls-platform-verifier",
+ "rusty-fork",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_json_path",
+ "serde_qs",
+ "serde_repr",
+ "serde_urlencoded",
+ "serde_with",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "shadow-rs",
+ "similar-asserts",
+ "sophia_api",
+ "sophia_c14n",
+ "strum 0.27.2",
+ "tempfile",
+ "thiserror 2.0.17",
+ "time",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "urlencoding",
+ "uuid",
+ "wiremock",
+ "x25519-dalek",
+ "x509-parser",
+ "yasna",
+ "zip 7.0.0",
+]
+
+[[package]]
+name = "equs-one-core-crypto"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "aes-gcm",
+ "aes-kw",
+ "async-trait",
+ "blstrs 0.7.1",
+ "cbc",
+ "chacha20poly1305",
+ "cocoon",
+ "concat-kdf",
+ "ct-codecs",
+ "ed25519-compact",
+ "equs-one-core-standardized-types",
+ "hex",
+ "hmac 0.12.1",
+ "ml-dsa",
+ "mockall",
+ "p256",
+ "pairing_crypto",
+ "pbkdf2 0.12.2",
+ "rand 0.10.0",
+ "rand 0.8.5",
+ "rand_chacha 0.10.0",
+ "rand_chacha 0.3.1",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha1",
+ "sha2 0.10.9",
+ "similar-asserts",
+ "strum 0.27.2",
+ "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
+name = "equs-one-core-dcql"
+version = "0.1.0"
+dependencies = [
+ "bon",
+ "equs-one-core-standardized-types",
+ "serde",
+ "serde_json",
+ "similar-asserts",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "equs-one-core-portable"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assert2",
+ "async-trait",
+ "bs58",
+ "ciborium",
+ "ct-codecs",
+ "equs-one-core-crypto",
+ "equs-one-core-dcql",
+ "equs-one-core-shared-types",
+ "equs-one-core-standardized-types",
+ "figment",
+ "hex",
+ "hex-literal",
+ "indoc",
+ "itertools 0.13.0",
+ "mime",
+ "mockall",
+ "one-dto-mapper",
+ "regex",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "serde_yaml",
+ "similar-asserts",
+ "strum 0.27.2",
+ "thiserror 2.0.17",
+ "time",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "equs-one-core-proc-macros"
+version = "0.1.0"
+dependencies = [
+ "darling 0.23.0",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_with",
+ "syn 2.0.111",
+ "utoipa",
+ "walkdir",
+]
+
+[[package]]
+name = "equs-one-core-shared-types"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "sea-orm",
+ "serde",
+ "similar-asserts",
+ "thiserror 2.0.17",
+ "url",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "equs-one-core-standardized-types"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ct-codecs",
+ "equs-one-core-proc-macros",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.27.2",
+ "time",
+ "utoipa",
+ "uuid",
+]
 
 [[package]]
 name = "errno"
@@ -3567,10 +3777,10 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 name = "migration"
 version = "0.1.0"
 dependencies = [
+ "equs-one-core-shared-types",
  "sea-orm",
  "sea-orm-migration",
  "sea-schema 0.17.0-rc.17",
- "shared-types",
  "similar-asserts",
  "time",
  "tokio",
@@ -3894,147 +4104,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
-name = "one-core"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "asn1-rs",
- "assert2",
- "async-trait",
- "bincode",
- "bit-vec",
- "bon",
- "bs58",
- "ciborium",
- "convert_case",
- "coset",
- "crc",
- "ct-codecs",
- "dashmap",
- "dcql",
- "figment",
- "flate2",
- "futures",
- "hex",
- "hex-literal",
- "hkdf",
- "human-sort",
- "indexmap 2.12.1",
- "indoc",
- "itertools 0.14.0",
- "json-ld",
- "json-syntax",
- "jsonptr",
- "jsonschema",
- "maplit",
- "mime",
- "mockall",
- "mrtd",
- "multihash",
- "ndef-rs",
- "num-traits",
- "one-core-portable",
- "one-crypto",
- "one-dto-mapper",
- "ouroboros",
- "pem",
- "rand 0.8.5",
- "rcgen",
- "regex",
- "reqwest",
- "rstest",
- "rumqttc-next",
- "rustls",
- "rustls-pki-types",
- "rustls-platform-verifier",
- "rusty-fork",
- "secrecy",
- "serde",
- "serde_json",
- "serde_json_path",
- "serde_qs",
- "serde_repr",
- "serde_urlencoded",
- "serde_with",
- "serde_yaml",
- "sha2 0.10.9",
- "shadow-rs",
- "shared-types",
- "similar-asserts",
- "sophia_api",
- "sophia_c14n",
- "standardized-types",
- "strum 0.27.2",
- "tempfile",
- "thiserror 2.0.17",
- "time",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
- "urlencoding",
- "uuid",
- "wiremock",
- "x25519-dalek",
- "x509-parser",
- "yasna",
- "zip 7.0.0",
-]
-
-[[package]]
-name = "one-core-portable"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assert2",
- "async-trait",
- "bs58",
- "ciborium",
- "ct-codecs",
- "dcql",
- "figment",
- "hex",
- "hex-literal",
- "indoc",
- "itertools 0.13.0",
- "mime",
- "mockall",
- "one-crypto",
- "one-dto-mapper",
- "regex",
- "secrecy",
- "serde",
- "serde_json",
- "serde_with",
- "serde_yaml",
- "shared-types",
- "similar-asserts",
- "standardized-types",
- "strum 0.27.2",
- "thiserror 2.0.17",
- "time",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "one-core-uniffi"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "equs-one-core",
+ "equs-one-core-crypto",
+ "equs-one-core-shared-types",
  "jni",
  "mockall",
- "one-core",
- "one-crypto",
  "one-dto-mapper",
  "reqwest",
  "rustls-platform-verifier",
  "secrecy",
  "serde",
  "serde_json",
- "shared-types",
  "similar-asserts",
  "sql-data-provider",
  "strum 0.27.2",
@@ -4048,45 +4132,6 @@ dependencies = [
  "uniffi",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "one-crypto"
-version = "0.1.0"
-dependencies = [
- "aes",
- "aes-gcm",
- "aes-kw",
- "async-trait",
- "blstrs 0.7.1",
- "cbc",
- "chacha20poly1305",
- "cocoon",
- "concat-kdf",
- "ct-codecs",
- "ed25519-compact",
- "hex",
- "hmac 0.12.1",
- "ml-dsa",
- "mockall",
- "p256",
- "pairing_crypto",
- "pbkdf2 0.12.2",
- "rand 0.10.0",
- "rand 0.8.5",
- "rand_chacha 0.10.0",
- "rand_chacha 0.3.1",
- "secrecy",
- "serde",
- "serde_json",
- "serde_with",
- "sha1",
- "sha2 0.10.9",
- "similar-asserts",
- "standardized-types",
- "strum 0.27.2",
- "thiserror 2.0.17",
- "tokio",
 ]
 
 [[package]]
@@ -4608,20 +4653,6 @@ dependencies = [
  "syn 2.0.111",
  "version_check",
  "yansi",
-]
-
-[[package]]
-name = "proc-macros"
-version = "0.1.0"
-dependencies = [
- "darling 0.23.0",
- "proc-macro2",
- "quote",
- "serde",
- "serde_with",
- "syn 2.0.111",
- "utoipa",
- "walkdir",
 ]
 
 [[package]]
@@ -6053,20 +6084,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shared-types"
-version = "0.1.0"
-dependencies = [
- "regex",
- "sea-orm",
- "serde",
- "similar-asserts",
- "thiserror 2.0.17",
- "url",
- "utoipa",
- "uuid",
-]
-
-[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6263,19 +6280,19 @@ dependencies = [
  "anyhow",
  "async-trait",
  "autometrics",
+ "equs-one-core",
+ "equs-one-core-shared-types",
+ "equs-one-core-standardized-types",
  "futures",
  "hex",
  "itertools 0.14.0",
  "migration",
  "mockall",
- "one-core",
  "one-dto-mapper",
  "sea-orm",
  "serde",
  "serde_json",
- "shared-types",
  "similar-asserts",
- "standardized-types",
  "tempfile",
  "time",
  "tokio",
@@ -6485,23 +6502,6 @@ name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
-
-[[package]]
-name = "standardized-types"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ct-codecs",
- "proc-macros",
- "secrecy",
- "serde",
- "serde_json",
- "serde_with",
- "strum 0.27.2",
- "time",
- "utoipa",
- "uuid",
-]
 
 [[package]]
 name = "static-iref"
