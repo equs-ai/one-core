@@ -340,3 +340,127 @@ async fn validate_chain_succeeds_when_path_len_constraints_are_satisfied() {
         .await
         .unwrap();
 }
+
+fn anchors_of(ca_pems: &[&str]) -> HashMap<String, String> {
+    ca_pems
+        .iter()
+        .map(|pem| {
+            let parsed = Pem::iter_from_buffer(pem.as_bytes())
+                .next()
+                .unwrap()
+                .unwrap();
+            let skid = crate::mapper::x509::subject_key_identifier(&parsed.parse_x509().unwrap())
+                .unwrap()
+                .unwrap();
+            (skid, pem.to_string())
+        })
+        .collect()
+}
+
+fn leaf_params_with_aki() -> CertificateParams {
+    let mut params = CertificateParams::default();
+    params.use_authority_key_identifier_extension = true;
+    params
+}
+
+#[tokio::test]
+async fn trust_anchors_accept_chain_signed_up_to_held_anchor() {
+    let (ca_cert, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let (intermediate_cert, intermediate_key, intermediate_params) =
+        create_intermediate_ca_cert(None, &ca_issuer, &ca_params);
+    let intermediate_issuer = Issuer::from_params(&intermediate_params, intermediate_key);
+    let (leaf_cert, _) = create_cert(
+        &mut leaf_params_with_aki(),
+        &intermediate_issuer,
+        &intermediate_params,
+    );
+
+    super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &format!("{}{}", leaf_cert.pem(), intermediate_cert.pem()),
+        &anchors_of(&[&ca_cert.pem()]),
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn trust_anchors_accept_intermediate_anchor() {
+    let (_ca_cert, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let (intermediate_cert, intermediate_key, intermediate_params) =
+        create_intermediate_ca_cert(None, &ca_issuer, &ca_params);
+    let intermediate_issuer = Issuer::from_params(&intermediate_params, intermediate_key);
+    let (leaf_cert, _) = create_cert(
+        &mut CertificateParams::default(),
+        &intermediate_issuer,
+        &intermediate_params,
+    );
+
+    super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &leaf_cert.pem(),
+        &anchors_of(&[&intermediate_cert.pem()]),
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn trust_anchors_reject_chain_declaring_anchor_key_id_without_its_signature() {
+    let (ca_cert, _ca_key, _ca_params) = create_ca_cert(None);
+    let anchors = anchors_of(&[&ca_cert.pem()]);
+    let real_ski = anchors.keys().next().unwrap().replace(':', "");
+
+    // an attacker CA that claims the trusted anchor's key identifier
+    let (_, forged_key, mut forged_params) = create_ca_cert(None);
+    forged_params.key_identifier_method =
+        rcgen::KeyIdMethod::PreSpecified(hex::decode(real_ski).unwrap());
+    let forged_issuer = Issuer::from_params(&forged_params, forged_key);
+    let (leaf_cert, _) = create_cert(&mut leaf_params_with_aki(), &forged_issuer, &forged_params);
+
+    let result = super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &leaf_cert.pem(),
+        &anchors,
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await;
+
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0211);
+}
+
+#[tokio::test]
+async fn trust_anchors_reject_self_signed_leaf_even_if_it_is_an_anchor() {
+    let (ca_cert, _, _) = create_ca_cert(None);
+
+    let result = super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &ca_cert.pem(),
+        &anchors_of(&[&ca_cert.pem()]),
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await;
+
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0244);
+}
+
+#[tokio::test]
+async fn trust_anchors_reject_chain_when_no_anchor_is_held() {
+    let (_ca_cert, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let (leaf_cert, _) = create_cert(&mut leaf_params_with_aki(), &ca_issuer, &ca_params);
+
+    let result = super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &leaf_cert.pem(),
+        &HashMap::new(),
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await;
+
+    assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0244);
+}

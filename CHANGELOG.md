@@ -12,6 +12,8 @@ diverged at `7505afb41`.
 - JWE `ECDH-ES+A256KW` decryption in `one-crypto`.
 - Digital Credentials API handover transcript support for OpenID4VP 1.0.
 - Certificate revocation and trusted-root validation for `mso_mdoc` presentations.
+- `validate_chain_against_trust_anchors`: validates a chain up to one of a set
+  of trust-anchor PEMs, rejecting self-signed leaves.
 
 ### Changed
 
@@ -19,3 +21,8 @@ diverged at `7505afb41`.
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.
 - Minimum supported Rust version raised to 1.95.0.
+- `mso_mdoc` issuer trust now requires a signature path from the Document
+  Signer to a trusted IACA PEM; a matching Authority Key Identifier alone no
+  longer grants trust. `ExtractPresentationCtx.trusted_certs_skids` is replaced
+  by `trusted_certs` (Subject Key Identifier → PEM); `None` or an empty map
+  skips the check, as before.
