@@ -63,7 +63,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Test
-        run: cargo test --verbose -p "${{ steps.crate.outputs.name }}"
+        run: cargo test --verbose --all-features -p "${{ steps.crate.outputs.name }}"
 
       - name: Pack and verify
         run: cargo package --verbose --manifest-path "${{ steps.crate.outputs.manifest }}"
