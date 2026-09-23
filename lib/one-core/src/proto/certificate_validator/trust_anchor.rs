@@ -57,9 +57,10 @@ pub async fn validate_chain_against_trust_anchors(
         return Err(last_error.unwrap_or(Error::EmptyChain));
     }
 
-    for anchor_pem in trusted_anchors.values() {
-        if let Ok(leaf) = validate_against(validator, pem_chain, anchor_pem, validation()).await {
-            return Ok(leaf);
+    for (skid, anchor_pem) in trusted_anchors {
+        match validate_against(validator, pem_chain, anchor_pem, validation()).await {
+            Ok(leaf) => return Ok(leaf),
+            Err(error) => tracing::debug!(%skid, %error, "chain does not validate against anchor"),
         }
     }
 

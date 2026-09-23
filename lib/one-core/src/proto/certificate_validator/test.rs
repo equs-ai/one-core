@@ -464,3 +464,56 @@ async fn trust_anchors_reject_chain_when_no_anchor_is_held() {
 
     assert_eq!(result.unwrap_err().error_code(), ErrorCode::BR_0244);
 }
+
+#[tokio::test]
+async fn trust_anchors_accept_chain_that_includes_its_anchor() {
+    let (ca_cert, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let (leaf_cert, _) = create_cert(&mut leaf_params_with_aki(), &ca_issuer, &ca_params);
+
+    super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &format!("{}{}", leaf_cert.pem(), ca_cert.pem()),
+        &anchors_of(&[&ca_cert.pem()]),
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn trust_anchors_accept_anchor_keyed_by_other_identifier_via_signature() {
+    let (ca_cert, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let (leaf_cert, _) = create_cert(&mut leaf_params_with_aki(), &ca_issuer, &ca_params);
+    let anchors = HashMap::from([("wrong".to_string(), ca_cert.pem())]);
+
+    super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &leaf_cert.pem(),
+        &anchors,
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn trust_anchors_do_not_treat_leaf_sharing_issuer_dn_as_self_signed() {
+    let (ca_cert, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let mut params = leaf_params_with_aki();
+    let mut dn = DistinguishedName::new();
+    dn.push(DnType::CommonName, "CA cert");
+    params.distinguished_name = dn;
+    let (leaf_cert, _) = create_cert(&mut params, &ca_issuer, &ca_params);
+
+    super::validate_chain_against_trust_anchors(
+        &create_certificate_validator(),
+        &leaf_cert.pem(),
+        &anchors_of(&[&ca_cert.pem()]),
+        || CertificateValidationOptions::signature_and_revocation(None),
+    )
+    .await
+    .unwrap();
+}
