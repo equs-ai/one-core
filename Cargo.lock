@@ -728,22 +728,6 @@ dependencies = [
 
 [[package]]
 name = "blstrs"
-version = "0.6.1"
-source = "git+https://github.com/procivis/blstrs.git?rev=a0cb960#a0cb960198e4d6c1a86e6c0eddf8bdb576858cb2"
-dependencies = [
- "blst",
- "byte-slice-cast",
- "digest 0.9.0",
- "ff 0.12.1",
- "group 0.12.1",
- "pairing 0.22.0",
- "rand_core 0.6.4",
- "serde",
- "subtle",
-]
-
-[[package]]
-name = "blstrs"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a8a8ed6fefbeef4a8c7b460e4110e12c5e22a5b7cf32621aae6ad650c4dcf29"
@@ -1879,6 +1863,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "equs-blstrs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca0a8b6713a444d81d541f9210f1fef106509d93bc0781e2cee0fbc53688a87f"
+dependencies = [
+ "blst",
+ "byte-slice-cast",
+ "digest 0.9.0",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "pairing 0.22.0",
+ "rand_core 0.6.4",
+ "serde",
+ "subtle",
+]
+
+[[package]]
 name = "equs-one-core"
 version = "0.1.0"
 dependencies = [
@@ -1975,7 +1976,7 @@ dependencies = [
  "aes-gcm",
  "aes-kw",
  "async-trait",
- "blstrs 0.7.1",
+ "blstrs",
  "cbc",
  "chacha20poly1305",
  "cocoon",
@@ -1983,12 +1984,12 @@ dependencies = [
  "ct-codecs",
  "ed25519-compact",
  "equs-one-core-standardized-types",
+ "equs-pairing-crypto",
  "hex",
  "hmac 0.12.1",
  "ml-dsa",
  "mockall",
  "p256",
- "pairing_crypto",
  "pbkdf2 0.12.2",
  "rand 0.10.0",
  "rand 0.8.5",
@@ -2098,6 +2099,26 @@ dependencies = [
  "time",
  "utoipa",
  "uuid",
+]
+
+[[package]]
+name = "equs-pairing-crypto"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2df17e076e43b0e117f5701f6bc971b80b0eb7dee6e3f068face5d733d251855"
+dependencies = [
+ "digest 0.9.0",
+ "equs-blstrs",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "pairing 0.22.0",
+ "rand 0.8.5",
+ "rand_core 0.6.4",
+ "serde",
+ "sha2 0.9.9",
+ "sha3 0.9.1",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -4250,25 +4271,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81fec4625e73cf41ef4bb6846cafa6d44736525f442ba45e407c4a000a13996f"
 dependencies = [
  "group 0.13.0",
-]
-
-[[package]]
-name = "pairing_crypto"
-version = "0.4.3"
-source = "git+https://github.com/procivis/pairing_crypto?rev=0ec3629#0ec3629ce8ca2cb7c6442fce214235017a8e9b1f"
-dependencies = [
- "blstrs 0.6.1",
- "digest 0.9.0",
- "ff 0.12.1",
- "group 0.12.1",
- "pairing 0.22.0",
- "rand 0.8.5",
- "rand_core 0.6.4",
- "serde",
- "sha2 0.9.9",
- "sha3 0.9.1",
- "subtle",
- "zeroize",
 ]
 
 [[package]]

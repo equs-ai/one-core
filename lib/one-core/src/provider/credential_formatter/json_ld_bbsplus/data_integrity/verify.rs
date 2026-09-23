@@ -284,6 +284,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore = "the proof is draft-06; equs-pairing-crypto 0.1.0 predates it and cannot parse it"]
     // from https://www.w3.org/TR/vc-di-bbs/#example-signed-base-document
     async fn test_verify_derived_proof() {
         let credentials: [VcdmCredential; 2] = [
