@@ -26,3 +26,9 @@ diverged at `7505afb41`.
   longer grants trust. `ExtractPresentationCtx.trusted_certs_skids` is replaced
   by `trusted_certs` (Subject Key Identifier → PEM); `None` or an empty map
   skips the check, as before.
+- BBS+ moved off draft-06. `pairing_crypto` was pinned to `0ec3629` to hold the
+  draft-06 implementation; it is now the published `equs-pairing-crypto 0.1.0`,
+  built from upstream master, which reverted draft-06. Signatures and proofs are
+  not interoperable with the previous build, and the `bbs-2023` data integrity
+  suite no longer parses the example proof from the W3C VC-DI-BBS specification.
+  `test_verify_derived_proof` is ignored for that reason.

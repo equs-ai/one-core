@@ -39,8 +39,7 @@ standardized-types.workspace = true
 strum.workspace              = true
 thiserror.workspace          = true
 
-# pairing_crypto is fixed to this specific commit, so the implementation of BBS+ is still the draft-06 version
-pairing_crypto = { version = "0.4.3", git = "https://github.com/procivis/pairing_crypto", rev = "0ec3629" }
+pairing_crypto = { package = "equs-pairing-crypto", version = "0.1.0" }
 
 # TODO (ONE-8329): should be unified
 rand.workspace  = true
