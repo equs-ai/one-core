@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -19,9 +19,12 @@ use self::session_transcript::iso_18013_7::OID4VPDraftHandover;
 use self::session_transcript::{Handover, SessionTranscript};
 use crate::config::core_config::{FormatType, KeyAlgorithmType, VerificationProtocolType};
 use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::{last_cert_authority_key_identifier_from_pem_chain, pem_chain_into_x5c};
+use crate::mapper::x509::pem_chain_into_x5c;
 use crate::mapper::{decode_cbor_base64, encode_cbor_base64};
-use crate::proto::certificate_validator::{CertificateValidator, CertificateValidatorImpl};
+use crate::proto::certificate_validator::{
+    CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl, EnforceKeyUsage,
+    validate_chain_against_trust_anchors,
+};
 use crate::proto::clock::DefaultClock;
 use crate::proto::cose::{CoseSign1, CoseSign1Builder};
 use crate::proto::http_client::reqwest_client::ReqwestClient;
@@ -229,9 +232,10 @@ impl PresentationFormatter for MsoMdocPresentationFormatter {
             .await?;
 
             try_verify_issuer_auth(
+                &*self.certificate_validator,
                 &issuer_signed.issuer_auth,
                 cert_details.chain.as_str(),
-                context.trusted_certs_skids.as_ref(),
+                context.trusted_certs.as_ref(),
                 &verification_fn,
             )
             .await?;
@@ -416,23 +420,28 @@ impl MsoMdocPresentationFormatter {
 }
 
 async fn try_verify_issuer_auth(
+    certificate_validator: &dyn CertificateValidator,
     CoseSign1(cose_sign1): &CoseSign1,
     pem_chain: &str,
-    trusted_certs_skids: Option<&HashSet<String>>,
+    trusted_certs: Option<&HashMap<String, String>>,
     verifier: &dyn TokenVerifier,
 ) -> Result<(), FormatterError> {
-    // check if the last certificate in the chain is trusted
-    if let Some(trusted_certs_skids) = trusted_certs_skids {
-        let root_ca_skid =
-            last_cert_authority_key_identifier_from_pem_chain(pem_chain).map_err(|e| {
-                FormatterError::CouldNotVerify(format!("Failed to extract AKI of certificate: {e}"))
-            })?;
-
-        if !trusted_certs_skids.contains(&root_ca_skid) {
-            return Err(FormatterError::CouldNotVerify(
-                "Root CA certificate of a chain is not trusted".to_owned(),
-            ));
-        }
+    // the Document Signer chain must validate up to a trusted IACA anchor; no anchor skips the check
+    if let Some(trusted_certs) = trusted_certs.filter(|certs| !certs.is_empty()) {
+        validate_chain_against_trust_anchors(
+            certificate_validator,
+            pem_chain,
+            trusted_certs,
+            || {
+                CertificateValidationOptions::signature_and_revocation(Some(vec![
+                    EnforceKeyUsage::DigitalSignature,
+                ]))
+            },
+        )
+        .await
+        .map_err(|e| {
+            FormatterError::CouldNotVerify(format!("Issuer certificate chain is not trusted: {e}"))
+        })?;
     }
 
     let x5c = pem_chain_into_x5c(pem_chain).map_err(|err| {

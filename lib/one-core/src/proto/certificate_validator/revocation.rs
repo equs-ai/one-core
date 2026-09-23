@@ -62,9 +62,20 @@ impl CertificateValidatorImpl {
     ) -> Result<bool, Error> {
         let (_, crl) = x509_parser::parse_x509_crl(downloaded_crl)?;
 
-        if let Some(parent) = parent {
-            self.check_crl_signature(&crl, parent)?;
-        }
+        // A CRL is signed by the issuer of `certificate`: that is `parent` when the chain
+        // carries it, and `certificate` itself when it is self-issued (a root CA signs its
+        // own CRL).
+        let crl_signer = match parent {
+            Some(parent) => parent,
+            None if certificate.issuer() == certificate.subject() => certificate,
+            None => {
+                return Err(Error::CRLCheckFailed(
+                    "CRL signer certificate is not present in the chain".to_string(),
+                ));
+            }
+        };
+
+        self.check_crl_signature(&crl, crl_signer)?;
 
         // check CRL validity
         if crl.last_update().to_datetime() > crate::clock::now_utc() {

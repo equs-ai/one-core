@@ -26,7 +26,10 @@ use crate::service::certificate::dto::CertificateX509AttributesDTO;
 
 pub mod parse;
 mod revocation;
+mod trust_anchor;
 pub(crate) mod x509_extension;
+
+pub use trust_anchor::validate_chain_against_trust_anchors;
 
 #[cfg(test)]
 mod test;

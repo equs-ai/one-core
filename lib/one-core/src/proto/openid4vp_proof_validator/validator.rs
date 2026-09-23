@@ -208,7 +208,7 @@ impl OpenId4VpProofValidatorProto {
                     response_uri: None,
                     mdoc_session_transcript: None,
                     verifier_key: None,
-                    trusted_certs_skids: None,
+                    trusted_certs: None,
                 }
             };
 
@@ -549,7 +549,7 @@ impl OpenId4VpProofValidatorProto {
                     response_uri: None,
                     mdoc_session_transcript: None,
                     verifier_key: None,
-                    trusted_certs_skids: None,
+                    trusted_certs: None,
                 }
             };
 

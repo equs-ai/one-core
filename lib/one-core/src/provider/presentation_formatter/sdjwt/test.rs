@@ -407,7 +407,7 @@ async fn test_extract_presentation() {
                 client_id: None,
                 response_uri: None,
                 verifier_key: None,
-                trusted_certs_skids: None,
+                trusted_certs: None,
             },
         )
         .await

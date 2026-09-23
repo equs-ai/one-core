@@ -468,7 +468,7 @@ pub fn extract_presentation_ctx_from_interaction_content(
         expiration_date: None,
         mdoc_session_transcript: None,
         verifier_key: content.encryption_key,
-        trusted_certs_skids: None,
+        trusted_certs: None,
     }
 }
 
