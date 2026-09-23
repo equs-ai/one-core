@@ -2,6 +2,7 @@
 authors      = ["Procivis"]
 edition      = "2024"
 license      = "Apache-2.0"
+repository   = "https://github.com/equs-ai/one-core"
 rust-version = "1.95.0"
 version      = "0.1.0"
 
@@ -59,9 +60,9 @@ serde_qs                 = { version = "0.15" }
 serde_urlencoded         = { version = "0.7" }
 serde_with               = { version = "3.8", features = ["json", "time_0_3"] }
 shadow-rs                = { version = "1.5" }
-shared-types             = { version = "0.1.0", path = "lib/shared-types", features = ["sea-orm"] }
+shared-types             = { package = "equs-one-core-shared-types", version = "0.1.0", path = "lib/shared-types", features = ["sea-orm"] }
 similar-asserts          = { version = "1.7" }
-standardized-types       = { version = "0.1.0", path = "lib/standardized-types" }
+standardized-types       = { package = "equs-one-core-standardized-types", version = "0.1.0", path = "lib/standardized-types" }
 strum                    = { version = "0.27", features = ["derive"] }
 tempfile                 = { version = "3.10" }
 thiserror                = { version = "2.0" }

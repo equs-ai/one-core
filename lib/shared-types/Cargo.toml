@@ -1,14 +1,16 @@
 [package]
-authors           = ["Procivis"]
-edition.workspace = true
-license           = "Apache-2.0"
-name              = "shared-types"
-publish           = false
-version.workspace = true
+authors                = ["Procivis"]
+description            = "Shared identifier and value types for Procivis One Core"
+edition.workspace      = true
+license                = "Apache-2.0"
+name                   = "equs-one-core-shared-types"
+repository.workspace   = true
 rust-version.workspace = true
+version.workspace      = true
 
 # disable doctests
 [lib]
+name    = "shared_types"
 doctest = false
 
 [features]

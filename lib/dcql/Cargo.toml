@@ -2,10 +2,13 @@
 description            = "Digital Credentials Query Language (DCQL) implementation"
 edition                = "2024"
 license                = "Apache-2.0"
-name                   = "dcql"
-publish                = false
+name                   = "equs-one-core-dcql"
+repository.workspace   = true
 rust-version.workspace = true
 version                = "0.1.0"
+
+[lib]
+name = "dcql"
 
 [dependencies]
 bon.workspace                = true

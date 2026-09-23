@@ -1,13 +1,15 @@
 [package]
 authors                = ["Procivis"]
+description            = "Cryptographic primitives and signers for Procivis One Core"
 edition.workspace      = true
 license                = "Apache-2.0"
-name                   = "one-crypto"
-publish                = false
+name                   = "equs-one-core-crypto"
+repository.workspace   = true
 rust-version.workspace = true
 version                = "0.1.0"
 
 [lib]
+name    = "one_crypto"
 doctest = false
 
 [dependencies]
