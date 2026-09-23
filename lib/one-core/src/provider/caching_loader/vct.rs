@@ -57,7 +57,7 @@ impl VctTypeMetadataCache {
 
     // Fills the empty cache with values from `resource/sd_jwt_vc_vcts.json`
     pub async fn initialize_from_static_resources(&self) -> anyhow::Result<()> {
-        let schemas = include_str!("../../../../../resource/sd_jwt_vc_vcts.json");
+        let schemas = include_str!("../../../resource/sd_jwt_vc_vcts.json");
 
         let vcts: Vec<SdJwtVcTypeMetadataResponseDTO> =
             serde_json::from_str(schemas).context("Invalid VCT type metadata resource file")?;
