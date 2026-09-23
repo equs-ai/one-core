@@ -573,9 +573,10 @@ fn unwrap_cek_aes256(
         .map_err(|e| EncryptionError::Crypto(format!("Invalid A256KW KEK: {e}")))?;
 
     // RFC 3394 unwrap produces 8 fewer bytes than the wrapped input.
-    let unwrapped_len = wrapped_cek.len().checked_sub(8).ok_or_else(|| {
-        EncryptionError::Crypto("Invalid JWE: wrapped CEK too short".to_string())
-    })?;
+    let unwrapped_len = wrapped_cek
+        .len()
+        .checked_sub(8)
+        .ok_or_else(|| EncryptionError::Crypto("Invalid JWE: wrapped CEK too short".to_string()))?;
 
     let mut cek = SecretSlice::from(vec![0u8; unwrapped_len]);
     kek.unwrap(wrapped_cek, cek.expose_secret_mut())
@@ -824,7 +825,8 @@ mod test {
             Base64UrlSafeNoPadding::encode_to_string(serde_json::to_vec(&header).unwrap()).unwrap();
         // nonce/payload/tag are irrelevant — the error is raised at cipher
         // construction, before they are read.
-        let jwe = format!("{header_b64}.{wrapped_b64}.AAAAAAAAAAAAAAAA.AAAA.AAAAAAAAAAAAAAAAAAAAAA");
+        let jwe =
+            format!("{header_b64}.{wrapped_b64}.AAAAAAAAAAAAAAAA.AAAA.AAAAAAAAAAAAAAAAAAAAAA");
 
         let result = decrypt_jwe_payload(&jwe, &wrap_p256_private_key(PRIVATE_JWK_EC)).await;
 

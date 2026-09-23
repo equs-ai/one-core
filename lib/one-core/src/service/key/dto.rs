@@ -30,9 +30,6 @@ pub struct KeyResponseDTO {
     pub is_remote: bool,
 }
 
-// KeyListItemResponseDTO is moved to one-core-portable
-// GetKeyListResponseDTO is moved to one-core-portable
-
 pub type GetKeyQueryDTO = GetListQueryParams<SortableKeyColumn>;
 
 #[derive(Debug, Clone, Into)]
