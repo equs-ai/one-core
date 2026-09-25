@@ -38,6 +38,7 @@ use crate::provider::credential_formatter::mdoc_formatter::util::{
     EmbeddedCbor, IssuerSigned, extract_certificate_from_x5chain_header,
     try_build_algorithm_header, try_extract_holder_public_key, try_extract_mobile_security_object,
 };
+use crate::provider::credential_formatter::mdoc_formatter::verify_digests;
 use crate::provider::credential_formatter::model::{
     AuthenticationFn, CertificateDetails, IdentifierDetails, PublicKeySource, SignatureProvider,
     TokenVerifier, VerificationFn,
@@ -236,6 +237,7 @@ impl PresentationFormatter for MsoMdocPresentationFormatter {
                 &verification_fn,
             )
             .await?;
+            verify_issuer_signed_data(&issuer_signed, &document.doc_type)?;
 
             let holder_jwk = try_extract_holder_public_key(&issuer_signed.issuer_auth)?;
 
@@ -424,6 +426,26 @@ async fn parse_issuer_certificate(
     extract_certificate_from_x5chain_header(certificate_validator, issuer_auth, false).await
 }
 
+/// Issuer data authentication (ISO/IEC 18013-5 §9.3.1) beyond the `issuerAuth` signature.
+fn verify_issuer_signed_data(
+    issuer_signed: &IssuerSigned,
+    doc_type: &str,
+) -> Result<(), FormatterError> {
+    let mso = try_extract_mobile_security_object(&issuer_signed.issuer_auth)?;
+
+    if mso.doc_type != doc_type {
+        return Err(FormatterError::CouldNotVerify(format!(
+            "MSO docType `{}` does not match the document docType `{doc_type}`",
+            mso.doc_type
+        )));
+    }
+
+    match &issuer_signed.name_spaces {
+        Some(namespaces) => verify_digests(&mso, namespaces),
+        None => Ok(()),
+    }
+}
+
 async fn try_verify_issuer_auth(
     certificate_validator: &dyn CertificateValidator,
     CoseSign1(cose_sign1): &CoseSign1,
@@ -608,13 +630,20 @@ mod test {
     use wiremock::matchers::method;
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    use super::{parse_issuer_certificate, try_verify_issuer_auth};
+    use indexmap::IndexMap;
+    use sha2::{Digest, Sha256};
+
+    use super::{parse_issuer_certificate, try_verify_issuer_auth, verify_issuer_signed_data};
     use crate::mapper::x509::subject_key_identifier;
     use crate::proto::certificate_validator::{
-        CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl, EnforceKeyUsage,
-        Error, validate_chain_against_trust_anchors,
+        CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl,
+        EnforceKeyUsage, Error, validate_chain_against_trust_anchors,
     };
     use crate::proto::cose::CoseSign1;
+    use crate::provider::credential_formatter::mdoc_formatter::util::{
+        Bstr, DateTime, DeviceKey, DeviceKeyInfo, DigestAlgorithm, EmbeddedCbor, IssuerSigned,
+        IssuerSignedItem, MobileSecurityObject, MobileSecurityObjectVersion, ValidityInfo,
+    };
     use crate::provider::credential_formatter::model::{MockTokenVerifier, PublicKeySource};
 
     const DS_SERIAL: u64 = 0x2a;
@@ -665,8 +694,8 @@ mod test {
             revoked_certs,
             key_identifier_method,
         }
-            .signed_by(&iaca_issuer)
-            .unwrap();
+        .signed_by(&iaca_issuer)
+        .unwrap();
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_bytes(crl.der().to_vec()))
@@ -743,8 +772,8 @@ mod test {
             &CertificateValidatorImpl::default(),
             &issuer_auth(pki.ds_der),
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         assert_eq!(
             details.subject_common_name.as_deref(),
@@ -788,8 +817,8 @@ mod test {
             with_anchor.then_some(&trusted_certs),
             &verifier,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
     }
 
     #[rstest]
@@ -806,7 +835,7 @@ mod test {
             &HashMap::from([(pki.iaca_skid, pki.iaca_pem)]),
             ds_signature_and_revocation,
         )
-            .await;
+        .await;
 
         if revoked {
             assert!(
@@ -818,4 +847,111 @@ mod test {
         }
     }
 
+    const DOC_TYPE: &str = "org.example.test.doc";
+    const NAMESPACE: &str = "org.example.test";
+
+    fn given_name_item(value: &str) -> EmbeddedCbor<IssuerSignedItem> {
+        EmbeddedCbor::new(IssuerSignedItem {
+            digest_id: 0,
+            random: Bstr(vec![7; 16]),
+            element_identifier: "given_name".to_owned(),
+            element_value: Value::Text(value.to_owned()),
+        })
+        .unwrap()
+    }
+
+    /// `IssuerSigned` disclosing `presented` as `given_name`, under an MSO for `mso_doc_type` whose
+    /// digest was computed over `signed`. `issuerAuth` is unsigned: only its MSO payload is read.
+    fn issuer_signed(signed: &str, presented: &str, mso_doc_type: &str) -> IssuerSigned {
+        let digest = Sha256::digest(given_name_item(signed).bytes()).to_vec();
+        let now = crate::clock::now_utc();
+        let mso = MobileSecurityObject {
+            version: MobileSecurityObjectVersion::V1_0,
+            digest_algorithm: DigestAlgorithm::Sha256,
+            value_digests: IndexMap::from([(
+                NAMESPACE.to_owned(),
+                IndexMap::from([(0, Bstr(digest))]),
+            )]),
+            device_key_info: DeviceKeyInfo {
+                device_key: DeviceKey(
+                    coset::CoseKeyBuilder::new_ec2_pub_key(
+                        iana::EllipticCurve::P_256,
+                        vec![1; 32],
+                        vec![2; 32],
+                    )
+                    .build(),
+                ),
+                key_authorizations: None,
+                key_info: None,
+            },
+            doc_type: mso_doc_type.to_owned(),
+            validity_info: ValidityInfo {
+                signed: DateTime(now),
+                valid_from: DateTime(now),
+                valid_until: DateTime(now + Duration::days(1)),
+                expected_update: None,
+            },
+        };
+        let payload = EmbeddedCbor::new(mso).unwrap().into_bytes();
+
+        IssuerSigned {
+            name_spaces: Some(IndexMap::from([(
+                NAMESPACE.to_owned(),
+                vec![given_name_item(presented)],
+            )])),
+            issuer_auth: CoseSign1(coset::CoseSign1Builder::new().payload(payload).build()),
+        }
+    }
+
+    #[rstest]
+    #[case::genuine("Erika", "Erika", DOC_TYPE, None)]
+    #[case::tampered_element("Erika", "Erikb", DOC_TYPE, Some("Invalid digest"))]
+    #[case::other_doc_type(
+        "Erika",
+        "Erika",
+        "org.example.other.doc",
+        Some("does not match the document docType")
+    )]
+    fn disclosed_data_must_match_the_mso(
+        #[case] signed: &str,
+        #[case] presented: &str,
+        #[case] mso_doc_type: &str,
+        #[case] expected_error: Option<&str>,
+    ) {
+        let result =
+            verify_issuer_signed_data(&issuer_signed(signed, presented, mso_doc_type), DOC_TYPE);
+
+        match expected_error {
+            None => result.unwrap(),
+            Some(expected) => {
+                let error = result.unwrap_err().to_string();
+                assert!(error.contains(expected), "unexpected error: {error}");
+            }
+        }
+    }
+
+    #[test]
+    fn element_of_a_namespace_without_digests_is_rejected() {
+        let mut signed = issuer_signed("Erika", "Erika", DOC_TYPE);
+        let name_spaces = signed.name_spaces.as_mut().unwrap();
+        let items = name_spaces.shift_remove(NAMESPACE).unwrap();
+        name_spaces.insert("org.example.unsigned".to_owned(), items);
+
+        let error = verify_issuer_signed_data(&signed, DOC_TYPE)
+            .unwrap_err()
+            .to_string();
+
+        assert!(
+            error.contains("Missing digests for namespace"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn nothing_disclosed_needs_no_digests() {
+        let mut signed = issuer_signed("Erika", "Erika", DOC_TYPE);
+        signed.name_spaces = None;
+
+        verify_issuer_signed_data(&signed, DOC_TYPE).unwrap();
+    }
 }
