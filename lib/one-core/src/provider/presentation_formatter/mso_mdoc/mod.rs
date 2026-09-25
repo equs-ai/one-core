@@ -39,8 +39,8 @@ use crate::provider::credential_formatter::mdoc_formatter::util::{
     try_build_algorithm_header, try_extract_holder_public_key, try_extract_mobile_security_object,
 };
 use crate::provider::credential_formatter::model::{
-    AuthenticationFn, IdentifierDetails, PublicKeySource, SignatureProvider, TokenVerifier,
-    VerificationFn,
+    AuthenticationFn, CertificateDetails, IdentifierDetails, PublicKeySource, SignatureProvider,
+    TokenVerifier, VerificationFn,
 };
 use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProviderImpl;
@@ -224,12 +224,9 @@ impl PresentationFormatter for MsoMdocPresentationFormatter {
         for document in documents {
             let issuer_signed = document.issuer_signed;
 
-            let cert_details = extract_certificate_from_x5chain_header(
-                &*self.certificate_validator,
-                &issuer_signed.issuer_auth,
-                true,
-            )
-            .await?;
+            let cert_details =
+                parse_issuer_certificate(&*self.certificate_validator, &issuer_signed.issuer_auth)
+                    .await?;
 
             try_verify_issuer_auth(
                 &*self.certificate_validator,
@@ -419,6 +416,14 @@ impl MsoMdocPresentationFormatter {
     }
 }
 
+/// Parses the Document Signer chain of `issuer_auth` without validating it.
+async fn parse_issuer_certificate(
+    certificate_validator: &dyn CertificateValidator,
+    issuer_auth: &CoseSign1,
+) -> Result<CertificateDetails, FormatterError> {
+    extract_certificate_from_x5chain_header(certificate_validator, issuer_auth, false).await
+}
+
 async fn try_verify_issuer_auth(
     certificate_validator: &dyn CertificateValidator,
     CoseSign1(cose_sign1): &CoseSign1,
@@ -427,22 +432,27 @@ async fn try_verify_issuer_auth(
     verifier: &dyn TokenVerifier,
 ) -> Result<(), FormatterError> {
     // the Document Signer chain must validate up to a trusted IACA anchor; no anchor skips the check
-    if let Some(trusted_certs) = trusted_certs.filter(|certs| !certs.is_empty()) {
-        validate_chain_against_trust_anchors(
-            certificate_validator,
-            pem_chain,
-            trusted_certs,
-            || {
-                CertificateValidationOptions::signature_and_revocation(Some(vec![
-                    EnforceKeyUsage::DigitalSignature,
-                ]))
-            },
-        )
-        .await
-        .map_err(|e| {
-            FormatterError::CouldNotVerify(format!("Issuer certificate chain is not trusted: {e}"))
-        })?;
-    }
+    let trusted_leaf = match trusted_certs.filter(|certs| !certs.is_empty()) {
+        Some(trusted_certs) => Some(
+            validate_chain_against_trust_anchors(
+                certificate_validator,
+                pem_chain,
+                trusted_certs,
+                || {
+                    CertificateValidationOptions::signature_and_revocation(Some(vec![
+                        EnforceKeyUsage::DigitalSignature,
+                    ]))
+                },
+            )
+            .await
+            .map_err(|e| {
+                FormatterError::CouldNotVerify(format!(
+                    "Issuer certificate chain is not trusted: {e}"
+                ))
+            })?,
+        ),
+        None => None,
+    };
 
     let x5c = pem_chain_into_x5c(pem_chain).map_err(|err| {
         FormatterError::CouldNotExtractPresentation(format!("Failed to create x5c: {err}"))
@@ -460,7 +470,14 @@ async fn try_verify_issuer_auth(
         FormatterError::CouldNotVerify("IssuerAuth is missing algorithm information".to_owned())
     })?;
 
-    let params = PublicKeySource::X5c { x5c: &x5c };
+    let params = match trusted_leaf {
+        Some(leaf) => PublicKeySource::Jwk {
+            jwk: Cow::Owned(leaf.public_key.public_key_as_jwk().map_err(|e| {
+                FormatterError::CouldNotVerify(format!("Failed to read the DS public key: {e}"))
+            })?),
+        },
+        None => PublicKeySource::X5c { x5c: &x5c },
+    };
     Ok(verifier
         .verify(params, algorithm, &token, &cose_sign1.signature)
         .await
@@ -571,4 +588,234 @@ async fn try_build_device_signed(
     };
 
     Ok(device_signed)
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use ciborium::Value;
+    use coset::iana::EnumI64;
+    use coset::{HeaderBuilder, iana};
+    use rcgen::{
+        BasicConstraints, CertificateParams, CertificateRevocationListParams, CrlDistributionPoint,
+        DistinguishedName, DnType, IsCa, Issuer, KeyPair, KeyUsagePurpose, RevokedCertParams,
+        SerialNumber,
+    };
+    use rstest::rstest;
+    use similar_asserts::assert_eq;
+    use time::Duration;
+    use wiremock::matchers::method;
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    use super::{parse_issuer_certificate, try_verify_issuer_auth};
+    use crate::mapper::x509::subject_key_identifier;
+    use crate::proto::certificate_validator::{
+        CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl, EnforceKeyUsage,
+        Error, validate_chain_against_trust_anchors,
+    };
+    use crate::proto::cose::CoseSign1;
+    use crate::provider::credential_formatter::model::{MockTokenVerifier, PublicKeySource};
+
+    const DS_SERIAL: u64 = 0x2a;
+
+    struct TestPki {
+        iaca_pem: String,
+        iaca_skid: String,
+        ds_pem: String,
+        ds_der: Vec<u8>,
+    }
+
+    async fn test_pki(crl_server: &MockServer, revoke_ds: bool, crl_downloads: u64) -> TestPki {
+        let iaca_key = KeyPair::generate().unwrap();
+        let mut iaca_params = CertificateParams::default();
+        iaca_params.distinguished_name = common_name("Test IACA");
+        iaca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+        iaca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+        let key_identifier_method = iaca_params.key_identifier_method.clone();
+        let iaca = iaca_params.self_signed(&iaca_key).unwrap();
+        let iaca_issuer = Issuer::new(iaca_params, iaca_key);
+
+        let ds_key = KeyPair::generate().unwrap();
+        let mut ds_params = CertificateParams::default();
+        ds_params.distinguished_name = common_name("Test Document Signer");
+        ds_params.serial_number = Some(SerialNumber::from(DS_SERIAL));
+        ds_params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
+        ds_params.use_authority_key_identifier_extension = true;
+        ds_params.crl_distribution_points = vec![CrlDistributionPoint {
+            uris: vec![format!("{}/crl", crl_server.uri())],
+        }];
+        let ds = ds_params.signed_by(&ds_key, &iaca_issuer).unwrap();
+
+        let now = crate::clock::now_utc();
+        let revoked_certs = revoke_ds
+            .then(|| RevokedCertParams {
+                serial_number: SerialNumber::from(DS_SERIAL),
+                revocation_time: now - Duration::hours(1),
+                reason_code: None,
+                invalidity_date: None,
+            })
+            .into_iter()
+            .collect();
+        let crl = CertificateRevocationListParams {
+            this_update: now - Duration::hours(1),
+            next_update: now + Duration::hours(24),
+            crl_number: SerialNumber::from(1u64),
+            issuing_distribution_point: None,
+            revoked_certs,
+            key_identifier_method,
+        }
+            .signed_by(&iaca_issuer)
+            .unwrap();
+
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(crl.der().to_vec()))
+            .expect(crl_downloads)
+            .mount(crl_server)
+            .await;
+
+        let (_, iaca_x509) = x509_parser::parse_x509_certificate(iaca.der()).unwrap();
+        TestPki {
+            iaca_pem: iaca.pem(),
+            iaca_skid: subject_key_identifier(&iaca_x509).unwrap().unwrap(),
+            ds_pem: ds.pem(),
+            ds_der: ds.der().to_vec(),
+        }
+    }
+
+    fn common_name(name: &str) -> DistinguishedName {
+        let mut dn = DistinguishedName::new();
+        dn.push(DnType::CommonName, name);
+        dn
+    }
+
+    /// An ES256 `issuerAuth` whose `x5chain` carries only `ds_der`; its signature is left empty.
+    fn issuer_auth(ds_der: Vec<u8>) -> CoseSign1 {
+        let protected = HeaderBuilder::new()
+            .algorithm(iana::Algorithm::ES256)
+            .build();
+        let x5chain = HeaderBuilder::new()
+            .value(
+                iana::HeaderParameter::X5Chain.to_i64(),
+                Value::Bytes(ds_der),
+            )
+            .build();
+
+        CoseSign1(
+            coset::CoseSign1Builder::new()
+                .protected(protected)
+                .unprotected(x5chain)
+                .payload(vec![])
+                .build(),
+        )
+    }
+
+    fn ds_signature_and_revocation() -> CertificateValidationOptions {
+        CertificateValidationOptions::signature_and_revocation(Some(vec![
+            EnforceKeyUsage::DigitalSignature,
+        ]))
+    }
+
+    #[tokio::test]
+    async fn standalone_ds_chain_cannot_check_its_crl() {
+        let crl_server = MockServer::start().await;
+        let pki = test_pki(&crl_server, false, 1).await;
+
+        let error = CertificateValidatorImpl::default()
+            .parse_pem_chain(&pki.ds_pem, ds_signature_and_revocation())
+            .await
+            .unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("CRL signer certificate is not present in the chain"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[tokio::test]
+    async fn issuer_certificate_is_parsed_without_checking_revocation() {
+        let crl_server = MockServer::start().await;
+        let pki = test_pki(&crl_server, false, 0).await;
+
+        let details = parse_issuer_certificate(
+            &CertificateValidatorImpl::default(),
+            &issuer_auth(pki.ds_der),
+        )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            details.subject_common_name.as_deref(),
+            Some("Test Document Signer")
+        );
+    }
+
+    #[rstest]
+    #[case::trusted_iaca(true)]
+    #[case::no_trust_anchors(false)]
+    #[tokio::test]
+    async fn issuer_signature_is_verified_with_the_ds_key_the_trusted_iaca_vouches_for(
+        #[case] with_anchor: bool,
+    ) {
+        let crl_server = MockServer::start().await;
+        let pki = test_pki(&crl_server, false, u64::from(with_anchor)).await;
+        let trusted_certs = HashMap::from([(pki.iaca_skid.clone(), pki.iaca_pem.clone())]);
+        let ds_jwk = CertificateValidatorImpl::default()
+            .parse_pem_chain(&pki.ds_pem, CertificateValidationOptions::no_validation())
+            .await
+            .unwrap()
+            .public_key
+            .public_key_as_jwk()
+            .unwrap();
+
+        let mut verifier = MockTokenVerifier::new();
+        verifier
+            .expect_verify()
+            .withf(move |source, _, _, _| match source {
+                PublicKeySource::Jwk { jwk } => with_anchor && **jwk == ds_jwk,
+                PublicKeySource::X5c { .. } => !with_anchor,
+                PublicKeySource::Did { .. } => false,
+            })
+            .once()
+            .return_once(|_, _, _, _| Ok(()));
+
+        try_verify_issuer_auth(
+            &CertificateValidatorImpl::default(),
+            &issuer_auth(pki.ds_der),
+            &pki.ds_pem,
+            with_anchor.then_some(&trusted_certs),
+            &verifier,
+        )
+            .await
+            .unwrap();
+    }
+
+    #[rstest]
+    #[case::valid_ds(false)]
+    #[case::revoked_ds(true)]
+    #[tokio::test]
+    async fn ds_revocation_is_checked_against_the_trusted_iaca(#[case] revoked: bool) {
+        let crl_server = MockServer::start().await;
+        let pki = test_pki(&crl_server, revoked, 1).await;
+
+        let result = validate_chain_against_trust_anchors(
+            &CertificateValidatorImpl::default(),
+            &pki.ds_pem,
+            &HashMap::from([(pki.iaca_skid, pki.iaca_pem)]),
+            ds_signature_and_revocation,
+        )
+            .await;
+
+        if revoked {
+            assert!(
+                matches!(result, Err(Error::CertificateRevoked)),
+                "{result:?}"
+            );
+        } else {
+            result.unwrap();
+        }
+    }
+
 }
