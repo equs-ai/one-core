@@ -225,9 +225,12 @@ impl PresentationFormatter for MsoMdocPresentationFormatter {
         for document in documents {
             let issuer_signed = document.issuer_signed;
 
-            let cert_details =
-                parse_issuer_certificate(&*self.certificate_validator, &issuer_signed.issuer_auth)
-                    .await?;
+            let cert_details = extract_issuer_certificate(
+                &*self.certificate_validator,
+                &issuer_signed.issuer_auth,
+                context.trusted_certs.as_ref(),
+            )
+            .await?;
 
             try_verify_issuer_auth(
                 &*self.certificate_validator,
@@ -418,24 +421,28 @@ impl MsoMdocPresentationFormatter {
     }
 }
 
-/// Parses the Document Signer chain of `issuer_auth` without validating it.
-async fn parse_issuer_certificate(
+/// Extracts the Document Signer chain of `issuer_auth`.
+async fn extract_issuer_certificate(
     certificate_validator: &dyn CertificateValidator,
     issuer_auth: &CoseSign1,
+    trusted_certs: Option<&HashMap<String, String>>,
 ) -> Result<CertificateDetails, FormatterError> {
-    extract_certificate_from_x5chain_header(certificate_validator, issuer_auth, false).await
+    let has_trust_anchors = trusted_certs.is_some_and(|certs| !certs.is_empty());
+
+    extract_certificate_from_x5chain_header(certificate_validator, issuer_auth, !has_trust_anchors)
+        .await
 }
 
 /// Issuer data authentication (ISO/IEC 18013-5 §9.3.1) beyond the `issuerAuth` signature.
 fn verify_issuer_signed_data(
     issuer_signed: &IssuerSigned,
-    doc_type: &str,
+    presented_doc_type: &str,
 ) -> Result<(), FormatterError> {
     let mso = try_extract_mobile_security_object(&issuer_signed.issuer_auth)?;
 
-    if mso.doc_type != doc_type {
+    if mso.doc_type != presented_doc_type {
         return Err(FormatterError::CouldNotVerify(format!(
-            "MSO docType `{}` does not match the document docType `{doc_type}`",
+            "MSO docType `{}` does not match the presented docType `{presented_doc_type}`",
             mso.doc_type
         )));
     }
@@ -633,7 +640,7 @@ mod test {
     use indexmap::IndexMap;
     use sha2::{Digest, Sha256};
 
-    use super::{parse_issuer_certificate, try_verify_issuer_auth, verify_issuer_signed_data};
+    use super::{extract_issuer_certificate, try_verify_issuer_auth, verify_issuer_signed_data};
     use crate::mapper::x509::subject_key_identifier;
     use crate::proto::certificate_validator::{
         CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl,
@@ -764,13 +771,15 @@ mod test {
     }
 
     #[tokio::test]
-    async fn issuer_certificate_is_parsed_without_checking_revocation() {
+    async fn with_trust_anchors_the_issuer_certificate_is_only_parsed() {
         let crl_server = MockServer::start().await;
         let pki = test_pki(&crl_server, false, 0).await;
+        let trusted_certs = HashMap::from([(pki.iaca_skid.clone(), pki.iaca_pem.clone())]);
 
-        let details = parse_issuer_certificate(
+        let details = extract_issuer_certificate(
             &CertificateValidatorImpl::default(),
             &issuer_auth(pki.ds_der),
+            Some(&trusted_certs),
         )
         .await
         .unwrap();
@@ -779,6 +788,59 @@ mod test {
             details.subject_common_name.as_deref(),
             Some("Test Document Signer")
         );
+    }
+
+    #[rstest]
+    #[case::no_trusted_certs(None)]
+    #[case::empty_trusted_certs(Some(HashMap::new()))]
+    #[tokio::test]
+    async fn without_trust_anchors_the_issuer_certificate_is_validated(
+        #[case] trusted_certs: Option<HashMap<String, String>>,
+    ) {
+        let ds_der = ds_without_crl(vec![KeyUsagePurpose::DigitalSignature]);
+        extract_issuer_certificate(
+            &CertificateValidatorImpl::default(),
+            &issuer_auth(ds_der),
+            trusted_certs.as_ref(),
+        )
+        .await
+        .unwrap();
+
+        let non_signing_ds_der = ds_without_crl(vec![KeyUsagePurpose::KeyEncipherment]);
+        let error = extract_issuer_certificate(
+            &CertificateValidatorImpl::default(),
+            &issuer_auth(non_signing_ds_der),
+            trusted_certs.as_ref(),
+        )
+        .await
+        .unwrap_err();
+
+        assert!(
+            error.to_string().contains("DigitalSignature"),
+            "unexpected error: {error}"
+        );
+    }
+
+    /// A DS certificate, issued by a throwaway IACA, that names no CRL.
+    fn ds_without_crl(key_usages: Vec<KeyUsagePurpose>) -> Vec<u8> {
+        let iaca_key = KeyPair::generate().unwrap();
+        let mut iaca_params = CertificateParams::default();
+        iaca_params.distinguished_name = common_name("Test IACA");
+        iaca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+        iaca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+        let iaca_issuer = Issuer::new(iaca_params, iaca_key);
+
+        let ds_key = KeyPair::generate().unwrap();
+        let mut ds_params = CertificateParams::default();
+        ds_params.distinguished_name = common_name("Test Document Signer");
+        ds_params.key_usages = key_usages;
+        ds_params.use_authority_key_identifier_extension = true;
+
+        ds_params
+            .signed_by(&ds_key, &iaca_issuer)
+            .unwrap()
+            .der()
+            .to_vec()
     }
 
     #[rstest]
@@ -910,7 +972,7 @@ mod test {
         "Erika",
         "Erika",
         "org.example.other.doc",
-        Some("does not match the document docType")
+        Some("does not match the presented docType")
     )]
     fn disclosed_data_must_match_the_mso(
         #[case] signed: &str,
