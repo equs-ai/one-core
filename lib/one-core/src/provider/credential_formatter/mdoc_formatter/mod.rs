@@ -596,7 +596,7 @@ impl CredentialFormatter for MdocFormatter {
     }
 }
 
-fn verify_digests(
+pub(crate) fn verify_digests(
     mso: &MobileSecurityObject,
     namespaces: &Namespaces,
 ) -> Result<(), FormatterError> {
