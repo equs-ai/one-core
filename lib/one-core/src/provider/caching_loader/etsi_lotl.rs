@@ -1,21 +1,24 @@
 use std::sync::Arc;
 
 use crate::error::ContextWithErrorCode;
+use crate::proto::clock::Clock;
 use crate::provider::caching_loader::{CacheError, CachingLoader, Resolver, ResolverError};
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 
+/// Cache of pre-processed ETSI LoTL lists. Every lookup supplies the resolver, bound to a list
+/// location and a signer pin; the key carries the pin, so lists authenticated under different
+/// pins never share an entry.
 pub struct EtsiLotlCache {
     inner: CachingLoader,
-    resolver: Arc<dyn Resolver<Error = ResolverError>>,
 }
 
 impl EtsiLotlCache {
     pub fn new(
-        resolver: Arc<dyn Resolver<Error = ResolverError>>,
         storage: Arc<dyn RemoteEntityStorage>,
         cache_size: usize,
         cache_refresh_timeout: time::Duration,
         refresh_after: time::Duration,
+        clock: Arc<dyn Clock>,
     ) -> Self {
         Self {
             inner: CachingLoader::new(
@@ -24,17 +27,21 @@ impl EtsiLotlCache {
                 cache_size,
                 cache_refresh_timeout,
                 refresh_after,
-            ),
-            resolver,
+            )
+            .with_clock(clock),
         }
     }
 
-    pub async fn get(&self, key: &str) -> Result<Vec<u8>, CacheError> {
-        let (data, _) = self
+    pub async fn get_with(
+        &self,
+        key: &str,
+        resolver: Arc<dyn Resolver<Error = ResolverError>>,
+    ) -> Result<Vec<u8>, CacheError> {
+        let (content, _) = self
             .inner
-            .get(key, self.resolver.clone(), false)
+            .get(key, resolver, false)
             .await
             .error_while("getting ETSI LoTL")?;
-        Ok(data)
+        Ok(content)
     }
 }

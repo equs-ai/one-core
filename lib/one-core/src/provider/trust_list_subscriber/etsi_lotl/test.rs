@@ -11,19 +11,23 @@ use time::Duration;
 use time::macros::datetime;
 use url::Url;
 
-use super::model::{PreprocessedLotl, TslServiceEntry};
-use super::resolver::{PointerKind, classify_pointer};
+use super::model::{DelegatedMember, PreprocessedLotl, TslServiceEntry};
+use super::resolver::{EtsiLotlResolver, EtsiLotlResolverOptions, PointerKind, classify_pointer};
 use super::{EtsiLotlSubscriber, find_matching_for_identifier};
 use crate::mapper::etsi_lotl::role_for_service_type;
 use crate::proto::certificate_validator::{
     Error as CertValidatorError, MockCertificateValidator, ParsedCertificate,
 };
+use crate::proto::clock::TaskLocalClock;
+use crate::proto::http_client::MockHttpClient;
+use crate::proto::xades::MockXAdESProto;
 use crate::provider::caching_loader::etsi_lotl::EtsiLotlCache;
-use crate::provider::caching_loader::{ResolveResult, Resolver, ResolverError};
 use crate::provider::key_algorithm::key::{
     KeyHandle, MockSignaturePublicKeyHandle, SignatureKeyHandle,
 };
 use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
+use crate::provider::remote_entity_storage::{RemoteEntity, RemoteEntityType};
+use crate::provider::trust_list_subscriber::fetch::{FetchLimits, SignerPin};
 use crate::provider::trust_list_subscriber::{
     Feature, TrustEntityMetadata, TrustEntityResponse, TrustListSubscriber,
 };
@@ -114,38 +118,64 @@ fn index_with_fingerprint() -> PreprocessedLotl {
     index
 }
 
-fn subscriber(validator: MockCertificateValidator) -> EtsiLotlSubscriber {
-    // matcher tests call find_matching_for_certificate directly; the cache is only used by
-    // validate_subscription
-    let storage = Arc::new(InMemoryStorage::new(HashMap::new()));
+const LOTL_URL: &str = "https://example.com/lotl";
+
+fn lotl_resolver(validator: Arc<MockCertificateValidator>) -> Arc<EtsiLotlResolver> {
+    Arc::new(EtsiLotlResolver::new(
+        Arc::new(TaskLocalClock),
+        Arc::new(MockHttpClient::new()),
+        validator,
+        Arc::new(MockXAdESProto::new()),
+        EtsiLotlResolverOptions {
+            trust_anchors: vec![],
+            allow_unpinned_root: true,
+            leeway: Duration::seconds(0),
+            limits: FetchLimits::default(),
+        },
+    ))
+}
+
+/// Storage holding an empty pre-processed LoTL for `LOTL_URL` under the unpinned root policy,
+/// so `get_list` never reaches the (unmocked) network.
+fn seeded_storage() -> Arc<InMemoryStorage> {
+    let now = crate::clock::now_utc();
+    let key = SignerPin::Unpinned.cache_key(LOTL_URL);
+    Arc::new(InMemoryStorage::new(HashMap::from([(
+        key.clone(),
+        RemoteEntity {
+            last_modified: now,
+            expiration_date: None,
+            entity_type: RemoteEntityType::TrustList,
+            key,
+            value: serde_json::to_vec(&PreprocessedLotl::default()).unwrap(),
+            last_used: now,
+            media_type: Some("application/json".to_string()),
+        },
+    )])))
+}
+
+fn subscriber_with_delegates(
+    validator: MockCertificateValidator,
+    delegates: Vec<Arc<dyn TrustListSubscriber>>,
+) -> EtsiLotlSubscriber {
+    let validator = Arc::new(validator);
     let cache = EtsiLotlCache::new(
-        Arc::new(EmptyResolver),
-        storage,
+        seeded_storage(),
         100,
         Duration::seconds(60),
         Duration::seconds(60),
+        Arc::new(TaskLocalClock),
     );
-    EtsiLotlSubscriber::new(cache, Arc::new(validator), vec![])
+    EtsiLotlSubscriber::new(
+        cache,
+        lotl_resolver(validator.clone()),
+        validator,
+        delegates,
+    )
 }
 
-/// Resolver returning an empty (default) serialized `PreprocessedLotl`.
-struct EmptyResolver;
-
-#[async_trait::async_trait]
-impl Resolver for EmptyResolver {
-    type Error = ResolverError;
-
-    async fn do_resolve(
-        &self,
-        _key: &str,
-        _last_modified: Option<&time::OffsetDateTime>,
-    ) -> Result<ResolveResult, Self::Error> {
-        Ok(ResolveResult::NewValue {
-            content: serde_json::to_vec(&PreprocessedLotl::default())?,
-            media_type: Some("application/json".to_string()),
-            expiry_date: None,
-        })
-    }
+fn subscriber(validator: MockCertificateValidator) -> EtsiLotlSubscriber {
+    subscriber_with_delegates(validator, vec![])
 }
 
 #[test]
@@ -161,7 +191,7 @@ fn capabilities_are_roleless_with_remote_identifiers() {
 
 #[tokio::test]
 async fn validate_subscription_returns_no_role() {
-    let reference = Url::parse("https://example.com/lotl").unwrap();
+    let reference = Url::parse(LOTL_URL).unwrap();
     let result = subscriber(MockCertificateValidator::new())
         .validate_subscription(&reference, None)
         .await
@@ -271,28 +301,16 @@ async fn resolve_entries_rejects_unsupported_identifier_type() {
     ));
 }
 
-fn subscriber_with_delegate(
-    validator: MockCertificateValidator,
-    delegate: std::sync::Arc<dyn crate::provider::trust_list_subscriber::TrustListSubscriber>,
-) -> EtsiLotlSubscriber {
-    let storage = Arc::new(InMemoryStorage::new(HashMap::new()));
-    let cache = EtsiLotlCache::new(
-        Arc::new(EmptyResolver),
-        storage,
-        100,
-        Duration::seconds(60),
-        Duration::seconds(60),
-    );
-    EtsiLotlSubscriber::new(cache, Arc::new(validator), vec![delegate])
-}
-
 #[tokio::test]
 async fn resolve_entries_delegates_to_lote_when_local_miss() {
     use crate::provider::trust_list_subscriber::MockTrustListSubscriber;
 
     // Index has a LoTE member URL but no local entries that match our cert.
     let index = PreprocessedLotl {
-        delegated_member_urls: vec!["https://example.com/lote".to_string()],
+        delegated_members: vec![DelegatedMember {
+            url: "https://example.com/lote".to_string(),
+            signer_pems: vec!["POINTER CERT".to_string()],
+        }],
         ..Default::default()
     };
 
@@ -305,12 +323,20 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
     // LoTE delegate returns a hit.
     let expected = entry();
     let mut delegate = MockTrustListSubscriber::new();
+    // the delegate is asked to authenticate the LoTE against the pointer's certificate
     delegate
-        .expect_resolve_certificate()
-        .withf(|url, pem| url.as_str() == "https://example.com/lote" && pem == TRUSTED_CERT)
+        .expect_resolve_certificate_pinned()
+        .withf(|url, pem, pin| {
+            url.as_str() == "https://example.com/lote"
+                && pem == TRUSTED_CERT
+                && *pin
+                    == SignerPin::Pointer {
+                        pems: vec!["POINTER CERT".to_string()],
+                    }
+        })
         .returning({
             let expected = expected.clone();
-            move |_, _| {
+            move |_, _, _| {
                 Ok(vec![TrustEntityResponse {
                     derived_role: role_for_service_type(&ServiceType::from(
                         expected.service_type_identifier.clone(),
@@ -320,7 +346,7 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
             }
         });
 
-    let sub = subscriber_with_delegate(validator, Arc::new(delegate));
+    let sub = subscriber_with_delegates(validator, vec![Arc::new(delegate)]);
 
     // Build a Certificate identifier with one active cert whose chain = TRUSTED_CERT.
     let identifier_id = shared_types::IdentifierId::from(uuid::Uuid::new_v4());

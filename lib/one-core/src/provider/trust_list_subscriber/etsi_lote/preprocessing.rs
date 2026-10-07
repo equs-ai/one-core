@@ -164,6 +164,11 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
         .then_some(first)
 }
 
+/// TS 119 602 `ServiceStatus` meaning the service is currently trusted.
+pub(super) fn is_active_service_status(status: &str) -> bool {
+    status.trim_end_matches('/').ends_with("/active")
+}
+
 struct PreprocessingResult {
     entity: TrustedEntityInformation,
     certificates: Vec<PreprocessedCertificate>,
@@ -185,6 +190,15 @@ async fn preprocess_trusted_entity(
     let mut public_keys = HashSet::new();
 
     for service in trusted_entity.trusted_entity_services {
+        // trust by presence, unless the service states a status other than active
+        if service
+            .service_information
+            .service_status
+            .as_deref()
+            .is_some_and(|status| !is_active_service_status(status))
+        {
+            continue;
+        }
         let Some(identity) = service.service_information.service_digital_identity else {
             continue;
         };
@@ -402,6 +416,43 @@ mod test {
     use similar_asserts::assert_eq;
 
     use super::*;
+
+    use crate::proto::certificate_validator::MockCertificateValidator;
+    use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
+    use crate::provider::trust_list_subscriber::fetch::jws_payload;
+
+    #[test]
+    fn only_active_status_is_trusted() {
+        assert!(is_active_service_status(
+            "http://uri.etsi.org/19602/SvcStatus/active"
+        ));
+        assert!(!is_active_service_status(
+            "http://uri.etsi.org/19602/SvcStatus/withdrawn"
+        ));
+    }
+
+    #[tokio::test]
+    async fn services_with_a_non_active_status_yield_no_anchors() {
+        let mut payload = jws_payload(super::super::test::SPRIND_LOTE_JWS).unwrap();
+        for service in payload["TrustedEntitiesList"][0]["TrustedEntityServices"]
+            .as_array_mut()
+            .unwrap()
+        {
+            service["ServiceInformation"]["ServiceStatus"] =
+                "http://uri.etsi.org/19602/SvcStatus/withdrawn".into();
+        }
+        let lote: LoTEPayload = serde_json::from_value(payload).unwrap();
+
+        let preprocessed = preprocess_lote(
+            lote,
+            &MockCertificateValidator::new(),
+            &MockKeyAlgorithmProvider::new(),
+        )
+        .await
+        .unwrap();
+
+        assert!(preprocessed.trusted_entities.is_empty());
+    }
 
     fn entity(role: Option<TrustListRoleEnum>) -> LoteEntity {
         LoteEntity {

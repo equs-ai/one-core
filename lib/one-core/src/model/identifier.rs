@@ -48,8 +48,12 @@ impl Identifier {
         }
     }
 
+    /// Active certificates of a certificate or certificate-authority identifier.
     pub(crate) fn active_certs(&self) -> Option<Vec<&Certificate>> {
-        if self.r#type != IdentifierType::Certificate {
+        if !matches!(
+            self.r#type,
+            IdentifierType::Certificate | IdentifierType::CertificateAuthority
+        ) {
             return Some(vec![]);
         }
         self.certificates.as_ref().map(|certs| {

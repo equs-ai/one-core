@@ -2,27 +2,23 @@ use std::sync::Arc;
 
 use standardized_types::etsi_119_612::xml::{OtherTslPointer, TrustServiceStatusList};
 use standardized_types::etsi_119_612::{MIME_TSL_XML, TslType};
-use standardized_types::xades::{EXC_C14N, Transform};
+use standardized_types::xades::{EXC_C14N, SIGNED_PROPERTIES_TYPE, Transform};
 use time::OffsetDateTime;
 
+use super::model::DelegatedMember;
 use super::preprocessing::preprocess_services;
 use crate::error::ContextWithErrorCode;
-use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
+use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::clock::Clock;
 use crate::proto::http_client::HttpClient;
 use crate::proto::xades::{XAdESProto, XAdESSignedXML, XAdESVerified};
 use crate::provider::caching_loader::{ResolveResult, Resolver, ResolverError};
+use crate::provider::trust_list_subscriber::fetch::{
+    self, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
+};
 
 /// XML media types a TS 119 612 TSL may be served as.
 const TSL_XML_MEDIA_TYPES: &[&str] = &[MIME_TSL_XML, "application/xml", "text/xml"];
-
-/// What a fetched list's signer is pinned against.
-enum SignerPin<'a> {
-    /// Root LOTL: the configured trust anchors.
-    Anchors,
-    /// Member list: the pointer's own certificate.
-    PointerCert(&'a str),
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PointerKind {
@@ -34,24 +30,38 @@ pub(crate) enum PointerKind {
     Delegate,
 }
 
+/// The TSL signature must be over the whole document (`URI=""` or `#<root Id>`, with the
+/// enveloped-signature transform) and over its SignedProperties, so that the parsed content is
+/// the signed content.
 fn assert_tsl_signature_policy(
     verified: &XAdESVerified,
+    root_id: Option<&str>,
     leeway: time::Duration,
     now: OffsetDateTime,
-) -> Result<(), ResolverError> {
+) -> Result<(), FetchError> {
     if verified.signing_time > now + leeway {
-        return Err(ResolverError::InvalidResponse(
+        return Err(FetchError::InvalidSignature(
             "TSL signing time is in the future".to_string(),
         ));
     }
     let doc_signed = verified.references.iter().any(|r| {
-        r.transforms
-            .iter()
-            .any(|t| matches!(t, Transform::EnvelopedSignature))
+        fetch::is_whole_document_reference(&r.uri, root_id)
+            && r.transforms
+                .iter()
+                .any(|t| matches!(t, Transform::EnvelopedSignature))
     });
     if !doc_signed {
-        return Err(ResolverError::InvalidResponse(
-            "TSL signature does not cover the document".to_string(),
+        return Err(FetchError::InvalidSignature(
+            "TSL signature does not cover the whole document".to_string(),
+        ));
+    }
+    if !verified
+        .references
+        .iter()
+        .any(|r| r.r#type.as_deref() == Some(SIGNED_PROPERTIES_TYPE))
+    {
+        return Err(FetchError::InvalidSignature(
+            "TSL signature does not cover the SignedProperties".to_string(),
         ));
     }
     // TS 119 612 Annex B.1.0 mandates exclusive C14N for the trusted-list
@@ -67,14 +77,42 @@ fn assert_tsl_signature_policy(
     Ok(())
 }
 
+/// Resolution options of an [`EtsiLotlResolver`].
+#[derive(Clone, Debug)]
+pub struct EtsiLotlResolverOptions {
+    /// Root LoTL signer anchors (PEM), e.g. the OJEU-published LoTL signing certificates.
+    pub trust_anchors: Vec<String>,
+    /// Accept the root LoTL on its embedded signer when `trust_anchors` is empty.
+    pub allow_unpinned_root: bool,
+    pub leeway: time::Duration,
+    pub limits: FetchLimits,
+}
+
+/// One authenticated member TSL.
+pub struct CollectedTsl {
+    pub url: String,
+    pub next_update: OffsetDateTime,
+    pub tsl: TrustServiceStatusList,
+}
+
+/// A LoTL, its authenticated member TSLs, the non-TSL pointers left to delegates, and the members
+/// that could not be used.
+pub struct LotlCollection {
+    pub sequence_number: u64,
+    pub issued_at: OffsetDateTime,
+    pub next_update: OffsetDateTime,
+    pub members: Vec<CollectedTsl>,
+    pub delegated: Vec<DelegatedMember>,
+    pub skipped: Vec<SkippedMember>,
+    pub unpinned: bool,
+}
+
 pub struct EtsiLotlResolver {
     clock: Arc<dyn Clock>,
     client: Arc<dyn HttpClient>,
     certificate_validator: Arc<dyn CertificateValidator>,
     xades_proto: Arc<dyn XAdESProto>,
-    /// Root LOTL trust anchors (PEM)
-    trust_anchors: Vec<String>,
-    leeway: time::Duration,
+    options: EtsiLotlResolverOptions,
 }
 
 impl EtsiLotlResolver {
@@ -83,103 +121,248 @@ impl EtsiLotlResolver {
         client: Arc<dyn HttpClient>,
         certificate_validator: Arc<dyn CertificateValidator>,
         xades_proto: Arc<dyn XAdESProto>,
-        trust_anchors: Vec<String>,
-        leeway: time::Duration,
+        options: EtsiLotlResolverOptions,
     ) -> Self {
         Self {
             clock,
             client,
             certificate_validator,
             xades_proto,
-            trust_anchors,
-            leeway,
+            options,
         }
     }
 
-    /// Fetch the TSL at `url`, verify its signature, pin the signer, check expiry.
+    /// The pin the root LoTL is authenticated under.
+    pub fn root_pin(&self) -> Result<SignerPin, FetchError> {
+        SignerPin::for_root(
+            &self.options.trust_anchors,
+            self.options.allow_unpinned_root,
+        )
+    }
+
+    /// Fetch the TSL at `url`, verify its signature under `pin`, check freshness.
     async fn fetch_and_verify(
         &self,
         url: &str,
-        pin: SignerPin<'_>,
-    ) -> Result<TrustServiceStatusList, ResolverError> {
-        let response = async {
-            self.client
-                .get(url)
-                .header("Accept", &TSL_XML_MEDIA_TYPES.join(", "))
-                .send()
-                .await?
-                .error_for_status()
+        pin: &SignerPin,
+    ) -> Result<(TrustServiceStatusList, OffsetDateTime), FetchError> {
+        let document = fetch::fetch_document(
+            self.client.as_ref(),
+            url,
+            &TSL_XML_MEDIA_TYPES.join(", "),
+            &self.options.limits,
+        )
+        .await?;
+        if let Some(received) = document.content_type.as_deref()
+            && !TSL_XML_MEDIA_TYPES.contains(&received)
+        {
+            return Err(FetchError::InvalidDocument(format!(
+                "unexpected content type `{received}`"
+            )));
         }
-        .await
-        .error_while("Downloading ETSI LoTL/TSL")?;
+        let body = str::from_utf8(&document.body)
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        let parsed = roxmltree::Document::parse(body)
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        if !fetch::xml_has_next_update(&parsed) {
+            return Err(FetchError::Closed);
+        }
 
-        let body = str::from_utf8(&response.body)?;
         let signed = XAdESSignedXML::<TrustServiceStatusList>::decompose_document(body)
-            .error_while("parsing TS 119 612 XML")?;
-
+            .map_err(fetch::classify_xades)?;
         let verified = self
             .xades_proto
             .verify_enveloped_signature(signed.envelope())
             .await
-            .error_while("verifying TSL signature")?;
-
-        assert_tsl_signature_policy(&verified, self.leeway, self.clock.now_utc())?;
-        let signer_pem = verified.signer_chain_pem;
-
-        match pin {
-            // no anchors configured: accept the LOTL's own signer (trust-on-first-use)
-            SignerPin::Anchors if self.trust_anchors.is_empty() => {
-                tracing::warn!(
-                    "root LOTL accepted without a pinned trust anchor (trust-on-first-use); \
-                     configure `trust_anchors` to authenticate the root in production"
-                );
-            }
-            SignerPin::Anchors => {
-                let anchors: Vec<&str> = self.trust_anchors.iter().map(String::as_str).collect();
-                self.verify_signer_pinned(&signer_pem, &anchors).await?;
-            }
-            SignerPin::PointerCert(expected) => {
-                self.verify_signer_pinned(&signer_pem, &[expected]).await?
-            }
-        }
+            .map_err(fetch::classify_xades)?;
+        assert_tsl_signature_policy(
+            &verified,
+            fetch::root_id(&parsed),
+            self.options.leeway,
+            self.clock.now_utc(),
+        )?;
+        fetch::verify_signer(
+            self.certificate_validator.as_ref(),
+            &verified.signer_chain_pem,
+            pin,
+        )
+        .await?;
 
         let tsl = signed.content;
-        if let Some(next) = tsl.scheme_information.next_update.date_time
-            && next + self.leeway < self.clock.now_utc()
-        {
-            return Err(ResolverError::InvalidResponse(format!(
-                "TSL at {url} is expired"
+        let next_update = tsl
+            .scheme_information
+            .next_update
+            .date_time
+            .ok_or(FetchError::Closed)?;
+        if next_update + self.options.leeway < self.clock.now_utc() {
+            return Err(FetchError::Expired);
+        }
+        Ok((tsl, next_update))
+    }
+
+    /// Fetch the LoTL under `pin` and each member TSL pinned to its pointer's certificates.
+    /// Single level: members' own pointers are not followed. Only the root failing fails.
+    pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LotlCollection, FetchError> {
+        tokio::time::timeout(self.options.limits.deadline, self.collect_inner(url, pin))
+            .await
+            .map_err(|_| FetchError::Deadline)?
+    }
+
+    async fn collect_inner(
+        &self,
+        url: &str,
+        pin: &SignerPin,
+    ) -> Result<LotlCollection, FetchError> {
+        let (lotl, next_update) = self.fetch_and_verify(url, pin).await?;
+        if lotl.scheme_information.tsl_type != TslType::ListOfLists {
+            return Err(FetchError::InvalidDocument(format!(
+                "expected {}, got {}",
+                TslType::ListOfLists,
+                lotl.scheme_information.tsl_type
             )));
         }
-        Ok(tsl)
-    }
 
-    /// Match the signer leaf against allowed PEMs by fingerprint.
-    async fn verify_signer_pinned(
-        &self,
-        signer_pem: &str,
-        allowed_pems: &[&str],
-    ) -> Result<(), ResolverError> {
-        let signer_fp = self.fingerprint_of(signer_pem).await?;
-        for allowed in allowed_pems {
-            if let Ok(allowed_fp) = self.fingerprint_of(allowed).await
-                && allowed_fp == signer_fp
+        let mut collection = LotlCollection {
+            sequence_number: lotl.scheme_information.tsl_sequence_number,
+            issued_at: lotl.scheme_information.list_issue_date_time,
+            next_update,
+            members: vec![],
+            delegated: vec![],
+            skipped: vec![],
+            unpinned: pin.is_unpinned(),
+        };
+        let pointers = lotl
+            .scheme_information
+            .pointers_to_other_tsl
+            .map(|p| p.pointers)
+            .unwrap_or_default();
+
+        let mut followed = 0usize;
+        for pointer in pointers {
+            let kind = classify_pointer(&pointer);
+            if kind == PointerKind::Skip {
+                tracing::debug!(url = %pointer.tsl_location, "skipping non-followed pointer");
+                continue;
+            }
+            let location = pointer.tsl_location.clone();
+            if followed >= self.options.limits.max_pointers {
+                collection.skipped.push(SkippedMember {
+                    url: location,
+                    reason: SkipReason::PointerLimit,
+                });
+                continue;
+            }
+            followed += 1;
+            if let Err(error) = fetch::check_pointer_url(&location, &self.options.limits) {
+                tracing::warn!(url = %location, %error, "skipping LoTL pointer");
+                collection.skipped.push(error.skipped(&location));
+                continue;
+            }
+            // no pointer certificate → the member cannot be authenticated
+            let signer_pems = pointer_signer_cert_pems(&pointer);
+            if signer_pems.is_empty() {
+                tracing::warn!(url = %location, "skipping pointer with no signing identity");
+                collection.skipped.push(SkippedMember {
+                    url: location,
+                    reason: SkipReason::SignerMismatch,
+                });
+                continue;
+            }
+
+            if kind == PointerKind::Delegate {
+                // resolved by a delegate subscriber, pinned to these certificates
+                collection.delegated.push(DelegatedMember {
+                    url: location,
+                    signer_pems,
+                });
+                continue;
+            }
+
+            match self
+                .fetch_and_verify(&location, &SignerPin::Pointer { pems: signer_pems })
+                .await
             {
-                return Ok(());
+                Ok((member, _))
+                    if !matches!(
+                        member.scheme_information.tsl_type,
+                        TslType::Generic | TslType::CcList
+                    ) =>
+                {
+                    tracing::warn!(
+                        url = %location,
+                        tsl_type = %member.scheme_information.tsl_type,
+                        "skipping member list with unexpected TSLType",
+                    );
+                    collection.skipped.push(SkippedMember {
+                        url: location,
+                        reason: SkipReason::InvalidDocument,
+                    });
+                }
+                Ok((tsl, next_update)) => collection.members.push(CollectedTsl {
+                    url: location,
+                    next_update,
+                    tsl,
+                }),
+                Err(error) => {
+                    tracing::warn!(url = %location, %error, "skipping member list that failed to fetch/verify");
+                    collection.skipped.push(error.skipped(&location));
+                }
             }
         }
-        Err(ResolverError::InvalidResponse(
-            "TSL signer does not match the pinned trust anchor / pointer identity".into(),
-        ))
+        Ok(collection)
     }
 
-    async fn fingerprint_of(&self, pem: &str) -> Result<String, ResolverError> {
-        let parsed = self
-            .certificate_validator
-            .parse_pem_chain(pem, CertificateValidationOptions::no_validation())
+    /// Collect under `pin` and build the cached lookup index.
+    pub(crate) async fn resolve_pinned(
+        &self,
+        url: &str,
+        pin: &SignerPin,
+    ) -> Result<ResolveResult, ResolverError> {
+        let collection = self.collect(url, pin).await?;
+        let earliest_next_update = collection
+            .members
+            .iter()
+            .map(|member| member.next_update)
+            .fold(collection.next_update, OffsetDateTime::min);
+
+        let services = collection
+            .members
+            .into_iter()
+            .flat_map(|member| member.tsl.trust_service_provider_list)
+            .flat_map(|list| list.providers)
+            .flat_map(|provider| provider.tsp_services.services)
+            .collect();
+        let mut index = preprocess_services(services, self.certificate_validator.as_ref())
             .await
-            .error_while("parsing certificate for signer pinning")?;
-        Ok(parsed.attributes.fingerprint)
+            .error_while("preprocessing TSL services")?;
+        index.delegated_members = collection.delegated;
+        index.unpinned = collection.unpinned;
+
+        Ok(ResolveResult::NewValue {
+            content: serde_json::to_vec(&index)?,
+            media_type: Some("application/json".to_string()),
+            expiry_date: Some(earliest_next_update),
+        })
+    }
+}
+
+/// A resolution of one LoTL location under one pin; the cache key carries the pin.
+pub(crate) struct PinnedLotlResolver {
+    pub resolver: Arc<EtsiLotlResolver>,
+    pub url: String,
+    pub pin: SignerPin,
+}
+
+#[async_trait::async_trait]
+impl Resolver for PinnedLotlResolver {
+    type Error = ResolverError;
+
+    async fn do_resolve(
+        &self,
+        _key: &str,
+        _last_modified: Option<&OffsetDateTime>,
+    ) -> Result<ResolveResult, Self::Error> {
+        self.resolver.resolve_pinned(&self.url, &self.pin).await
     }
 }
 
@@ -221,120 +404,20 @@ pub(crate) fn classify_pointer(pointer: &OtherTslPointer) -> PointerKind {
     }
 }
 
-/// PEM of the pointer's first `ServiceDigitalIdentity` X.509 cert.
-pub(crate) fn pointer_signer_cert_pem(pointer: &OtherTslPointer) -> Option<String> {
-    let cert_b64 = pointer
+/// PEMs of every X.509 certificate in the pointer's `ServiceDigitalIdentities`; all are
+/// eligible signers, so a member signed during key rollover still authenticates.
+pub(crate) fn pointer_signer_cert_pems(pointer: &OtherTslPointer) -> Vec<String> {
+    pointer
         .service_digital_identities
         .identities
         .iter()
         .flat_map(|identity| &identity.digital_ids)
-        .find_map(|id| id.x509_certificate.as_ref())?;
-    crate::mapper::x509::x5c_into_pem_chain(std::slice::from_ref(cert_b64)).ok()
-}
-
-fn min_opt(a: Option<OffsetDateTime>, b: Option<OffsetDateTime>) -> Option<OffsetDateTime> {
-    match (a, b) {
-        (Some(a), Some(b)) => Some(a.min(b)),
-        (a, None) => a,
-        (None, b) => b,
-    }
-}
-
-#[async_trait::async_trait]
-impl Resolver for EtsiLotlResolver {
-    type Error = ResolverError;
-
-    /// Single-level: the LOTL and its member lists, no recursion into members' pointers.
-    async fn do_resolve(
-        &self,
-        key: &str,
-        _last_modified: Option<&OffsetDateTime>,
-    ) -> Result<ResolveResult, Self::Error> {
-        let lotl = self.fetch_and_verify(key, SignerPin::Anchors).await?;
-        if lotl.scheme_information.tsl_type != TslType::ListOfLists {
-            return Err(ResolverError::InvalidResponse(format!(
-                "expected {}, got {}",
-                TslType::ListOfLists,
-                lotl.scheme_information.tsl_type
-            )));
-        }
-
-        let mut services = Vec::new();
-        let mut delegated_member_urls = Vec::new();
-        let mut earliest_next_update = lotl.scheme_information.next_update.date_time;
-
-        let pointers = lotl
-            .scheme_information
-            .pointers_to_other_tsl
-            .map(|p| p.pointers)
-            .unwrap_or_default();
-
-        for pointer in pointers {
-            match classify_pointer(&pointer) {
-                PointerKind::Member => {
-                    // no pointer cert → cannot authenticate the member, skip
-                    let Some(expected) = pointer_signer_cert_pem(&pointer) else {
-                        tracing::warn!(
-                            url = %pointer.tsl_location,
-                            "skipping Generic pointer with no signing identity",
-                        );
-                        continue;
-                    };
-                    // fail-safe: skip a member that fails to fetch/verify
-                    let member = match self
-                        .fetch_and_verify(&pointer.tsl_location, SignerPin::PointerCert(&expected))
-                        .await
-                    {
-                        Ok(member) => member,
-                        Err(e) => {
-                            tracing::warn!(
-                                url = %pointer.tsl_location,
-                                error = %e,
-                                "skipping member list that failed to fetch/verify",
-                            );
-                            continue;
-                        }
-                    };
-                    if !matches!(
-                        member.scheme_information.tsl_type,
-                        TslType::Generic | TslType::CcList
-                    ) {
-                        tracing::warn!(
-                            url = %pointer.tsl_location,
-                            tsl_type = %member.scheme_information.tsl_type,
-                            "skipping member list with unexpected TSLType",
-                        );
-                        continue;
-                    }
-                    earliest_next_update = min_opt(
-                        earliest_next_update,
-                        member.scheme_information.next_update.date_time,
-                    );
-                    if let Some(list) = member.trust_service_provider_list {
-                        for provider in list.providers {
-                            services.extend(provider.tsp_services.services);
-                        }
-                    }
-                }
-                PointerKind::Delegate => {
-                    // recorded for a delegate subscriber to resolve at lookup time
-                    delegated_member_urls.push(pointer.tsl_location);
-                }
-                PointerKind::Skip => {
-                    tracing::debug!(url = %pointer.tsl_location, "skipping non-followed pointer");
-                }
-            }
-        }
-
-        let mut index = preprocess_services(services, self.certificate_validator.as_ref())
-            .await
-            .error_while("preprocessing TSL services")?;
-        index.delegated_member_urls = delegated_member_urls;
-
-        Ok(ResolveResult::NewValue {
-            content: serde_json::to_vec(&index)?,
-            media_type: Some("application/json".to_string()),
-            expiry_date: earliest_next_update,
+        .filter_map(|id| id.x509_certificate.as_ref())
+        .filter_map(|cert_b64| {
+            crate::mapper::x509::x5c_into_pem_chain(std::slice::from_ref(cert_b64)).ok()
         })
-    }
+        .collect()
 }
+
+#[cfg(test)]
+mod test;

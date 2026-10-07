@@ -14,6 +14,7 @@ pub(crate) mod cert_index;
 pub mod error;
 pub mod etsi_lote;
 pub mod etsi_lotl;
+pub mod fetch;
 pub mod provider;
 
 pub use etsi_lotl::model::TslServiceEntry;
@@ -43,6 +44,17 @@ pub trait TrustListSubscriber: Send + Sync {
         reference: &Url,
         pem_chain: &str,
     ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError>;
+
+    /// Like [`Self::resolve_certificate`], with the list at `reference` authenticated under `pin`
+    /// instead of the subscriber's own root policy. Used for lists reached through a pointer.
+    async fn resolve_certificate_pinned(
+        &self,
+        _reference: &Url,
+        _pem_chain: &str,
+        _pin: &fetch::SignerPin,
+    ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
+        Err(TrustListSubscriberError::PinningNotSupported)
+    }
 
     /// All trust entries a public key resolves to (empty if none).
     async fn resolve_public_key(

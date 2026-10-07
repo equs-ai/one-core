@@ -11,12 +11,15 @@ use url::Url;
 use self::model::{PreprocessedLotl, TslServiceEntry};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::etsi_lotl::role_for_service_type;
-use crate::model::certificate::CertificateState;
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::provider::caching_loader::etsi_lotl::EtsiLotlCache;
 use crate::provider::trust_list_subscriber::error::TrustListSubscriberError;
+use crate::provider::trust_list_subscriber::etsi_lotl::resolver::{
+    EtsiLotlResolver, PinnedLotlResolver,
+};
+use crate::provider::trust_list_subscriber::fetch::SignerPin;
 use crate::provider::trust_list_subscriber::{
     Feature, TrustEntityMetadata, TrustEntityResponse, TrustListSubscriber,
     TrustListSubscriberCapabilities, TrustListValidationSuccess,
@@ -40,10 +43,14 @@ pub(crate) struct EtsiLotlParams {
     pub trust_anchors: Vec<String>,
     #[serde(default)]
     pub delegate_subscribers: Vec<TrustListSubscriberId>,
+    /// Accept the root LoTL on its own embedded signer. Development and tests only.
+    #[serde(default)]
+    pub allow_unpinned_root: bool,
 }
 
 pub struct EtsiLotlSubscriber {
     cache: EtsiLotlCache,
+    resolver: Arc<EtsiLotlResolver>,
     certificate_validator: Arc<dyn CertificateValidator>,
     /// Subscribers to delegate member lists the LOTL does not resolve itself
     /// Tried in their configured `order`.
@@ -53,11 +60,13 @@ pub struct EtsiLotlSubscriber {
 impl EtsiLotlSubscriber {
     pub fn new(
         cache: EtsiLotlCache,
+        resolver: Arc<EtsiLotlResolver>,
         certificate_validator: Arc<dyn CertificateValidator>,
         delegates: Vec<Arc<dyn TrustListSubscriber>>,
     ) -> Self {
         Self {
             cache,
+            resolver,
             certificate_validator,
             delegates,
         }
@@ -67,9 +76,15 @@ impl EtsiLotlSubscriber {
         &self,
         reference: &Url,
     ) -> Result<PreprocessedLotl, TrustListSubscriberError> {
+        let pin = self.resolver.root_pin()?;
+        let resolver = Arc::new(PinnedLotlResolver {
+            resolver: self.resolver.clone(),
+            url: reference.to_string(),
+            pin: pin.clone(),
+        });
         let raw = self
             .cache
-            .get(reference.as_str())
+            .get_with(&pin.cache_key(reference.as_str()), resolver)
             .await
             .error_while("getting LoTL from cache")?;
         Ok(serde_json::from_slice(&raw)?)
@@ -122,13 +137,20 @@ impl EtsiLotlSubscriber {
         if !local.is_empty() {
             return Ok(local);
         }
-        for member_url in &index.delegated_member_urls {
-            let Ok(url) = Url::parse(member_url) else {
-                tracing::warn!(url = %member_url, "skipping unparseable delegated member url");
+        for member in &index.delegated_members {
+            let Ok(url) = Url::parse(&member.url) else {
+                tracing::warn!(url = %member.url, "skipping unparseable delegated member url");
                 continue;
             };
+            // the delegate authenticates the member against the LoTL pointer's certificates
+            let pin = SignerPin::Pointer {
+                pems: member.signer_pems.clone(),
+            };
             for delegate in &self.delegates {
-                match delegate.resolve_certificate(&url, pem_chain).await {
+                match delegate
+                    .resolve_certificate_pinned(&url, pem_chain, &pin)
+                    .await
+                {
                     Ok(found) if !found.is_empty() => return Ok(found),
                     Ok(_) => {}
                     Err(error) => {
@@ -215,14 +237,7 @@ async fn find_matching_for_identifier(
             Err(TrustListSubscriberError::UnsupportedIdentifierType(r#type))
         }
         IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
-            // Not `Identifier::active_certs`: in this fork it yields nothing for
-            // certificate-authority identifiers, which upstream resolves too.
-            let Some(active_certs) = identifier.certificates.as_ref().map(|certs| {
-                certs
-                    .iter()
-                    .filter(|cert| cert.state == CertificateState::Active)
-                    .collect::<Vec<_>>()
-            }) else {
+            let Some(active_certs) = identifier.active_certs() else {
                 return Ok(Vec::new());
             };
             if active_certs.len() > 1 {

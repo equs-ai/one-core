@@ -28,6 +28,25 @@ diverged at `7505afb41`.
 - `trust_list_subscriber::{etsi_lote, etsi_lotl}` and `proto::xades` are public,
   so the subscribers can be used with in-memory caching and no database.
 - `ErrorCode::BR_0410` (certificate not trusted).
+- Trust-list signer pinning (fork hardening, beyond upstream):
+  - every list is authenticated under an explicit pin: root lists against configured `trustAnchors`
+    (equal to, or chaining to, an anchor) and member lists against **all** certificates their pointer
+    names, so a list signed during key rollover still authenticates;
+  - LoTEs reached through a LoTL pointer are pinned to that pointer's certificates (upstream dropped
+    them and accepted any signer);
+  - a root with no anchors is refused unless `allowUnpinnedRoot` is set, and its index is marked
+    `unpinned`;
+  - cache entries are keyed by location and pin, so a list accepted under a weaker pin never answers a
+    stricter lookup. Migration `m20261007_120000_clear_trust_list_cache` drops the old entries.
+- TSL signature scope: the signature must cover the whole document (`URI=""` or `#<root Id>`, with the
+  enveloped-signature transform) and its SignedProperties. A list without `NextUpdate` is rejected as
+  closed, for both TSL and LoTE.
+- Fetch limits for trust lists: maximum document size, maximum pointers followed, `https`-only pointers
+  and an overall deadline. Skipped members are recorded with a reason (`signer_mismatch`,
+  `invalid_signature`, `unsupported_algorithm`, `expired`, `closed`, `unreachable`, `invalid_document`,
+  `size_limit`, `pointer_limit`).
+- LoTE services whose `ServiceStatus` is present and not `active` are not indexed.
+- `CachingLoader::with_clock`, so cache freshness follows an injected `Clock`.
 
 ### Changed
 
@@ -47,6 +66,12 @@ diverged at `7505afb41`.
   accepted. Public keys on a LoTE are indexed in the key algorithm provider's
   raw form, so keys it cannot parse (e.g. RSA) are not matched by public key.
 - `x5c_into_pem_chain` ignores whitespace in the base64 certificates.
+- Content-Type of a fetched trust list is compared by media type only (`application/xml;
+  charset=utf-8` is accepted).
+- `EtsiLoteResolver` / `EtsiLotlResolver` take an options struct; the trust-list caches take a resolver
+  per lookup (`get_with`) instead of holding one; `EtsiLoteSubscriber` / `EtsiLotlSubscriber` take their
+  resolver. `TrustListSubscriber` gains `resolve_certificate_pinned`.
+- `Identifier::active_certs` also covers certificate-authority identifiers, as upstream does.
 - `mso_mdoc` issuer trust now requires a signature path from the Document
   Signer to a trusted IACA PEM; a matching Authority Key Identifier alone no
   longer grants trust. `ExtractPresentationCtx.trusted_certs_skids` is replaced

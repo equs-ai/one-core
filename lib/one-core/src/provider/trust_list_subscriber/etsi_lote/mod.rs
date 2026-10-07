@@ -11,13 +11,16 @@ use strum::Display;
 use url::Url;
 
 use crate::error::ContextWithErrorCode;
-use crate::model::certificate::CertificateState;
 use crate::model::identifier::{Identifier, IdentifierType};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::provider::caching_loader::etsi_lote::EtsiLoteCache;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::error::TrustListSubscriberError;
+use crate::provider::trust_list_subscriber::etsi_lote::resolver::{
+    EtsiLoteResolver, PinnedLoteResolver,
+};
+use crate::provider::trust_list_subscriber::fetch::SignerPin;
 use crate::provider::trust_list_subscriber::{
     Feature, TrustEntityMetadata, TrustEntityResponse, TrustListSubscriber,
     TrustListSubscriberCapabilities, TrustListValidationSuccess,
@@ -41,6 +44,12 @@ pub(crate) struct EtsiLoteParams {
     /// Max depth to follow through chained `PointersToOtherLoTE`.
     #[serde(default = "default_max_pointer_depth")]
     pub max_pointer_depth: Option<usize>,
+    /// Root LoTE signer anchors (PEM). Required unless `allow_unpinned_root`.
+    #[serde(default)]
+    pub trust_anchors: Vec<String>,
+    /// Accept a root LoTE on its own embedded signer. Development and tests only.
+    #[serde(default)]
+    pub allow_unpinned_root: bool,
 }
 
 fn default_max_pointer_depth() -> Option<usize> {
@@ -59,6 +68,7 @@ pub enum LoteContentType {
 
 pub struct EtsiLoteSubscriber {
     cache: EtsiLoteCache,
+    resolver: Arc<EtsiLoteResolver>,
     certificate_validator: Arc<dyn CertificateValidator>,
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
 }
@@ -66,23 +76,41 @@ pub struct EtsiLoteSubscriber {
 impl EtsiLoteSubscriber {
     pub fn new(
         cache: EtsiLoteCache,
+        resolver: Arc<EtsiLoteResolver>,
         certificate_validator: Arc<dyn CertificateValidator>,
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     ) -> Self {
         Self {
             cache,
+            resolver,
             certificate_validator,
             key_algorithm_provider,
         }
     }
 
+    /// The list at `reference`, authenticated under the subscriber's root policy.
     async fn get_list(
         &self,
         reference: &Url,
     ) -> Result<PreprocessedLote, TrustListSubscriberError> {
+        let pin = self.resolver.root_pin()?;
+        self.get_list_pinned(reference, &pin).await
+    }
+
+    /// The list at `reference`, authenticated under `pin`; cached per pin.
+    async fn get_list_pinned(
+        &self,
+        reference: &Url,
+        pin: &SignerPin,
+    ) -> Result<PreprocessedLote, TrustListSubscriberError> {
+        let resolver = Arc::new(PinnedLoteResolver {
+            resolver: self.resolver.clone(),
+            url: reference.to_string(),
+            pin: pin.clone(),
+        });
         let raw_data = self
             .cache
-            .get(reference.as_str())
+            .get_with(&pin.cache_key(reference.as_str()), resolver)
             .await
             .error_while("getting LOTE from cache")?;
         Ok(serde_json::from_slice::<PreprocessedLote>(&raw_data)?)
@@ -152,6 +180,16 @@ impl TrustListSubscriber for EtsiLoteSubscriber {
         find_matching_for_certificate(&list, pem_chain, self.certificate_validator.as_ref()).await
     }
 
+    async fn resolve_certificate_pinned(
+        &self,
+        reference: &Url,
+        pem_chain: &str,
+        pin: &SignerPin,
+    ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
+        let list = self.get_list_pinned(reference, pin).await?;
+        find_matching_for_certificate(&list, pem_chain, self.certificate_validator.as_ref()).await
+    }
+
     async fn resolve_public_key(
         &self,
         reference: &Url,
@@ -181,14 +219,7 @@ async fn find_matching_for_identifier(
             Err(TrustListSubscriberError::UnsupportedIdentifierType(r#type))
         }
         IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
-            // Not `Identifier::active_certs`: in this fork it yields nothing for
-            // certificate-authority identifiers, which upstream resolves too.
-            let Some(active_certs) = identifier.certificates.as_ref().map(|certs| {
-                certs
-                    .iter()
-                    .filter(|cert| cert.state == CertificateState::Active)
-                    .collect::<Vec<_>>()
-            }) else {
+            let Some(active_certs) = identifier.active_certs() else {
                 return Ok(Vec::new());
             };
             if active_certs.len() > 1 {
