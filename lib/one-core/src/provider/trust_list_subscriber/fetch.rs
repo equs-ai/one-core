@@ -83,8 +83,9 @@ pub struct FetchLimits {
     /// Deadline for the whole export or resolution. The root not authenticated within it fails;
     /// members not reached or not done within it are skipped with [SkipReason::Deadline].
     pub deadline: StdDuration,
-    /// Time to fetch and authenticate one document, so one slow host cannot spend the whole
-    /// deadline; a member over it is skipped as [SkipReason::Unreachable].
+    /// Time to fetch and authenticate one member list, so one slow host cannot spend the whole
+    /// deadline; a member over it is skipped as [SkipReason::Unreachable]. The root is bounded by
+    /// the deadline only.
     pub document_timeout: StdDuration,
 }
 
@@ -142,11 +143,26 @@ impl Deadline {
                 .await
                 .map_err(|_| {
                     FetchError::Unreachable(format!(
-                        "no answer within {} s",
+                        "not fetched and authenticated within {} s",
                         limits.document_timeout.as_secs()
                     ))
                 })?;
         }
+        tokio::time::timeout(remaining, work)
+            .await
+            .map_err(|_| FetchError::Deadline)?
+    }
+
+    /// Run `work` on the root list until the deadline. The per-document timeout isolates
+    /// members from each other; a root has nothing to be isolated from, and a large one (the EU
+    /// LoTL, with its signer's CRL) may need longer.
+    pub(crate) async fn bound_root<T>(
+        &self,
+        work: impl Future<Output = Result<T, FetchError>>,
+    ) -> Result<T, FetchError> {
+        let remaining = self
+            .0
+            .saturating_duration_since(tokio::time::Instant::now());
         tokio::time::timeout(remaining, work)
             .await
             .map_err(|_| FetchError::Deadline)?
@@ -156,6 +172,7 @@ impl Deadline {
 /// Why a member list was not used.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SkipReason {
     SignerMismatch,
     InvalidSignature,
@@ -297,7 +314,8 @@ pub(crate) async fn fetch_document(
     let response = client
         .get(url)
         .header("Accept", accept)
-        .timeout(time::Duration::try_from(limits.document_timeout).unwrap_or(time::Duration::MAX))
+        // members are cut off sooner by `Deadline::bound`
+        .timeout(time::Duration::try_from(limits.deadline).unwrap_or(time::Duration::MAX))
         .send()
         .await
         .and_then(|response| response.error_for_status())
@@ -620,5 +638,22 @@ mod test {
             "{:?}",
             fetched.err()
         );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn root_may_take_longer_than_a_member_but_not_the_deadline() {
+        let limits = limits(300, 30);
+        let deadline = Deadline::after(&limits);
+
+        let slow = deadline
+            .bound_root(async {
+                tokio::time::sleep(StdDuration::from_secs(60)).await;
+                Ok(())
+            })
+            .await;
+        let never = deadline.bound_root(never()).await;
+
+        assert!(slow.is_ok());
+        assert!(matches!(never, Err(FetchError::Deadline)), "{never:?}");
     }
 }

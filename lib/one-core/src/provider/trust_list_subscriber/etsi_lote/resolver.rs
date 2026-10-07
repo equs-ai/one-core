@@ -320,9 +320,7 @@ impl EtsiLoteResolver {
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LoteCollection, FetchError> {
         let limits = &self.options.limits;
         let deadline = Deadline::after(limits);
-        let mut root = deadline
-            .bound(limits, self.fetch_and_verify(url, pin))
-            .await?;
+        let mut root = deadline.bound_root(self.fetch_and_verify(url, pin)).await?;
         let mut queue: VecDeque<(OtherLoTEPointer, usize)> = root
             .list_and_scheme_information
             .pointers_to_other_lote

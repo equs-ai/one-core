@@ -43,7 +43,7 @@ diverged at `7505afb41`.
   closed, for both TSL and LoTE.
 - Fetch limits for trust lists: maximum document size, maximum pointers followed, `https`-only pointers,
   a per-document timeout (default 30 s) and one deadline for the whole export, delegated LoTEs
-  included. The root not authenticated in time fails; a member over its document timeout is skipped
+  included. The root not authenticated within the deadline fails; a member over its document timeout is skipped
   as `unreachable`, and members not done by the deadline as `deadline`. Skipped members are recorded
   with a reason (`signer_mismatch`, `invalid_signature`, `unsupported_algorithm`, `expired`, `closed`,
   `unreachable`, `invalid_document`, `size_limit`, `pointer_limit`, `deadline`).
