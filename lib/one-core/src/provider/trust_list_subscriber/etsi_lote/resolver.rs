@@ -26,7 +26,7 @@ use crate::provider::credential_formatter::model::PublicKeySource;
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::fetch::{
-    self, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
+    self, Deadline, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
 };
 
 /// PEMs of every X.509 certificate a pointer names; all are eligible signers (key rollover).
@@ -315,18 +315,14 @@ impl EtsiLoteResolver {
 
     /// Fetch the root LoTE under `pin` and follow its `PointersToOtherLoTE` breadth-first, each
     /// pinned to its pointer's certificates. Only the root failing fails the collection.
+    /// Each document is bounded by [FetchLimits::document_timeout] and the whole collection by
+    /// [FetchLimits::deadline]: the root over either fails, a member is skipped.
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LoteCollection, FetchError> {
-        tokio::time::timeout(self.options.limits.deadline, self.collect_inner(url, pin))
-            .await
-            .map_err(|_| FetchError::Deadline)?
-    }
-
-    async fn collect_inner(
-        &self,
-        url: &str,
-        pin: &SignerPin,
-    ) -> Result<LoteCollection, FetchError> {
-        let mut root = self.fetch_and_verify(url, pin).await?;
+        let limits = &self.options.limits;
+        let deadline = Deadline::after(limits);
+        let mut root = deadline
+            .bound(limits, self.fetch_and_verify(url, pin))
+            .await?;
         let mut queue: VecDeque<(OtherLoTEPointer, usize)> = root
             .list_and_scheme_information
             .pointers_to_other_lote
@@ -380,14 +376,12 @@ impl EtsiLoteResolver {
                 continue;
             }
 
-            let mut child = match self
-                .fetch_and_verify(
-                    &location,
-                    &SignerPin::Pointer {
-                        pems: pointer_pems,
-                        expected_type: Some(pointer.lote_qualifiers.lote_type.clone()),
-                    },
-                )
+            let child_pin = SignerPin::Pointer {
+                pems: pointer_pems,
+                expected_type: Some(pointer.lote_qualifiers.lote_type.clone()),
+            };
+            let mut child = match deadline
+                .bound(limits, self.fetch_and_verify(&location, &child_pin))
                 .await
             {
                 Ok(child) => child,

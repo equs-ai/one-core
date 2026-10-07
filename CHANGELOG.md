@@ -41,10 +41,16 @@ diverged at `7505afb41`.
 - TSL signature scope: the signature must cover the whole document (`URI=""` or `#<root Id>`, with the
   enveloped-signature transform) and its SignedProperties. A list without `NextUpdate` is rejected as
   closed, for both TSL and LoTE.
-- Fetch limits for trust lists: maximum document size, maximum pointers followed, `https`-only pointers
-  and an overall deadline. Skipped members are recorded with a reason (`signer_mismatch`,
-  `invalid_signature`, `unsupported_algorithm`, `expired`, `closed`, `unreachable`, `invalid_document`,
-  `size_limit`, `pointer_limit`).
+- Fetch limits for trust lists: maximum document size, maximum pointers followed, `https`-only pointers,
+  a per-document timeout (default 30 s) and one deadline for the whole export, delegated LoTEs
+  included. The root not authenticated in time fails; a member over its document timeout is skipped
+  as `unreachable`, and members not done by the deadline as `deadline`. Skipped members are recorded
+  with a reason (`signer_mismatch`, `invalid_signature`, `unsupported_algorithm`, `expired`, `closed`,
+  `unreachable`, `invalid_document`, `size_limit`, `pointer_limit`, `deadline`).
+- `ReqwestClient::hardened(max_body_bytes)` for documents from locations the caller does not control
+  (`https` only, no redirects, TLS 1.2 or later, at most one byte past the limit read), and
+  `ReqwestClient::with_max_body_bytes`.
+- `http_client::Error::Transport`, for an adapted client's failure with its cause.
 - LoTE services whose `ServiceStatus` is present and not `active` are not indexed.
 - `CachingLoader::with_clock`, so cache freshness follows an injected `Clock`.
 - Verification-only RSA (PKCS#1 v1.5 and PSS, SHA-256/384/512) and ECDSA P-384 (`proto::spki_signature`,

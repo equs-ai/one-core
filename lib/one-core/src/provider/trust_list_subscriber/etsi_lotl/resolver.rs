@@ -14,7 +14,7 @@ use crate::proto::http_client::HttpClient;
 use crate::proto::xades::{XAdESProto, XAdESSignedXML, XAdESVerified};
 use crate::provider::caching_loader::{ResolveResult, Resolver, ResolverError};
 use crate::provider::trust_list_subscriber::fetch::{
-    self, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
+    self, Deadline, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
 };
 
 /// XML media types a TS 119 612 TSL may be served as.
@@ -215,18 +215,14 @@ impl EtsiLotlResolver {
 
     /// Fetch the LoTL under `pin` and each member TSL pinned to its pointer's certificates.
     /// Single level: members' own pointers are not followed. Only the root failing fails.
+    /// Each document is bounded by [FetchLimits::document_timeout] and the whole collection by
+    /// [FetchLimits::deadline]: the root over either fails, a member is skipped.
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LotlCollection, FetchError> {
-        tokio::time::timeout(self.options.limits.deadline, self.collect_inner(url, pin))
-            .await
-            .map_err(|_| FetchError::Deadline)?
-    }
-
-    async fn collect_inner(
-        &self,
-        url: &str,
-        pin: &SignerPin,
-    ) -> Result<LotlCollection, FetchError> {
-        let (lotl, next_update) = self.fetch_and_verify(url, pin).await?;
+        let limits = &self.options.limits;
+        let deadline = Deadline::after(limits);
+        let (lotl, next_update) = deadline
+            .bound(limits, self.fetch_and_verify(url, pin))
+            .await?;
         if lotl.scheme_information.tsl_type != TslType::ListOfLists {
             return Err(FetchError::InvalidDocument(format!(
                 "expected {}, got {}",
@@ -293,14 +289,12 @@ impl EtsiLotlResolver {
                 continue;
             }
 
-            match self
-                .fetch_and_verify(
-                    &location,
-                    &SignerPin::Pointer {
-                        pems: signer_pems,
-                        expected_type: None,
-                    },
-                )
+            let member_pin = SignerPin::Pointer {
+                pems: signer_pems,
+                expected_type: None,
+            };
+            match deadline
+                .bound(limits, self.fetch_and_verify(&location, &member_pin))
                 .await
             {
                 Ok((member, _))

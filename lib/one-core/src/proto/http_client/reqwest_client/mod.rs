@@ -31,10 +31,14 @@ impl ReqwestClient {
             .redirect(reqwest::redirect::Policy::none())
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .build()?;
-        Ok(Self {
-            client,
-            max_body_bytes: Some(max_body_bytes),
-        })
+        Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
+    }
+
+    /// Read at most `max_body_bytes + 1` bytes of a body, for a caller that refuses a body over
+    /// `max_body_bytes` itself.
+    pub fn with_max_body_bytes(mut self, max_body_bytes: usize) -> Self {
+        self.max_body_bytes = Some(max_body_bytes);
+        self
     }
 }
 

@@ -104,7 +104,7 @@ rstest                    = { version = "0.26" }
 rusty-fork                = { version = "0.3" }
 serde_json_path.workspace = true
 similar-asserts.workspace = true
-tokio                     = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio                     = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
 wiremock                  = { version = "0.6" }
 
 [build-dependencies]

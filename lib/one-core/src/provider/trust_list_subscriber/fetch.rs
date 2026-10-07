@@ -24,6 +24,7 @@ use crate::provider::caching_loader::ResolverError;
 pub const DEFAULT_MAX_DOCUMENT_BYTES: usize = 16 * 1024 * 1024;
 pub const DEFAULT_MAX_POINTERS: usize = 256;
 pub const DEFAULT_DEADLINE: StdDuration = StdDuration::from_secs(300);
+pub const DEFAULT_DOCUMENT_TIMEOUT: StdDuration = StdDuration::from_secs(30);
 
 /// How the signer of a fetched list is authenticated.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,19 +80,24 @@ pub struct FetchLimits {
     pub max_pointers: usize,
     /// Accept `http` pointers (tests only); otherwise pointers must be `https`.
     pub allow_http: bool,
-    /// Deadline for the whole export or resolution.
+    /// Deadline for the whole export or resolution. The root not authenticated within it fails;
+    /// members not reached or not done within it are skipped with [SkipReason::Deadline].
     pub deadline: StdDuration,
+    /// Time to fetch and authenticate one document, so one slow host cannot spend the whole
+    /// deadline; a member over it is skipped as [SkipReason::Unreachable].
+    pub document_timeout: StdDuration,
 }
 
 impl FetchLimits {
     /// The limits as part of a cache scope.
     pub(crate) fn scope(&self) -> String {
         format!(
-            "bytes={};pointers={};http={};deadline={}",
+            "bytes={};pointers={};http={};deadline={};document_timeout={}",
             self.max_document_bytes,
             self.max_pointers,
             self.allow_http,
-            self.deadline.as_secs()
+            self.deadline.as_secs(),
+            self.document_timeout.as_secs()
         )
     }
 }
@@ -103,7 +109,47 @@ impl Default for FetchLimits {
             max_pointers: DEFAULT_MAX_POINTERS,
             allow_http: false,
             deadline: DEFAULT_DEADLINE,
+            document_timeout: DEFAULT_DOCUMENT_TIMEOUT,
         }
+    }
+}
+
+/// When an export or resolution has to end, from [FetchLimits::deadline].
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Deadline(tokio::time::Instant);
+
+impl Deadline {
+    pub(crate) fn after(limits: &FetchLimits) -> Self {
+        Self(tokio::time::Instant::now() + limits.deadline)
+    }
+
+    /// Run `work` on one document for at most [FetchLimits::document_timeout], and never past
+    /// the deadline: [FetchError::Unreachable] when the document took too long,
+    /// [FetchError::Deadline] when the deadline did.
+    pub(crate) async fn bound<T>(
+        &self,
+        limits: &FetchLimits,
+        work: impl Future<Output = Result<T, FetchError>>,
+    ) -> Result<T, FetchError> {
+        let remaining = self
+            .0
+            .saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            return Err(FetchError::Deadline);
+        }
+        if limits.document_timeout < remaining {
+            return tokio::time::timeout(limits.document_timeout, work)
+                .await
+                .map_err(|_| {
+                    FetchError::Unreachable(format!(
+                        "no answer within {} s",
+                        limits.document_timeout.as_secs()
+                    ))
+                })?;
+        }
+        tokio::time::timeout(remaining, work)
+            .await
+            .map_err(|_| FetchError::Deadline)?
     }
 }
 
@@ -120,6 +166,8 @@ pub enum SkipReason {
     InvalidDocument,
     SizeLimit,
     PointerLimit,
+    /// Not reached, or not done, within the export's deadline.
+    Deadline,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -157,7 +205,8 @@ pub enum FetchError {
 impl FetchError {
     pub fn skip_reason(&self) -> SkipReason {
         match self {
-            Self::Unreachable(_) | Self::Deadline => SkipReason::Unreachable,
+            Self::Unreachable(_) => SkipReason::Unreachable,
+            Self::Deadline => SkipReason::Deadline,
             Self::SizeLimit(_) => SkipReason::SizeLimit,
             Self::PointerLimit(_) => SkipReason::PointerLimit,
             Self::InvalidDocument(_) => SkipReason::InvalidDocument,
@@ -248,7 +297,7 @@ pub(crate) async fn fetch_document(
     let response = client
         .get(url)
         .header("Accept", accept)
-        .timeout(time::Duration::try_from(limits.deadline).unwrap_or(time::Duration::MAX))
+        .timeout(time::Duration::try_from(limits.document_timeout).unwrap_or(time::Duration::MAX))
         .send()
         .await
         .and_then(|response| response.error_for_status())
@@ -456,5 +505,120 @@ mod test {
         let closed = serde_json::json!({"ListAndSchemeInformation": {}});
         assert!(json_lote_has_next_update(&open));
         assert!(!json_lote_has_next_update(&closed));
+    }
+
+    fn limits(deadline: u64, document_timeout: u64) -> FetchLimits {
+        FetchLimits {
+            deadline: StdDuration::from_secs(deadline),
+            document_timeout: StdDuration::from_secs(document_timeout),
+            ..Default::default()
+        }
+    }
+
+    async fn never() -> Result<(), FetchError> {
+        std::future::pending().await
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn document_over_its_timeout_is_unreachable() {
+        let limits = limits(300, 30);
+
+        let result = Deadline::after(&limits).bound(&limits, never()).await;
+
+        assert!(
+            matches!(result, Err(FetchError::Unreachable(_))),
+            "{result:?}"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn document_running_into_the_deadline_is_cut_off_by_it() {
+        let limits = limits(10, 30);
+
+        let started = tokio::time::Instant::now();
+        let result = Deadline::after(&limits).bound(&limits, never()).await;
+
+        assert!(matches!(result, Err(FetchError::Deadline)), "{result:?}");
+        assert_eq!(started.elapsed(), StdDuration::from_secs(10));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn document_after_the_deadline_is_not_started() {
+        let limits = limits(10, 30);
+        let deadline = Deadline::after(&limits);
+        tokio::time::advance(StdDuration::from_secs(10)).await;
+
+        let result = deadline
+            .bound(&limits, async { panic!("started after the deadline") })
+            .await;
+
+        assert!(matches!(result, Err::<(), _>(FetchError::Deadline)));
+    }
+
+    #[test]
+    fn deadline_and_unreachable_are_distinct_skip_reasons() {
+        assert_eq!(FetchError::Deadline.skip_reason(), SkipReason::Deadline);
+        assert_eq!(
+            FetchError::Unreachable(String::new()).skip_reason(),
+            SkipReason::Unreachable
+        );
+    }
+
+    /// The capped client against a real server: the ETSI media types go out as asked, the body
+    /// is cut one byte past the limit, and the size check refuses it.
+    #[tokio::test]
+    async fn capped_client_reads_one_byte_past_the_limit_and_the_document_is_refused() {
+        use wiremock::matchers::{headers, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        use crate::proto::http_client::StatusCode;
+        use crate::proto::http_client::reqwest_client::ReqwestClient;
+
+        const ACCEPT: &str = "application/vnd.etsi.tsl+xml, application/xml, text/xml";
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/tl.xml"))
+            .and(headers(
+                "Accept",
+                vec![
+                    "application/vnd.etsi.tsl+xml",
+                    "application/xml",
+                    "text/xml",
+                ],
+            ))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("Content-Type", "application/vnd.etsi.tsl+xml")
+                    .set_body_bytes(vec![b'x'; 10_000]),
+            )
+            .mount(&server)
+            .await;
+        let url = format!("{}/tl.xml", server.uri());
+        let client = ReqwestClient::new(reqwest::Client::new()).with_max_body_bytes(100);
+
+        let response = client
+            .get(&url)
+            .header("Accept", ACCEPT)
+            .send()
+            .await
+            .unwrap();
+        let fetched = fetch_document(
+            &client,
+            &url,
+            ACCEPT,
+            &FetchLimits {
+                max_document_bytes: 100,
+                ..Default::default()
+            },
+        )
+        .await;
+
+        assert_eq!(response.status, StatusCode(200));
+        assert_eq!(response.body.len(), 101);
+        assert!(
+            matches!(fetched, Err(FetchError::SizeLimit(100))),
+            "{:?}",
+            fetched.err()
+        );
     }
 }

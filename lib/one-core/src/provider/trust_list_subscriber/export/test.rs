@@ -11,7 +11,10 @@ use standardized_types::etsi_119_602::json::LoTEType;
 
 use super::{AnchorRole, ExportPolicy, TrustListExporter, TrustListKind};
 use crate::proto::clock::{TaskLocalClock, run_with_mocked_time_async};
-use crate::proto::http_client::{MockHttpClient, StatusCode};
+use crate::proto::http_client::{
+    Error as HttpError, Headers, HttpClient, Method, MockHttpClient, RequestBuilder, Response,
+    StatusCode,
+};
 use crate::proto::xades::MockXAdESProto;
 use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
@@ -112,7 +115,7 @@ fn xades() -> MockXAdESProto {
     xades
 }
 
-fn exporter(client: Arc<MockHttpClient>) -> TrustListExporter {
+fn exporter(client: Arc<dyn HttpClient>) -> TrustListExporter {
     TrustListExporter::with_xades(
         Arc::new(TaskLocalClock),
         client,
@@ -242,6 +245,105 @@ async fn delegated_lote_of_another_type_is_skipped() {
             .iter()
             .any(|skipped| skipped.url == DE_URL && skipped.reason == SkipReason::InvalidDocument)
     );
+}
+
+/// `inner`, except that `hang_url` never answers.
+#[derive(Clone)]
+struct Hanging {
+    inner: Arc<MockHttpClient>,
+    hang_url: &'static str,
+}
+
+#[async_trait::async_trait]
+impl HttpClient for Hanging {
+    fn get(&self, url: &str) -> RequestBuilder {
+        if url == self.hang_url {
+            return RequestBuilder::new(Arc::new(self.clone()), Method::Get, url);
+        }
+        self.inner.get(url)
+    }
+
+    fn post(&self, url: &str) -> RequestBuilder {
+        self.inner.post(url)
+    }
+
+    fn put(&self, url: &str) -> RequestBuilder {
+        self.inner.put(url)
+    }
+
+    fn patch(&self, url: &str) -> RequestBuilder {
+        self.inner.patch(url)
+    }
+
+    async fn send(
+        &self,
+        _url: &str,
+        _body: Option<Vec<u8>>,
+        _headers: Option<Headers>,
+        _method: Method,
+        _timeout: Option<time::Duration>,
+    ) -> Result<Response, HttpError> {
+        std::future::pending().await
+    }
+}
+
+/// Exports the LoTL with the delegated LoTE at DE while the FR member host never answers.
+async fn export_with_fr_hanging(deadline: u64, document_timeout: u64) -> super::TrustListExport {
+    let client = Hanging {
+        inner: client(&lotl_with_delegated_lote(REGISTRARS_LOTE_TYPE), true),
+        hang_url: FR_URL,
+    };
+    let url = Url::parse(LOTL_URL).unwrap();
+
+    run_with_mocked_time_async(
+        datetime!(2026-04-01 00:00 UTC),
+        exporter(Arc::new(client)).export(
+            &url,
+            TrustListKind::Lotl119612,
+            &ExportPolicy {
+                leeway: time::Duration::days(365),
+                limits: FetchLimits {
+                    deadline: std::time::Duration::from_secs(deadline),
+                    document_timeout: std::time::Duration::from_secs(document_timeout),
+                    ..FetchLimits::default()
+                },
+                ..policy()
+            },
+        ),
+    )
+    .await
+    .unwrap()
+}
+
+fn skip_reason(export: &super::TrustListExport, url: &str) -> Option<SkipReason> {
+    export
+        .skipped_members
+        .iter()
+        .find(|skipped| skipped.url == url)
+        .map(|skipped| skipped.reason)
+}
+
+#[tokio::test(start_paused = true)]
+async fn member_host_that_never_answers_is_skipped_and_the_rest_exported() {
+    let export = export_with_fr_hanging(300, 30).await;
+
+    assert_eq!(skip_reason(&export, FR_URL), Some(SkipReason::Unreachable));
+    // the LoTE after it is still exported
+    assert!(
+        export
+            .anchors
+            .iter()
+            .any(|anchor| anchor.source_url == DE_URL)
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn members_left_at_the_deadline_are_skipped_and_the_root_kept() {
+    let export = export_with_fr_hanging(10, 30).await;
+
+    assert_eq!(skip_reason(&export, FR_URL), Some(SkipReason::Deadline));
+    assert_eq!(skip_reason(&export, DE_URL), Some(SkipReason::Deadline));
+    assert!(export.anchors.is_empty());
 }
 
 #[test]
