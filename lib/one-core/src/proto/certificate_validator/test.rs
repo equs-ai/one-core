@@ -519,7 +519,9 @@ async fn trust_anchors_do_not_treat_leaf_sharing_issuer_dn_as_self_signed() {
 }
 
 /// A validator whose CRL downloads go to `http_client`.
-fn certificate_validator_fetching_with(http_client: MockHttpClient) -> CertificateValidatorImpl {
+pub(crate) fn certificate_validator_fetching_with(
+    http_client: MockHttpClient,
+) -> CertificateValidatorImpl {
     let mut key_algorithm_provider = MockKeyAlgorithmProvider::new();
     key_algorithm_provider
         .expect_key_algorithm_from_type()
@@ -600,12 +602,34 @@ async fn signature_and_revocation_needs_the_crl_signer_in_the_chain() {
 /// An empty CRL, current for a day either side of now.
 fn crl_signed_by(issuer: &Issuer<'_, impl SigningKey>) -> Vec<u8> {
     let now = crate::clock::now_utc();
+    crl_revoking(
+        issuer,
+        &[],
+        now - Duration::days(1),
+        now + Duration::days(1),
+    )
+}
+
+/// A CRL revoking the certificates with `serials`, current from `this_update` to `next_update`.
+pub(crate) fn crl_revoking(
+    issuer: &Issuer<'_, impl SigningKey>,
+    serials: &[u64],
+    this_update: time::OffsetDateTime,
+    next_update: time::OffsetDateTime,
+) -> Vec<u8> {
     rcgen::CertificateRevocationListParams {
-        this_update: now - Duration::days(1),
-        next_update: now + Duration::days(1),
+        this_update,
+        next_update,
         crl_number: rcgen::SerialNumber::from(1u64),
         issuing_distribution_point: None,
-        revoked_certs: vec![],
+        revoked_certs: (serials.iter())
+            .map(|serial| rcgen::RevokedCertParams {
+                serial_number: rcgen::SerialNumber::from(*serial),
+                revocation_time: this_update,
+                reason_code: None,
+                invalidity_date: None,
+            })
+            .collect(),
         key_identifier_method: rcgen::KeyIdMethod::Sha256,
     }
     .signed_by(issuer)
@@ -649,7 +673,7 @@ fn crl_host_answering_404(fetched: Arc<std::sync::Mutex<Vec<String>>>) -> MockHt
 }
 
 /// Answers every CRL download with `status` and `body`, recording the URLs asked for.
-fn crl_host(
+pub(crate) fn crl_host(
     status: u16,
     body: Vec<u8>,
     fetched: Arc<std::sync::Mutex<Vec<String>>>,

@@ -24,7 +24,6 @@ use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::clock::Clock;
 use crate::proto::http_client::HttpClient;
 use crate::proto::xades::{XAdES, XAdESProto};
-use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 
 /// What a trust list location holds.
@@ -123,7 +122,6 @@ impl Default for ExportPolicy {
 pub struct TrustListExporter {
     clock: Arc<dyn Clock>,
     client: Arc<dyn HttpClient>,
-    did_method_provider: Arc<dyn DidMethodProvider>,
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     certificate_validator: Arc<dyn CertificateValidator>,
     xades_proto: Arc<dyn XAdESProto>,
@@ -133,7 +131,6 @@ impl TrustListExporter {
     pub fn new(
         clock: Arc<dyn Clock>,
         client: Arc<dyn HttpClient>,
-        did_method_provider: Arc<dyn DidMethodProvider>,
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
         certificate_validator: Arc<dyn CertificateValidator>,
     ) -> Self {
@@ -141,7 +138,6 @@ impl TrustListExporter {
         Self::with_xades(
             clock,
             client,
-            did_method_provider,
             key_algorithm_provider,
             certificate_validator,
             xades_proto,
@@ -151,7 +147,6 @@ impl TrustListExporter {
     pub fn with_xades(
         clock: Arc<dyn Clock>,
         client: Arc<dyn HttpClient>,
-        did_method_provider: Arc<dyn DidMethodProvider>,
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
         certificate_validator: Arc<dyn CertificateValidator>,
         xades_proto: Arc<dyn XAdESProto>,
@@ -159,7 +154,6 @@ impl TrustListExporter {
         Self {
             clock,
             client,
-            did_method_provider,
             key_algorithm_provider,
             certificate_validator,
             xades_proto,
@@ -192,7 +186,6 @@ impl TrustListExporter {
         EtsiLoteResolver::new(
             self.clock.clone(),
             self.client.clone(),
-            self.did_method_provider.clone(),
             self.key_algorithm_provider.clone(),
             self.certificate_validator.clone(),
             self.xades_proto.clone(),

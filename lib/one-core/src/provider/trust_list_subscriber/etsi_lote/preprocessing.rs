@@ -289,10 +289,12 @@ async fn preprocess_certificate_identity(
         let subject_key_identifier =
             pem_to_subject_key_identifier(&pem_chain).error_while("parsing PEM chain SKI")?;
 
+        // a listed certificate is trusted for being listed; its issuer is not in the list, so a
+        // CRL for it could not be authenticated
         let fingerprint = match certificate_validator
             .parse_pem_chain(
                 &pem_chain,
-                CertificateValidationOptions::signature_and_revocation(None),
+                CertificateValidationOptions::signature_and_validity(None),
             )
             .await
         {

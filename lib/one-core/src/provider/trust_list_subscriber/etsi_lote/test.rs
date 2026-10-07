@@ -20,7 +20,6 @@ use crate::proto::clock::{TaskLocalClock, run_with_mocked_time_async};
 use crate::proto::http_client::{Method, MockHttpClient, Request, Response, StatusCode};
 use crate::proto::xades::{MockXAdESProto, XAdES};
 use crate::provider::caching_loader::etsi_lote::EtsiLoteCache;
-use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::ecdsa::Ecdsa;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
@@ -303,7 +302,6 @@ fn setup_subscriber(reference: &Url) -> EtsiLoteSubscriber {
     let resolver = Arc::new(EtsiLoteResolver::new(
         Arc::new(TaskLocalClock),
         client,
-        Arc::new(MockDidMethodProvider::new()),
         key_algorithm_provider.clone(),
         certificate_validator.clone(),
         Arc::new(MockXAdESProto::new()),
@@ -472,7 +470,6 @@ fn setup_xml(reference: &Url, setup: XmlSetup) -> (Arc<EtsiLoteResolver>, EtsiLo
     let resolver = Arc::new(EtsiLoteResolver::new(
         Arc::new(TaskLocalClock),
         client,
-        Arc::new(MockDidMethodProvider::new()),
         key_algorithm_provider.clone(),
         cert_validator.clone(),
         Arc::new(xades),
@@ -871,7 +868,6 @@ async fn closed_jwt_lote_is_rejected() {
     let resolver = EtsiLoteResolver::new(
         Arc::new(TaskLocalClock),
         Arc::new(client),
-        Arc::new(MockDidMethodProvider::new()),
         Arc::new(MockKeyAlgorithmProvider::new()),
         Arc::new(MockCertificateValidator::new()),
         Arc::new(MockXAdESProto::new()),
@@ -965,16 +961,28 @@ fn rs256_jws(
     payload: &serde_json::Value,
     tamper: bool,
 ) -> (String, String) {
-    use aws_lc_rs::rand::SystemRandom;
-    use aws_lc_rs::signature::{RSA_PKCS1_SHA256, RsaKeyPair};
-    use ct_codecs::{Base64, Base64UrlSafeNoPadding, Encoder};
-
     let key_pair = rcgen::KeyPair::generate_for(&rcgen::PKCS_RSA_SHA256).unwrap();
     let cert = rcgen::CertificateParams::new(vec!["lote.test".to_string()])
         .unwrap()
         .self_signed(&key_pair)
         .unwrap();
-    let x5c = Base64::encode_to_string(cert.der()).unwrap();
+    let token = rs256_jws_signed_by(header, payload, &key_pair, cert.der(), tamper);
+    (token, cert.pem())
+}
+
+/// An RS256 JWS over `payload` with `header` (plus an `x5c` of `cert_der`), signed with `key_pair`.
+fn rs256_jws_signed_by(
+    header: &serde_json::Value,
+    payload: &serde_json::Value,
+    key_pair: &rcgen::KeyPair,
+    cert_der: &[u8],
+    tamper: bool,
+) -> String {
+    use aws_lc_rs::rand::SystemRandom;
+    use aws_lc_rs::signature::{RSA_PKCS1_SHA256, RsaKeyPair};
+    use ct_codecs::{Base64, Base64UrlSafeNoPadding, Encoder};
+
+    let x5c = Base64::encode_to_string(cert_der).unwrap();
     let mut header = header.clone();
     header["x5c"] = serde_json::json!([x5c]);
     let signing_input = format!(
@@ -995,11 +1003,142 @@ fn rs256_jws(
     if tamper {
         signature[0] ^= 0xff;
     }
-    let token = format!(
+    format!(
         "{signing_input}.{}",
         Base64UrlSafeNoPadding::encode_to_string(&signature).unwrap()
+    )
+}
+
+const SIGNER_CRL: &str = "https://crl.example.com/lote-ca.crl";
+const SIGNER_SERIAL: u64 = 42;
+
+/// A LoTE (RS256) signed by a certificate that a CA issued with a CRL distribution point,
+/// presented without the CA. Returns the token, the CA (PEM) and its CRL, revoking the signer
+/// when `revoked`.
+fn lote_signed_under_a_ca(revoked: bool) -> (String, String, Vec<u8>) {
+    use rcgen::{
+        BasicConstraints, CertificateParams, DnType, IsCa, Issuer, KeyPair, KeyUsagePurpose,
+    };
+
+    let ca_key = KeyPair::generate().unwrap();
+    let mut ca_params = CertificateParams::new(vec![]).unwrap();
+    ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    ca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+    ca_params
+        .distinguished_name
+        .push(DnType::CommonName, "LoTE Signer CA");
+    let ca = ca_params.self_signed(&ca_key).unwrap();
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+
+    let signer_key = KeyPair::generate_for(&rcgen::PKCS_RSA_SHA256).unwrap();
+    let mut signer_params = CertificateParams::new(vec![]).unwrap();
+    signer_params
+        .distinguished_name
+        .push(DnType::CommonName, "LoTE Signer");
+    signer_params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
+    signer_params.use_authority_key_identifier_extension = true;
+    signer_params.serial_number = Some(rcgen::SerialNumber::from(SIGNER_SERIAL));
+    signer_params.crl_distribution_points = vec![rcgen::CrlDistributionPoint {
+        uris: vec![SIGNER_CRL.to_string()],
+    }];
+    let signer = signer_params.signed_by(&signer_key, &ca_issuer).unwrap();
+
+    let token = rs256_jws_signed_by(
+        &serde_json::json!({ "alg": "RS256" }),
+        &eu_pid_lote_payload(&trusted_cert_b64()),
+        &signer_key,
+        signer.der(),
+        false,
     );
-    (token, cert.pem())
+    let revoked_serials: &[u64] = if revoked { &[SIGNER_SERIAL] } else { &[] };
+    let crl = crate::proto::certificate_validator::test::crl_revoking(
+        &ca_issuer,
+        revoked_serials,
+        datetime!(2020-01-01 00:00 UTC),
+        datetime!(2040-01-01 00:00 UTC),
+    );
+    (token, ca.pem(), crl)
+}
+
+/// Collects the LoTE at a fixed URL pinned to `ca`, with a real certificate validator whose CRL
+/// downloads are answered with `crl` and recorded in `fetched`.
+async fn collect_pinned_with_crl(
+    token: String,
+    ca: String,
+    crl: Vec<u8>,
+    fetched: Arc<std::sync::Mutex<Vec<String>>>,
+) -> Result<super::resolver::LoteCollection, FetchError> {
+    use crate::proto::certificate_validator::test::{
+        certificate_validator_fetching_with, crl_host,
+    };
+
+    let reference = Url::parse("https://example.com/lote-under-ca").unwrap();
+    let mut client = MockHttpClient::new();
+    mock_http_get_request(
+        &mut client,
+        reference.to_string(),
+        Response {
+            body: token.into_bytes(),
+            headers: hashmap! { "Content-Type".to_string() => "application/jwt".to_string() },
+            status: StatusCode(200),
+            request: Request {
+                body: None,
+                headers: Default::default(),
+                method: Method::Get,
+                url: reference.to_string(),
+                timeout: None,
+            },
+        },
+    );
+    let resolver = EtsiLoteResolver::new(
+        Arc::new(TaskLocalClock),
+        Arc::new(client),
+        Arc::new(MockKeyAlgorithmProvider::new()),
+        Arc::new(certificate_validator_fetching_with(crl_host(
+            200, crl, fetched,
+        ))),
+        Arc::new(MockXAdESProto::new()),
+        EtsiLoteResolverOptions {
+            content_type: LoteContentType::Jwt,
+            leeway: Duration::seconds(0),
+            max_pointer_depth: None,
+            trust_anchors: vec![],
+            allow_unpinned_root: false,
+            limits: FetchLimits::default(),
+        },
+    );
+    run_with_mocked_time_async(
+        datetime!(2026-03-01 00:00 UTC),
+        resolver.collect(reference.as_str(), &SignerPin::Anchors { pems: vec![ca] }),
+    )
+    .await
+}
+
+#[tokio::test]
+async fn signer_under_a_pinned_ca_is_checked_for_revocation_once_pinned() {
+    // regression: the signer's CRL was fetched before it was pinned, and could not be
+    // authenticated without its CA
+    let (token, ca, crl) = lote_signed_under_a_ca(false);
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+
+    let collection = collect_pinned_with_crl(token, ca, crl, fetched.clone()).await;
+
+    assert!(collection.is_ok(), "{:?}", collection.err());
+    assert_eq!(*fetched.lock().unwrap(), [SIGNER_CRL]);
+}
+
+#[tokio::test]
+async fn revoked_signer_under_a_pinned_ca_is_not_trusted() {
+    let (token, ca, crl) = lote_signed_under_a_ca(true);
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+
+    let collection = collect_pinned_with_crl(token, ca, crl, fetched).await;
+
+    assert!(
+        matches!(collection, Err(FetchError::SignerNotTrusted)),
+        "{:?}",
+        collection.err()
+    );
 }
 
 async fn collect_rs256(token: String) -> Result<(), FetchError> {
@@ -1049,7 +1188,6 @@ async fn collect_rs256_lists(token: String) -> Result<super::resolver::LoteColle
     let resolver = EtsiLoteResolver::new(
         Arc::new(TaskLocalClock),
         Arc::new(client),
-        Arc::new(MockDidMethodProvider::new()),
         Arc::new(MockKeyAlgorithmProvider::new()),
         Arc::new(validator),
         Arc::new(MockXAdESProto::new()),

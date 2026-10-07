@@ -16,7 +16,6 @@ use crate::proto::http_client::{
     StatusCode,
 };
 use crate::proto::xades::MockXAdESProto;
-use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::etsi_lote::test::{LOTE_XML, TRUSTED_CERT};
 use crate::provider::trust_list_subscriber::etsi_lotl::resolver::pointer_signer_cert_pems;
@@ -119,7 +118,6 @@ fn exporter(client: Arc<dyn HttpClient>) -> TrustListExporter {
     TrustListExporter::with_xades(
         Arc::new(TaskLocalClock),
         client,
-        Arc::new(MockDidMethodProvider::new()),
         Arc::new(MockKeyAlgorithmProvider::new()),
         validator(),
         Arc::new(xades()),

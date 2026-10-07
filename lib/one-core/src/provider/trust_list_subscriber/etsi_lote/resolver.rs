@@ -12,18 +12,14 @@ use super::LoteContentType;
 use super::preprocessing::{merge_lote, preprocess_lote};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
-use crate::model::did::KeyRole;
 use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::proto::clock::Clock;
 use crate::proto::http_client::HttpClient;
 use crate::proto::jwt::Jwt;
-use crate::proto::key_verification::KeyVerification;
 use crate::proto::spki_signature::{self, SpkiSignatureAlgorithm, SpkiSignatureError};
 use crate::proto::xades::{XAdESProto, XAdESSignedXML, XAdESVerified};
 use crate::provider::caching_loader::{ResolveResult, Resolver, ResolverError};
-use crate::provider::credential_formatter::model::PublicKeySource;
-use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::fetch::{
     self, Deadline, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
@@ -105,7 +101,6 @@ pub struct LoteCollection {
 pub struct EtsiLoteResolver {
     clock: Arc<dyn Clock>,
     client: Arc<dyn HttpClient>,
-    did_method_provider: Arc<dyn DidMethodProvider>,
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     certificate_validator: Arc<dyn CertificateValidator>,
     xades_proto: Arc<dyn XAdESProto>,
@@ -116,7 +111,6 @@ impl EtsiLoteResolver {
     pub fn new(
         clock: Arc<dyn Clock>,
         client: Arc<dyn HttpClient>,
-        did_method_provider: Arc<dyn DidMethodProvider>,
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
         certificate_validator: Arc<dyn CertificateValidator>,
         xades_proto: Arc<dyn XAdESProto>,
@@ -125,7 +119,6 @@ impl EtsiLoteResolver {
         Self {
             clock,
             client,
-            did_method_provider,
             key_algorithm_provider,
             certificate_validator,
             xades_proto,
@@ -235,64 +228,58 @@ impl EtsiLoteResolver {
         let signer_pem =
             x5c_into_pem_chain(x5c).map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
 
-        if let Some(algorithm) =
-            SpkiSignatureAlgorithm::from_jose_alg(&decomposed_token.header.algorithm)
-        {
-            // RSA / P-384: the key algorithm provider has no implementation, verify directly
-            self.verify_jws_with_certificate(body, &signer_pem, algorithm)
-                .await?;
-        } else {
-            let verification = KeyVerification {
-                did_method_provider: self.did_method_provider.clone(),
-                key_algorithm_provider: self.key_algorithm_provider.clone(),
-                certificate_validator: self.certificate_validator.clone(),
-                key_role: KeyRole::AssertionMethod,
-            };
-            decomposed_token
-                .verify_signature(PublicKeySource::X5c { x5c }, &verification)
-                .await
-                .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;
-        }
-        Ok((lote, signer_pem))
-    }
-
-    /// Verify a compact JWS signed with an RSA or P-384 certificate key; the `x5c` chain is
-    /// checked for integrity, validity and revocation like the generic path does.
-    async fn verify_jws_with_certificate(
-        &self,
-        token: &str,
-        signer_pem: &str,
-        algorithm: SpkiSignatureAlgorithm,
-    ) -> Result<(), FetchError> {
-        self.certificate_validator
+        // integrity and validity only: the issuer of the signer's topmost certificate, which signs
+        // its CRL, is known once the signer is pinned, and `verify_signer` checks revocation there
+        let signer = self
+            .certificate_validator
             .parse_pem_chain(
-                signer_pem,
-                CertificateValidationOptions::signature_and_revocation(None),
+                &signer_pem,
+                CertificateValidationOptions::signature_and_validity(None),
             )
             .await
             .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;
-
-        let (signing_input, signature) = token
+        let (signing_input, signature) = body
             .rsplit_once('.')
             .ok_or_else(|| FetchError::InvalidDocument("malformed JWS".to_string()))?;
         let signature = Base64UrlSafeNoPadding::decode_to_vec(signature, None)
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+
         let leaf = extract_leaf_pem_from_chain(signer_pem.as_bytes())
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
-        let (_, certificate) = x509_parser::parse_x509_certificate(&leaf.contents)
+        let (_, leaf) = x509_parser::parse_x509_certificate(&leaf.contents)
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
-        spki_signature::verify(
-            algorithm,
-            certificate.tbs_certificate.subject_pki.raw,
-            signing_input.as_bytes(),
-            &signature,
-        )
-        .map_err(|e| match e {
-            SpkiSignatureError::UnsupportedKey(_) => {
-                FetchError::UnsupportedAlgorithm(e.to_string())
+
+        let algorithm = &decomposed_token.header.algorithm;
+        if let Some(algorithm) = SpkiSignatureAlgorithm::from_jose_alg(algorithm) {
+            // RSA / P-384: the key algorithm provider has no implementation, verify directly
+            spki_signature::verify(
+                algorithm,
+                leaf.tbs_certificate.subject_pki.raw,
+                signing_input.as_bytes(),
+                &signature,
+            )
+            .map_err(|e| match e {
+                SpkiSignatureError::UnsupportedKey(_) => {
+                    FetchError::UnsupportedAlgorithm(e.to_string())
+                }
+                _ => FetchError::InvalidSignature(e.to_string()),
+            })?;
+        } else {
+            // an RSA or P-384 key only signs under the `alg`s handled above
+            if spki_signature::key_family(&leaf.tbs_certificate.subject_pki).is_some()
+                || self
+                    .key_algorithm_provider
+                    .key_algorithm_from_jose_alg(algorithm)
+                    .is_none()
+            {
+                return Err(FetchError::UnsupportedAlgorithm(algorithm.to_owned()));
             }
-            _ => FetchError::InvalidSignature(e.to_string()),
-        })
+            signer
+                .public_key
+                .verify(signing_input.as_bytes(), &signature)
+                .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;
+        }
+        Ok((lote, signer_pem))
     }
 
     async fn verify_xml(&self, body: &str) -> Result<(json::LoTEPayload, String), FetchError> {

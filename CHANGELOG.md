@@ -114,6 +114,13 @@ diverged at `7505afb41`.
   chain" whenever it named a CRL distribution point.
 - Revocation is checked after every link of the chain is verified, so no CRL is fetched for a path that
   does not verify. A CRL that cannot be fetched or parsed fails as `CRLCheckFailed`.
+- Trust-list signers (JWT `x5c` and XAdES `KeyInfo`) and the certificates a LoTE lists are validated for
+  integrity and validity only; a signer's revocation is checked when it is pinned, below the configured
+  anchor. A signer issued by a CA with a CRL distribution point and presented without that CA no longer
+  fails with "CRL signer certificate is not present in the chain". A JWT LoTE is verified with the key of
+  its `x5c` leaf directly, so `EtsiLoteResolver::new`, `TrustListExporter::new` and `with_xades` no
+  longer take a `DidMethodProvider`, and an algorithm the key algorithm provider does not know fails as
+  `unsupported_algorithm` instead of `invalid_signature`.
 - `mso_mdoc` issuer trust now requires a signature path from the Document
   Signer to a trusted IACA PEM; a matching Authority Key Identifier alone no
   longer grants trust. `ExtractPresentationCtx.trusted_certs_skids` is replaced

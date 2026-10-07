@@ -55,6 +55,10 @@ pub trait XAdESProto: Send + Sync {
 
     /// Profile checks (which references must exist, signing-time freshness, ...)
     /// are left to the caller.
+    ///
+    /// The signer's certificate chain is checked for integrity and validity only, not for trust
+    /// or revocation: the caller must pin the returned signer (e.g. the trust-list resolvers'
+    /// `verify_signer`, which checks revocation below the pinned anchor).
     async fn verify_enveloped_signature(
         &self,
         signed: &XAdESEnvelopedSignature,
@@ -298,10 +302,13 @@ impl XAdESEnvelopedSignature {
             .find_signing_certificate_chain()
             .error_while("matching signing certificate")?;
         let pem_chain = x5c_into_pem_chain(signing_chain).error_while("parsing signer X509Data")?;
+        // integrity and validity only: the issuer of the signer's topmost certificate, which signs
+        // its CRL, is known once the caller pins the signer, and revocation is checked there (the
+        // trust-list resolvers' `verify_signer`)
         let parsed = certificate_validator
             .parse_pem_chain(
                 &pem_chain,
-                CertificateValidationOptions::signature_and_revocation(None),
+                CertificateValidationOptions::signature_and_validity(None),
             )
             .await
             .error_while("validating signer certificate chain")?;

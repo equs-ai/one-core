@@ -15,7 +15,6 @@ use crate::proto::http_client::HttpClient;
 use crate::proto::xades::XAdESProto;
 use crate::provider::caching_loader::etsi_lote::EtsiLoteCache;
 use crate::provider::caching_loader::etsi_lotl::EtsiLotlCache;
-use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::remote_entity_storage::RemoteEntityStorage;
 use crate::provider::remote_entity_storage::db_storage::DbStorage;
@@ -47,12 +46,10 @@ impl TrustListSubscriberProvider for TrustListSubscriberProviderImpl {
     }
 }
 
-#[expect(clippy::too_many_arguments)]
 pub(crate) fn trust_list_subscriber_provider_from_config(
     config: &mut CoreConfig,
     clock: Arc<dyn Clock>,
     client: Arc<dyn HttpClient>,
-    did_method_provider: Arc<dyn DidMethodProvider>,
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     certificate_validator: Arc<dyn CertificateValidator>,
     xades_proto: Arc<dyn XAdESProto>,
@@ -73,7 +70,6 @@ pub(crate) fn trust_list_subscriber_provider_from_config(
                 let resolver = Arc::new(EtsiLoteResolver::new(
                     clock.clone(),
                     client.clone(),
-                    did_method_provider.clone(),
                     key_algorithm_provider.clone(),
                     certificate_validator.clone(),
                     xades_proto.clone(),
