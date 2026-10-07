@@ -351,7 +351,13 @@ fn test_build_lote_payload_basic() {
         payload.list_and_scheme_information.scheme_operator_name[0].value,
         "Test Operator"
     );
-    assert_eq!(payload.list_and_scheme_information.scheme_territory, "EU");
+    assert_eq!(
+        payload
+            .list_and_scheme_information
+            .scheme_territory
+            .as_deref(),
+        Some("EU")
+    );
     assert_eq!(
         payload
             .list_and_scheme_information
@@ -406,7 +412,7 @@ fn test_parse_and_verify_sprind_lote() {
                 .to_string()
         ))
     );
-    assert_eq!(info.scheme_territory, "EU");
+    assert_eq!(info.scheme_territory.as_deref(), Some("EU"));
     assert_eq!(info.scheme_operator_name[0].value, "SPRIND GmbH");
 
     let entities = payload.trusted_entities_list.as_ref().unwrap();
@@ -493,13 +499,15 @@ async fn test_format_trust_list_with_entry() {
         entities[0].trusted_entity_services[0]
             .service_information
             .service_type_identifier
-            .contains("PID/Issuance")
+            .as_deref()
+            .is_some_and(|uri| uri.contains("PID/Issuance"))
     );
     assert!(
         entities[0].trusted_entity_services[1]
             .service_information
             .service_type_identifier
-            .contains("PID/Revocation")
+            .as_deref()
+            .is_some_and(|uri| uri.contains("PID/Revocation"))
     );
 }
 
@@ -809,7 +817,8 @@ fn test_build_trusted_entity_with_params() {
         entity.trusted_entity_services[0]
             .service_information
             .service_type_identifier
-            .contains("PID/Issuance")
+            .as_deref()
+            .is_some_and(|uri| uri.contains("PID/Issuance"))
     );
     assert!(
         entity.trusted_entity_services[0]
@@ -885,7 +894,7 @@ async fn test_create_trust_list_with_params_enriches_scheme_info() {
     let info = &payload.list_and_scheme_information;
     assert_eq!(info.scheme_operator_name[0].lang, "de");
     assert_eq!(info.scheme_operator_name[0].value, "Betreiber GmbH");
-    assert_eq!(info.scheme_territory, "DE");
+    assert_eq!(info.scheme_territory.as_deref(), Some("DE"));
     assert_eq!(info.lote_type, Some(LoTEType::EuPidProvidersList));
     assert!(info.status_determination_approach.contains("PID"));
     assert!(info.scheme_type_community_rules.is_some());

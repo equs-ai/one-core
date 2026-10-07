@@ -1,25 +1,26 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use ct_codecs::{Base64, Encoder};
+use model::{LoteEntity, PreprocessedLote};
+use preprocessing::jwk_to_raw_b64;
 use serde::Deserialize;
 use serde_with::DurationSeconds;
 use shared_types::IdentifierId;
-use standardized_types::etsi_119_602::TrustedEntityInformation;
+use standardized_types::jwk::PublicJwk;
 use strum::Display;
 use url::Url;
-use x509_parser::oid_registry::OID_X509_EXT_SUBJECT_KEY_IDENTIFIER;
 
 use crate::error::ContextWithErrorCode;
+use crate::model::certificate::CertificateState;
 use crate::model::identifier::{Identifier, IdentifierType};
-use crate::model::key::Key;
 use crate::model::trust_list_role::TrustListRoleEnum;
-use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
+use crate::proto::certificate_validator::CertificateValidator;
 use crate::provider::caching_loader::etsi_lote::EtsiLoteCache;
+use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::trust_list_subscriber::error::TrustListSubscriberError;
-use crate::provider::trust_list_subscriber::etsi_lote::model::PreprocessedLote;
 use crate::provider::trust_list_subscriber::{
-    TrustEntityResponse, TrustListSubscriber, TrustListSubscriberCapabilities,
-    TrustListValidationSuccess,
+    Feature, TrustEntityMetadata, TrustEntityResponse, TrustListSubscriber,
+    TrustListSubscriberCapabilities, TrustListValidationSuccess,
 };
 
 mod model;
@@ -35,7 +36,15 @@ mod test;
 pub(crate) struct EtsiLoteParams {
     pub accepts: LoteContentType,
     #[serde_as(as = "DurationSeconds<i64>")]
-    pub leeway: time::Duration,
+    #[serde(alias = "leeway")]
+    pub leeway_seconds: time::Duration,
+    /// Max depth to follow through chained `PointersToOtherLoTE`.
+    #[serde(default = "default_max_pointer_depth")]
+    pub max_pointer_depth: Option<usize>,
+}
+
+fn default_max_pointer_depth() -> Option<usize> {
+    Some(5)
 }
 
 #[derive(Clone, Debug, Display, Deserialize)]
@@ -50,11 +59,21 @@ pub enum LoteContentType {
 
 pub struct EtsiLoteSubscriber {
     cache: EtsiLoteCache,
+    certificate_validator: Arc<dyn CertificateValidator>,
+    key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
 }
 
 impl EtsiLoteSubscriber {
-    pub fn new(cache: EtsiLoteCache) -> Self {
-        Self { cache }
+    pub fn new(
+        cache: EtsiLoteCache,
+        certificate_validator: Arc<dyn CertificateValidator>,
+        key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
+    ) -> Self {
+        Self {
+            cache,
+            certificate_validator,
+            key_algorithm_provider,
+        }
     }
 
     async fn get_list(
@@ -66,8 +85,7 @@ impl EtsiLoteSubscriber {
             .get(reference.as_str())
             .await
             .error_while("getting LOTE from cache")?;
-        let list = serde_json::from_slice::<PreprocessedLote>(&raw_data)?;
-        Ok(list)
+        Ok(serde_json::from_slice::<PreprocessedLote>(&raw_data)?)
     }
 }
 
@@ -83,6 +101,11 @@ impl TrustListSubscriber for EtsiLoteSubscriber {
                 TrustListRoleEnum::WrpRcProvider,
                 TrustListRoleEnum::NationalRegistryRegistrar,
             ],
+            resolvable_identifier_types: vec![
+                IdentifierType::Certificate,
+                IdentifierType::CertificateAuthority,
+            ],
+            features: vec![Feature::SupportsRemoteIdentifiers],
         }
     }
 
@@ -92,49 +115,81 @@ impl TrustListSubscriber for EtsiLoteSubscriber {
         role: Option<TrustListRoleEnum>,
     ) -> Result<TrustListValidationSuccess, TrustListSubscriberError> {
         let list = self.get_list(reference).await?;
-        let role = list
-            .role
-            .or(role)
-            .ok_or(TrustListSubscriberError::UnknownTrustListRole)?;
-        Ok(TrustListValidationSuccess { role })
+        // An aggregate of differently-typed lists is roleless; its role is then
+        // re-derived per entity at resolve time, like the LoTL.
+        Ok(TrustListValidationSuccess {
+            role: list.role.or(role),
+        })
     }
 
     async fn resolve_entries(
         &self,
         reference: &Url,
         identifiers: &[Identifier],
-    ) -> Result<HashMap<IdentifierId, TrustEntityResponse>, TrustListSubscriberError> {
+    ) -> Result<HashMap<IdentifierId, Vec<TrustEntityResponse>>, TrustListSubscriberError> {
         let list = self.get_list(reference).await?;
         let mut result = HashMap::new();
         for identifier in identifiers {
-            if let Some(entity) = find_matching_trusted_entity(identifier, &list)? {
-                result.insert(identifier.id, TrustEntityResponse::LOTE(entity));
+            let entities = find_matching_for_identifier(
+                identifier,
+                &list,
+                self.certificate_validator.as_ref(),
+            )
+            .await?;
+            if !entities.is_empty() {
+                result.insert(identifier.id, entities);
             }
         }
         Ok(result)
     }
+
+    async fn resolve_certificate(
+        &self,
+        reference: &Url,
+        pem_chain: &str,
+    ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
+        let list = self.get_list(reference).await?;
+        find_matching_for_certificate(&list, pem_chain, self.certificate_validator.as_ref()).await
+    }
+
+    async fn resolve_public_key(
+        &self,
+        reference: &Url,
+        public_key: &PublicJwk,
+    ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
+        let raw_b64 = jwk_to_raw_b64(public_key, self.key_algorithm_provider.as_ref())
+            .error_while("converting JWK")?;
+        let list = self.get_list(reference).await?;
+
+        let Some(indices) = list.public_keys.get(&raw_b64) else {
+            return Ok(Vec::new());
+        };
+        indices
+            .iter()
+            .map(|idx| entity_response(&list.trusted_entities, *idx))
+            .collect()
+    }
 }
 
-fn find_matching_trusted_entity(
+async fn find_matching_for_identifier(
     identifier: &Identifier,
     preprocessed_lote: &PreprocessedLote,
-) -> Result<Option<TrustedEntityInformation>, TrustListSubscriberError> {
+    certificate_validator: &dyn CertificateValidator,
+) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
     match identifier.r#type {
-        IdentifierType::Did => Err(TrustListSubscriberError::UnsupportedIdentifierType(
-            IdentifierType::Did,
-        )),
-        IdentifierType::Key => {
-            let key = identifier.key.as_ref().ok_or_else(|| {
-                TrustListSubscriberError::MappingError(format!(
-                    "missing key on identifier `{}`",
-                    identifier.id
-                ))
-            })?;
-            find_matching_public_key(preprocessed_lote, key)
+        r#type @ (IdentifierType::Did | IdentifierType::Key) => {
+            Err(TrustListSubscriberError::UnsupportedIdentifierType(r#type))
         }
         IdentifierType::Certificate | IdentifierType::CertificateAuthority => {
-            let Some(active_certs) = identifier.active_certs() else {
-                return Ok(None);
+            // Not `Identifier::active_certs`: in this fork it yields nothing for
+            // certificate-authority identifiers, which upstream resolves too.
+            let Some(active_certs) = identifier.certificates.as_ref().map(|certs| {
+                certs
+                    .iter()
+                    .filter(|cert| cert.state == CertificateState::Active)
+                    .collect::<Vec<_>>()
+            }) else {
+                return Ok(Vec::new());
             };
             if active_certs.len() > 1 {
                 return Err(TrustListSubscriberError::MultipleActiveCertificates(
@@ -142,72 +197,46 @@ fn find_matching_trusted_entity(
                 ));
             }
             let Some(active_cert) = active_certs.first() else {
-                return Ok(None);
+                return Ok(Vec::new());
             };
 
-            // check fingerprint
-            if let Some(idx) = preprocessed_lote
-                .certificate_fingerprints
-                .get(&active_cert.fingerprint)
-            {
-                return get(&preprocessed_lote.trusted_entities, *idx).map(Some);
-            }
-
-            let pem = extract_leaf_pem_from_chain(active_cert.chain.as_bytes())
-                .error_while("parsing certificate value")?;
-            let identifier_cert = pem.parse_x509()?;
-
-            // check subject name
-            if let Some(idx) = preprocessed_lote
-                .subject_names
-                .get(&identifier_cert.subject.to_string())
-            {
-                return get(&preprocessed_lote.trusted_entities, *idx).map(Some);
-            }
-
-            // check subject key identifier
-            if let Some(ski) =
-                identifier_cert.get_extension_unique(&OID_X509_EXT_SUBJECT_KEY_IDENTIFIER)?
-            {
-                let ski = Base64::encode_to_string(ski.value)?;
-                if let Some(idx) = preprocessed_lote.subject_key_identifiers.get(&ski) {
-                    return get(&preprocessed_lote.trusted_entities, *idx).map(Some);
-                }
-            }
-
-            let key = active_cert.key.as_ref().ok_or_else(|| {
-                TrustListSubscriberError::MappingError(format!(
-                    "missing key on certificate `{}`",
-                    active_cert.id
-                ))
-            })?;
-            find_matching_public_key(preprocessed_lote, key)
+            find_matching_for_certificate(
+                preprocessed_lote,
+                &active_cert.chain,
+                certificate_validator,
+            )
+            .await
         }
     }
 }
 
-fn find_matching_public_key(
+async fn find_matching_for_certificate(
     preprocessed_lote: &PreprocessedLote,
-    key: &Key,
-) -> Result<Option<TrustedEntityInformation>, TrustListSubscriberError> {
-    let raw_public_key = Base64::encode_to_string(&key.public_key)?;
-    if let Some(idx) = preprocessed_lote.public_keys.get(&raw_public_key) {
-        return get(&preprocessed_lote.trusted_entities, *idx).map(Some);
-    }
-    Ok(None)
+    pem_chain: &str,
+    certificate_validator: &dyn CertificateValidator,
+) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
+    let indices = preprocessed_lote
+        .cert_index
+        .match_chain(pem_chain, certificate_validator)
+        .await?;
+    indices
+        .into_iter()
+        .map(|idx| entity_response(&preprocessed_lote.trusted_entities, idx))
+        .collect()
 }
 
-fn get(
-    trusted_entities: &[TrustedEntityInformation],
+fn entity_response(
+    trusted_entities: &[LoteEntity],
     idx: usize,
-) -> Result<TrustedEntityInformation, TrustListSubscriberError> {
-    trusted_entities
-        .get(idx)
-        .ok_or_else(|| {
-            TrustListSubscriberError::MappingError(format!(
-                "preprocessed LoTE index {idx} out of bounds. Num elements: {}",
-                trusted_entities.len()
-            ))
-        })
-        .cloned()
+) -> Result<TrustEntityResponse, TrustListSubscriberError> {
+    let entry = trusted_entities.get(idx).ok_or_else(|| {
+        TrustListSubscriberError::MappingError(format!(
+            "preprocessed LoTE index {idx} out of bounds. Num elements: {}",
+            trusted_entities.len()
+        ))
+    })?;
+    Ok(TrustEntityResponse {
+        derived_role: entry.derived_role,
+        metadata: TrustEntityMetadata::Lote(entry.info.clone()),
+    })
 }
