@@ -20,19 +20,26 @@ impl CertificateValidatorImpl {
         crl_mode: CrlMode,
     ) -> Result<(), Error> {
         match crl_mode {
-            CrlMode::X509 => {
+            CrlMode::X509 | CrlMode::X509BelowAnchor => {
                 let extension =
                     certificate.get_extension_unique(&OID_X509_EXT_CRL_DISTRIBUTION_POINTS)?;
 
                 if let Some(ParsedExtension::CRLDistributionPoints(crl)) =
                     extension.map(|extension| extension.parsed_extension())
                 {
-                    let downloaded_crl = self.download_crl_from_points(crl).await?;
-                    if self.check_crl_revocation(&downloaded_crl, certificate, parent)? {
+                    let downloaded_crl = self
+                        .download_crl_from_points(crl)
+                        .await
+                        .map_err(revocation_unknown)?;
+                    if self
+                        .check_crl_revocation(&downloaded_crl, certificate, parent)
+                        .map_err(revocation_unknown)?
+                    {
                         return Err(Error::CertificateRevoked);
                     }
                 }
             }
+            CrlMode::ValidityOnly => {}
             CrlMode::AndroidAttestation => {
                 let crl = self
                     .android_attestation_crl_cache
@@ -204,5 +211,15 @@ impl CertificateValidatorImpl {
 
     async fn download_crl(&self, uri: &str) -> Result<Vec<u8>, CacheError> {
         self.crl_cache.get(uri).await
+    }
+}
+
+/// A CRL that cannot be fetched or parsed leaves the revocation status unknown: reported as
+/// [Error::CRLCheckFailed], like the other CRL failures, so that callers can tell it apart from a
+/// chain that does not validate.
+fn revocation_unknown(error: Error) -> Error {
+    match error {
+        Error::CRLCheckFailed(_) | Error::CRLOutdated | Error::CRLSignatureInvalid => error,
+        other => Error::CRLCheckFailed(other.to_string()),
     }
 }

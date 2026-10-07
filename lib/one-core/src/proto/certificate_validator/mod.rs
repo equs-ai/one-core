@@ -145,6 +145,16 @@ pub enum CrlMode {
     X509,
     /// <https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status>
     AndroidAttestation,
+    /// Validity period only; no revocation source is consulted.
+    ValidityOnly,
+    /// [CrlMode::X509] for every certificate whose issuer is in the chain. The topmost one is the
+    /// trust anchor: trusted by configuration (e.g. a trusted list's service status) rather than
+    /// by a CRL, and its own issuer is absent, so it is not checked.
+    ///
+    /// Only for a chain that ends in a configured anchor, e.g. through
+    /// [CertificateValidator::validate_chain_against_ca_chain]: on any other chain, the topmost
+    /// certificate's revocation goes unchecked.
+    X509BelowAnchor,
 }
 
 pub enum EnforceKeyUsage {
@@ -198,6 +208,37 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+        }
+    }
+
+    /// Signatures, critical extensions, validity periods and leaf key usage, without revocation.
+    ///
+    /// For a chain not yet connected to a trusted anchor: the issuer of its topmost certificate
+    /// is absent, so a CRL for it could not be authenticated, and its distribution points (chosen
+    /// by whoever presented the chain) must not be fetched. Check revocation once the chain is
+    /// anchored, e.g. with [validate_chain_against_trust_anchors].
+    pub fn signature_and_validity(
+        required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
+    ) -> Self {
+        Self {
+            require_root_termination: false,
+            integrity_check: true,
+            validity_check: Some(CrlMode::ValidityOnly),
+            required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
+            leaf_only_extensions: Default::default(),
+            leaf_validations: Default::default(),
+        }
+    }
+
+    /// [CertificateValidationOptions::signature_and_revocation] for a chain that ends in its trust
+    /// anchor: every certificate below the anchor is checked for revocation against its issuer in
+    /// the chain; the anchor is not.
+    pub fn signature_and_revocation_below_anchor(
+        required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
+    ) -> Self {
+        Self {
+            validity_check: Some(CrlMode::X509BelowAnchor),
+            ..Self::signature_and_revocation(required_leaf_cert_key_usage)
         }
     }
 

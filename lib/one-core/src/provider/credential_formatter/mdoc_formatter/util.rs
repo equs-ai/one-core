@@ -327,8 +327,11 @@ pub(crate) async fn extract_certificate_from_x5chain_header(
             })?;
     let chain = encode_many_config(&pems, EncodeConfig::new().set_line_ending(LineEnding::LF));
 
+    // without anchors the chain's topmost issuer is absent, so a CRL for it could not be
+    // authenticated and its distribution points are not fetched; revocation is checked once the
+    // chain is anchored
     let validation_context = if verify {
-        CertificateValidationOptions::signature_and_revocation(Some(vec![
+        CertificateValidationOptions::signature_and_validity(Some(vec![
             EnforceKeyUsage::DigitalSignature,
         ]))
     } else {

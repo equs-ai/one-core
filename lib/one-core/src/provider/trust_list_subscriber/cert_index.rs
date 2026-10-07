@@ -85,7 +85,7 @@ impl CertIndex {
                     .validate_chain_against_ca_chain(
                         pem_chain,
                         &entry.pem,
-                        CertificateValidationOptions::signature_and_revocation(None),
+                        CertificateValidationOptions::signature_and_revocation_below_anchor(None),
                         CertSelection::Leaf,
                     )
                     .await
@@ -103,10 +103,12 @@ impl CertIndex {
         }
 
         if matched.is_empty() {
+            // a listed leaf is its own anchor: nothing below it to check for revocation, and no
+            // issuer in the chain to authenticate a CRL for it
             let parsed = certificate_validator
                 .parse_pem_chain(
                     pem_chain,
-                    CertificateValidationOptions::signature_and_revocation(None),
+                    CertificateValidationOptions::signature_and_validity(None),
                 )
                 .await
                 .error_while("parsing input PEM chain")?;

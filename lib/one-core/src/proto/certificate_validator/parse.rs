@@ -11,7 +11,7 @@ use super::x509_extension::{
 };
 use super::{
     CertSelection, CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl,
-    Error, ParsedCertificate, x509_extension,
+    CrlMode, Error, ParsedCertificate, x509_extension,
 };
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::ContextWithErrorCode;
@@ -91,6 +91,8 @@ impl CertificateValidatorImpl {
         }
 
         let mut result: Option<&X509Certificate<'a>> = None;
+        // checked once every link is verified, so no CRL is fetched for a path that is not one
+        let mut revocation_checks = Vec::new();
         let mut chain = chain.iter().peekable();
         while let Some(current) = chain.next() {
             if result.is_none() {
@@ -123,8 +125,11 @@ impl CertificateValidatorImpl {
 
             if let Some(crl_mode) = validation.validity_check {
                 self.check_validity_with_leeway(current, self.clock_leeway)?;
-                self.check_revocation(current, chain.peek().copied(), crl_mode)
-                    .await?;
+                let parent = chain.peek().copied();
+                let is_anchor = matches!(crl_mode, CrlMode::X509BelowAnchor) && parent.is_none();
+                if !is_anchor {
+                    revocation_checks.push((current, parent, crl_mode));
+                }
             }
 
             if !validation.leaf_only_extensions.is_empty()
@@ -147,6 +152,10 @@ impl CertificateValidatorImpl {
                     .try_for_each(|v| v(current))
                     .error_while("validating leaf certificate")?;
             }
+        }
+
+        for (certificate, parent, crl_mode) in revocation_checks {
+            self.check_revocation(certificate, parent, crl_mode).await?;
         }
 
         result.ok_or(Error::EmptyChain)

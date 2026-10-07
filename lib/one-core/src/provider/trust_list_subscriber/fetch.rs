@@ -372,9 +372,9 @@ pub(crate) async fn verify_signer(
                 .validate_chain_against_ca_chain(
                     signer_chain_pem,
                     anchor,
-                    CertificateValidationOptions::signature_and_revocation(Some(vec![
-                        EnforceKeyUsage::DigitalSignature,
-                    ])),
+                    CertificateValidationOptions::signature_and_revocation_below_anchor(Some(
+                        vec![EnforceKeyUsage::DigitalSignature],
+                    )),
                     CertSelection::Leaf,
                 )
                 .await

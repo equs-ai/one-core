@@ -102,6 +102,16 @@ diverged at `7505afb41`.
 - TS 119 602 services count as active only with the exact `…/SvcStatus/active` status, or with no status
   outside a Pub-EAA providers list; a LoTE XML signature must use the enveloped-signature transform on its
   whole-document reference; a TSL served without `Content-Type` is rejected.
+- Revocation is checked only where the CRL signer is known. New `CrlMode::ValidityOnly`
+  (`CertificateValidationOptions::signature_and_validity`) for a chain not yet connected to an anchor,
+  used by the `mso_mdoc` `x5chain` check without anchors; new `CrlMode::X509BelowAnchor`
+  (`signature_and_revocation_below_anchor`) for a chain ending in its trust anchor, whose certificates are
+  checked against their issuer and whose anchor is not, used for `mso_mdoc` anchors, trust-list signers and
+  the certificate index (whose fingerprint fallback, for a listed leaf, uses validity only). Previously the
+  topmost certificate of an unanchored chain failed with "CRL signer certificate is not present in the
+  chain" whenever it named a CRL distribution point.
+- Revocation is checked after every link of the chain is verified, so no CRL is fetched for a path that
+  does not verify. A CRL that cannot be fetched or parsed fails as `CRLCheckFailed`.
 - `mso_mdoc` issuer trust now requires a signature path from the Document
   Signer to a trusted IACA PEM; a matching Authority Key Identifier alone no
   longer grants trust. `ExtractPresentationCtx.trusted_certs_skids` is replaced
