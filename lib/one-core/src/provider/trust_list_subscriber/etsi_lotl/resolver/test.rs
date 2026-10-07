@@ -439,3 +439,57 @@ async fn pointers_beyond_the_limit_are_skipped() {
         .collect();
     assert_eq!(limited.len(), 15);
 }
+
+/// Live export of the EU LoTL with real XAdES and certificate validation. Network access and the
+/// OJEU-published LoTL signer certificates are required, so it is ignored by default:
+///
+/// `EU_LOTL_ANCHORS=/path/to/ojeu-lotl-signers.pem [EU_LOTL_URL=…] cargo test -p equs-one-core \
+///   --features mock --lib -- --ignored live_eu_lotl --nocapture`
+#[tokio::test]
+#[ignore = "network: fetches the live EU LoTL and member lists"]
+async fn live_eu_lotl() {
+    use crate::proto::certificate_validator::CertificateValidatorImpl;
+    use crate::proto::clock::DefaultClock;
+    use crate::proto::http_client::reqwest_client::ReqwestClient;
+    use crate::proto::xades::XAdES;
+
+    let url = std::env::var("EU_LOTL_URL")
+        .unwrap_or_else(|_| "https://ec.europa.eu/tools/lotl/eu-lotl.xml".to_string());
+    let anchors_path = std::env::var("EU_LOTL_ANCHORS").expect("EU_LOTL_ANCHORS (PEM file)");
+    let anchors = std::fs::read_to_string(anchors_path).expect("readable PEM file");
+    let anchors: Vec<String> = x509_parser::pem::Pem::iter_from_buffer(anchors.as_bytes())
+        .map(|pem| crate::mapper::x509::der_chain_into_pem_chain(vec![pem.unwrap().contents]))
+        .collect();
+
+    let validator: Arc<dyn crate::proto::certificate_validator::CertificateValidator> =
+        Arc::new(CertificateValidatorImpl::default());
+    let resolver = EtsiLotlResolver::new(
+        Arc::new(DefaultClock),
+        Arc::new(ReqwestClient::default()),
+        validator.clone(),
+        Arc::new(XAdES::new(validator)),
+        EtsiLotlResolverOptions {
+            trust_anchors: anchors,
+            allow_unpinned_root: false,
+            leeway: Duration::minutes(5),
+            limits: FetchLimits::default(),
+        },
+    );
+    let pin = resolver.root_pin().unwrap();
+
+    let collection = resolver
+        .collect(&url, &pin)
+        .await
+        .expect("LoTL authenticates");
+
+    println!(
+        "sequence {}, {} members, {} skipped",
+        collection.sequence_number,
+        collection.members.len(),
+        collection.skipped.len()
+    );
+    for skipped in &collection.skipped {
+        println!("  skipped {} ({:?})", skipped.url, skipped.reason);
+    }
+    assert!(!collection.members.is_empty());
+}

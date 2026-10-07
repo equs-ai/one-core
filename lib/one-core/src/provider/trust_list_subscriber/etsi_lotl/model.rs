@@ -31,4 +31,7 @@ pub struct DelegatedMember {
     pub url: String,
     /// PEMs of the certificates the pointer names; the member's signer must be one of them.
     pub signer_pems: Vec<String>,
+    /// The list type the pointer declares (its `TSLType`), which the member must match.
+    #[serde(default)]
+    pub declared_type: Option<String>,
 }

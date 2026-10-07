@@ -132,6 +132,11 @@ impl EtsiLotlResolver {
         }
     }
 
+    /// Cache scope of this resolver, so lists resolved under other limits never share an entry.
+    pub fn cache_scope(&self) -> String {
+        format!("lotl;{}", self.options.limits.scope())
+    }
+
     /// The pin the root LoTL is authenticated under.
     pub fn root_pin(&self) -> Result<SignerPin, FetchError> {
         SignerPin::for_root(
@@ -153,12 +158,18 @@ impl EtsiLotlResolver {
             &self.options.limits,
         )
         .await?;
-        if let Some(received) = document.content_type.as_deref()
-            && !TSL_XML_MEDIA_TYPES.contains(&received)
-        {
-            return Err(FetchError::InvalidDocument(format!(
-                "unexpected content type `{received}`"
-            )));
+        match document.content_type.as_deref() {
+            Some(received) if TSL_XML_MEDIA_TYPES.contains(&received) => {}
+            Some(received) => {
+                return Err(FetchError::InvalidDocument(format!(
+                    "unexpected content type `{received}`"
+                )));
+            }
+            None => {
+                return Err(FetchError::InvalidDocument(
+                    "header Content-Type not present".to_string(),
+                ));
+            }
         }
         let body = str::from_utf8(&document.body)
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
@@ -270,16 +281,23 @@ impl EtsiLotlResolver {
             }
 
             if kind == PointerKind::Delegate {
-                // resolved by a delegate subscriber, pinned to these certificates
+                // resolved by a delegate subscriber, pinned to these certificates and type
                 collection.delegated.push(DelegatedMember {
                     url: location,
                     signer_pems,
+                    declared_type: pointer_tsl_type(&pointer),
                 });
                 continue;
             }
 
             match self
-                .fetch_and_verify(&location, &SignerPin::Pointer { pems: signer_pems })
+                .fetch_and_verify(
+                    &location,
+                    &SignerPin::Pointer {
+                        pems: signer_pems,
+                        expected_type: None,
+                    },
+                )
                 .await
             {
                 Ok((member, _))
@@ -402,6 +420,15 @@ pub(crate) fn classify_pointer(pointer: &OtherTslPointer) -> PointerKind {
             _ => PointerKind::Delegate,
         },
     }
+}
+
+/// The `TSLType` a pointer declares, as its URI.
+fn pointer_tsl_type(pointer: &OtherTslPointer) -> Option<String> {
+    pointer.additional_information.as_ref().and_then(|info| {
+        info.other_information
+            .iter()
+            .find_map(|oi| oi.tsl_type.as_ref().map(ToString::to_string))
+    })
 }
 
 /// PEMs of every X.509 certificate in the pointer's `ServiceDigitalIdentities`; all are

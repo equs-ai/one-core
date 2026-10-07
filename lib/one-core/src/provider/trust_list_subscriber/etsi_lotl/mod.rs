@@ -77,6 +77,9 @@ impl EtsiLotlSubscriber {
         reference: &Url,
     ) -> Result<PreprocessedLotl, TrustListSubscriberError> {
         let pin = self.resolver.root_pin()?;
+        if pin.is_unpinned() {
+            tracing::warn!(url = %reference, "resolving a LoTL whose root signer is not pinned");
+        }
         let resolver = Arc::new(PinnedLotlResolver {
             resolver: self.resolver.clone(),
             url: reference.to_string(),
@@ -84,7 +87,10 @@ impl EtsiLotlSubscriber {
         });
         let raw = self
             .cache
-            .get_with(&pin.cache_key(reference.as_str()), resolver)
+            .get_with(
+                &pin.cache_key(reference.as_str(), &self.resolver.cache_scope())?,
+                resolver,
+            )
             .await
             .error_while("getting LoTL from cache")?;
         Ok(serde_json::from_slice(&raw)?)
@@ -145,6 +151,7 @@ impl EtsiLotlSubscriber {
             // the delegate authenticates the member against the LoTL pointer's certificates
             let pin = SignerPin::Pointer {
                 pems: member.signer_pems.clone(),
+                expected_type: member.declared_type.clone(),
             };
             for delegate in &self.delegates {
                 match delegate

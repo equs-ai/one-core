@@ -1888,6 +1888,7 @@ dependencies = [
  "asn1-rs",
  "assert2",
  "async-trait",
+ "aws-lc-rs",
  "bincode",
  "bit-vec",
  "bon",

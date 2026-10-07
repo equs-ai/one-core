@@ -1,5 +1,6 @@
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
+use std::sync::Arc;
 use time::Duration;
 use x509_parser::oid_registry::{OID_EC_P256, OID_KEY_TYPE_EC_PUBLIC_KEY, OID_SIG_ED25519};
 use x509_parser::pem::Pem;
@@ -15,8 +16,9 @@ use super::{
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::{authority_key_identifier, subject_key_identifier};
+use crate::proto::spki_signature;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
-use crate::provider::key_algorithm::key::KeyHandle;
+use crate::provider::key_algorithm::key::{KeyHandle, SignatureKeyHandle};
 use crate::service::certificate::dto::CertificateX509AttributesDTO;
 
 #[async_trait::async_trait]
@@ -172,6 +174,17 @@ impl CertificateValidatorImpl {
     }
 
     fn extract_public_key(&self, certificate: &X509Certificate) -> Result<KeyHandle, Error> {
+        // RSA and P-384 keys (e.g. trust-list signers) get a verify-only handle; the key
+        // algorithm provider supports neither.
+        if spki_signature::key_family(&certificate.subject_pki).is_some() {
+            let handle =
+                spki_signature::SpkiPublicKeyHandle::from_spki_der(certificate.subject_pki.raw)
+                    .error_while("parsing certificate public key")?;
+            return Ok(KeyHandle::SignatureOnly(SignatureKeyHandle::PublicKeyOnly(
+                Arc::new(handle),
+            )));
+        }
+
         let alg_type = get_public_key_type(certificate)?;
 
         let key_algorithm = self

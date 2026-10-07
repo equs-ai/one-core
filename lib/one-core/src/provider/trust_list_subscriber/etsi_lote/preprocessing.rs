@@ -4,7 +4,8 @@ use std::slice::from_ref;
 use ct_codecs::{Base64, Encoder};
 use one_dto_mapper::try_convert_inner;
 use standardized_types::etsi_119_602::{
-    LoTEPayload, MultiLangString, ServiceDigitalIdentity, TrustedEntity, TrustedEntityInformation,
+    LoTEPayload, LoTEType, MultiLangString, ServiceDigitalIdentity, TrustedEntity,
+    TrustedEntityInformation,
 };
 use standardized_types::jwk::PublicJwk;
 use standardized_types::x509::KeyIdentifier;
@@ -84,6 +85,10 @@ pub(super) async fn preprocess_lote(
             tracing::warn!("Discarding unsupported LoTE type: `{err}`");
             None
         });
+    let requires_explicit_status = matches!(
+        lote.list_and_scheme_information.lote_type,
+        Some(LoTEType::EuPubEaaProvidersList)
+    );
     let mut preprocessed_lote = PreprocessedLote {
         role: lote_type,
         ..Default::default()
@@ -100,6 +105,7 @@ pub(super) async fn preprocess_lote(
             public_keys,
         } = match preprocess_trusted_entity(
             trusted_entity,
+            requires_explicit_status,
             certificate_validator,
             key_algorithm_provider,
         )
@@ -165,8 +171,10 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
 }
 
 /// TS 119 602 `ServiceStatus` meaning the service is currently trusted.
+pub(super) const ACTIVE_SERVICE_STATUS: &str = "http://uri.etsi.org/19602/SvcStatus/active";
+
 pub(super) fn is_active_service_status(status: &str) -> bool {
-    status.trim_end_matches('/').ends_with("/active")
+    status == ACTIVE_SERVICE_STATUS
 }
 
 struct PreprocessingResult {
@@ -183,6 +191,7 @@ struct PreprocessedCertificate {
 
 async fn preprocess_trusted_entity(
     trusted_entity: TrustedEntity,
+    requires_explicit_status: bool,
     certificate_validator: &dyn CertificateValidator,
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
 ) -> Result<PreprocessingResult, LotePreprocessingError> {
@@ -190,14 +199,12 @@ async fn preprocess_trusted_entity(
     let mut public_keys = HashSet::new();
 
     for service in trusted_entity.trusted_entity_services {
-        // trust by presence, unless the service states a status other than active
-        if service
-            .service_information
-            .service_status
-            .as_deref()
-            .is_some_and(|status| !is_active_service_status(status))
-        {
-            continue;
+        // trust by presence, unless the service states a status other than active; a
+        // Pub-EAA providers list always states it (TS 119 602 Annex H)
+        match service.service_information.service_status.as_deref() {
+            Some(status) if !is_active_service_status(status) => continue,
+            None if requires_explicit_status => continue,
+            _ => {}
         }
         let Some(identity) = service.service_information.service_digital_identity else {
             continue;

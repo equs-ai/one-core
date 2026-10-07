@@ -744,19 +744,39 @@ async fn closed_xml_lote_is_rejected() {
 #[tokio::test]
 async fn pointer_pin_rejects_a_foreign_signer() {
     let reference = Url::parse("https://example.com/lote-xml").unwrap();
-    let (_, subscriber) = setup_xml(&reference, XmlSetup::default());
+    let (resolver, _) = setup_xml(&reference, XmlSetup::default());
 
     // the LoTL pointer names a certificate other than the LoTE's actual signer
     let pin = SignerPin::Pointer {
         pems: vec![UNTRUSTED_CERT.to_string()],
+        expected_type: None,
     };
     let result = run_with_mocked_time_async(
         datetime!(2026-04-01 00:00 UTC),
-        subscriber.resolve_certificate_pinned(&reference, TRUSTED_CERT, &pin),
+        resolver.collect(reference.as_str(), &pin),
     )
     .await;
 
-    assert!(result.is_err());
+    assert!(matches!(result, Err(FetchError::SignerNotTrusted)));
+}
+
+#[tokio::test]
+async fn pointed_to_lote_of_another_type_is_rejected() {
+    let reference = Url::parse("https://example.com/lote-xml").unwrap();
+    let (resolver, _) = setup_xml(&reference, XmlSetup::default());
+
+    // signed by the pointer's certificate, but a registrars list where a PID list was declared
+    let pin = SignerPin::Pointer {
+        pems: vec![xades_test_ca_pem()],
+        expected_type: Some("http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList".to_string()),
+    };
+    let result = run_with_mocked_time_async(
+        datetime!(2026-04-01 00:00 UTC),
+        resolver.collect(reference.as_str(), &pin),
+    )
+    .await;
+
+    assert!(matches!(result, Err(FetchError::InvalidDocument(_))));
 }
 
 #[tokio::test]
@@ -767,6 +787,7 @@ async fn pointer_pin_accepts_the_named_signer() {
     // rollover: the actual signer is the second certificate the pointer names
     let pin = SignerPin::Pointer {
         pems: vec![UNTRUSTED_CERT.to_string(), xades_test_ca_pem()],
+        expected_type: None,
     };
     let result = run_with_mocked_time_async(
         datetime!(2026-04-01 00:00 UTC),
@@ -869,4 +890,123 @@ async fn closed_jwt_lote_is_rejected() {
         .await;
 
     assert!(matches!(result, Err(FetchError::Closed)));
+}
+
+/// An RS256-signed LoTE JWT over the SPRIND payload, built at runtime with a fresh RSA key.
+fn rs256_lote(tamper: bool) -> (String, String) {
+    use aws_lc_rs::rand::SystemRandom;
+    use aws_lc_rs::signature::{RSA_PKCS1_SHA256, RsaKeyPair};
+    use ct_codecs::{Base64, Base64UrlSafeNoPadding, Encoder};
+
+    let key_pair = rcgen::KeyPair::generate_for(&rcgen::PKCS_RSA_SHA256).unwrap();
+    let cert = rcgen::CertificateParams::new(vec!["lote.test".to_string()])
+        .unwrap()
+        .self_signed(&key_pair)
+        .unwrap();
+    let x5c = Base64::encode_to_string(cert.der()).unwrap();
+    let header = serde_json::json!({ "alg": "RS256", "x5c": [x5c] });
+    let payload =
+        crate::provider::trust_list_subscriber::fetch::jws_payload(SPRIND_LOTE_JWS).unwrap();
+    let signing_input = format!(
+        "{}.{}",
+        Base64UrlSafeNoPadding::encode_to_string(header.to_string()).unwrap(),
+        Base64UrlSafeNoPadding::encode_to_string(payload.to_string()).unwrap()
+    );
+    let signer = RsaKeyPair::from_pkcs8(&key_pair.serialize_der()).unwrap();
+    let mut signature = vec![0; signer.public_modulus_len()];
+    signer
+        .sign(
+            &RSA_PKCS1_SHA256,
+            &SystemRandom::new(),
+            signing_input.as_bytes(),
+            &mut signature,
+        )
+        .unwrap();
+    if tamper {
+        signature[0] ^= 0xff;
+    }
+    let token = format!(
+        "{signing_input}.{}",
+        Base64UrlSafeNoPadding::encode_to_string(&signature).unwrap()
+    );
+    (token, cert.pem())
+}
+
+async fn collect_rs256(token: String) -> Result<(), FetchError> {
+    let reference = Url::parse("https://example.com/lote-rs256").unwrap();
+    let mut client = MockHttpClient::new();
+    mock_http_get_request(
+        &mut client,
+        reference.to_string(),
+        Response {
+            body: token.into_bytes(),
+            headers: hashmap! { "Content-Type".to_string() => "application/jwt".to_string() },
+            status: StatusCode(200),
+            request: Request {
+                body: None,
+                headers: Default::default(),
+                method: Method::Get,
+                url: reference.to_string(),
+                timeout: None,
+            },
+        },
+    );
+    let mut validator = MockCertificateValidator::new();
+    validator.expect_parse_pem_chain().returning(|pem, _| {
+        let mut handle = MockSignaturePublicKeyHandle::new();
+        handle.expect_verify().never();
+        Ok(ParsedCertificate {
+            attributes: CertificateX509AttributesDTO {
+                serial_number: "00".to_string(),
+                not_before: datetime!(2025-01-01 00:00 UTC),
+                not_after: datetime!(2030-01-01 00:00 UTC),
+                issuer: "CN=lote.test".to_string(),
+                subject: "CN=lote.test".to_string(),
+                fingerprint: pem_hash(pem),
+                extensions: vec![],
+            },
+            subject_common_name: None,
+            subject_key_identifier: None,
+            public_key: KeyHandle::SignatureOnly(SignatureKeyHandle::PublicKeyOnly(Arc::new(
+                handle,
+            ))),
+        })
+    });
+    let resolver = EtsiLoteResolver::new(
+        Arc::new(TaskLocalClock),
+        Arc::new(client),
+        Arc::new(MockDidMethodProvider::new()),
+        Arc::new(MockKeyAlgorithmProvider::new()),
+        Arc::new(validator),
+        Arc::new(MockXAdESProto::new()),
+        EtsiLoteResolverOptions {
+            content_type: LoteContentType::Jwt,
+            leeway: Duration::seconds(0),
+            max_pointer_depth: None,
+            trust_anchors: vec![],
+            allow_unpinned_root: true,
+            limits: FetchLimits::default(),
+        },
+    );
+    run_with_mocked_time_async(
+        datetime!(2026-03-01 00:00 UTC),
+        resolver.collect(reference.as_str(), &SignerPin::Unpinned),
+    )
+    .await
+    .map(|_| ())
+}
+
+#[tokio::test]
+async fn rs256_lote_is_verified_with_the_certificate_key() {
+    let (token, _) = rs256_lote(false);
+    collect_rs256(token).await.unwrap();
+}
+
+#[tokio::test]
+async fn forged_rs256_lote_is_rejected() {
+    let (token, _) = rs256_lote(true);
+    assert!(matches!(
+        collect_rs256(token).await,
+        Err(FetchError::InvalidSignature(_))
+    ));
 }

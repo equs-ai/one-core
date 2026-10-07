@@ -768,9 +768,10 @@ trustListSubscriber:
         accepts: "application/jwt"
         leewaySeconds: 60
         maxPointerDepth: 5
-        # No root anchors configured: lists are authenticated only against their own signer.
-        # Set `trustAnchors` (PEM) and drop this flag to pin the root signer.
-        allowUnpinnedRoot: true
+        # Root LoTEs must be signed by one of `trustAnchors` (PEM). Configure them, or set
+        # `allowUnpinnedRoot: true` in a development/test overlay (see config-local.yml).
+        trustAnchors: []
+        allowUnpinnedRoot: false
   # ETSI TS 119 612 LoTL/TL. Disabled by default: without PEM `trustAnchors` (e.g. the
   # OJEU-published LoTL signing certificates) the root LoTL is trusted on first use.
   LOTL_SUBSCRIBER:

@@ -47,6 +47,15 @@ diverged at `7505afb41`.
   `size_limit`, `pointer_limit`).
 - LoTE services whose `ServiceStatus` is present and not `active` are not indexed.
 - `CachingLoader::with_clock`, so cache freshness follows an injected `Clock`.
+- Verification-only RSA (PKCS#1 v1.5 and PSS, SHA-256/384/512) and ECDSA P-384 (`proto::spki_signature`,
+  on `aws-lc-rs`, already in the tree via `rcgen` and `x509-parser`). Certificate parsing gives RSA and
+  P-384 keys a verify-only key handle; XAdES (`rsa-sha*`, `sha*-rsa-MGF1`, `ecdsa-sha384`) and LoTE JWS
+  (`RS*`, `PS*`, `ES384`) verify them with the certificate key. There is no RSA key algorithm, key
+  storage or DID support; credentials signed with RSA are still rejected. SHA-384 hasher and XML-DSig
+  digest.
+- A pointed-to LoTE must be of the type its pointer declares (LoTE pointer qualifier, or the LoTL
+  pointer's `TSLType`).
+- Trust-list cache keys also cover the resolving subscriber (kind, content type, depth, limits).
 
 ### Changed
 
@@ -72,6 +81,13 @@ diverged at `7505afb41`.
   per lookup (`get_with`) instead of holding one; `EtsiLoteSubscriber` / `EtsiLotlSubscriber` take their
   resolver. `TrustListSubscriber` gains `resolve_certificate_pinned`.
 - `Identifier::active_certs` also covers certificate-authority identifiers, as upstream does.
+- Base configuration pins the root LoTE (`allowUnpinnedRoot: false`); `config-local.yml` allows unpinned
+  roots for development and tests. Unpinned resolutions log a warning.
+- A root anchor that a signer chains to must issue a certificate with `digitalSignature`; anchors the
+  chain does not name as an issuer are not tried.
+- TS 119 602 services count as active only with the exact `…/SvcStatus/active` status, or with no status
+  outside a Pub-EAA providers list; a LoTE XML signature must use the enveloped-signature transform on its
+  whole-document reference; a TSL served without `Content-Type` is rejected.
 - `mso_mdoc` issuer trust now requires a signature path from the Document
   Signer to a trusted IACA PEM; a matching Authority Key Identifier alone no
   longer grants trust. `ExtractPresentationCtx.trusted_certs_skids` is replaced

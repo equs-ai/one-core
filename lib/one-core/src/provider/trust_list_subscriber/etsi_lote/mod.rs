@@ -94,6 +94,9 @@ impl EtsiLoteSubscriber {
         reference: &Url,
     ) -> Result<PreprocessedLote, TrustListSubscriberError> {
         let pin = self.resolver.root_pin()?;
+        if pin.is_unpinned() {
+            tracing::warn!(url = %reference, "resolving a LoTE whose root signer is not pinned");
+        }
         self.get_list_pinned(reference, &pin).await
     }
 
@@ -110,7 +113,10 @@ impl EtsiLoteSubscriber {
         });
         let raw_data = self
             .cache
-            .get_with(&pin.cache_key(reference.as_str()), resolver)
+            .get_with(
+                &pin.cache_key(reference.as_str(), &self.resolver.cache_scope())?,
+                resolver,
+            )
             .await
             .error_while("getting LOTE from cache")?;
         Ok(serde_json::from_slice::<PreprocessedLote>(&raw_data)?)

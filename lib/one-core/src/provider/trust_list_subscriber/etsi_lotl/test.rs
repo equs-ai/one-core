@@ -139,7 +139,12 @@ fn lotl_resolver(validator: Arc<MockCertificateValidator>) -> Arc<EtsiLotlResolv
 /// so `get_list` never reaches the (unmocked) network.
 fn seeded_storage() -> Arc<InMemoryStorage> {
     let now = crate::clock::now_utc();
-    let key = SignerPin::Unpinned.cache_key(LOTL_URL);
+    let key = SignerPin::Unpinned
+        .cache_key(
+            LOTL_URL,
+            &lotl_resolver(Arc::new(MockCertificateValidator::new())).cache_scope(),
+        )
+        .unwrap();
     Arc::new(InMemoryStorage::new(HashMap::from([(
         key.clone(),
         RemoteEntity {
@@ -310,6 +315,9 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
         delegated_members: vec![DelegatedMember {
             url: "https://example.com/lote".to_string(),
             signer_pems: vec!["POINTER CERT".to_string()],
+            declared_type: Some(
+                "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList".to_string(),
+            ),
         }],
         ..Default::default()
     };
@@ -332,6 +340,9 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
                 && *pin
                     == SignerPin::Pointer {
                         pems: vec!["POINTER CERT".to_string()],
+                        expected_type: Some(
+                            "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList".to_string(),
+                        ),
                     }
         })
         .returning({

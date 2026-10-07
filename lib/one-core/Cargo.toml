@@ -13,6 +13,8 @@ version                = "0.1.1"
 name = "one_core"
 
 [dependencies]
+# verification-only RSA / P-384 for trust-list signatures (already in the tree via rcgen and x509-parser)
+aws-lc-rs                    = { version = "1.16" }
 one-core-portable                = { package = "equs-one-core-portable", version = "0.1.0", path = "../one-core-portable" }
 aes-gcm                      = { version = "0.10.3", features = ["std"] }
 anyhow.workspace             = true

@@ -13,8 +13,9 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::error::{ErrorCode, ErrorCodeMixin};
+use crate::mapper::x509::{get_akis_for_pem_chain, pem_to_subject_key_identifier};
 use crate::proto::certificate_validator::{
-    CertSelection, CertificateValidationOptions, CertificateValidator,
+    CertSelection, CertificateValidationOptions, CertificateValidator, EnforceKeyUsage,
 };
 use crate::proto::http_client::HttpClient;
 use crate::proto::xades;
@@ -30,8 +31,13 @@ pub const DEFAULT_DEADLINE: StdDuration = StdDuration::from_secs(300);
 pub enum SignerPin {
     /// Root list: the signer must equal, or chain to, one of these PEM anchors.
     Anchors { pems: Vec<String> },
-    /// Member list: the signer must equal one of the certificates its pointer names.
-    Pointer { pems: Vec<String> },
+    /// Member list: the signer must equal one of the certificates its pointer names, and the
+    /// list must be of the type the pointer declares (when it declares one).
+    Pointer {
+        pems: Vec<String>,
+        #[serde(default)]
+        expected_type: Option<String>,
+    },
     /// Root list accepted on its own embedded signer. Only when explicitly allowed.
     Unpinned,
 }
@@ -52,11 +58,15 @@ impl SignerPin {
         matches!(self, Self::Unpinned)
     }
 
-    /// Cache key binding `url` to this pin.
-    pub(crate) fn cache_key(&self, url: &str) -> String {
-        let pin = serde_json::to_vec(self).unwrap_or_default();
-        let digest = SHA256.hash(&pin).map(hex::encode).unwrap_or_default();
-        format!("{url}#pin={digest}")
+    /// Cache key binding `url` to this pin and to the resolving subscriber's `scope` (its kind,
+    /// content type and limits), so no two policies share an entry.
+    pub(crate) fn cache_key(&self, url: &str, scope: &str) -> Result<String, FetchError> {
+        let policy = serde_json::to_vec(&(scope, self))
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        let digest = SHA256
+            .hash(&policy)
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        Ok(format!("{url}#pin={}", hex::encode(digest)))
     }
 }
 
@@ -71,6 +81,19 @@ pub struct FetchLimits {
     pub allow_http: bool,
     /// Deadline for the whole export or resolution.
     pub deadline: StdDuration,
+}
+
+impl FetchLimits {
+    /// The limits as part of a cache scope.
+    pub(crate) fn scope(&self) -> String {
+        format!(
+            "bytes={};pointers={};http={};deadline={}",
+            self.max_document_bytes,
+            self.max_pointers,
+            self.allow_http,
+            self.deadline.as_secs()
+        )
+    }
 }
 
 impl Default for FetchLimits {
@@ -256,7 +279,7 @@ pub(crate) async fn verify_signer(
 ) -> Result<(), FetchError> {
     let pems = match pin {
         SignerPin::Unpinned => return Ok(()),
-        SignerPin::Anchors { pems } | SignerPin::Pointer { pems } => pems,
+        SignerPin::Anchors { pems } | SignerPin::Pointer { pems, .. } => pems,
     };
     let signer_fingerprint = fingerprint_of(certificate_validator, signer_chain_pem)
         .await
@@ -268,14 +291,23 @@ pub(crate) async fn verify_signer(
             return Ok(());
         }
     }
-    // a root may also be signed by a certificate issued under a configured anchor
+    // a root may also be signed by a signing certificate issued under a configured anchor
     if let SignerPin::Anchors { pems } = pin {
+        let chain_akis = get_akis_for_pem_chain(signer_chain_pem.as_bytes()).unwrap_or_default();
         for anchor in pems {
+            // only anchors the chain names as an issuer are candidates
+            if let Ok(Some(anchor_ski)) = pem_to_subject_key_identifier(anchor)
+                && !chain_akis.contains(&anchor_ski)
+            {
+                continue;
+            }
             if certificate_validator
                 .validate_chain_against_ca_chain(
                     signer_chain_pem,
                     anchor,
-                    CertificateValidationOptions::signature_and_revocation(None),
+                    CertificateValidationOptions::signature_and_revocation(Some(vec![
+                        EnforceKeyUsage::DigitalSignature,
+                    ])),
                     CertSelection::Leaf,
                 )
                 .await
@@ -375,9 +407,12 @@ mod test {
             pems: vec!["b".to_string()],
         };
         let url = "https://example.com/lote";
-        assert_ne!(pinned.cache_key(url), SignerPin::Unpinned.cache_key(url));
-        assert_ne!(pinned.cache_key(url), other.cache_key(url));
-        assert_eq!(pinned.cache_key(url), pinned.cache_key(url));
+        let key = |pin: &SignerPin, scope: &str| pin.cache_key(url, scope).unwrap();
+        assert_ne!(key(&pinned, "lote"), key(&SignerPin::Unpinned, "lote"));
+        assert_ne!(key(&pinned, "lote"), key(&other, "lote"));
+        assert_eq!(key(&pinned, "lote"), key(&pinned, "lote"));
+        // another subscriber kind or limit set never shares the entry
+        assert_ne!(key(&pinned, "lote"), key(&pinned, "lotl"));
     }
 
     #[test]

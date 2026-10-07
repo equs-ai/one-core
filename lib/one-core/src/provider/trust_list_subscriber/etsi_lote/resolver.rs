@@ -1,9 +1,11 @@
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
+use ct_codecs::{Base64UrlSafeNoPadding, Decoder};
+
 use standardized_types::etsi_119_602::json::OtherLoTEPointer;
 use standardized_types::etsi_119_602::{json, xml};
-use standardized_types::xades::SIGNED_PROPERTIES_TYPE;
+use standardized_types::xades::{SIGNED_PROPERTIES_TYPE, Transform};
 use time::OffsetDateTime;
 
 use super::LoteContentType;
@@ -11,11 +13,13 @@ use super::preprocessing::{merge_lote, preprocess_lote};
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::x5c_into_pem_chain;
 use crate::model::did::KeyRole;
-use crate::proto::certificate_validator::CertificateValidator;
+use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
+use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::proto::clock::Clock;
 use crate::proto::http_client::HttpClient;
 use crate::proto::jwt::Jwt;
 use crate::proto::key_verification::KeyVerification;
+use crate::proto::spki_signature::{self, SpkiSignatureAlgorithm, SpkiSignatureError};
 use crate::proto::xades::{XAdESProto, XAdESSignedXML, XAdESVerified};
 use crate::provider::caching_loader::{ResolveResult, Resolver, ResolverError};
 use crate::provider::credential_formatter::model::PublicKeySource;
@@ -38,6 +42,7 @@ pub(crate) fn pointer_signer_cert_pems(pointer: &OtherLoTEPointer) -> Vec<String
 
 fn assert_lote_signature_policy(
     verified: &XAdESVerified,
+    root_id: Option<&str>,
     leeway: time::Duration,
     now: OffsetDateTime,
 ) -> Result<(), FetchError> {
@@ -46,7 +51,12 @@ fn assert_lote_signature_policy(
             "LoTE signing time is in the future".to_string(),
         ));
     }
-    if !verified.references.iter().any(|r| r.uri.is_empty()) {
+    if !verified.references.iter().any(|r| {
+        fetch::is_whole_document_reference(&r.uri, root_id)
+            && r.transforms
+                .iter()
+                .any(|t| matches!(t, Transform::EnvelopedSignature))
+    }) {
         return Err(FetchError::InvalidSignature(
             "LoTE signature does not cover the document".to_string(),
         ));
@@ -121,6 +131,17 @@ impl EtsiLoteResolver {
         }
     }
 
+    /// Cache scope of this resolver: lists resolved under another content type, depth or limits
+    /// never share an entry.
+    pub fn cache_scope(&self) -> String {
+        format!(
+            "lote;{};depth={:?};{}",
+            self.options.content_type,
+            self.options.max_pointer_depth,
+            self.options.limits.scope()
+        )
+    }
+
     /// The pin a root LoTE fetched directly is authenticated under.
     pub fn root_pin(&self) -> Result<SignerPin, FetchError> {
         SignerPin::for_root(
@@ -166,6 +187,26 @@ impl EtsiLoteResolver {
 
         fetch::verify_signer(self.certificate_validator.as_ref(), &signer_pem, pin).await?;
 
+        // a pointed-to list must be of the type its pointer declares, so a pointer certificate
+        // for one kind of list cannot be used to publish another kind
+        if let SignerPin::Pointer {
+            expected_type: Some(expected),
+            ..
+        } = pin
+        {
+            let actual = lote
+                .list_and_scheme_information
+                .lote_type
+                .clone()
+                .map(String::from);
+            if actual.as_deref() != Some(expected.as_str()) {
+                return Err(FetchError::InvalidDocument(format!(
+                    "LoTE type `{}` does not match the pointer's `{expected}`",
+                    actual.unwrap_or_default()
+                )));
+            }
+        }
+
         if lote.list_and_scheme_information.next_update + self.options.leeway < self.clock.now_utc()
         {
             return Err(FetchError::Expired);
@@ -188,17 +229,64 @@ impl EtsiLoteResolver {
         let signer_pem =
             x5c_into_pem_chain(x5c).map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
 
-        let verification = KeyVerification {
-            did_method_provider: self.did_method_provider.clone(),
-            key_algorithm_provider: self.key_algorithm_provider.clone(),
-            certificate_validator: self.certificate_validator.clone(),
-            key_role: KeyRole::AssertionMethod,
-        };
-        decomposed_token
-            .verify_signature(PublicKeySource::X5c { x5c }, &verification)
+        if let Some(algorithm) =
+            SpkiSignatureAlgorithm::from_jose_alg(&decomposed_token.header.algorithm)
+        {
+            // RSA / P-384: the key algorithm provider has no implementation, verify directly
+            self.verify_jws_with_certificate(body, &signer_pem, algorithm)
+                .await?;
+        } else {
+            let verification = KeyVerification {
+                did_method_provider: self.did_method_provider.clone(),
+                key_algorithm_provider: self.key_algorithm_provider.clone(),
+                certificate_validator: self.certificate_validator.clone(),
+                key_role: KeyRole::AssertionMethod,
+            };
+            decomposed_token
+                .verify_signature(PublicKeySource::X5c { x5c }, &verification)
+                .await
+                .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;
+        }
+        Ok((decomposed_token.payload.custom, signer_pem))
+    }
+
+    /// Verify a compact JWS signed with an RSA or P-384 certificate key; the `x5c` chain is
+    /// checked for integrity, validity and revocation like the generic path does.
+    async fn verify_jws_with_certificate(
+        &self,
+        token: &str,
+        signer_pem: &str,
+        algorithm: SpkiSignatureAlgorithm,
+    ) -> Result<(), FetchError> {
+        self.certificate_validator
+            .parse_pem_chain(
+                signer_pem,
+                CertificateValidationOptions::signature_and_revocation(None),
+            )
             .await
             .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;
-        Ok((decomposed_token.payload.custom, signer_pem))
+
+        let (signing_input, signature) = token
+            .rsplit_once('.')
+            .ok_or_else(|| FetchError::InvalidDocument("malformed JWS".to_string()))?;
+        let signature = Base64UrlSafeNoPadding::decode_to_vec(signature, None)
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        let leaf = extract_leaf_pem_from_chain(signer_pem.as_bytes())
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        let (_, certificate) = x509_parser::parse_x509_certificate(&leaf.contents)
+            .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        spki_signature::verify(
+            algorithm,
+            certificate.tbs_certificate.subject_pki.raw,
+            signing_input.as_bytes(),
+            &signature,
+        )
+        .map_err(|e| match e {
+            SpkiSignatureError::UnsupportedKey(_) => {
+                FetchError::UnsupportedAlgorithm(e.to_string())
+            }
+            _ => FetchError::InvalidSignature(e.to_string()),
+        })
     }
 
     async fn verify_xml(&self, body: &str) -> Result<(json::LoTEPayload, String), FetchError> {
@@ -214,7 +302,12 @@ impl EtsiLoteResolver {
             .verify_enveloped_signature(signed_xml.envelope())
             .await
             .map_err(fetch::classify_xades)?;
-        assert_lote_signature_policy(&verified, self.options.leeway, self.clock.now_utc())?;
+        assert_lote_signature_policy(
+            &verified,
+            fetch::root_id(&document),
+            self.options.leeway,
+            self.clock.now_utc(),
+        )?;
         Ok((signed_xml.content.into(), verified.signer_chain_pem))
     }
 
@@ -287,7 +380,13 @@ impl EtsiLoteResolver {
             }
 
             let mut child = match self
-                .fetch_and_verify(&location, &SignerPin::Pointer { pems: pointer_pems })
+                .fetch_and_verify(
+                    &location,
+                    &SignerPin::Pointer {
+                        pems: pointer_pems,
+                        expected_type: Some(pointer.lote_qualifiers.lote_type.clone()),
+                    },
+                )
                 .await
             {
                 Ok(child) => child,
