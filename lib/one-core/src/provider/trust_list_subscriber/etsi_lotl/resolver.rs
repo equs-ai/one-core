@@ -105,6 +105,8 @@ pub struct LotlCollection {
     pub delegated: Vec<DelegatedMember>,
     pub skipped: Vec<SkippedMember>,
     pub unpinned: bool,
+    /// Pointers counted against `max_pointers`, delegated members included.
+    pub followed: usize,
 }
 
 pub struct EtsiLotlResolver {
@@ -241,6 +243,7 @@ impl EtsiLotlResolver {
             delegated: vec![],
             skipped: vec![],
             unpinned: pin.is_unpinned(),
+            followed: 0,
         };
         let pointers = lotl
             .scheme_information
@@ -248,7 +251,6 @@ impl EtsiLotlResolver {
             .map(|p| p.pointers)
             .unwrap_or_default();
 
-        let mut followed = 0usize;
         for pointer in pointers {
             let kind = classify_pointer(&pointer);
             if kind == PointerKind::Skip {
@@ -256,14 +258,14 @@ impl EtsiLotlResolver {
                 continue;
             }
             let location = pointer.tsl_location.clone();
-            if followed >= self.options.limits.max_pointers {
+            if collection.followed >= self.options.limits.max_pointers {
                 collection.skipped.push(SkippedMember {
                     url: location,
                     reason: SkipReason::PointerLimit,
                 });
                 continue;
             }
-            followed += 1;
+            collection.followed += 1;
             if let Err(error) = fetch::check_pointer_url(&location, &self.options.limits) {
                 tracing::warn!(url = %location, %error, "skipping LoTL pointer");
                 collection.skipped.push(error.skipped(&location));

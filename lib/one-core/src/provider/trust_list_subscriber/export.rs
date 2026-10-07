@@ -176,10 +176,10 @@ impl TrustListExporter {
     ) -> Result<TrustListExport, FetchError> {
         let pin = SignerPin::for_root(&policy.trust_anchors, policy.allow_unpinned_root)?;
         match kind {
-            TrustListKind::Lote119602 => {
-                self.export_lote(url.as_str(), policy.lote_content_type.clone(), &pin, policy)
-                    .await
-            }
+            TrustListKind::Lote119602 => self
+                .export_lote(url.as_str(), policy.lote_content_type.clone(), &pin, policy)
+                .await
+                .map(|(export, _)| export),
             TrustListKind::Lotl119612 => self.export_lotl(url.as_str(), &pin, policy).await,
         }
     }
@@ -207,13 +207,14 @@ impl TrustListExporter {
         )
     }
 
+    /// The export of the LoTE at `url`, and the pointers it followed.
     async fn export_lote(
         &self,
         url: &str,
         content_type: LoteContentType,
         pin: &SignerPin,
         policy: &ExportPolicy,
-    ) -> Result<TrustListExport, FetchError> {
+    ) -> Result<(TrustListExport, usize), FetchError> {
         let collection = self
             .lote_resolver(content_type, policy)
             .collect(url, pin)
@@ -229,13 +230,16 @@ impl TrustListExporter {
             .iter()
             .flat_map(|list| lote_anchors(&list.url, &list.payload))
             .collect();
-        Ok(TrustListExport {
-            anchors,
-            sequence_number,
-            issued_at,
-            skipped_members: collection.skipped,
-            unpinned: collection.unpinned,
-        })
+        Ok((
+            TrustListExport {
+                anchors,
+                sequence_number,
+                issued_at,
+                skipped_members: collection.skipped,
+                unpinned: collection.unpinned,
+            },
+            collection.followed,
+        ))
     }
 
     async fn export_lotl(
@@ -256,16 +260,24 @@ impl TrustListExporter {
                 limits: policy.limits.clone(),
             },
         );
+        let started = tokio::time::Instant::now();
         let collection = resolver.collect(url, pin).await?;
+        let mut followed = collection.followed;
 
         let mut anchors: Vec<TrustListAnchor> =
             collection.members.iter().flat_map(tsl_anchors).collect();
         let mut skipped = collection.skipped;
 
-        // LoTEs the LoTL points to, each pinned to its pointer's certificates and declared type
+        // LoTEs the LoTL points to, each pinned to its pointer's certificates and declared type,
+        // within what is left of the export's deadline and pointer budget
         for member in &collection.delegated {
-            match self.export_delegated_lote(member, policy).await {
-                Ok(export) => {
+            let exported = match remaining_policy(policy, started.elapsed(), followed) {
+                Ok(remaining) => self.export_delegated_lote(member, &remaining).await,
+                Err(error) => Err(error),
+            };
+            match exported {
+                Ok((export, member_followed)) => {
+                    followed += member_followed;
                     anchors.extend(export.anchors);
                     skipped.extend(export.skipped_members);
                 }
@@ -289,7 +301,7 @@ impl TrustListExporter {
         &self,
         member: &DelegatedMember,
         policy: &ExportPolicy,
-    ) -> Result<TrustListExport, FetchError> {
+    ) -> Result<(TrustListExport, usize), FetchError> {
         let pin = SignerPin::Pointer {
             pems: member.signer_pems.clone(),
             expected_type: member.declared_type.clone(),
@@ -301,6 +313,30 @@ impl TrustListExporter {
         self.export_lote(&member.url, content_type, &pin, policy)
             .await
     }
+}
+
+/// The policy for a LoTE delegated from a LoTL after `elapsed` of the export and `followed`
+/// pointers: the deadline and pointer budget bound the whole export, not each list. The LoTE
+/// itself was counted by the LoTL; with no pointers left it is fetched, its own pointers are not.
+fn remaining_policy(
+    policy: &ExportPolicy,
+    elapsed: std::time::Duration,
+    followed: usize,
+) -> Result<ExportPolicy, FetchError> {
+    let deadline = policy
+        .limits
+        .deadline
+        .checked_sub(elapsed)
+        .filter(|left| !left.is_zero())
+        .ok_or(FetchError::Deadline)?;
+    Ok(ExportPolicy {
+        limits: FetchLimits {
+            deadline,
+            max_pointers: policy.limits.max_pointers.saturating_sub(followed),
+            ..policy.limits.clone()
+        },
+        ..policy.clone()
+    })
 }
 
 /// Anchors of the granted services of an authenticated member TSL.

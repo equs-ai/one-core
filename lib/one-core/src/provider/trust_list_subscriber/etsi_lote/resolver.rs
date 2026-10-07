@@ -98,6 +98,8 @@ pub struct LoteCollection {
     pub lists: Vec<CollectedLote>,
     pub skipped: Vec<SkippedMember>,
     pub unpinned: bool,
+    /// Pointers counted against `max_pointers`.
+    pub followed: usize,
 }
 
 pub struct EtsiLoteResolver {
@@ -341,10 +343,9 @@ impl EtsiLoteResolver {
             }],
             skipped: vec![],
             unpinned: pin.is_unpinned(),
+            followed: 0,
         };
         let mut visited = HashSet::from([url.to_string()]);
-        let mut followed = 0usize;
-
         while let Some((pointer, depth)) = queue.pop_front() {
             let location = pointer.lote_location.clone();
             if !visited.insert(location.clone()) {
@@ -354,7 +355,7 @@ impl EtsiLoteResolver {
                 .options
                 .max_pointer_depth
                 .is_some_and(|max| depth > max)
-                || followed >= self.options.limits.max_pointers
+                || collection.followed >= self.options.limits.max_pointers
             {
                 tracing::warn!(url = %location, "skipping LoTE pointer beyond the pointer limit");
                 collection.skipped.push(SkippedMember {
@@ -363,7 +364,7 @@ impl EtsiLoteResolver {
                 });
                 continue;
             }
-            followed += 1;
+            collection.followed += 1;
             if let Err(error) = fetch::check_pointer_url(&location, &self.options.limits) {
                 tracing::warn!(url = %location, %error, "skipping LoTE pointer");
                 collection.skipped.push(error.skipped(&location));

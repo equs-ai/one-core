@@ -244,6 +244,56 @@ async fn delegated_lote_of_another_type_is_skipped() {
     );
 }
 
+#[test]
+fn delegated_lote_gets_what_is_left_of_the_deadline_and_pointer_budget() {
+    let policy = ExportPolicy {
+        limits: FetchLimits {
+            max_pointers: 10,
+            deadline: std::time::Duration::from_secs(60),
+            ..FetchLimits::default()
+        },
+        ..policy()
+    };
+
+    let remaining =
+        super::remaining_policy(&policy, std::time::Duration::from_secs(45), 7).unwrap();
+
+    assert_eq!(
+        remaining.limits.deadline,
+        std::time::Duration::from_secs(15)
+    );
+    assert_eq!(remaining.limits.max_pointers, 3);
+    assert_eq!(remaining.trust_anchors, policy.trust_anchors);
+}
+
+#[test]
+fn delegated_lote_with_the_pointer_budget_spent_follows_no_pointers() {
+    let remaining =
+        super::remaining_policy(&policy(), std::time::Duration::ZERO, usize::MAX).unwrap();
+
+    assert_eq!(remaining.limits.max_pointers, 0);
+}
+
+#[test]
+fn delegated_lote_after_the_deadline_is_refused() {
+    let policy = ExportPolicy {
+        limits: FetchLimits {
+            deadline: std::time::Duration::from_secs(60),
+            ..FetchLimits::default()
+        },
+        ..policy()
+    };
+
+    for elapsed in [60, 61] {
+        let result = super::remaining_policy(&policy, std::time::Duration::from_secs(elapsed), 0);
+
+        assert!(matches!(
+            result,
+            Err(crate::provider::trust_list_subscriber::fetch::FetchError::Deadline)
+        ));
+    }
+}
+
 #[tokio::test]
 async fn export_without_anchors_is_refused() {
     let exporter = exporter(Arc::new(MockHttpClient::new()));
