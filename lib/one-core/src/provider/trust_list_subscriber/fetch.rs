@@ -398,10 +398,24 @@ async fn fingerprint_of(
         .map(|parsed| parsed.attributes.fingerprint)
 }
 
-/// Whether a LoTE payload (JSON) carries a `NextUpdate`; a list without one is closed.
-pub(crate) fn json_lote_has_next_update(payload: &serde_json::Value) -> bool {
-    payload
-        .pointer("/ListAndSchemeInformation/NextUpdate")
+/// The LoTE of a JSON LoTE payload: the published EU lists wrap it in a `LoTE` member, upstream
+/// and earlier drafts put it at the root. A `LoTE` member wins over root fields.
+pub(crate) fn json_lote_object(
+    payload: &serde_json::Value,
+) -> Result<&serde_json::Value, FetchError> {
+    match payload.get("LoTE") {
+        None => Ok(payload),
+        Some(lote) if lote.is_object() => Ok(lote),
+        Some(_) => Err(FetchError::InvalidDocument(
+            "`LoTE` is not an object".to_string(),
+        )),
+    }
+}
+
+/// Whether a LoTE (JSON, see [json_lote_object]) carries a `NextUpdate`; a list without one is
+/// closed.
+pub(crate) fn json_lote_has_next_update(lote: &serde_json::Value) -> bool {
+    lote.pointer("/ListAndSchemeInformation/NextUpdate")
         .and_then(serde_json::Value::as_str)
         .is_some_and(|value| !value.trim().is_empty())
 }
@@ -523,6 +537,25 @@ mod test {
         let closed = serde_json::json!({"ListAndSchemeInformation": {}});
         assert!(json_lote_has_next_update(&open));
         assert!(!json_lote_has_next_update(&closed));
+    }
+
+    #[test]
+    fn the_lote_member_wins_over_root_fields() {
+        let open =
+            serde_json::json!({"ListAndSchemeInformation": {"NextUpdate": "2026-01-01T00:00:00Z"}});
+        let wrapped_open = serde_json::json!({ "LoTE": open });
+        let wrapped_closed = serde_json::json!({ "LoTE": {"ListAndSchemeInformation": {}}, "ListAndSchemeInformation": open["ListAndSchemeInformation"] });
+
+        assert!(json_lote_has_next_update(
+            json_lote_object(&wrapped_open).unwrap()
+        ));
+        assert!(!json_lote_has_next_update(
+            json_lote_object(&wrapped_closed).unwrap()
+        ));
+        assert!(matches!(
+            json_lote_object(&serde_json::json!({"LoTE": "list"})),
+            Err(FetchError::InvalidDocument(_))
+        ));
     }
 
     fn limits(deadline: u64, document_timeout: u64) -> FetchLimits {

@@ -474,3 +474,28 @@ fn every_mapped_role_is_exported() {
         None
     );
 }
+
+#[test]
+fn eu_pid_lote_services_without_a_status_are_pid_provider_anchors() {
+    use crate::provider::trust_list_subscriber::etsi_lote::test::{
+        TRUSTED_CERT, eu_pid_lote_payload,
+    };
+    use crate::provider::trust_list_subscriber::fetch::json_lote_object;
+
+    let cert_b64: String = TRUSTED_CERT
+        .lines()
+        .filter(|line| !line.starts_with("-----"))
+        .collect();
+    let payload = eu_pid_lote_payload(&cert_b64);
+    // unwrapped here: the resolver's unwrapping is covered by its own tests
+    let lote = serde_json::from_value(json_lote_object(&payload).unwrap().clone()).unwrap();
+
+    let anchors = super::lote_anchors("https://lote.example/pid.jwt", &lote);
+
+    // one per service: the issuance and the revocation service certify the same key
+    assert_eq!(anchors.len(), 2);
+    assert!(anchors.iter().all(|anchor| matches!(
+        anchor.role,
+        Some(super::AnchorRole::PidProvider)
+    ) && anchor.service_status.is_none()));
+}

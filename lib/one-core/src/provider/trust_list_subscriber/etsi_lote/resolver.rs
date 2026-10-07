@@ -217,13 +217,17 @@ impl EtsiLoteResolver {
     }
 
     async fn verify_jwt(&self, body: &str) -> Result<(json::LoTEPayload, String), FetchError> {
-        if !fetch::jws_payload(body)
-            .is_some_and(|payload| fetch::json_lote_has_next_update(&payload))
-        {
+        let payload = fetch::jws_payload(body)
+            .ok_or_else(|| FetchError::InvalidDocument("malformed JWS payload".to_string()))?;
+        if !fetch::json_lote_has_next_update(fetch::json_lote_object(&payload)?) {
             return Err(FetchError::Closed);
         }
-        let decomposed_token = Jwt::<json::LoTEPayload>::decompose_token(body)
+        let decomposed_token = Jwt::<serde_json::Value>::decompose_token(body)
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
+        let lote: json::LoTEPayload = serde_json::from_value(
+            fetch::json_lote_object(&decomposed_token.payload.custom)?.clone(),
+        )
+        .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
         let x5c =
             decomposed_token.header.x5c.as_ref().ok_or_else(|| {
                 FetchError::InvalidDocument("missing x5c header claim".to_string())
@@ -249,7 +253,7 @@ impl EtsiLoteResolver {
                 .await
                 .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;
         }
-        Ok((decomposed_token.payload.custom, signer_pem))
+        Ok((lote, signer_pem))
     }
 
     /// Verify a compact JWS signed with an RSA or P-384 certificate key; the `x5c` chain is

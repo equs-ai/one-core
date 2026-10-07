@@ -89,6 +89,8 @@ diverged at `7505afb41`.
   accepted. Public keys on a LoTE are indexed in the key algorithm provider's
   raw form, so keys it cannot parse (e.g. RSA) are not matched by public key.
 - `x5c_into_pem_chain` ignores whitespace in the base64 certificates.
+- A JWT LoTE whose payload wraps the list in a `LoTE` member, as the published EU lists do, is
+  accepted alongside the bare form; it was rejected as closed.
 - Content-Type of a fetched trust list is compared by media type only (`application/xml;
   charset=utf-8` is accepted).
 - `EtsiLoteResolver` / `EtsiLotlResolver` take an options struct; the trust-list caches take a resolver

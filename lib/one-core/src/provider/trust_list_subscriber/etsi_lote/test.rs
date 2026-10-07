@@ -894,6 +894,77 @@ async fn closed_jwt_lote_is_rejected() {
 
 /// An RS256-signed LoTE JWT over the SPRIND payload, built at runtime with a fresh RSA key.
 fn rs256_lote(tamper: bool) -> (String, String) {
+    let payload =
+        crate::provider::trust_list_subscriber::fetch::jws_payload(SPRIND_LOTE_JWS).unwrap();
+    rs256_jws(&serde_json::json!({ "alg": "RS256" }), &payload, tamper)
+}
+
+/// Base64 DER of [TRUSTED_CERT].
+fn trusted_cert_b64() -> String {
+    TRUSTED_CERT
+        .lines()
+        .filter(|line| !line.starts_with("-----"))
+        .collect()
+}
+
+/// A PID providers LoTE shaped like the published EU list: the LoTE wrapped in a `LoTE` member,
+/// one entity with a PID issuance and a PID revocation service, and no service status.
+pub(crate) fn eu_pid_lote_payload(service_cert_b64: &str) -> serde_json::Value {
+    let service = |kind: &str| {
+        serde_json::json!({ "ServiceInformation": {
+            "ServiceTypeIdentifier": format!("http://uri.etsi.org/19602/SvcType/PID/{kind}"),
+            "ServiceName": [{ "lang": "en", "value": format!("PID {kind}") }],
+            "ServiceDigitalIdentity": { "X509Certificates": [{ "val": service_cert_b64 }] }
+        }})
+    };
+    serde_json::json!({ "LoTE": {
+        "ListAndSchemeInformation": {
+            "LoTEVersionIdentifier": 1,
+            "LoTESequenceNumber": 3,
+            "LoTEType": "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList",
+            "SchemeOperatorName": [{ "lang": "en", "value": "European Commission" }],
+            "StatusDeterminationApproach":
+                "http://uri.etsi.org/19602/PIDProvidersList/StatusDetn/EU",
+            "SchemeTerritory": "EU",
+            "ListIssueDateTime": "2026-02-20T00:00:00Z",
+            "NextUpdate": "2026-08-01T00:00:00Z"
+        },
+        "TrustedEntitiesList": [{
+            "TrustedEntityInformation": { "TEName": [{ "lang": "en", "value": "PID Provider" }] },
+            "TrustedEntityServices": [service("Issuance"), service("Revocation")]
+        }]
+    }})
+}
+
+#[tokio::test]
+async fn lote_wrapped_in_a_lote_member_is_collected() {
+    let header = serde_json::json!({
+        "alg": "RS256", "typ": "JOSE+JSON", "iat": 1_771_545_600
+    });
+    let (token, _) = rs256_jws(&header, &eu_pid_lote_payload(&trusted_cert_b64()), false);
+
+    let collection = collect_rs256_lists(token).await.unwrap();
+
+    let [list] = &collection.lists[..] else {
+        panic!("one list expected");
+    };
+    let scheme = &list.payload.list_and_scheme_information;
+    assert_eq!(scheme.lote_sequence_number, 3);
+    assert_eq!(
+        scheme.lote_type.clone().map(String::from).as_deref(),
+        Some("http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList")
+    );
+    let entities = list.payload.trusted_entities_list.as_deref().unwrap();
+    assert_eq!(entities[0].trusted_entity_services.len(), 2);
+}
+
+/// An RS256 JWS over `payload` with `header` (plus its `x5c`), signed with a fresh RSA key whose
+/// self-signed certificate (PEM) is returned too.
+fn rs256_jws(
+    header: &serde_json::Value,
+    payload: &serde_json::Value,
+    tamper: bool,
+) -> (String, String) {
     use aws_lc_rs::rand::SystemRandom;
     use aws_lc_rs::signature::{RSA_PKCS1_SHA256, RsaKeyPair};
     use ct_codecs::{Base64, Base64UrlSafeNoPadding, Encoder};
@@ -904,9 +975,8 @@ fn rs256_lote(tamper: bool) -> (String, String) {
         .self_signed(&key_pair)
         .unwrap();
     let x5c = Base64::encode_to_string(cert.der()).unwrap();
-    let header = serde_json::json!({ "alg": "RS256", "x5c": [x5c] });
-    let payload =
-        crate::provider::trust_list_subscriber::fetch::jws_payload(SPRIND_LOTE_JWS).unwrap();
+    let mut header = header.clone();
+    header["x5c"] = serde_json::json!([x5c]);
     let signing_input = format!(
         "{}.{}",
         Base64UrlSafeNoPadding::encode_to_string(header.to_string()).unwrap(),
@@ -933,6 +1003,10 @@ fn rs256_lote(tamper: bool) -> (String, String) {
 }
 
 async fn collect_rs256(token: String) -> Result<(), FetchError> {
+    collect_rs256_lists(token).await.map(|_| ())
+}
+
+async fn collect_rs256_lists(token: String) -> Result<super::resolver::LoteCollection, FetchError> {
     let reference = Url::parse("https://example.com/lote-rs256").unwrap();
     let mut client = MockHttpClient::new();
     mock_http_get_request(
@@ -993,7 +1067,6 @@ async fn collect_rs256(token: String) -> Result<(), FetchError> {
         resolver.collect(reference.as_str(), &SignerPin::Unpinned),
     )
     .await
-    .map(|_| ())
 }
 
 #[tokio::test]
