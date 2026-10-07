@@ -27,11 +27,11 @@ use crate::provider::trust_list_subscriber::{
 };
 
 mod model;
-mod preprocessing;
+pub(crate) mod preprocessing;
 pub mod resolver;
 
 #[cfg(test)]
-mod test;
+pub(super) mod test;
 
 #[serde_with::serde_as]
 #[derive(Clone, Debug, Deserialize)]

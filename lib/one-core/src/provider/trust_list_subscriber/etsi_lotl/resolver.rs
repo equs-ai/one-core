@@ -286,6 +286,7 @@ impl EtsiLotlResolver {
                     url: location,
                     signer_pems,
                     declared_type: pointer_tsl_type(&pointer),
+                    mime_type: pointer_mime_type(&pointer),
                 });
                 continue;
             }
@@ -422,6 +423,15 @@ pub(crate) fn classify_pointer(pointer: &OtherTslPointer) -> PointerKind {
     }
 }
 
+/// The media type a pointer declares.
+fn pointer_mime_type(pointer: &OtherTslPointer) -> Option<String> {
+    pointer.additional_information.as_ref().and_then(|info| {
+        info.other_information
+            .iter()
+            .find_map(|oi| oi.mime_type.clone())
+    })
+}
+
 /// The `TSLType` a pointer declares, as its URI.
 fn pointer_tsl_type(pointer: &OtherTslPointer) -> Option<String> {
     pointer.additional_information.as_ref().and_then(|info| {
@@ -447,4 +457,4 @@ pub(crate) fn pointer_signer_cert_pems(pointer: &OtherTslPointer) -> Vec<String>
 }
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;

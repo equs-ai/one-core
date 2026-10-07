@@ -318,6 +318,7 @@ async fn resolve_entries_delegates_to_lote_when_local_miss() {
             declared_type: Some(
                 "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList".to_string(),
             ),
+            mime_type: None,
         }],
         ..Default::default()
     };

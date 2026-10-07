@@ -7,7 +7,7 @@ license                = "Apache-2.0"
 name                   = "equs-one-core"
 repository.workspace   = true
 rust-version.workspace = true
-version                = "0.1.1"
+version                = "0.2.0"
 
 [lib]
 name = "one_core"
@@ -15,7 +15,7 @@ name = "one_core"
 [dependencies]
 # verification-only RSA / P-384 for trust-list signatures (already in the tree via rcgen and x509-parser)
 aws-lc-rs                    = { version = "1.16" }
-one-core-portable                = { package = "equs-one-core-portable", version = "0.1.0", path = "../one-core-portable" }
+one-core-portable                = { package = "equs-one-core-portable", version = "0.2.0", path = "../one-core-portable" }
 aes-gcm                      = { version = "0.10.3", features = ["std"] }
 anyhow.workspace             = true
 asn1-rs.workspace            = true
@@ -30,7 +30,7 @@ coset                        = { version = "0.4", features = ["std"] }
 crc                          = { version = "3.3" }
 ct-codecs.workspace          = true
 dashmap                      = "6.1.0"
-dcql                         = { package = "equs-one-core-dcql", version = "0.1.0", path = "../dcql" }
+dcql                         = { package = "equs-one-core-dcql", version = "0.2.0", path = "../dcql" }
 figment                      = { version = "0.10", default-features = false }
 flate2                       = { version = "1.0" }
 futures.workspace            = true

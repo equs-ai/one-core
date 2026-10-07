@@ -28,22 +28,22 @@ use crate::provider::trust_list_subscriber::fetch::{
 use crate::service::certificate::dto::CertificateX509AttributesDTO;
 use crate::util::test_utilities::mock_http_get_request;
 
-const LOTL: &str =
+pub(crate) const LOTL: &str =
     include_str!("../../../../../../standardized-types/tests/fixtures/eudiw_lotl.xml");
-const MEMBER: &str =
+pub(crate) const MEMBER: &str =
     include_str!("../../../../../../standardized-types/tests/fixtures/eudiw_member_tsl.xml");
-const LOTL_URL: &str = "https://trustedlist.eudiw.dev/tools/lotl/eu-lotl.xml";
-const FR_URL: &str = "https://trustedlist.serviceproviders.eudiw.dev/TL/FR/01.xml";
-const DE_URL: &str = "https://trustedlist.serviceproviders.eudiw.dev/TL/DE/01.xml";
-const ROOT_SIGNER: &str = "ROOT SIGNER PEM";
+pub(crate) const LOTL_URL: &str = "https://trustedlist.eudiw.dev/tools/lotl/eu-lotl.xml";
+pub(crate) const FR_URL: &str = "https://trustedlist.serviceproviders.eudiw.dev/TL/FR/01.xml";
+pub(crate) const DE_URL: &str = "https://trustedlist.serviceproviders.eudiw.dev/TL/DE/01.xml";
+pub(crate) const ROOT_SIGNER: &str = "ROOT SIGNER PEM";
 const FOREIGN_SIGNER: &str = "FOREIGN SIGNER PEM";
-const NOW: OffsetDateTime = datetime!(2026-10-01 00:00 UTC);
+pub(crate) const NOW: OffsetDateTime = datetime!(2026-10-01 00:00 UTC);
 
-fn fingerprint(pem: &str) -> String {
+pub(crate) fn fingerprint(pem: &str) -> String {
     hex::encode(SHA256.hash(pem.as_bytes()).unwrap())
 }
 
-fn parsed(fingerprint: String) -> ParsedCertificate {
+pub(crate) fn parsed(fingerprint: String) -> ParsedCertificate {
     ParsedCertificate {
         attributes: CertificateX509AttributesDTO {
             serial_number: "00".to_string(),
@@ -63,7 +63,7 @@ fn parsed(fingerprint: String) -> ParsedCertificate {
 }
 
 /// Validator identifying a certificate by the hash of its PEM; no CA chaining.
-fn validator() -> Arc<MockCertificateValidator> {
+pub(crate) fn validator() -> Arc<MockCertificateValidator> {
     let mut validator = MockCertificateValidator::new();
     validator
         .expect_parse_pem_chain()
@@ -74,7 +74,7 @@ fn validator() -> Arc<MockCertificateValidator> {
     Arc::new(validator)
 }
 
-fn whole_document_references() -> Vec<VerifiedReference> {
+pub(crate) fn whole_document_references() -> Vec<VerifiedReference> {
     vec![
         VerifiedReference {
             uri: "#TrustServiceStatusList".to_string(),
@@ -89,7 +89,7 @@ fn whole_document_references() -> Vec<VerifiedReference> {
     ]
 }
 
-fn verified(signer: &str, references: Vec<VerifiedReference>) -> XAdESVerified {
+pub(crate) fn verified(signer: &str, references: Vec<VerifiedReference>) -> XAdESVerified {
     XAdESVerified {
         signer_chain_pem: signer.to_string(),
         signing_time: datetime!(2026-09-01 00:00 UTC),
@@ -121,7 +121,7 @@ fn xades(
     xades
 }
 
-fn fr_pointer_pem() -> String {
+pub(crate) fn fr_pointer_pem() -> String {
     let lotl: TrustServiceStatusList = quick_xml::de::from_str(LOTL).unwrap();
     let pointer = lotl
         .scheme_information
@@ -134,7 +134,7 @@ fn fr_pointer_pem() -> String {
     pointer_signer_cert_pems(&pointer).remove(0)
 }
 
-fn response(url: &str, body: &str, content_type: &str) -> Response {
+pub(crate) fn response(url: &str, body: &str, content_type: &str) -> Response {
     Response {
         body: body.as_bytes().to_vec(),
         headers: hashmap! { "Content-Type".to_string() => content_type.to_string() },

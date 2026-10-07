@@ -34,4 +34,7 @@ pub struct DelegatedMember {
     /// The list type the pointer declares (its `TSLType`), which the member must match.
     #[serde(default)]
     pub declared_type: Option<String>,
+    /// The media type the pointer declares, if any.
+    #[serde(default)]
+    pub mime_type: Option<String>,
 }

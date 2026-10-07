@@ -1,0 +1,428 @@
+//! Database-free export of the anchors an ETSI trust list grants (fork addition).
+//!
+//! The caller (e.g. a verifier backend) exports a list out of band, stores the anchors, and supplies
+//! them per verification. Nothing here is cached across calls.
+
+use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+use standardized_types::etsi_119_602::json::{LoTEPayload, LoTEType};
+use standardized_types::etsi_119_612::ServiceStatus;
+use time::OffsetDateTime;
+use url::Url;
+
+use super::etsi_lote::LoteContentType;
+use super::etsi_lote::preprocessing::is_active_service_status;
+use super::etsi_lote::resolver::{EtsiLoteResolver, EtsiLoteResolverOptions};
+use super::etsi_lotl::model::DelegatedMember;
+use super::etsi_lotl::resolver::{CollectedTsl, EtsiLotlResolver, EtsiLotlResolverOptions};
+use super::fetch::{FetchError, FetchLimits, SignerPin, SkippedMember};
+use crate::mapper::etsi_lotl::role_for_service_type;
+use crate::mapper::x509::{subject_key_identifier, x5c_into_pem_chain};
+use crate::model::trust_list_role::TrustListRoleEnum;
+use crate::proto::certificate_validator::CertificateValidator;
+use crate::proto::clock::Clock;
+use crate::proto::http_client::HttpClient;
+use crate::proto::xades::{XAdES, XAdESProto};
+use crate::provider::did_method::provider::DidMethodProvider;
+use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
+
+/// What a trust list location holds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TrustListKind {
+    /// ETSI TS 119 612 List of Trusted Lists, followed to its member Trusted Lists.
+    Lotl119612,
+    /// ETSI TS 119 602 List of Trusted Entities.
+    Lote119602,
+}
+
+/// The role an exported anchor is trusted for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnchorRole {
+    PidProvider,
+    QeaaProvider,
+    PubEaaProvider,
+    EaaProvider,
+    WalletProvider,
+    WrpAcProvider,
+    WrpRcProvider,
+    Registrar,
+}
+
+impl AnchorRole {
+    fn from_trust_list_role(role: TrustListRoleEnum) -> Option<Self> {
+        Some(match role {
+            TrustListRoleEnum::PidProvider => Self::PidProvider,
+            TrustListRoleEnum::QeaaProvider => Self::QeaaProvider,
+            TrustListRoleEnum::PubEeaProvider => Self::PubEaaProvider,
+            TrustListRoleEnum::Issuer => Self::EaaProvider,
+            TrustListRoleEnum::WalletProvider => Self::WalletProvider,
+            TrustListRoleEnum::WrpAcProvider => Self::WrpAcProvider,
+            TrustListRoleEnum::WrpRcProvider => Self::WrpRcProvider,
+            TrustListRoleEnum::NationalRegistryRegistrar => Self::Registrar,
+            TrustListRoleEnum::QesrcProvider | TrustListRoleEnum::Verifier => return None,
+        })
+    }
+}
+
+/// A certificate a trust list grants trust to.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrustListAnchor {
+    pub pem: String,
+    /// Subject Key Identifier, colon-separated lower-case hex.
+    pub ski: Option<String>,
+    pub not_after: OffsetDateTime,
+    pub entity_name: Option<String>,
+    pub role: Option<AnchorRole>,
+    pub service_status: Option<String>,
+    /// The list that granted the anchor.
+    pub source_url: String,
+    /// `NextUpdate` of that list.
+    pub source_next_update: OffsetDateTime,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrustListExport {
+    pub anchors: Vec<TrustListAnchor>,
+    pub sequence_number: u64,
+    pub issued_at: OffsetDateTime,
+    pub skipped_members: Vec<SkippedMember>,
+    /// The root was accepted on its own embedded signer.
+    pub unpinned: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExportPolicy {
+    /// PEMs the root list's signer must equal or chain to.
+    pub trust_anchors: Vec<String>,
+    pub allow_unpinned_root: bool,
+    pub leeway: time::Duration,
+    pub limits: FetchLimits,
+    /// Representation of a LoTE exported directly.
+    pub lote_content_type: LoteContentType,
+    /// Maximum `PointersToOtherLoTE` depth.
+    pub max_pointer_depth: Option<usize>,
+}
+
+impl Default for ExportPolicy {
+    fn default() -> Self {
+        Self {
+            trust_anchors: vec![],
+            allow_unpinned_root: false,
+            leeway: time::Duration::minutes(5),
+            limits: FetchLimits::default(),
+            lote_content_type: LoteContentType::Jwt,
+            max_pointer_depth: Some(5),
+        }
+    }
+}
+
+/// What an export needs; build once, export many lists.
+pub struct TrustListExporter {
+    clock: Arc<dyn Clock>,
+    client: Arc<dyn HttpClient>,
+    did_method_provider: Arc<dyn DidMethodProvider>,
+    key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
+    certificate_validator: Arc<dyn CertificateValidator>,
+    xades_proto: Arc<dyn XAdESProto>,
+}
+
+impl TrustListExporter {
+    pub fn new(
+        clock: Arc<dyn Clock>,
+        client: Arc<dyn HttpClient>,
+        did_method_provider: Arc<dyn DidMethodProvider>,
+        key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
+        certificate_validator: Arc<dyn CertificateValidator>,
+    ) -> Self {
+        let xades_proto = Arc::new(XAdES::new(certificate_validator.clone()));
+        Self::with_xades(
+            clock,
+            client,
+            did_method_provider,
+            key_algorithm_provider,
+            certificate_validator,
+            xades_proto,
+        )
+    }
+
+    pub fn with_xades(
+        clock: Arc<dyn Clock>,
+        client: Arc<dyn HttpClient>,
+        did_method_provider: Arc<dyn DidMethodProvider>,
+        key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
+        certificate_validator: Arc<dyn CertificateValidator>,
+        xades_proto: Arc<dyn XAdESProto>,
+    ) -> Self {
+        Self {
+            clock,
+            client,
+            did_method_provider,
+            key_algorithm_provider,
+            certificate_validator,
+            xades_proto,
+        }
+    }
+
+    /// Fetch the list at `url`, authenticate it (and its members) under `policy`, and return the
+    /// anchors it grants. Only the root failing fails the export; members are skipped.
+    pub async fn export(
+        &self,
+        url: &Url,
+        kind: TrustListKind,
+        policy: &ExportPolicy,
+    ) -> Result<TrustListExport, FetchError> {
+        let pin = SignerPin::for_root(&policy.trust_anchors, policy.allow_unpinned_root)?;
+        match kind {
+            TrustListKind::Lote119602 => {
+                self.export_lote(url.as_str(), policy.lote_content_type.clone(), &pin, policy)
+                    .await
+            }
+            TrustListKind::Lotl119612 => self.export_lotl(url.as_str(), &pin, policy).await,
+        }
+    }
+
+    fn lote_resolver(
+        &self,
+        content_type: LoteContentType,
+        policy: &ExportPolicy,
+    ) -> EtsiLoteResolver {
+        EtsiLoteResolver::new(
+            self.clock.clone(),
+            self.client.clone(),
+            self.did_method_provider.clone(),
+            self.key_algorithm_provider.clone(),
+            self.certificate_validator.clone(),
+            self.xades_proto.clone(),
+            EtsiLoteResolverOptions {
+                content_type,
+                leeway: policy.leeway,
+                max_pointer_depth: policy.max_pointer_depth,
+                trust_anchors: policy.trust_anchors.clone(),
+                allow_unpinned_root: policy.allow_unpinned_root,
+                limits: policy.limits.clone(),
+            },
+        )
+    }
+
+    async fn export_lote(
+        &self,
+        url: &str,
+        content_type: LoteContentType,
+        pin: &SignerPin,
+        policy: &ExportPolicy,
+    ) -> Result<TrustListExport, FetchError> {
+        let collection = self
+            .lote_resolver(content_type, policy)
+            .collect(url, pin)
+            .await?;
+        let root = collection
+            .lists
+            .first()
+            .map(|list| &list.payload.list_and_scheme_information)
+            .ok_or_else(|| FetchError::InvalidDocument("empty LoTE collection".to_string()))?;
+        let (sequence_number, issued_at) = (root.lote_sequence_number, root.list_issue_date_time);
+        let anchors = collection
+            .lists
+            .iter()
+            .flat_map(|list| lote_anchors(&list.url, &list.payload))
+            .collect();
+        Ok(TrustListExport {
+            anchors,
+            sequence_number,
+            issued_at,
+            skipped_members: collection.skipped,
+            unpinned: collection.unpinned,
+        })
+    }
+
+    async fn export_lotl(
+        &self,
+        url: &str,
+        pin: &SignerPin,
+        policy: &ExportPolicy,
+    ) -> Result<TrustListExport, FetchError> {
+        let resolver = EtsiLotlResolver::new(
+            self.clock.clone(),
+            self.client.clone(),
+            self.certificate_validator.clone(),
+            self.xades_proto.clone(),
+            EtsiLotlResolverOptions {
+                trust_anchors: policy.trust_anchors.clone(),
+                allow_unpinned_root: policy.allow_unpinned_root,
+                leeway: policy.leeway,
+                limits: policy.limits.clone(),
+            },
+        );
+        let collection = resolver.collect(url, pin).await?;
+
+        let mut anchors: Vec<TrustListAnchor> =
+            collection.members.iter().flat_map(tsl_anchors).collect();
+        let mut skipped = collection.skipped;
+
+        // LoTEs the LoTL points to, each pinned to its pointer's certificates and declared type
+        for member in &collection.delegated {
+            match self.export_delegated_lote(member, policy).await {
+                Ok(export) => {
+                    anchors.extend(export.anchors);
+                    skipped.extend(export.skipped_members);
+                }
+                Err(error) => {
+                    tracing::warn!(url = %member.url, %error, "skipping delegated LoTE");
+                    skipped.push(error.skipped(&member.url));
+                }
+            }
+        }
+
+        Ok(TrustListExport {
+            anchors,
+            sequence_number: collection.sequence_number,
+            issued_at: collection.issued_at,
+            skipped_members: skipped,
+            unpinned: collection.unpinned,
+        })
+    }
+
+    async fn export_delegated_lote(
+        &self,
+        member: &DelegatedMember,
+        policy: &ExportPolicy,
+    ) -> Result<TrustListExport, FetchError> {
+        let pin = SignerPin::Pointer {
+            pems: member.signer_pems.clone(),
+            expected_type: member.declared_type.clone(),
+        };
+        let content_type = match member.mime_type.as_deref() {
+            Some(mime) if mime.contains("xml") => LoteContentType::Xml,
+            _ => LoteContentType::Jwt,
+        };
+        self.export_lote(&member.url, content_type, &pin, policy)
+            .await
+    }
+}
+
+/// Anchors of the granted services of an authenticated member TSL.
+fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
+    let providers = member
+        .tsl
+        .trust_service_provider_list
+        .iter()
+        .flat_map(|list| &list.providers);
+    let mut anchors = vec![];
+    for service in providers.flat_map(|provider| &provider.tsp_services.services) {
+        let info = &service.service_information;
+        if !matches!(
+            info.service_status,
+            ServiceStatus::Granted | ServiceStatus::RecognisedAtNationalLevel
+        ) {
+            continue;
+        }
+        let role = role_for_service_type(&info.service_type_identifier)
+            .and_then(AnchorRole::from_trust_list_role);
+        let entity_name = info
+            .service_name
+            .names
+            .first()
+            .map(|name| name.value.clone());
+        for cert_b64 in info
+            .service_digital_identity
+            .digital_ids
+            .iter()
+            .filter_map(|id| id.x509_certificate.as_ref())
+        {
+            if let Some(anchor) = anchor_from_b64(
+                cert_b64,
+                entity_name.clone(),
+                role,
+                Some(info.service_status.to_string()),
+                &member.url,
+                member.next_update,
+            ) {
+                anchors.push(anchor);
+            }
+        }
+    }
+    anchors
+}
+
+/// Anchors of the trusted services of an authenticated LoTE.
+fn lote_anchors(url: &str, lote: &LoTEPayload) -> Vec<TrustListAnchor> {
+    let scheme = &lote.list_and_scheme_information;
+    let role = scheme
+        .lote_type
+        .clone()
+        .and_then(|lote_type| TrustListRoleEnum::try_from(lote_type).ok())
+        .and_then(AnchorRole::from_trust_list_role);
+    let requires_explicit_status =
+        matches!(scheme.lote_type, Some(LoTEType::EuPubEaaProvidersList));
+
+    let mut anchors = vec![];
+    for entity in lote.trusted_entities_list.iter().flatten() {
+        let entity_name = entity
+            .trusted_entity_information
+            .te_name
+            .first()
+            .map(|name| name.value.clone());
+        for service in &entity.trusted_entity_services {
+            let info = &service.service_information;
+            match info.service_status.as_deref() {
+                Some(status) if !is_active_service_status(status) => continue,
+                None if requires_explicit_status => continue,
+                _ => {}
+            }
+            let Some(certificates) = info
+                .service_digital_identity
+                .as_ref()
+                .and_then(|identity| identity.x509_certificates.as_ref())
+            else {
+                continue;
+            };
+            for certificate in certificates {
+                if let Some(anchor) = anchor_from_b64(
+                    &certificate.val,
+                    entity_name.clone(),
+                    role,
+                    info.service_status.clone(),
+                    url,
+                    scheme.next_update,
+                ) {
+                    anchors.push(anchor);
+                }
+            }
+        }
+    }
+    anchors
+}
+
+fn anchor_from_b64(
+    cert_b64: &str,
+    entity_name: Option<String>,
+    role: Option<AnchorRole>,
+    service_status: Option<String>,
+    source_url: &str,
+    source_next_update: OffsetDateTime,
+) -> Option<TrustListAnchor> {
+    let pem = x5c_into_pem_chain(std::slice::from_ref(&cert_b64.to_string())).ok()?;
+    let der = x509_parser::pem::Pem::iter_from_buffer(pem.as_bytes())
+        .next()?
+        .ok()?
+        .contents;
+    let (_, certificate) = x509_parser::parse_x509_certificate(&der)
+        .inspect_err(|error| tracing::warn!(%error, url = %source_url, "skipping unparseable trust-list certificate"))
+        .ok()?;
+    Some(TrustListAnchor {
+        ski: subject_key_identifier(&certificate).ok().flatten(),
+        not_after: certificate.validity().not_after.to_datetime(),
+        pem,
+        entity_name,
+        role,
+        service_status,
+        source_url: source_url.to_string(),
+        source_next_update,
+    })
+}
+
+#[cfg(test)]
+mod test;

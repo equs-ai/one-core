@@ -56,8 +56,16 @@ diverged at `7505afb41`.
 - A pointed-to LoTE must be of the type its pointer declares (LoTE pointer qualifier, or the LoTL
   pointer's `TSLType`).
 - Trust-list cache keys also cover the resolving subscriber (kind, content type, depth, limits).
+- `trust_list_subscriber::export::TrustListExporter`: database-free export of the anchors a TS 119 612 LoTL
+  (with its member TSLs and the LoTEs it points to) or a TS 119 602 LoTE grants. Each anchor carries its PEM,
+  SKI, `notAfter`, entity name, role, service status and the URL and `NextUpdate` of the list that granted it;
+  the export carries the root sequence number, issue date, skipped members and whether the root was pinned.
+- EUDI pilot service type `http://uri.etsi.org/Svc/Svctype/Provider/PID` maps to the PID-provider role.
 
 ### Changed
+
+- Versions: `equs-one-core`, `equs-one-core-portable`, `equs-one-core-standardized-types` and
+  `equs-one-core-dcql` 0.2.0 (API changes above), `equs-one-core-crypto` 0.1.1 (additions only).
 
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.

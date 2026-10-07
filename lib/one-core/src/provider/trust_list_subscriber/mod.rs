@@ -14,6 +14,7 @@ pub(crate) mod cert_index;
 pub mod error;
 pub mod etsi_lote;
 pub mod etsi_lotl;
+pub mod export;
 pub mod fetch;
 pub mod provider;
 

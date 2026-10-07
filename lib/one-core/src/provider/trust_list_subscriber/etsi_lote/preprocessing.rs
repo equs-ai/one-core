@@ -171,9 +171,9 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
 }
 
 /// TS 119 602 `ServiceStatus` meaning the service is currently trusted.
-pub(super) const ACTIVE_SERVICE_STATUS: &str = "http://uri.etsi.org/19602/SvcStatus/active";
+pub(crate) const ACTIVE_SERVICE_STATUS: &str = "http://uri.etsi.org/19602/SvcStatus/active";
 
-pub(super) fn is_active_service_status(status: &str) -> bool {
+pub(crate) fn is_active_service_status(status: &str) -> bool {
     status == ACTIVE_SERVICE_STATUS
 }
 
