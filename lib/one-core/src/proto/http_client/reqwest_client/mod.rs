@@ -9,11 +9,32 @@ use super::{Error, Headers, HttpClient, Method, Request, RequestBuilder, Respons
 #[derive(Clone)]
 pub struct ReqwestClient {
     pub client: reqwest::Client,
+    /// Read at most this many bytes of a body, plus one; `None` reads it whole.
+    max_body_bytes: Option<usize>,
 }
 
 impl ReqwestClient {
     pub fn new(client: reqwest::Client) -> Self {
-        Self { client }
+        Self {
+            client,
+            max_body_bytes: None,
+        }
+    }
+
+    /// A client for documents fetched from locations the caller does not control, such as trust
+    /// lists: `https` only, no redirects, TLS 1.2 or later, and at most `max_body_bytes + 1`
+    /// bytes of a body read, so an oversized body fails the caller's own size check without
+    /// being buffered whole.
+    pub fn hardened(max_body_bytes: usize) -> Result<Self, Error> {
+        let client = reqwest::Client::builder()
+            .https_only(true)
+            .redirect(reqwest::redirect::Policy::none())
+            .min_tls_version(reqwest::tls::Version::TLS_1_2)
+            .build()?;
+        Ok(Self {
+            client,
+            max_body_bytes: Some(max_body_bytes),
+        })
     }
 }
 
@@ -86,15 +107,40 @@ impl HttpClient for ReqwestClient {
             })
             .collect::<Result<Headers, Error>>()?;
         let status_code = response.status().as_u16();
-        let body = response.bytes().await?;
+        let body = match self.max_body_bytes {
+            Some(max_body_bytes) => read_capped(response, max_body_bytes).await?,
+            None => response.bytes().await?.to_vec(),
+        };
 
         Ok(Response {
-            body: body.to_vec(),
+            body,
             headers,
             status: StatusCode(status_code),
             request,
         })
     }
+}
+
+/// The body of `response`, cut off once it exceeds `max_body_bytes`.
+async fn read_capped(
+    mut response: reqwest::Response,
+    max_body_bytes: usize,
+) -> Result<Vec<u8>, Error> {
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await? {
+        if append_capped(&mut body, &chunk, max_body_bytes) {
+            break;
+        }
+    }
+    Ok(body)
+}
+
+/// Append `chunk` to `body` up to one byte past `max_body_bytes`; whether that point is reached.
+fn append_capped(body: &mut Vec<u8>, chunk: &[u8], max_body_bytes: usize) -> bool {
+    let cap = max_body_bytes.saturating_add(1);
+    let room = cap.saturating_sub(body.len());
+    body.extend(chunk.iter().take(room));
+    body.len() >= cap
 }
 
 fn to_header_map(headers: HashMap<String, String>) -> Result<HeaderMap, Error> {
@@ -107,4 +153,44 @@ fn to_header_map(headers: HashMap<String, String>) -> Result<HeaderMap, Error> {
             Ok((name, value))
         })
         .collect::<Result<HeaderMap, Error>>()
+}
+
+#[cfg(test)]
+mod test {
+    use similar_asserts::assert_eq;
+
+    use super::append_capped;
+
+    #[test]
+    fn body_within_the_cap_is_kept_whole() {
+        let mut body = vec![];
+
+        assert!(!append_capped(&mut body, b"01", 4));
+        assert!(!append_capped(&mut body, b"23", 4));
+        assert_eq!(body, b"0123");
+    }
+
+    #[test]
+    fn body_over_the_cap_is_cut_one_byte_past_it() {
+        let mut body = vec![];
+
+        assert!(!append_capped(&mut body, b"012", 4));
+        assert!(append_capped(&mut body, b"3456789", 4));
+        assert_eq!(body, b"01234");
+    }
+
+    #[tokio::test]
+    async fn hardened_client_refuses_http() {
+        let client = super::ReqwestClient::hardened(1024).unwrap();
+
+        let error = client
+            .client
+            .get("http://127.0.0.1:9/never")
+            .send()
+            .await
+            .unwrap_err();
+
+        // refused before connecting: the scheme is not allowed
+        assert!(error.is_builder(), "{error}");
+    }
 }
