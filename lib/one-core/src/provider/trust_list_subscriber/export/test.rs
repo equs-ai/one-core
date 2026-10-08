@@ -562,3 +562,42 @@ fn pub_eaa_lote_services_without_a_status_are_reported() {
             .all(|service| service.service_status.is_none())
     );
 }
+
+/// The FR member TSL fixture, as collected, with `edit` applied to it.
+fn fr_member(edit: impl FnOnce(&mut TrustServiceStatusList)) -> super::CollectedTsl {
+    let mut tsl: TrustServiceStatusList = quick_xml::de::from_str(MEMBER).unwrap();
+    edit(&mut tsl);
+    super::CollectedTsl {
+        url: FR_URL.to_string(),
+        next_update: datetime!(2026-10-27 14:28:34 UTC),
+        tsl,
+    }
+}
+
+#[test]
+fn granted_tsl_services_are_anchors_with_their_type_and_withdrawn_ones_are_not() {
+    use standardized_types::etsi_119_612::ServiceStatus;
+
+    let granted = super::tsl_anchors(&fr_member(|_| {}));
+    // only the current status is withdrawn; the history still says granted
+    let withdrawn = super::tsl_anchors(&fr_member(|tsl| {
+        for provider in tsl
+            .trust_service_provider_list
+            .iter_mut()
+            .flat_map(|list| &mut list.providers)
+        {
+            for service in &mut provider.tsp_services.services {
+                service.service_information.service_status = ServiceStatus::Withdrawn;
+            }
+        }
+    }));
+
+    assert!(!granted.is_empty());
+    assert!(granted.iter().all(|anchor| {
+        anchor
+            .service_type
+            .as_deref()
+            .is_some_and(|t| t.contains("/Svctype/"))
+    }));
+    assert!(withdrawn.is_empty(), "{withdrawn:?}");
+}
