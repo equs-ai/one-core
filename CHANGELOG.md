@@ -91,6 +91,15 @@ diverged at `7505afb41`.
 - `x5c_into_pem_chain` ignores whitespace in the base64 certificates.
 - A JWT LoTE whose payload wraps the list in a `LoTE` member, as the published EU lists do, is
   accepted alongside the bare form; it was rejected as closed.
+- `TrustListAnchor` carries the granting service's type (`service_type`), so that a revocation
+  service's certificates, which share the list's role, can be told from an issuance service's.
+  `TrustListExport::excluded_services` lists the LoTE services left out for their status. The
+  database-backed LoTE subscriber does not use the service type yet: it still indexes a revocation
+  service's certificates like an issuance service's.
+- A LoTE service is active with TS 119 602's `…/SvcStatus/active` or the TS 119 612 `granted` /
+  `recognisedatnationallevel` values that published LoTEs carry; other values still exclude it.
+- A trust-list signer chain without Authority Key Identifiers is tried against every configured
+  anchor; it was tried against none.
 - Content-Type of a fetched trust list is compared by media type only (`application/xml;
   charset=utf-8` is accepted).
 - `EtsiLoteResolver` / `EtsiLotlResolver` take an options struct; the trust-list caches take a resolver

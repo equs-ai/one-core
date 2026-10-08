@@ -6,13 +6,13 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use standardized_types::etsi_119_602::json::{LoTEPayload, LoTEType};
+use standardized_types::etsi_119_602::json::LoTEPayload;
 use standardized_types::etsi_119_612::ServiceStatus;
 use time::OffsetDateTime;
 use url::Url;
 
 use super::etsi_lote::LoteContentType;
-use super::etsi_lote::preprocessing::is_active_service_status;
+use super::etsi_lote::preprocessing::{is_active_lote_service, requires_explicit_status};
 use super::etsi_lote::resolver::{EtsiLoteResolver, EtsiLoteResolverOptions};
 use super::etsi_lotl::model::DelegatedMember;
 use super::etsi_lotl::resolver::{CollectedTsl, EtsiLotlResolver, EtsiLotlResolverOptions};
@@ -75,11 +75,25 @@ pub struct TrustListAnchor {
     pub not_after: OffsetDateTime,
     pub entity_name: Option<String>,
     pub role: Option<AnchorRole>,
+    /// The granting service's type (`ServiceTypeIdentifier`), e.g.
+    /// `http://uri.etsi.org/19602/SvcType/PID/Issuance`.
+    pub service_type: Option<String>,
     pub service_status: Option<String>,
     /// The list that granted the anchor.
     pub source_url: String,
     /// `NextUpdate` of that list.
     pub source_next_update: OffsetDateTime,
+}
+
+/// A LoTE service that granted no anchor because of its status.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExcludedService {
+    /// The list that names the service.
+    pub source_url: String,
+    pub entity_name: Option<String>,
+    pub service_type: Option<String>,
+    /// `None` when the list requires an explicit status and the service has none.
+    pub service_status: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,6 +102,9 @@ pub struct TrustListExport {
     pub sequence_number: u64,
     pub issued_at: OffsetDateTime,
     pub skipped_members: Vec<SkippedMember>,
+    /// LoTE services left out for their status, so that an unrecognised status value is visible.
+    /// TSL services are not listed: a withdrawn service is routine there.
+    pub excluded_services: Vec<ExcludedService>,
     /// The root was accepted on its own embedded signer.
     pub unpinned: bool,
 }
@@ -218,17 +235,24 @@ impl TrustListExporter {
             .map(|list| &list.payload.list_and_scheme_information)
             .ok_or_else(|| FetchError::InvalidDocument("empty LoTE collection".to_string()))?;
         let (sequence_number, issued_at) = (root.lote_sequence_number, root.list_issue_date_time);
-        let anchors = collection
-            .lists
-            .iter()
-            .flat_map(|list| lote_anchors(&list.url, &list.payload))
-            .collect();
+        let mut grants = Grants::default();
+        for list in &collection.lists {
+            lote_anchors(&list.url, &list.payload, &mut grants);
+        }
+        if !grants.excluded.is_empty() {
+            tracing::info!(
+                %url,
+                excluded = grants.excluded.len(),
+                "LoTE services left out for their status"
+            );
+        }
         Ok((
             TrustListExport {
-                anchors,
+                anchors: grants.anchors,
                 sequence_number,
                 issued_at,
                 skipped_members: collection.skipped,
+                excluded_services: grants.excluded,
                 unpinned: collection.unpinned,
             },
             collection.followed,
@@ -260,6 +284,7 @@ impl TrustListExporter {
         let mut anchors: Vec<TrustListAnchor> =
             collection.members.iter().flat_map(tsl_anchors).collect();
         let mut skipped = collection.skipped;
+        let mut excluded = vec![];
 
         // LoTEs the LoTL points to, each pinned to its pointer's certificates and declared type,
         // within what is left of the export's deadline and pointer budget
@@ -273,6 +298,7 @@ impl TrustListExporter {
                     followed += member_followed;
                     anchors.extend(export.anchors);
                     skipped.extend(export.skipped_members);
+                    excluded.extend(export.excluded_services);
                 }
                 Err(error) => {
                     tracing::warn!(url = %member.url, %error, "skipping delegated LoTE");
@@ -286,6 +312,7 @@ impl TrustListExporter {
             sequence_number: collection.sequence_number,
             issued_at: collection.issued_at,
             skipped_members: skipped,
+            excluded_services: excluded,
             unpinned: collection.unpinned,
         })
     }
@@ -363,9 +390,12 @@ fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
         {
             if let Some(anchor) = anchor_from_b64(
                 cert_b64,
-                entity_name.clone(),
-                role,
-                Some(info.service_status.to_string()),
+                AnchorService {
+                    entity_name: entity_name.clone(),
+                    role,
+                    service_type: Some(info.service_type_identifier.to_string()),
+                    service_status: Some(info.service_status.to_string()),
+                },
                 &member.url,
                 member.next_update,
             ) {
@@ -376,18 +406,23 @@ fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
     anchors
 }
 
-/// Anchors of the trusted services of an authenticated LoTE.
-fn lote_anchors(url: &str, lote: &LoTEPayload) -> Vec<TrustListAnchor> {
+/// What a list export grants, and the LoTE services it leaves out for their status.
+#[derive(Default)]
+struct Grants {
+    anchors: Vec<TrustListAnchor>,
+    excluded: Vec<ExcludedService>,
+}
+
+/// Anchors of the trusted services of an authenticated LoTE, added to `grants`.
+fn lote_anchors(url: &str, lote: &LoTEPayload, grants: &mut Grants) {
     let scheme = &lote.list_and_scheme_information;
     let role = scheme
         .lote_type
         .clone()
         .and_then(|lote_type| TrustListRoleEnum::try_from(lote_type).ok())
         .and_then(AnchorRole::from_trust_list_role);
-    let requires_explicit_status =
-        matches!(scheme.lote_type, Some(LoTEType::EuPubEaaProvidersList));
+    let requires_explicit_status = requires_explicit_status(scheme.lote_type.as_ref());
 
-    let mut anchors = vec![];
     for entity in lote.trusted_entities_list.iter().flatten() {
         let entity_name = entity
             .trusted_entity_information
@@ -396,10 +431,14 @@ fn lote_anchors(url: &str, lote: &LoTEPayload) -> Vec<TrustListAnchor> {
             .map(|name| name.value.clone());
         for service in &entity.trusted_entity_services {
             let info = &service.service_information;
-            match info.service_status.as_deref() {
-                Some(status) if !is_active_service_status(status) => continue,
-                None if requires_explicit_status => continue,
-                _ => {}
+            if !is_active_lote_service(requires_explicit_status, info.service_status.as_deref()) {
+                grants.excluded.push(ExcludedService {
+                    source_url: url.to_string(),
+                    entity_name: entity_name.clone(),
+                    service_type: info.service_type_identifier.clone(),
+                    service_status: info.service_status.clone(),
+                });
+                continue;
             }
             let Some(certificates) = info
                 .service_digital_identity
@@ -411,25 +450,33 @@ fn lote_anchors(url: &str, lote: &LoTEPayload) -> Vec<TrustListAnchor> {
             for certificate in certificates {
                 if let Some(anchor) = anchor_from_b64(
                     &certificate.val,
-                    entity_name.clone(),
-                    role,
-                    info.service_status.clone(),
+                    AnchorService {
+                        entity_name: entity_name.clone(),
+                        role,
+                        service_type: info.service_type_identifier.clone(),
+                        service_status: info.service_status.clone(),
+                    },
                     url,
                     scheme.next_update,
                 ) {
-                    anchors.push(anchor);
+                    grants.anchors.push(anchor);
                 }
             }
         }
     }
-    anchors
+}
+
+/// The service an anchor is granted by.
+struct AnchorService {
+    entity_name: Option<String>,
+    role: Option<AnchorRole>,
+    service_type: Option<String>,
+    service_status: Option<String>,
 }
 
 fn anchor_from_b64(
     cert_b64: &str,
-    entity_name: Option<String>,
-    role: Option<AnchorRole>,
-    service_status: Option<String>,
+    service: AnchorService,
     source_url: &str,
     source_next_update: OffsetDateTime,
 ) -> Option<TrustListAnchor> {
@@ -445,9 +492,10 @@ fn anchor_from_b64(
         ski: subject_key_identifier(&certificate).ok().flatten(),
         not_after: certificate.validity().not_after.to_datetime(),
         pem,
-        entity_name,
-        role,
-        service_status,
+        entity_name: service.entity_name,
+        role: service.role,
+        service_type: service.service_type,
+        service_status: service.service_status,
         source_url: source_url.to_string(),
         source_next_update,
     })

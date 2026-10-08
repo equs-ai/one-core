@@ -362,8 +362,10 @@ pub(crate) async fn verify_signer(
     if let SignerPin::Anchors { pems } = pin {
         let chain_akis = get_akis_for_pem_chain(signer_chain_pem.as_bytes()).unwrap_or_default();
         for anchor in pems {
-            // only anchors the chain names as an issuer are candidates
-            if let Ok(Some(anchor_ski)) = pem_to_subject_key_identifier(anchor)
+            // only anchors the chain names as an issuer are candidates; a chain that names none
+            // (no Authority Key Identifiers) is tried against every anchor
+            if !chain_akis.is_empty()
+                && let Ok(Some(anchor_ski)) = pem_to_subject_key_identifier(anchor)
                 && !chain_akis.contains(&anchor_ski)
             {
                 continue;

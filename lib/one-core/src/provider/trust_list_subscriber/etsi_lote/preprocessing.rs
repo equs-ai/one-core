@@ -85,10 +85,8 @@ pub(super) async fn preprocess_lote(
             tracing::warn!("Discarding unsupported LoTE type: `{err}`");
             None
         });
-    let requires_explicit_status = matches!(
-        lote.list_and_scheme_information.lote_type,
-        Some(LoTEType::EuPubEaaProvidersList)
-    );
+    let requires_explicit_status =
+        requires_explicit_status(lote.list_and_scheme_information.lote_type.as_ref());
     let mut preprocessed_lote = PreprocessedLote {
         role: lote_type,
         ..Default::default()
@@ -170,11 +168,30 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
         .then_some(first)
 }
 
-/// TS 119 602 `ServiceStatus` meaning the service is currently trusted.
-pub(crate) const ACTIVE_SERVICE_STATUS: &str = "http://uri.etsi.org/19602/SvcStatus/active";
+/// `ServiceStatus` values meaning a LoTE service is currently trusted: TS 119 602's `active`, and
+/// the TS 119 612 values that published LoTEs carry instead.
+pub(crate) const ACTIVE_SERVICE_STATUSES: [&str; 3] = [
+    "http://uri.etsi.org/19602/SvcStatus/active",
+    "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+    "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/recognisedatnationallevel",
+];
 
 pub(crate) fn is_active_service_status(status: &str) -> bool {
-    status == ACTIVE_SERVICE_STATUS
+    ACTIVE_SERVICE_STATUSES.contains(&status)
+}
+
+/// Whether a list of `lote_type` must state each service's status: a Pub-EAA providers list does
+/// (TS 119 602 Annex H); the others trust a service by its presence.
+pub(crate) fn requires_explicit_status(lote_type: Option<&LoTEType>) -> bool {
+    matches!(lote_type, Some(LoTEType::EuPubEaaProvidersList))
+}
+
+/// Whether a LoTE service with `status` is trusted: a stated status must be an active one.
+pub(crate) fn is_active_lote_service(requires_explicit_status: bool, status: Option<&str>) -> bool {
+    match status {
+        Some(status) => is_active_service_status(status),
+        None => !requires_explicit_status,
+    }
 }
 
 struct PreprocessingResult {
@@ -199,12 +216,11 @@ async fn preprocess_trusted_entity(
     let mut public_keys = HashSet::new();
 
     for service in trusted_entity.trusted_entity_services {
-        // trust by presence, unless the service states a status other than active; a
-        // Pub-EAA providers list always states it (TS 119 602 Annex H)
-        match service.service_information.service_status.as_deref() {
-            Some(status) if !is_active_service_status(status) => continue,
-            None if requires_explicit_status => continue,
-            _ => {}
+        if !is_active_lote_service(
+            requires_explicit_status,
+            service.service_information.service_status.as_deref(),
+        ) {
+            continue;
         }
         let Some(identity) = service.service_information.service_digital_identity else {
             continue;
@@ -432,12 +448,20 @@ mod test {
 
     #[test]
     fn only_active_status_is_trusted() {
-        assert!(is_active_service_status(
-            "http://uri.etsi.org/19602/SvcStatus/active"
-        ));
-        assert!(!is_active_service_status(
-            "http://uri.etsi.org/19602/SvcStatus/withdrawn"
-        ));
+        for active in [
+            "http://uri.etsi.org/19602/SvcStatus/active",
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/recognisedatnationallevel",
+        ] {
+            assert!(is_active_service_status(active), "{active}");
+        }
+        for inactive in [
+            "http://uri.etsi.org/19602/SvcStatus/withdrawn",
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/withdrawn",
+            "http://uri.etsi.org/19602/SvcStatus/active/",
+        ] {
+            assert!(!is_active_service_status(inactive), "{inactive}");
+        }
     }
 
     #[tokio::test]

@@ -7,7 +7,7 @@ use standardized_types::etsi_119_612::xml::TrustServiceStatusList;
 use time::macros::datetime;
 use url::Url;
 
-use standardized_types::etsi_119_602::json::LoTEType;
+use standardized_types::etsi_119_602::json::{LoTEPayload, LoTEType};
 
 use super::{AnchorRole, ExportPolicy, TrustListExporter, TrustListKind};
 use crate::proto::clock::{TaskLocalClock, run_with_mocked_time_async};
@@ -473,8 +473,8 @@ fn every_mapped_role_is_exported() {
     );
 }
 
-#[test]
-fn eu_pid_lote_services_without_a_status_are_pid_provider_anchors() {
+/// The EU-format PID LoTE payload, parsed (the resolver's unwrapping is covered by its own tests).
+fn eu_pid_lote(edit: impl FnOnce(&mut serde_json::Value)) -> LoTEPayload {
     use crate::provider::trust_list_subscriber::etsi_lote::test::{
         TRUSTED_CERT, eu_pid_lote_payload,
     };
@@ -484,16 +484,81 @@ fn eu_pid_lote_services_without_a_status_are_pid_provider_anchors() {
         .lines()
         .filter(|line| !line.starts_with("-----"))
         .collect();
-    let payload = eu_pid_lote_payload(&cert_b64);
-    // unwrapped here: the resolver's unwrapping is covered by its own tests
-    let lote = serde_json::from_value(json_lote_object(&payload).unwrap().clone()).unwrap();
+    let mut payload = eu_pid_lote_payload(&cert_b64);
+    edit(&mut payload);
+    serde_json::from_value(json_lote_object(&payload).unwrap().clone()).unwrap()
+}
 
-    let anchors = super::lote_anchors("https://lote.example/pid.jwt", &lote);
+fn grants(lote: &LoTEPayload) -> super::Grants {
+    let mut grants = super::Grants::default();
+    super::lote_anchors("https://lote.example/pid.jwt", lote, &mut grants);
+    grants
+}
+
+#[test]
+fn eu_pid_lote_services_without_a_status_are_pid_provider_anchors_with_their_type() {
+    let grants = grants(&eu_pid_lote(|_| {}));
 
     // one per service: the issuance and the revocation service certify the same key
-    assert_eq!(anchors.len(), 2);
-    assert!(anchors.iter().all(|anchor| matches!(
+    let types: Vec<_> = grants
+        .anchors
+        .iter()
+        .map(|anchor| anchor.service_type.as_deref())
+        .collect();
+    assert_eq!(
+        types,
+        [
+            Some("http://uri.etsi.org/19602/SvcType/PID/Issuance"),
+            Some("http://uri.etsi.org/19602/SvcType/PID/Revocation"),
+        ]
+    );
+    assert!(grants.anchors.iter().all(|anchor| matches!(
         anchor.role,
         Some(super::AnchorRole::PidProvider)
     ) && anchor.service_status.is_none()));
+    assert!(grants.excluded.is_empty());
+}
+
+#[test]
+fn lote_services_with_a_tl_style_status_are_anchors_and_others_are_reported() {
+    let services = "/LoTE/TrustedEntitiesList/0/TrustedEntityServices";
+    let lote = eu_pid_lote(|payload| {
+        let services = payload.pointer_mut(services).unwrap();
+        services[0]["ServiceInformation"]["ServiceStatus"] =
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted".into();
+        services[1]["ServiceInformation"]["ServiceStatus"] =
+            "http://uri.etsi.org/19602/SvcStatus/withdrawn".into();
+    });
+
+    let grants = grants(&lote);
+
+    assert_eq!(grants.anchors.len(), 1);
+    assert_eq!(
+        grants.excluded,
+        [super::ExcludedService {
+            source_url: "https://lote.example/pid.jwt".to_string(),
+            entity_name: Some("PID Provider".to_string()),
+            service_type: Some("http://uri.etsi.org/19602/SvcType/PID/Revocation".to_string()),
+            service_status: Some("http://uri.etsi.org/19602/SvcStatus/withdrawn".to_string()),
+        }]
+    );
+}
+
+#[test]
+fn pub_eaa_lote_services_without_a_status_are_reported() {
+    let lote = eu_pid_lote(|payload| {
+        payload["LoTE"]["ListAndSchemeInformation"]["LoTEType"] =
+            "http://uri.etsi.org/19602/LoTEType/EUPubEAAProvidersList".into();
+    });
+
+    let grants = grants(&lote);
+
+    assert!(grants.anchors.is_empty());
+    assert_eq!(grants.excluded.len(), 2);
+    assert!(
+        grants
+            .excluded
+            .iter()
+            .all(|service| service.service_status.is_none())
+    );
 }

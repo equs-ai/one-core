@@ -1016,6 +1016,14 @@ const SIGNER_SERIAL: u64 = 42;
 /// presented without the CA. Returns the token, the CA (PEM) and its CRL, revoking the signer
 /// when `revoked`.
 fn lote_signed_under_a_ca(revoked: bool) -> (String, String, Vec<u8>) {
+    lote_signed_under_a_ca_with(revoked, true)
+}
+
+/// [lote_signed_under_a_ca], with or without an Authority Key Identifier on the signer.
+fn lote_signed_under_a_ca_with(
+    revoked: bool,
+    authority_key_identifier: bool,
+) -> (String, String, Vec<u8>) {
     use rcgen::{
         BasicConstraints, CertificateParams, DnType, IsCa, Issuer, KeyPair, KeyUsagePurpose,
     };
@@ -1031,12 +1039,13 @@ fn lote_signed_under_a_ca(revoked: bool) -> (String, String, Vec<u8>) {
     let ca_issuer = Issuer::from_params(&ca_params, ca_key);
 
     let signer_key = KeyPair::generate_for(&rcgen::PKCS_RSA_SHA256).unwrap();
-    let mut signer_params = CertificateParams::new(vec![]).unwrap();
+    // a SAN: rcgen 0.14.7 writes no extensions for a leaf without an AKI, SAN or EKU
+    let mut signer_params = CertificateParams::new(vec!["lote-signer.test".to_string()]).unwrap();
     signer_params
         .distinguished_name
         .push(DnType::CommonName, "LoTE Signer");
     signer_params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
-    signer_params.use_authority_key_identifier_extension = true;
+    signer_params.use_authority_key_identifier_extension = authority_key_identifier;
     signer_params.serial_number = Some(rcgen::SerialNumber::from(SIGNER_SERIAL));
     signer_params.crl_distribution_points = vec![rcgen::CrlDistributionPoint {
         uris: vec![SIGNER_CRL.to_string()],
@@ -1220,4 +1229,15 @@ async fn forged_rs256_lote_is_rejected() {
         collect_rs256(token).await,
         Err(FetchError::InvalidSignature(_))
     ));
+}
+
+#[tokio::test]
+async fn signer_without_an_authority_key_identifier_is_tried_against_every_anchor() {
+    let (token, ca, crl) = lote_signed_under_a_ca_with(false, false);
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+
+    let collection = collect_pinned_with_crl(token, ca, crl, fetched.clone()).await;
+
+    assert!(collection.is_ok(), "{:?}", collection.err());
+    assert_eq!(*fetched.lock().unwrap(), [SIGNER_CRL]);
 }
