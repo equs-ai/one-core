@@ -34,6 +34,22 @@ impl ReqwestClient {
         Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
     }
 
+    /// A client for revocation data at a location a certificate names, such as a CRL distribution
+    /// point: `http` allowed (CRLs are usually served over it and are signed themselves), no
+    /// redirects, at most `timeout` per request, and at most `max_body_bytes + 1` bytes of a body
+    /// read, so an oversized CRL fails to parse instead of being buffered whole.
+    pub fn for_revocation_data(
+        max_body_bytes: usize,
+        timeout: std::time::Duration,
+    ) -> Result<Self, Error> {
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .min_tls_version(reqwest::tls::Version::TLS_1_2)
+            .timeout(timeout)
+            .build()?;
+        Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
+    }
+
     /// Read at most `max_body_bytes + 1` bytes of a body, for a caller that refuses a body over
     /// `max_body_bytes` itself.
     pub fn with_max_body_bytes(mut self, max_body_bytes: usize) -> Self {
@@ -196,5 +212,46 @@ mod test {
 
         // refused before connecting: the scheme is not allowed
         assert!(error.is_builder(), "{error}");
+    }
+
+    #[tokio::test]
+    async fn revocation_data_client_fetches_http_without_following_redirects() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        use crate::proto::http_client::HttpClient;
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/ca.crl"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(b"0123456789".to_vec()))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/moved.crl"))
+            .respond_with(
+                ResponseTemplate::new(302)
+                    .insert_header("Location", "http://127.0.0.1:9/elsewhere"),
+            )
+            .mount(&server)
+            .await;
+        let client =
+            super::ReqwestClient::for_revocation_data(4, std::time::Duration::from_secs(5))
+                .unwrap();
+
+        let crl = client
+            .get(&format!("{}/ca.crl", server.uri()))
+            .send()
+            .await
+            .unwrap();
+        let moved = client
+            .get(&format!("{}/moved.crl", server.uri()))
+            .send()
+            .await
+            .unwrap();
+
+        // the body is cut one byte past the cap
+        assert_eq!(crl.body, b"01234");
+        assert_eq!(moved.status.0, 302);
     }
 }

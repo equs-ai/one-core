@@ -100,6 +100,8 @@ diverged at `7505afb41`.
   `recognisedatnationallevel` values that published LoTEs carry; other values still exclude it.
 - A trust-list signer chain without Authority Key Identifiers is tried against every configured
   anchor; it was tried against none.
+- `ReqwestClient::for_revocation_data`: a client for CRL distribution points, with `http`
+  allowed, no redirects, and a size and time bound per request.
 - Content-Type of a fetched trust list is compared by media type only (`application/xml;
   charset=utf-8` is accepted).
 - `EtsiLoteResolver` / `EtsiLotlResolver` take an options struct; the trust-list caches take a resolver
