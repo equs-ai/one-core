@@ -181,6 +181,29 @@ async fn lotl_export_returns_member_anchors_with_roles_and_freshness() {
 }
 
 #[tokio::test]
+async fn lotl_export_carries_the_lotl_next_update_beside_its_members() {
+    // the LoTL is due before its member: the member's anchors must not outlive it
+    let lotl = LOTL.replace("2026-10-27T14:28:34", "2026-10-20T00:00:00");
+    let exporter = exporter(client(&lotl, false));
+    let url = Url::parse(LOTL_URL).unwrap();
+
+    let export = run_with_mocked_time_async(
+        NOW,
+        exporter.export(&url, TrustListKind::Lotl119612, &policy()),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(export.next_update, datetime!(2026-10-20 00:00 UTC));
+    assert!(
+        export
+            .anchors
+            .iter()
+            .all(|anchor| anchor.source_next_update == datetime!(2026-10-27 14:28:34 UTC))
+    );
+}
+
+#[tokio::test]
 async fn delegated_lote_is_exported_pinned_to_its_pointer() {
     let exporter = exporter(client(
         &lotl_with_delegated_lote(REGISTRARS_LOTE_TYPE),

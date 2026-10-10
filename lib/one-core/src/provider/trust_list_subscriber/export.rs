@@ -101,6 +101,9 @@ pub struct TrustListExport {
     pub anchors: Vec<TrustListAnchor>,
     pub sequence_number: u64,
     pub issued_at: OffsetDateTime,
+    /// `NextUpdate` of the root list. An anchor of a member list outlives the root that vouched for
+    /// it when only its own `source_next_update` is checked: count both.
+    pub next_update: OffsetDateTime,
     pub skipped_members: Vec<SkippedMember>,
     /// LoTE services left out for their status, so that an unrecognised status value is visible.
     /// TSL services are not listed: a withdrawn service is routine there.
@@ -234,7 +237,11 @@ impl TrustListExporter {
             .first()
             .map(|list| &list.payload.list_and_scheme_information)
             .ok_or_else(|| FetchError::InvalidDocument("empty LoTE collection".to_string()))?;
-        let (sequence_number, issued_at) = (root.lote_sequence_number, root.list_issue_date_time);
+        let (sequence_number, issued_at, next_update) = (
+            root.lote_sequence_number,
+            root.list_issue_date_time,
+            root.next_update,
+        );
         let mut grants = Grants::default();
         for list in &collection.lists {
             lote_anchors(&list.url, &list.payload, &mut grants);
@@ -251,6 +258,7 @@ impl TrustListExporter {
                 anchors: grants.anchors,
                 sequence_number,
                 issued_at,
+                next_update,
                 skipped_members: collection.skipped,
                 excluded_services: grants.excluded,
                 unpinned: collection.unpinned,
@@ -311,6 +319,7 @@ impl TrustListExporter {
             anchors,
             sequence_number: collection.sequence_number,
             issued_at: collection.issued_at,
+            next_update: collection.next_update,
             skipped_members: skipped,
             excluded_services: excluded,
             unpinned: collection.unpinned,
