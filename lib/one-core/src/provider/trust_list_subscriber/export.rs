@@ -359,7 +359,11 @@ fn remaining_policy(
     })
 }
 
-/// Anchors of the granted services of an authenticated member TSL.
+/// Anchors of the granted services of an authenticated member TSL that issue attestations: those
+/// whose service type maps to an issuer role (`EAA/Q`, `EAA/Pub-EAA`, `EAA`, the EUDI pilot PID type).
+/// Every other service (qualified certificates for e-signatures and e-seals, time stamps, OCSP,
+/// CRLs) grants no anchor, so it can neither anchor an attestation issuer nor fill an export with
+/// certificates no verifier uses.
 fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
     let providers = member
         .tsl
@@ -375,8 +379,11 @@ fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
         ) {
             continue;
         }
-        let role = role_for_service_type(&info.service_type_identifier)
-            .and_then(AnchorRole::from_trust_list_role);
+        let Some(role) = role_for_service_type(&info.service_type_identifier)
+            .and_then(AnchorRole::from_trust_list_role)
+        else {
+            continue;
+        };
         let entity_name = info
             .service_name
             .names
@@ -392,7 +399,7 @@ fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
                 cert_b64,
                 AnchorService {
                     entity_name: entity_name.clone(),
-                    role,
+                    role: Some(role),
                     service_type: Some(info.service_type_identifier.to_string()),
                     service_status: Some(info.service_status.to_string()),
                 },

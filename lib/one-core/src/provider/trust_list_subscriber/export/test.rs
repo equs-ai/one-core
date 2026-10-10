@@ -168,8 +168,9 @@ async fn lotl_export_returns_member_anchors_with_roles_and_freshness() {
     assert!(roles.contains(&Some(AnchorRole::PubEaaProvider)));
     // EUDI pilot `Svc/Svctype/Provider/PID`
     assert!(roles.contains(&Some(AnchorRole::PidProvider)));
-    // pilot wallet / RP-access services carry no role
-    assert!(roles.contains(&None));
+    // services without an issuer role (pilot wallet / RP-access, qualified certificates, time
+    // stamps) grant no anchor
+    assert!(!roles.contains(&None));
     assert!(export.anchors.iter().all(|anchor| anchor.ski.is_some()));
     assert!(
         export
@@ -600,4 +601,33 @@ fn granted_tsl_services_are_anchors_with_their_type_and_withdrawn_ones_are_not()
             .is_some_and(|t| t.contains("/Svctype/"))
     }));
     assert!(withdrawn.is_empty(), "{withdrawn:?}");
+}
+
+#[test]
+fn granted_tsl_services_without_an_issuer_role_grant_no_anchor() {
+    use standardized_types::etsi_119_612::ServiceType;
+
+    let granted = super::tsl_anchors(&fr_member(|_| {}));
+    // every service a qualified CA, a time-stamping or a status service: none issues attestations
+    let without_role = super::tsl_anchors(&fr_member(|tsl| {
+        let types = [
+            "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",
+            "http://uri.etsi.org/TrstSvc/Svctype/CA/PKC",
+            "http://uri.etsi.org/TrstSvc/Svctype/TSA/QTST",
+            "http://uri.etsi.org/TrstSvc/Svctype/Certstatus/OCSP/QC",
+        ];
+        let services = tsl
+            .trust_service_provider_list
+            .iter_mut()
+            .flat_map(|list| &mut list.providers)
+            .flat_map(|provider| &mut provider.tsp_services.services);
+        for (service, service_type) in services.zip(types.iter().cycle()) {
+            service.service_information.service_type_identifier =
+                ServiceType::from(service_type.to_string());
+        }
+    }));
+
+    assert!(!granted.is_empty());
+    assert!(granted.iter().all(|anchor| anchor.role.is_some()));
+    assert!(without_role.is_empty(), "{without_role:?}");
 }
