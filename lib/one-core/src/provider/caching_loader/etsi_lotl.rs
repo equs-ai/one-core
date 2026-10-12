@@ -5,9 +5,7 @@ use crate::proto::clock::Clock;
 use crate::provider::caching_loader::{CacheError, CachingLoader, Resolver, ResolverError};
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 
-/// Cache of pre-processed ETSI LoTL lists. Every lookup supplies the resolver, bound to a list
-/// location and a signer pin; the key carries the pin, so lists authenticated under different
-/// pins never share an entry.
+/// Cache of pre-processed ETSI LoTL lists.
 pub struct EtsiLotlCache {
     inner: CachingLoader,
 }

@@ -148,12 +148,7 @@ pub enum CrlMode {
     /// Validity period only; no revocation source is consulted.
     ValidityOnly,
     /// [CrlMode::X509] for every certificate whose issuer is in the chain. The topmost one is the
-    /// trust anchor: trusted by configuration (e.g. a trusted list's service status) rather than
-    /// by a CRL, and its own issuer is absent, so it is not checked.
-    ///
-    /// Only for a chain that ends in a configured anchor, e.g. through
-    /// [CertificateValidator::validate_chain_against_ca_chain]: on any other chain, the topmost
-    /// certificate's revocation goes unchecked.
+    /// trust anchor: trusted by configuration (e.g. a trusted list's service status).
     X509BelowAnchor,
 }
 
@@ -212,11 +207,6 @@ impl CertificateValidationOptions {
     }
 
     /// Signatures, critical extensions, validity periods and leaf key usage, without revocation.
-    ///
-    /// For a chain not yet connected to a trusted anchor: the issuer of its topmost certificate
-    /// is absent, so a CRL for it could not be authenticated, and its distribution points (chosen
-    /// by whoever presented the chain) must not be fetched. Check revocation once the chain is
-    /// anchored, e.g. with [validate_chain_against_trust_anchors].
     pub fn signature_and_validity(
         required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
     ) -> Self {

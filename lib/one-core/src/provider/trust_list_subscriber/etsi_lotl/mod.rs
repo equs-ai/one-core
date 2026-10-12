@@ -53,7 +53,6 @@ pub struct EtsiLotlSubscriber {
     resolver: Arc<EtsiLotlResolver>,
     certificate_validator: Arc<dyn CertificateValidator>,
     /// Subscribers to delegate member lists the LOTL does not resolve itself
-    /// Tried in their configured `order`.
     delegates: Vec<Arc<dyn TrustListSubscriber>>,
 }
 
@@ -174,9 +173,6 @@ impl EtsiLotlSubscriber {
 impl TrustListSubscriber for EtsiLotlSubscriber {
     fn get_capabilities(&self) -> TrustListSubscriberCapabilities {
         TrustListSubscriberCapabilities {
-            // A LOTL itself carries no single role; the role is derived per
-            // resolved entry from its `ServiceTypeIdentifier`.
-            // Empty roles signal a roleless subscription, validated post-resolution by the consumer.
             roles: vec![],
             resolvable_identifier_types: vec![
                 IdentifierType::Certificate,

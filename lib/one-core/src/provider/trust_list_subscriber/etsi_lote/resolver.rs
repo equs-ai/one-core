@@ -126,8 +126,7 @@ impl EtsiLoteResolver {
         }
     }
 
-    /// Cache scope of this resolver: lists resolved under another content type, depth or limits
-    /// never share an entry.
+    /// Cache scope of this resolver.
     pub fn cache_scope(&self) -> String {
         format!(
             "lote;{};depth={:?};{}",

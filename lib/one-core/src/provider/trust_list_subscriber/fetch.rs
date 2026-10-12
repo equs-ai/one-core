@@ -1,9 +1,3 @@
-//! Fetching, signer pinning and limits shared by the ETSI trust-list resolvers.
-//!
-//! Fork addition (not upstream): every list is authenticated under an explicit [`SignerPin`], and
-//! cached content is keyed by the list location *and* that pin, so a list accepted under a weaker
-//! policy is never served to a stricter one.
-
 use std::time::Duration as StdDuration;
 
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder};
@@ -60,7 +54,7 @@ impl SignerPin {
     }
 
     /// Cache key binding `url` to this pin and to the resolving subscriber's `scope` (its kind,
-    /// content type and limits), so no two policies share an entry.
+    /// content type and limits).
     pub(crate) fn cache_key(&self, url: &str, scope: &str) -> Result<String, FetchError> {
         let policy = serde_json::to_vec(&(scope, self))
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
@@ -81,11 +75,8 @@ pub struct FetchLimits {
     /// Accept `http` pointers (tests only); otherwise pointers must be `https`.
     pub allow_http: bool,
     /// Deadline for the whole export or resolution. The root not authenticated within it fails;
-    /// members not reached or not done within it are skipped with [SkipReason::Deadline].
     pub deadline: StdDuration,
-    /// Time to fetch and authenticate one member list, so one slow host cannot spend the whole
-    /// deadline; a member over it is skipped as [SkipReason::Unreachable]. The root is bounded by
-    /// the deadline only.
+    /// Time to fetch and authenticate one member list.
     pub document_timeout: StdDuration,
 }
 
@@ -153,9 +144,7 @@ impl Deadline {
             .map_err(|_| FetchError::Deadline)?
     }
 
-    /// Run `work` on the root list until the deadline. The per-document timeout isolates
-    /// members from each other; a root has nothing to be isolated from, and a large one (the EU
-    /// LoTL, with its signer's CRL) may need longer.
+    /// Run `work` on the root list until the deadline.
     pub(crate) async fn bound_root<T>(
         &self,
         work: impl Future<Output = Result<T, FetchError>>,
@@ -400,8 +389,7 @@ async fn fingerprint_of(
         .map(|parsed| parsed.attributes.fingerprint)
 }
 
-/// The LoTE of a JSON LoTE payload: the published EU lists wrap it in a `LoTE` member, upstream
-/// and earlier drafts put it at the root. A `LoTE` member wins over root fields.
+/// The LoTE of a JSON LoTE payloads.
 pub(crate) fn json_lote_object(
     payload: &serde_json::Value,
 ) -> Result<&serde_json::Value, FetchError> {

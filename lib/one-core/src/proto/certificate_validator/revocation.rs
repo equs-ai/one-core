@@ -214,9 +214,6 @@ impl CertificateValidatorImpl {
     }
 }
 
-/// A CRL that cannot be fetched or parsed leaves the revocation status unknown: reported as
-/// [Error::CRLCheckFailed], like the other CRL failures, so that callers can tell it apart from a
-/// chain that does not validate.
 fn revocation_unknown(error: Error) -> Error {
     match error {
         Error::CRLCheckFailed(_) | Error::CRLOutdated | Error::CRLSignatureInvalid => error,

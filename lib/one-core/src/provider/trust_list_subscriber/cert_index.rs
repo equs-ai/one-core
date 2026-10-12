@@ -18,7 +18,6 @@ pub(crate) struct CertEntry {
 
 /// Certificate matching index shared by the LoTL and LoTE subscribers, mapping a
 /// CA SubjectKeyIdentifier and a leaf fingerprint to the entries they back.
-/// Multi-valued so a CA backing services of different roles is not collapsed.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(crate) struct CertIndex {
     pub ca_ski_to_entries: HashMap<KeyIdentifier, Vec<CertEntry>>,

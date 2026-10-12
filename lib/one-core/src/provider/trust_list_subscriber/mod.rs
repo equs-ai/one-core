@@ -31,8 +31,7 @@ pub trait TrustListSubscriber: Send + Sync {
         role: Option<TrustListRoleEnum>,
     ) -> Result<TrustListValidationSuccess, TrustListSubscriberError>;
 
-    /// All trust entries each identifier resolves to; identifiers with no match
-    /// are omitted.
+    /// All trust entries each identifier resolves to; identifiers with no match are omitted.
     async fn resolve_entries(
         &self,
         reference: &Url,
@@ -84,9 +83,6 @@ pub struct TrustListValidationSuccess {
     pub role: Option<TrustListRoleEnum>,
 }
 
-/// Standard-agnostic result of resolving an identifier. `derived_role` is the
-/// per-entity role (`None` → the subscription's own role applies); `metadata` is
-/// the standard-specific payload, surfaced for display only.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrustEntityResponse {
     pub derived_role: Option<TrustListRoleEnum>,

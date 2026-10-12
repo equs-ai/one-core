@@ -215,8 +215,6 @@ impl EtsiLotlResolver {
 
     /// Fetch the LoTL under `pin` and each member TSL pinned to its pointer's certificates.
     /// Single level: members' own pointers are not followed. Only the root failing fails.
-    /// Each document is bounded by [FetchLimits::document_timeout] and the whole collection by
-    /// [FetchLimits::deadline]: the root over either fails, a member is skipped.
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LotlCollection, FetchError> {
         let limits = &self.options.limits;
         let deadline = Deadline::after(limits);
@@ -435,8 +433,7 @@ fn pointer_tsl_type(pointer: &OtherTslPointer) -> Option<String> {
     })
 }
 
-/// PEMs of every X.509 certificate in the pointer's `ServiceDigitalIdentities`; all are
-/// eligible signers, so a member signed during key rollover still authenticates.
+/// PEMs of every X.509 certificate in the pointer's `ServiceDigitalIdentities`.
 pub(crate) fn pointer_signer_cert_pems(pointer: &OtherTslPointer) -> Vec<String> {
     pointer
         .service_digital_identities

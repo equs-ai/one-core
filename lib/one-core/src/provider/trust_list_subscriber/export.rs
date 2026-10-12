@@ -1,8 +1,3 @@
-//! Database-free export of the anchors an ETSI trust list grants (fork addition).
-//!
-//! The caller (e.g. a verifier backend) exports a list out of band, stores the anchors, and supplies
-//! them per verification. Nothing here is cached across calls.
-
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -345,8 +340,7 @@ impl TrustListExporter {
 }
 
 /// The policy for a LoTE delegated from a LoTL after `elapsed` of the export and `followed`
-/// pointers: the deadline and pointer budget bound the whole export, not each list. The LoTE
-/// itself was counted by the LoTL; with no pointers left it is fetched, its own pointers are not.
+/// pointers.
 fn remaining_policy(
     policy: &ExportPolicy,
     elapsed: std::time::Duration,
@@ -370,9 +364,6 @@ fn remaining_policy(
 
 /// Anchors of the granted services of an authenticated member TSL that issue attestations: those
 /// whose service type maps to an issuer role (`EAA/Q`, `EAA/Pub-EAA`, `EAA`, the EUDI pilot PID type).
-/// Every other service (qualified certificates for e-signatures and e-seals, time stamps, OCSP,
-/// CRLs) grants no anchor, so it can neither anchor an attestation issuer nor fill an export with
-/// certificates no verifier uses.
 fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
     let providers = member
         .tsl

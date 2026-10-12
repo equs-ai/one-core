@@ -180,8 +180,7 @@ pub(crate) fn is_active_service_status(status: &str) -> bool {
     ACTIVE_SERVICE_STATUSES.contains(&status)
 }
 
-/// Whether a list of `lote_type` must state each service's status: a Pub-EAA providers list does
-/// (TS 119 602 Annex H); the others trust a service by its presence.
+/// Whether a list of `lote_type` must state each service's status.
 pub(crate) fn requires_explicit_status(lote_type: Option<&LoTEType>) -> bool {
     matches!(lote_type, Some(LoTEType::EuPubEaaProvidersList))
 }
@@ -324,8 +323,7 @@ async fn preprocess_certificate_identity(
         let pem = extract_leaf_pem_from_chain(pem_chain.as_bytes())
             .error_while("parsing certificate value")?;
         let cert = pem.parse_x509()?;
-        // Keys are indexed in the key algorithm provider's raw form (the fork has no
-        // `public_key_as_der`); algorithms it can't parse (e.g. RSA) are not indexed.
+        // Keys are indexed in the key algorithm provider's raw form.
         match key_algorithm_provider.parse_raw(cert.public_key().raw) {
             Ok(parsed_key) => {
                 public_keys.insert(Base64::encode_to_string(

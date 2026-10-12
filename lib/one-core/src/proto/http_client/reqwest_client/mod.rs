@@ -9,7 +9,6 @@ use super::{Error, Headers, HttpClient, Method, Request, RequestBuilder, Respons
 #[derive(Clone)]
 pub struct ReqwestClient {
     pub client: reqwest::Client,
-    /// Read at most this many bytes of a body, plus one; `None` reads it whole.
     max_body_bytes: Option<usize>,
 }
 
@@ -21,10 +20,6 @@ impl ReqwestClient {
         }
     }
 
-    /// A client for documents fetched from locations the caller does not control, such as trust
-    /// lists: `https` only, no redirects, TLS 1.2 or later, and at most `max_body_bytes + 1`
-    /// bytes of a body read, so an oversized body fails the caller's own size check without
-    /// being buffered whole.
     pub fn hardened(max_body_bytes: usize) -> Result<Self, Error> {
         let client = reqwest::Client::builder()
             .https_only(true)
@@ -34,10 +29,7 @@ impl ReqwestClient {
         Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
     }
 
-    /// A client for revocation data at a location a certificate names, such as a CRL distribution
-    /// point: `http` allowed (CRLs are usually served over it and are signed themselves), no
-    /// redirects, at most `timeout` per request, and at most `max_body_bytes + 1` bytes of a body
-    /// read, so an oversized CRL fails to parse instead of being buffered whole.
+    /// A client for revocation data at a location a certificate names, such as a CRL distribution point
     pub fn for_revocation_data(
         max_body_bytes: usize,
         timeout: std::time::Duration,
@@ -50,8 +42,6 @@ impl ReqwestClient {
         Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
     }
 
-    /// Read at most `max_body_bytes + 1` bytes of a body, for a caller that refuses a body over
-    /// `max_body_bytes` itself.
     pub fn with_max_body_bytes(mut self, max_body_bytes: usize) -> Self {
         self.max_body_bytes = Some(max_body_bytes);
         self

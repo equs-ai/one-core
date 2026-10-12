@@ -73,7 +73,6 @@ pub enum Error {
     InvalidHeaderValue(#[from] InvalidHeaderValue),
     #[error("Invalid time conversion: {0}")]
     ConversionRange(#[from] time::error::ConversionRange),
-    /// A transport failure of an adapted client, with its cause.
     #[error("HTTP transport error: {0}")]
     Transport(String),
 }
