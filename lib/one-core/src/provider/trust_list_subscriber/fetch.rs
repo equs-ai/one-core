@@ -6,7 +6,7 @@ use one_crypto::hasher::sha256::SHA256;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::error::{ErrorCode, ErrorCodeMixin};
+use crate::error::{ErrorCode, ErrorCodeMixin, ErrorCodeMixinExt};
 use crate::mapper::x509::{get_akis_for_pem_chain, pem_to_subject_key_identifier};
 use crate::proto::certificate_validator::{
     CertSelection, CertificateValidationOptions, CertificateValidator, EnforceKeyUsage,
@@ -186,6 +186,8 @@ pub struct SkippedMember {
 pub enum FetchError {
     #[error("Trust list unreachable: {0}")]
     Unreachable(String),
+    #[error("Trust list unreachable: {0}")]
+    Http(#[source] crate::proto::http_client::Error),
     #[error("Trust list exceeds the maximum size of {0} bytes")]
     SizeLimit(usize),
     #[error("Trust list pointer refused: {0}")]
@@ -211,7 +213,7 @@ pub enum FetchError {
 impl FetchError {
     pub fn skip_reason(&self) -> SkipReason {
         match self {
-            Self::Unreachable(_) => SkipReason::Unreachable,
+            Self::Unreachable(_) | Self::Http(_) => SkipReason::Unreachable,
             Self::Deadline => SkipReason::Deadline,
             Self::SizeLimit(_) => SkipReason::SizeLimit,
             Self::PointerLimit(_) => SkipReason::PointerLimit,
@@ -238,6 +240,7 @@ impl ErrorCodeMixin for FetchError {
             Self::SignerNotTrusted | Self::InvalidSignature(_) | Self::UnpinnedNotAllowed => {
                 ErrorCode::BR_0410
             }
+            Self::Http(error) => error.error_code(),
             _ => ErrorCode::BR_0354,
         }
     }
@@ -245,7 +248,12 @@ impl ErrorCodeMixin for FetchError {
 
 impl From<FetchError> for ResolverError {
     fn from(error: FetchError) -> Self {
-        ResolverError::InvalidResponse(error.to_string())
+        match error {
+            FetchError::Http(error) => {
+                ResolverError::Nested(error.error_while("downloading the trust list"))
+            }
+            other => ResolverError::InvalidResponse(other.to_string()),
+        }
     }
 }
 
@@ -308,7 +316,7 @@ pub(crate) async fn fetch_document(
         .send()
         .await
         .and_then(|response| response.error_for_status())
-        .map_err(|e| FetchError::Unreachable(e.to_string()))?;
+        .map_err(FetchError::Http)?;
 
     if let Some(length) = response
         .header_get("Content-Length")
