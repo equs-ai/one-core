@@ -88,7 +88,9 @@ diverged at `7505afb41`.
 - LoTE subscriber parameter `leeway` is now `leewaySeconds`; `leeway` is still
   accepted. Public keys on a LoTE are indexed in the key algorithm provider's
   raw form, so keys it cannot parse (e.g. RSA) are not matched by public key.
-- `x5c_into_pem_chain` ignores whitespace in the base64 certificates.
+- `wrapped_certs_into_pem_chain` decodes line-wrapped base64 certificates (XML-DSig `X509Certificate`,
+  trust-list certificate values), ignoring whitespace; `x5c_into_pem_chain` stays strict, as JOSE `x5c`
+  carries none.
 - A JWT LoTE whose payload wraps the list in a `LoTE` member, as the published EU lists do, is
   accepted alongside the bare form; it was rejected as closed.
 - `TrustListAnchor` carries the granting service's type (`service_type`), so that a revocation

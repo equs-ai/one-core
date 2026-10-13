@@ -442,7 +442,7 @@ pub(crate) fn pointer_signer_cert_pems(pointer: &OtherTslPointer) -> Vec<String>
         .flat_map(|identity| &identity.digital_ids)
         .filter_map(|id| id.x509_certificate.as_ref())
         .filter_map(|cert_b64| {
-            crate::mapper::x509::x5c_into_pem_chain(std::slice::from_ref(cert_b64)).ok()
+            crate::mapper::x509::wrapped_certs_into_pem_chain(std::slice::from_ref(cert_b64)).ok()
         })
         .collect()
 }

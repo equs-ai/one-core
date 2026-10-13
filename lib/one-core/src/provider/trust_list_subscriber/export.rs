@@ -13,7 +13,7 @@ use super::etsi_lotl::model::DelegatedMember;
 use super::etsi_lotl::resolver::{CollectedTsl, EtsiLotlResolver, EtsiLotlResolverOptions};
 use super::fetch::{FetchError, FetchLimits, SignerPin, SkippedMember};
 use crate::mapper::etsi_lotl::role_for_service_type;
-use crate::mapper::x509::{subject_key_identifier, x5c_into_pem_chain};
+use crate::mapper::x509::{subject_key_identifier, wrapped_certs_into_pem_chain};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::clock::Clock;
@@ -487,7 +487,7 @@ fn anchor_from_b64(
     source_url: &str,
     source_next_update: OffsetDateTime,
 ) -> Option<TrustListAnchor> {
-    let pem = x5c_into_pem_chain(std::slice::from_ref(&cert_b64.to_string())).ok()?;
+    let pem = wrapped_certs_into_pem_chain(std::slice::from_ref(&cert_b64.to_string())).ok()?;
     let der = x509_parser::pem::Pem::iter_from_buffer(pem.as_bytes())
         .next()?
         .ok()?

@@ -14,7 +14,7 @@ use x509_parser::oid_registry::OID_X509_EXT_SUBJECT_KEY_IDENTIFIER;
 
 use super::model::{LoteEntity, PreprocessedLote};
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
-use crate::mapper::x509::{pem_to_subject_key_identifier, x5c_into_pem_chain};
+use crate::mapper::x509::{pem_to_subject_key_identifier, wrapped_certs_into_pem_chain};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::certificate_validator::{
@@ -298,7 +298,7 @@ async fn preprocess_certificate_identity(
     }
 
     for lote_cert in lote_certs {
-        let pem_chain = x5c_into_pem_chain(from_ref(&lote_cert.val))
+        let pem_chain = wrapped_certs_into_pem_chain(from_ref(&lote_cert.val))
             .error_while("encoding certificate to PEM")?;
 
         let subject_key_identifier =

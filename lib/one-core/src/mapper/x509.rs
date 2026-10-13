@@ -58,10 +58,23 @@ pub fn pem_chain_to_authority_key_identifiers(
         .collect()
 }
 
+/// A JOSE `x5c` chain: base64 without whitespace (RFC 7515 §4.1.6).
 pub fn x5c_into_pem_chain(x5c: &[String]) -> Result<String, CertificateParsingError> {
-    let der_chain = x5c.iter().try_fold(Vec::new(), |mut aggr, item| {
-        // base64 cert content may be line-wrapped (XML-DSig X509Certificate); ignore whitespace.
-        aggr.push(Base64::decode_to_vec(item, Some(b"\n\r\t "))?);
+    base64_certs_into_pem_chain(x5c, None)
+}
+
+/// Certificates whose base64 may be line-wrapped: an XML-DSig `X509Certificate`, or a trust list's
+/// certificate values. Whitespace is ignored.
+pub fn wrapped_certs_into_pem_chain(certs: &[String]) -> Result<String, CertificateParsingError> {
+    base64_certs_into_pem_chain(certs, Some(b"\n\r\t "))
+}
+
+fn base64_certs_into_pem_chain(
+    certs: &[String],
+    ignore: Option<&[u8]>,
+) -> Result<String, CertificateParsingError> {
+    let der_chain = certs.iter().try_fold(Vec::new(), |mut aggr, item| {
+        aggr.push(Base64::decode_to_vec(item, ignore)?);
         Ok::<_, CertificateParsingError>(aggr)
     })?;
     Ok(der_chain_into_pem_chain(der_chain))
@@ -344,5 +357,30 @@ GsPNAYTwQu1egNMnoBk0k0cwNJCBJmS3zEGaDw==
             identifier,
             "61:20:eb:7e:ae:c1:f4:b5:bc:26:a1:5f:f0:6a:32:a6:2c:75:f5:fb"
         );
+    }
+
+    const CERT_B64_LINES: [&str; 7] = [
+        "MIIBODCB66ADAgECAhQjDWW20goQ5ZYZHnUYjgEAtpYAxjAFBgMrZXAwEjEQMA4G",
+        "A1UEAwwHQ0EgY2VydDAeFw0yMzA3MjgxMzA5MDhaFw0zNTAxMjYxMzA5MDhaMBIx",
+        "EDAOBgNVBAMMB0NBIGNlcnQwKjAFBgMrZXADIQBKBEnJk+6LyU8tcMSYIw8mvo06",
+        "E2W4JVTSZRP1JavvX6NTMFEwHwYDVR0jBBgwFoAUYSDrfq7B9LW8JqFf8Goypix1",
+        "9fswHQYDVR0OBBYEFGEg636uwfS1vCahX/BqMqYsdfX7MA8GA1UdEwEB/wQFMAMB",
+        "Af8wBQYDK2VwA0EAia2OnNqDv08Y8X6r1e7iBsgYsEa6V2Df65WDMKd/8LHCuhvL",
+        "GsPNAYTwQu1egNMnoBk0k0cwNJCBJmS3zEGaDw==",
+    ];
+
+    #[test]
+    fn x5c_is_strict_and_wrapped_certificates_ignore_whitespace() {
+        let x5c = CERT_B64_LINES.concat();
+        let wrapped = format!("\n    {}\n  ", CERT_B64_LINES.join("\n    "));
+
+        let strict = x5c_into_pem_chain(std::slice::from_ref(&x5c)).unwrap();
+        assert_eq!(
+            wrapped_certs_into_pem_chain(std::slice::from_ref(&wrapped)).unwrap(),
+            strict
+        );
+        // a JOSE x5c value carries no whitespace (RFC 7515)
+        assert!(x5c_into_pem_chain(std::slice::from_ref(&wrapped)).is_err());
+        assert!(x5c_into_pem_chain(&["dummy attestation".to_string()]).is_err());
     }
 }

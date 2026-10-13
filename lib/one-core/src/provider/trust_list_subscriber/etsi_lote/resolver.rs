@@ -11,7 +11,7 @@ use time::OffsetDateTime;
 use super::LoteContentType;
 use super::preprocessing::{merge_lote, preprocess_lote};
 use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::x5c_into_pem_chain;
+use crate::mapper::x509::{wrapped_certs_into_pem_chain, x5c_into_pem_chain};
 use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::proto::clock::Clock;
@@ -32,7 +32,7 @@ pub(crate) fn pointer_signer_cert_pems(pointer: &OtherLoTEPointer) -> Vec<String
         .iter()
         .filter_map(|identity| identity.x509_certificates.as_ref())
         .flatten()
-        .filter_map(|pki| x5c_into_pem_chain(std::slice::from_ref(&pki.val)).ok())
+        .filter_map(|pki| wrapped_certs_into_pem_chain(std::slice::from_ref(&pki.val)).ok())
         .collect()
 }
 

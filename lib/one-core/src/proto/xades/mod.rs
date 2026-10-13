@@ -23,7 +23,7 @@ use xades::XPathFilter2Op;
 use self::error::Error;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::x5c_into_pem_chain;
+use crate::mapper::x509::wrapped_certs_into_pem_chain;
 use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
 use crate::proto::spki_signature::{self, SpkiSignatureAlgorithm};
@@ -301,7 +301,8 @@ impl XAdESEnvelopedSignature {
         let signing_chain = self
             .find_signing_certificate_chain()
             .error_while("matching signing certificate")?;
-        let pem_chain = x5c_into_pem_chain(signing_chain).error_while("parsing signer X509Data")?;
+        let pem_chain =
+            wrapped_certs_into_pem_chain(signing_chain).error_while("parsing signer X509Data")?;
         // integrity and validity only: the issuer of the signer's topmost certificate, which signs
         // its CRL, is known once the caller pins the signer, and revocation is checked there (the
         // trust-list resolvers' `verify_signer`)
