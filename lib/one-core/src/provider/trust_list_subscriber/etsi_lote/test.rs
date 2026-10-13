@@ -365,8 +365,7 @@ fn setup_subscriber_xml(reference: &Url) -> EtsiLoteSubscriber {
     setup_xml(reference, XmlSetup::default()).1
 }
 
-/// XML LoTE subscriber over real XAdES; certificates other than `TRUSTED_CERT` are identified
-/// by the hash of their PEM, and only `TRUSTED_CERT` acts as a CA.
+/// XML LoTE subscriber over real XAdES; only `TRUSTED_CERT` acts as a CA.
 fn setup_xml(reference: &Url, setup: XmlSetup) -> (Arc<EtsiLoteResolver>, EtsiLoteSubscriber) {
     let mut client = MockHttpClient::new();
     mock_http_get_request(
@@ -951,8 +950,7 @@ async fn lote_wrapped_in_a_lote_member_is_collected() {
     assert_eq!(entities[0].trusted_entity_services.len(), 2);
 }
 
-/// An RS256 JWS over `payload` with `header` (plus its `x5c`), signed with a fresh RSA key whose
-/// self-signed certificate (PEM) is returned too.
+/// An RS256 JWS over `payload`, signed with a fresh RSA key; also returns its certificate (PEM).
 fn rs256_jws(
     header: &serde_json::Value,
     payload: &serde_json::Value,
@@ -1009,9 +1007,8 @@ fn rs256_jws_signed_by(
 const SIGNER_CRL: &str = "https://crl.example.com/lote-ca.crl";
 const SIGNER_SERIAL: u64 = 42;
 
-/// A LoTE (RS256) signed by a certificate that a CA issued with a CRL distribution point,
-/// presented without the CA. Returns the token, the CA (PEM) and its CRL, revoking the signer
-/// when `revoked`.
+/// A LoTE signed by a CA-issued certificate with a CRL distribution point, presented without the
+/// CA. Returns the token, the CA (PEM) and its CRL (revoking the signer when `revoked`).
 fn lote_signed_under_a_ca(revoked: bool) -> (String, String, Vec<u8>) {
     lote_signed_under_a_ca_with(revoked, true)
 }
@@ -1036,7 +1033,7 @@ fn lote_signed_under_a_ca_with(
     let ca_issuer = Issuer::from_params(&ca_params, ca_key);
 
     let signer_key = KeyPair::generate_for(&rcgen::PKCS_RSA_SHA256).unwrap();
-    // a SAN: rcgen 0.14.7 writes no extensions for a leaf without an AKI, SAN or EKU
+    // a SAN, so rcgen writes an extensions block
     let mut signer_params = CertificateParams::new(vec!["lote-signer.test".to_string()]).unwrap();
     signer_params
         .distinguished_name
@@ -1066,8 +1063,7 @@ fn lote_signed_under_a_ca_with(
     (token, ca.pem(), crl)
 }
 
-/// Collects the LoTE at a fixed URL pinned to `ca`, with a real certificate validator whose CRL
-/// downloads are answered with `crl` and recorded in `fetched`.
+/// Collects the LoTE pinned to `ca`, serving `crl` for CRL downloads and recording them.
 async fn collect_pinned_with_crl(
     token: String,
     ca: String,
@@ -1122,8 +1118,7 @@ async fn collect_pinned_with_crl(
 
 #[tokio::test]
 async fn signer_under_a_pinned_ca_is_checked_for_revocation_once_pinned() {
-    // regression: the signer's CRL was fetched before it was pinned, and could not be
-    // authenticated without its CA
+    // regression: the signer's CRL must not be fetched before it is pinned
     let (token, ca, crl) = lote_signed_under_a_ca(false);
     let fetched = Arc::new(std::sync::Mutex::new(vec![]));
 

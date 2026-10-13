@@ -25,7 +25,7 @@ use crate::provider::trust_list_subscriber::fetch::{
     self, Deadline, FetchError, FetchLimits, SignerPin, SkipReason, SkippedMember,
 };
 
-/// PEMs of every X.509 certificate a pointer names; all are eligible signers (key rollover).
+/// PEMs of every certificate a pointer names; any may sign (key rollover).
 pub(crate) fn pointer_signer_cert_pems(pointer: &OtherLoTEPointer) -> Vec<String> {
     pointer
         .service_digital_identities
@@ -144,7 +144,7 @@ impl EtsiLoteResolver {
         )
     }
 
-    /// Fetch a LoTE from `url`, verify its signature under `pin`, and check freshness.
+    /// Fetches a LoTE, verifies its signature under `pin` and checks freshness.
     async fn fetch_and_verify(
         &self,
         url: &str,
@@ -181,8 +181,7 @@ impl EtsiLoteResolver {
 
         fetch::verify_signer(self.certificate_validator.as_ref(), &signer_pem, pin).await?;
 
-        // a pointed-to list must be of the type its pointer declares, so a pointer certificate
-        // for one kind of list cannot be used to publish another kind
+        // a pointer's certificates must not publish another kind of list
         if let SignerPin::Pointer {
             expected_type: Some(expected),
             ..
@@ -227,8 +226,7 @@ impl EtsiLoteResolver {
         let signer_pem =
             x5c_into_pem_chain(x5c).map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
 
-        // integrity and validity only: the issuer of the signer's topmost certificate, which signs
-        // its CRL, is known once the signer is pinned, and `verify_signer` checks revocation there
+        // integrity and validity only; `verify_signer` checks revocation once pinned
         let signer = self
             .certificate_validator
             .parse_pem_chain(
@@ -250,7 +248,7 @@ impl EtsiLoteResolver {
 
         let algorithm = &decomposed_token.header.algorithm;
         if let Some(algorithm) = SpkiSignatureAlgorithm::from_jose_alg(algorithm) {
-            // RSA / P-384: the key algorithm provider has no implementation, verify directly
+            // RSA / P-384: not in the key algorithm provider, verify directly
             spki_signature::verify(
                 algorithm,
                 leaf.tbs_certificate.subject_pki.raw,
@@ -303,10 +301,8 @@ impl EtsiLoteResolver {
         Ok((signed_xml.content.into(), verified.signer_chain_pem))
     }
 
-    /// Fetch the root LoTE under `pin` and follow its `PointersToOtherLoTE` breadth-first, each
-    /// pinned to its pointer's certificates. Only the root failing fails the collection.
-    /// Each document is bounded by [FetchLimits::document_timeout] and the whole collection by
-    /// [FetchLimits::deadline]: the root over either fails, a member is skipped.
+    /// Fetches the root LoTE under `pin` and follows its `PointersToOtherLoTE` breadth-first, each
+    /// pinned to its pointer. Only a failing root fails the collection; members are skipped.
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LoteCollection, FetchError> {
         let limits = &self.options.limits;
         let deadline = Deadline::after(limits);
@@ -395,7 +391,7 @@ impl EtsiLoteResolver {
         Ok(collection)
     }
 
-    /// Collect under `pin` and build the cached lookup index.
+    /// Collects under `pin` and builds the cached lookup index.
     pub(crate) async fn resolve_pinned(
         &self,
         url: &str,

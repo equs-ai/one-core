@@ -91,7 +91,7 @@ impl CertificateValidatorImpl {
         }
 
         let mut result: Option<&X509Certificate<'a>> = None;
-        // checked once every link is verified, so no CRL is fetched for a path that is not one
+        // after every link is verified, so no CRL is fetched for an invalid path
         let mut revocation_checks = Vec::new();
         let mut chain = chain.iter().peekable();
         while let Some(current) = chain.next() {
@@ -183,8 +183,7 @@ impl CertificateValidatorImpl {
     }
 
     fn extract_public_key(&self, certificate: &X509Certificate) -> Result<KeyHandle, Error> {
-        // RSA and P-384 keys (e.g. trust-list signers) get a verify-only handle; the key
-        // algorithm provider supports neither.
+        // RSA and P-384 keys get a verify-only handle; the key algorithm provider supports neither
         if spki_signature::key_family(&certificate.subject_pki).is_some() {
             let handle =
                 spki_signature::SpkiPublicKeyHandle::from_spki_der(certificate.subject_pki.raw)

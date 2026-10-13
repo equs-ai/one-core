@@ -1,8 +1,5 @@
-//! Verification-only RSA (PKCS#1 v1.5, PSS) and ECDSA P-384 signatures over X.509 public keys.
-//!
-//! Fork addition, used to authenticate trust lists signed by keys the key algorithm provider
-//! does not support (most EU national TSLs are RSA-signed). These keys never sign: there is no
-//! key algorithm, key storage or DID support for them.
+//! Verification-only RSA (PKCS#1 v1.5, PSS) and ECDSA P-384 over X.509 public keys, for trust
+//! lists signed with keys the key algorithm provider does not support. These keys never sign.
 
 use aws_lc_rs::signature::{self, UnparsedPublicKey, VerificationAlgorithm};
 use x509_parser::oid_registry::{
@@ -107,7 +104,7 @@ pub fn key_family(spki: &SubjectPublicKeyInfo<'_>) -> Option<SpkiKeyFamily> {
     None
 }
 
-/// Verify `signature` over `message` with the key in the DER-encoded SubjectPublicKeyInfo.
+/// Verifies `signature` over `message` with a DER SubjectPublicKeyInfo key.
 pub fn verify(
     algorithm: SpkiSignatureAlgorithm,
     spki_der: &[u8],
@@ -130,9 +127,8 @@ pub fn verify(
     .map_err(|_| SpkiSignatureError::InvalidSignature)
 }
 
-/// Verify-only key handle for an RSA or P-384 certificate key. `verify` uses the key family's
-/// default algorithm (RSA PKCS#1 v1.5 with SHA-256, ECDSA P-384 with SHA-384); callers that know
-/// the actual algorithm (XML-DSig, JOSE) call [`verify`] directly.
+/// Verify-only handle for an RSA or P-384 key, using the family's default algorithm; callers that
+/// know the algorithm call [`verify`] directly.
 pub struct SpkiPublicKeyHandle {
     spki_der: Vec<u8>,
     key_bytes: Vec<u8>,

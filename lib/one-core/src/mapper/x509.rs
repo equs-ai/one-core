@@ -63,8 +63,7 @@ pub fn x5c_into_pem_chain(x5c: &[String]) -> Result<String, CertificateParsingEr
     base64_certs_into_pem_chain(x5c, None)
 }
 
-/// Certificates whose base64 may be line-wrapped: an XML-DSig `X509Certificate`, or a trust list's
-/// certificate values. Whitespace is ignored.
+/// Certificates whose base64 may be line-wrapped (XML-DSig, trust lists); whitespace is ignored.
 pub fn wrapped_certs_into_pem_chain(certs: &[String]) -> Result<String, CertificateParsingError> {
     base64_certs_into_pem_chain(certs, Some(b"\n\r\t "))
 }

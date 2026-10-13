@@ -56,9 +56,8 @@ pub trait XAdESProto: Send + Sync {
     /// Profile checks (which references must exist, signing-time freshness, ...)
     /// are left to the caller.
     ///
-    /// The signer's certificate chain is checked for integrity and validity only, not for trust
-    /// or revocation: the caller must pin the returned signer (e.g. the trust-list resolvers'
-    /// `verify_signer`, which checks revocation below the pinned anchor).
+    /// The signer chain is checked for integrity and validity only; the caller must pin the
+    /// returned signer, which also checks revocation.
     async fn verify_enveloped_signature(
         &self,
         signed: &XAdESEnvelopedSignature,
@@ -270,7 +269,7 @@ impl XAdESEnvelopedSignature {
         }
 
         let signature_method = signed_info.signature_method.algorithm.as_str();
-        // RSA and ECDSA P-384 are verified with the certificate key directly (verify-only)
+        // RSA and P-384 are verified with the certificate key directly
         let spki_algorithm = SpkiSignatureAlgorithm::from_xmldsig_uri(signature_method);
         if spki_algorithm.is_none()
             && xades::SignatureSuite::try_from_sig_uri(signature_method).is_none()
@@ -303,9 +302,7 @@ impl XAdESEnvelopedSignature {
             .error_while("matching signing certificate")?;
         let pem_chain =
             wrapped_certs_into_pem_chain(signing_chain).error_while("parsing signer X509Data")?;
-        // integrity and validity only: the issuer of the signer's topmost certificate, which signs
-        // its CRL, is known once the caller pins the signer, and revocation is checked there (the
-        // trust-list resolvers' `verify_signer`)
+        // integrity and validity only; revocation is checked once the caller pins the signer
         let parsed = certificate_validator
             .parse_pem_chain(
                 &pem_chain,

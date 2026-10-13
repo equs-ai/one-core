@@ -147,8 +147,7 @@ pub enum CrlMode {
     AndroidAttestation,
     /// Validity period only; no revocation source is consulted.
     ValidityOnly,
-    /// [CrlMode::X509] for every certificate whose issuer is in the chain. The topmost one is the
-    /// trust anchor: trusted by configuration (e.g. a trusted list's service status).
+    /// [CrlMode::X509] below the topmost certificate, which is the configured trust anchor.
     X509BelowAnchor,
 }
 
@@ -220,9 +219,8 @@ impl CertificateValidationOptions {
         }
     }
 
-    /// [CertificateValidationOptions::signature_and_revocation] for a chain that ends in its trust
-    /// anchor: every certificate below the anchor is checked for revocation against its issuer in
-    /// the chain; the anchor is not.
+    /// [CertificateValidationOptions::signature_and_revocation] for a chain ending in its trust
+    /// anchor; the anchor itself is not checked for revocation.
     pub fn signature_and_revocation_below_anchor(
         required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
     ) -> Self {

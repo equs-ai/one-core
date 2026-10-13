@@ -16,11 +16,10 @@ pub struct PreprocessedLotl {
     pub entries: Vec<TslServiceEntry>,
     /// Map of SKI / fingerprint to indices into `entries`.
     pub cert_index: CertIndex,
-    /// Member lists handed to delegate subscribers at resolve time, each pinned to the
-    /// certificates its LoTL pointer names.
+    /// Member lists for delegate subscribers, each pinned to its pointer's certificates.
     #[serde(default)]
     pub delegated_members: Vec<DelegatedMember>,
-    /// The root was accepted on its own embedded signer (no configured anchor).
+    /// The root was accepted on its own embedded signer.
     #[serde(default)]
     pub unpinned: bool,
 }

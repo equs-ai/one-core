@@ -29,7 +29,7 @@ impl ReqwestClient {
         Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
     }
 
-    /// A client for revocation data at a location a certificate names, such as a CRL distribution point
+    /// A client for revocation data, such as a CRL distribution point
     pub fn for_revocation_data(
         max_body_bytes: usize,
         timeout: std::time::Duration,
@@ -145,7 +145,7 @@ async fn read_capped(
     Ok(body)
 }
 
-/// Append `chunk` to `body` up to one byte past `max_body_bytes`; whether that point is reached.
+/// Appends `chunk` up to one byte past `max_body_bytes`; returns whether that point is reached.
 fn append_capped(body: &mut Vec<u8>, chunk: &[u8], max_body_bytes: usize) -> bool {
     let cap = max_body_bytes.saturating_add(1);
     let room = cap.saturating_sub(body.len());

@@ -3,8 +3,8 @@ use sea_orm_migration::prelude::*;
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-/// Trust-list cache entries are now keyed by location and signer pin, and the pre-processed
-/// LoTE/LoTL content changed shape; drop the old entries so they are re-resolved on next use.
+/// Drops trust-list cache entries from before they were keyed by signer pin; they are
+/// re-resolved on next use.
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {

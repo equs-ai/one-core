@@ -310,9 +310,8 @@ async fn verify_returns_signer_chain() {
 
 // DSS LoTE test vector (RSA-SHA256 signed).
 // https://github.com/esig/dss/blob/master/specs-lote-xml/src/test/resources/valid-signed.xml
-// Verifies decompose + canonicalization, digest matching and the RSA-SHA256 signature of a
-// third-party LoTE document. The certificate validator is mocked, but RSA is verified against the
-// signer certificate's own key (fork: verify-only RSA support), not the mocked key handle.
+// Canonicalization, digests and the RSA-SHA256 signature of a third-party LoTE; RSA is verified
+// with the signer certificate's key, not the mocked key handle.
 #[tokio::test]
 async fn dss_lote_verify_digests() {
     dss_lote_verify(include_str!("./fixtures/dss-lote-signed.xml"))

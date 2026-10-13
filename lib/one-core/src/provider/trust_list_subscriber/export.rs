@@ -70,8 +70,7 @@ pub struct TrustListAnchor {
     pub not_after: OffsetDateTime,
     pub entity_name: Option<String>,
     pub role: Option<AnchorRole>,
-    /// The granting service's type (`ServiceTypeIdentifier`), e.g.
-    /// `http://uri.etsi.org/19602/SvcType/PID/Issuance`.
+    /// The granting service's `ServiceTypeIdentifier`.
     pub service_type: Option<String>,
     pub service_status: Option<String>,
     /// The list that granted the anchor.
@@ -96,12 +95,10 @@ pub struct TrustListExport {
     pub anchors: Vec<TrustListAnchor>,
     pub sequence_number: u64,
     pub issued_at: OffsetDateTime,
-    /// `NextUpdate` of the root list. An anchor of a member list outlives the root that vouched for
-    /// it when only its own `source_next_update` is checked: count both.
+    /// `NextUpdate` of the root list; an anchor is stale at the earlier of this and its own.
     pub next_update: OffsetDateTime,
     pub skipped_members: Vec<SkippedMember>,
-    /// LoTE services left out for their status, so that an unrecognised status value is visible.
-    /// TSL services are not listed: a withdrawn service is routine there.
+    /// LoTE services left out for their status (TSL services are not listed).
     pub excluded_services: Vec<ExcludedService>,
     /// The root was accepted on its own embedded signer.
     pub unpinned: bool,
@@ -114,7 +111,7 @@ pub struct ExportPolicy {
     pub allow_unpinned_root: bool,
     pub leeway: time::Duration,
     pub limits: FetchLimits,
-    /// Representation of a LoTE exported directly.
+    /// Format of a root LoTE.
     pub lote_content_type: LoteContentType,
     /// Maximum `PointersToOtherLoTE` depth.
     pub max_pointer_depth: Option<usize>,
@@ -175,8 +172,8 @@ impl TrustListExporter {
         }
     }
 
-    /// Fetch the list at `url`, authenticate it (and its members) under `policy`, and return the
-    /// anchors it grants. Only the root failing fails the export; members are skipped.
+    /// Fetches and authenticates the list at `url` and its members, and returns the anchors they
+    /// grant. Only a failing root fails the export; failing members are skipped.
     pub async fn export(
         &self,
         url: &Url,
@@ -289,8 +286,7 @@ impl TrustListExporter {
         let mut skipped = collection.skipped;
         let mut excluded = vec![];
 
-        // LoTEs the LoTL points to, each pinned to its pointer's certificates and declared type,
-        // within what is left of the export's deadline and pointer budget
+        // LoTEs the LoTL points to, pinned to their pointers, within the remaining budget
         for member in &collection.delegated {
             let exported = match remaining_policy(policy, started.elapsed(), followed) {
                 Ok(remaining) => self.export_delegated_lote(member, &remaining).await,
@@ -339,8 +335,7 @@ impl TrustListExporter {
     }
 }
 
-/// The policy for a LoTE delegated from a LoTL after `elapsed` of the export and `followed`
-/// pointers.
+/// The policy left for a delegated LoTE after `elapsed` time and `followed` pointers.
 fn remaining_policy(
     policy: &ExportPolicy,
     elapsed: std::time::Duration,
@@ -362,8 +357,7 @@ fn remaining_policy(
     })
 }
 
-/// Anchors of the granted services of an authenticated member TSL that issue attestations: those
-/// whose service type maps to an issuer role (`EAA/Q`, `EAA/Pub-EAA`, `EAA`, the EUDI pilot PID type).
+/// Anchors of a member TSL's granted services whose type maps to an issuer role.
 fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
     let providers = member
         .tsl

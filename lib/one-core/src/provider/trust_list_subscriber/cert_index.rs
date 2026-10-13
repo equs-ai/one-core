@@ -102,8 +102,7 @@ impl CertIndex {
         }
 
         if matched.is_empty() {
-            // a listed leaf is its own anchor: nothing below it to check for revocation, and no
-            // issuer in the chain to authenticate a CRL for it
+            // a listed leaf is its own anchor: nothing below it to check for revocation
             let parsed = certificate_validator
                 .parse_pem_chain(
                     pem_chain,

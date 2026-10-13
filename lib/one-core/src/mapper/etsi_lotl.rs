@@ -2,8 +2,7 @@ use standardized_types::etsi_119_612::ServiceType;
 
 use crate::model::trust_list_role::TrustListRoleEnum;
 
-/// Service type the EUDI pilot member TSLs use for PID providers. It is not an ETSI TS 119 612
-/// service type; it is mapped for EUDI pilot interoperability (fork addition).
+/// Non-ETSI service type the EUDI pilot TSLs use for PID providers.
 pub const EUDI_PILOT_PID_PROVIDER_SERVICE_TYPE: &str =
     "http://uri.etsi.org/Svc/Svctype/Provider/PID";
 

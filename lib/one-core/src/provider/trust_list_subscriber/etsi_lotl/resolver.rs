@@ -30,9 +30,8 @@ pub(crate) enum PointerKind {
     Delegate,
 }
 
-/// The TSL signature must be over the whole document (`URI=""` or `#<root Id>`, with the
-/// enveloped-signature transform) and over its SignedProperties, so that the parsed content is
-/// the signed content.
+/// The TSL signature must cover the whole document and its SignedProperties, so the parsed
+/// content is the signed content.
 fn assert_tsl_signature_policy(
     verified: &XAdESVerified,
     root_id: Option<&str>,
@@ -80,7 +79,7 @@ fn assert_tsl_signature_policy(
 /// Resolution options of an [`EtsiLotlResolver`].
 #[derive(Clone, Debug)]
 pub struct EtsiLotlResolverOptions {
-    /// Root LoTL signer anchors (PEM), e.g. the OJEU-published LoTL signing certificates.
+    /// Root LoTL signer anchors (PEM).
     pub trust_anchors: Vec<String>,
     /// Accept the root LoTL on its embedded signer when `trust_anchors` is empty.
     pub allow_unpinned_root: bool,
@@ -95,8 +94,7 @@ pub struct CollectedTsl {
     pub tsl: TrustServiceStatusList,
 }
 
-/// A LoTL, its authenticated member TSLs, the non-TSL pointers left to delegates, and the members
-/// that could not be used.
+/// A LoTL with its authenticated member TSLs, delegated pointers and skipped members.
 pub struct LotlCollection {
     pub sequence_number: u64,
     pub issued_at: OffsetDateTime,
@@ -134,7 +132,7 @@ impl EtsiLotlResolver {
         }
     }
 
-    /// Cache scope of this resolver, so lists resolved under other limits never share an entry.
+    /// Cache scope of this resolver.
     pub fn cache_scope(&self) -> String {
         format!("lotl;{}", self.options.limits.scope())
     }
@@ -147,7 +145,7 @@ impl EtsiLotlResolver {
         )
     }
 
-    /// Fetch the TSL at `url`, verify its signature under `pin`, check freshness.
+    /// Fetches a TSL, verifies its signature under `pin` and checks freshness.
     async fn fetch_and_verify(
         &self,
         url: &str,
@@ -213,8 +211,8 @@ impl EtsiLotlResolver {
         Ok((tsl, next_update))
     }
 
-    /// Fetch the LoTL under `pin` and each member TSL pinned to its pointer's certificates.
-    /// Single level: members' own pointers are not followed. Only the root failing fails.
+    /// Fetches the LoTL under `pin` and each member TSL pinned to its pointer (one level). Only a
+    /// failing root fails.
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LotlCollection, FetchError> {
         let limits = &self.options.limits;
         let deadline = Deadline::after(limits);
@@ -263,7 +261,7 @@ impl EtsiLotlResolver {
                 collection.skipped.push(error.skipped(&location));
                 continue;
             }
-            // no pointer certificate → the member cannot be authenticated
+            // no pointer certificate: the member cannot be authenticated
             let signer_pems = pointer_signer_cert_pems(&pointer);
             if signer_pems.is_empty() {
                 tracing::warn!(url = %location, "skipping pointer with no signing identity");
@@ -323,7 +321,7 @@ impl EtsiLotlResolver {
         Ok(collection)
     }
 
-    /// Collect under `pin` and build the cached lookup index.
+    /// Collects under `pin` and builds the cached lookup index.
     pub(crate) async fn resolve_pinned(
         &self,
         url: &str,
@@ -433,7 +431,7 @@ fn pointer_tsl_type(pointer: &OtherTslPointer) -> Option<String> {
     })
 }
 
-/// PEMs of every X.509 certificate in the pointer's `ServiceDigitalIdentities`.
+/// PEMs of the certificates in a pointer's `ServiceDigitalIdentities`.
 pub(crate) fn pointer_signer_cert_pems(pointer: &OtherTslPointer) -> Vec<String> {
     pointer
         .service_digital_identities

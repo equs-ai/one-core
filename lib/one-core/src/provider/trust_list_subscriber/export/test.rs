@@ -168,8 +168,7 @@ async fn lotl_export_returns_member_anchors_with_roles_and_freshness() {
     assert!(roles.contains(&Some(AnchorRole::PubEaaProvider)));
     // EUDI pilot `Svc/Svctype/Provider/PID`
     assert!(roles.contains(&Some(AnchorRole::PidProvider)));
-    // services without an issuer role (pilot wallet / RP-access, qualified certificates, time
-    // stamps) grant no anchor
+    // services without an issuer role grant no anchor
     assert!(!roles.contains(&None));
     assert!(export.anchors.iter().all(|anchor| anchor.ski.is_some()));
     assert!(
@@ -497,7 +496,7 @@ fn every_mapped_role_is_exported() {
     );
 }
 
-/// The EU-format PID LoTE payload, parsed (the resolver's unwrapping is covered by its own tests).
+/// The EU-format PID LoTE payload, parsed.
 fn eu_pid_lote(edit: impl FnOnce(&mut serde_json::Value)) -> LoTEPayload {
     use crate::provider::trust_list_subscriber::etsi_lote::test::{
         TRUSTED_CERT, eu_pid_lote_payload,
@@ -631,7 +630,7 @@ fn granted_tsl_services_without_an_issuer_role_grant_no_anchor() {
     use standardized_types::etsi_119_612::ServiceType;
 
     let granted = super::tsl_anchors(&fr_member(|_| {}));
-    // every service a qualified CA, a time-stamping or a status service: none issues attestations
+    // qualified CA, time-stamping and status services issue no attestations
     let without_role = super::tsl_anchors(&fr_member(|tsl| {
         let types = [
             "http://uri.etsi.org/TrstSvc/Svctype/CA/QC",

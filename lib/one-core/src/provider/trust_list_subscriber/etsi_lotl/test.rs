@@ -135,8 +135,7 @@ fn lotl_resolver(validator: Arc<MockCertificateValidator>) -> Arc<EtsiLotlResolv
     ))
 }
 
-/// Storage holding an empty pre-processed LoTL for `LOTL_URL` under the unpinned root policy,
-/// so `get_list` never reaches the (unmocked) network.
+/// Storage with an empty cached LoTL for `LOTL_URL`, so `get_list` never reaches the network.
 fn seeded_storage() -> Arc<InMemoryStorage> {
     let now = crate::clock::now_utc();
     let key = SignerPin::Unpinned

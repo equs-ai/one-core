@@ -98,8 +98,7 @@ pub(crate) fn verified(signer: &str, references: Vec<VerifiedReference>) -> XAdE
     }
 }
 
-/// XAdES mock: the root LoTL (recognised by a pointer only it contains) is signed by
-/// `root_signer`, every member by `member_signer` (or by the FR pointer's own certificate).
+/// XAdES mock: the root LoTL is signed by `root_signer`, members by `member_signer`.
 fn xades(
     root_signer: &'static str,
     root_references: Vec<VerifiedReference>,
@@ -440,8 +439,8 @@ async fn pointers_beyond_the_limit_are_skipped() {
     assert_eq!(limited.len(), 15);
 }
 
-/// Live export of the EU LoTL with real XAdES and certificate validation. Network access and the
-/// OJEU-published LoTL signer certificates are required, so it is ignored by default:
+/// Live export of the EU LoTL; needs network access and the LoTL signer certificates, so it is
+/// ignored by default:
 ///
 /// `EU_LOTL_ANCHORS=/path/to/ojeu-lotl-signers.pem [EU_LOTL_URL=…] cargo test -p equs-one-core \
 ///   --features mock --lib -- --ignored live_eu_lotl --nocapture`

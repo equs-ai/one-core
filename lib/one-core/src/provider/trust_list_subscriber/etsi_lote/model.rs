@@ -24,7 +24,7 @@ pub(super) struct PreprocessedLote {
     /// Map of DER-encoded public keys to indices into `trusted_entities`.
     #[serde(default)]
     pub public_keys: HashMap<String, Vec<usize>>,
-    /// The root was accepted on its own embedded signer (no configured anchor).
+    /// The root was accepted on its own embedded signer.
     #[serde(default)]
     pub unpinned: bool,
 }

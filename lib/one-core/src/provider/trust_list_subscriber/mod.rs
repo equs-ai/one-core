@@ -45,8 +45,8 @@ pub trait TrustListSubscriber: Send + Sync {
         pem_chain: &str,
     ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError>;
 
-    /// Like [`Self::resolve_certificate`], with the list at `reference` authenticated under `pin`
-    /// instead of the subscriber's own root policy. Used for lists reached through a pointer.
+    /// [`Self::resolve_certificate`] with the list authenticated under `pin`, for lists reached
+    /// through a pointer.
     async fn resolve_certificate_pinned(
         &self,
         _reference: &Url,

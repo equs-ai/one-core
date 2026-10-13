@@ -168,8 +168,8 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
         .then_some(first)
 }
 
-/// `ServiceStatus` values meaning a LoTE service is currently trusted: TS 119 602's `active`, and
-/// the TS 119 612 values that published LoTEs carry instead.
+/// `ServiceStatus` values of a trusted LoTE service: TS 119 602's `active` and the TS 119 612
+/// values published LoTEs use.
 pub(crate) const ACTIVE_SERVICE_STATUSES: [&str; 3] = [
     "http://uri.etsi.org/19602/SvcStatus/active",
     "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
@@ -304,8 +304,7 @@ async fn preprocess_certificate_identity(
         let subject_key_identifier =
             pem_to_subject_key_identifier(&pem_chain).error_while("parsing PEM chain SKI")?;
 
-        // a listed certificate is trusted for being listed; its issuer is not in the list, so a
-        // CRL for it could not be authenticated
+        // trusted for being listed; its CRL issuer is not in the list
         let fingerprint = match certificate_validator
             .parse_pem_chain(
                 &pem_chain,

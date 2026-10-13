@@ -26,8 +26,8 @@ pub const DEFAULT_DOCUMENT_TIMEOUT: StdDuration = StdDuration::from_secs(30);
 pub enum SignerPin {
     /// Root list: the signer must equal, or chain to, one of these PEM anchors.
     Anchors { pems: Vec<String> },
-    /// Member list: the signer must equal one of the certificates its pointer names, and the
-    /// list must be of the type the pointer declares (when it declares one).
+    /// Member list: the signer must equal a certificate its pointer names, and the list must be
+    /// of the declared type.
     Pointer {
         pems: Vec<String>,
         #[serde(default)]
@@ -38,7 +38,7 @@ pub enum SignerPin {
 }
 
 impl SignerPin {
-    /// Root pin from configuration: anchors when given, otherwise `Unpinned` only if allowed.
+    /// Root pin from configuration: anchors, or `Unpinned` when allowed.
     pub fn for_root(anchors: &[String], allow_unpinned_root: bool) -> Result<Self, FetchError> {
         match (anchors.is_empty(), allow_unpinned_root) {
             (false, _) => Ok(Self::Anchors {
@@ -53,8 +53,7 @@ impl SignerPin {
         matches!(self, Self::Unpinned)
     }
 
-    /// Cache key binding `url` to this pin and to the resolving subscriber's `scope` (its kind,
-    /// content type and limits).
+    /// Cache key for `url` under this pin and the resolver's `scope`.
     pub(crate) fn cache_key(&self, url: &str, scope: &str) -> Result<String, FetchError> {
         let policy = serde_json::to_vec(&(scope, self))
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;
@@ -72,9 +71,9 @@ pub struct FetchLimits {
     pub max_document_bytes: usize,
     /// Maximum number of pointers followed in total.
     pub max_pointers: usize,
-    /// Accept `http` pointers (tests only); otherwise pointers must be `https`.
+    /// Accept `http` pointers (tests only).
     pub allow_http: bool,
-    /// Deadline for the whole export or resolution. The root not authenticated within it fails;
+    /// Deadline for the whole export or resolution; a late root fails it.
     pub deadline: StdDuration,
     /// Time to fetch and authenticate one member list.
     pub document_timeout: StdDuration,
@@ -115,9 +114,8 @@ impl Deadline {
         Self(tokio::time::Instant::now() + limits.deadline)
     }
 
-    /// Run `work` on one document for at most [FetchLimits::document_timeout], and never past
-    /// the deadline: [FetchError::Unreachable] when the document took too long,
-    /// [FetchError::Deadline] when the deadline did.
+    /// Runs `work` on one document within [FetchLimits::document_timeout] and the deadline:
+    /// [FetchError::Unreachable] or [FetchError::Deadline] when exceeded.
     pub(crate) async fn bound<T>(
         &self,
         limits: &FetchLimits,
@@ -144,7 +142,7 @@ impl Deadline {
             .map_err(|_| FetchError::Deadline)?
     }
 
-    /// Run `work` on the root list until the deadline.
+    /// Runs `work` on the root list until the deadline.
     pub(crate) async fn bound_root<T>(
         &self,
         work: impl Future<Output = Result<T, FetchError>>,
@@ -274,7 +272,7 @@ pub(crate) fn classify_xades(error: xades::error::Error) -> FetchError {
     }
 }
 
-/// The media type of a `Content-Type` value, without parameters, lower-cased.
+/// Lower-cased media type of a `Content-Type` value, without parameters.
 pub(crate) fn media_type(content_type: &str) -> String {
     content_type
         .split(';')
@@ -284,7 +282,7 @@ pub(crate) fn media_type(content_type: &str) -> String {
         .to_ascii_lowercase()
 }
 
-/// Refuse a pointer location that is not `https` (or `http` when allowed).
+/// Refuses a pointer location that is not `https` (or `http` when allowed).
 pub(crate) fn check_pointer_url(url: &str, limits: &FetchLimits) -> Result<(), FetchError> {
     let parsed = Url::parse(url).map_err(|e| FetchError::PointerLimit(e.to_string()))?;
     match parsed.scheme() {
@@ -301,7 +299,7 @@ pub(crate) struct FetchedDocument {
     pub content_type: Option<String>,
 }
 
-/// Download a list, enforcing the size limit.
+/// Downloads a list within the size limit.
 pub(crate) async fn fetch_document(
     client: &dyn HttpClient,
     url: &str,
@@ -335,7 +333,7 @@ pub(crate) async fn fetch_document(
     })
 }
 
-/// Authenticate the signer of a list (`signer_chain_pem`, leaf first) under `pin`.
+/// Authenticates a list signer (`signer_chain_pem`, leaf first) under `pin`.
 pub(crate) async fn verify_signer(
     certificate_validator: &dyn CertificateValidator,
     signer_chain_pem: &str,
@@ -359,8 +357,7 @@ pub(crate) async fn verify_signer(
     if let SignerPin::Anchors { pems } = pin {
         let chain_akis = get_akis_for_pem_chain(signer_chain_pem.as_bytes()).unwrap_or_default();
         for anchor in pems {
-            // only anchors the chain names as an issuer are candidates; a chain that names none
-            // (no Authority Key Identifiers) is tried against every anchor
+            // try only anchors the chain names by AKI; a chain without AKIs tries them all
             if !chain_akis.is_empty()
                 && let Ok(Some(anchor_ski)) = pem_to_subject_key_identifier(anchor)
                 && !chain_akis.contains(&anchor_ski)
@@ -397,7 +394,7 @@ async fn fingerprint_of(
         .map(|parsed| parsed.attributes.fingerprint)
 }
 
-/// The LoTE of a JSON LoTE payloads.
+/// The LoTE object of a JSON payload, bare or in a `LoTE` member.
 pub(crate) fn json_lote_object(
     payload: &serde_json::Value,
 ) -> Result<&serde_json::Value, FetchError> {
@@ -410,8 +407,7 @@ pub(crate) fn json_lote_object(
     }
 }
 
-/// Whether a LoTE (JSON, see [json_lote_object]) carries a `NextUpdate`; a list without one is
-/// closed.
+/// Whether a JSON LoTE has a `NextUpdate`; without one it is closed.
 pub(crate) fn json_lote_has_next_update(lote: &serde_json::Value) -> bool {
     lote.pointer("/ListAndSchemeInformation/NextUpdate")
         .and_then(serde_json::Value::as_str)
@@ -438,7 +434,7 @@ pub(crate) fn xml_has_next_update(document: &roxmltree::Document<'_>) -> bool {
         })
 }
 
-/// The `Id` of the document element, used to accept a `#<Id>` whole-document reference.
+/// `Id` of the document element, for `#<Id>` whole-document references.
 pub(crate) fn root_id<'a>(document: &'a roxmltree::Document<'a>) -> Option<&'a str> {
     document.root_element().attribute("Id")
 }
@@ -613,8 +609,7 @@ mod test {
         );
     }
 
-    /// The capped client against a real server: the ETSI media types go out as asked, the body
-    /// is cut one byte past the limit, and the size check refuses it.
+    /// The capped client sends the ETSI media types and cuts the body one byte past the limit.
     #[tokio::test]
     async fn capped_client_reads_one_byte_past_the_limit_and_the_document_is_refused() {
         use wiremock::matchers::{headers, method, path};

@@ -554,7 +554,7 @@ fn leaf_with_crl_distribution_point() -> String {
     let (_, ca_key, ca_params) = create_ca_cert(None);
     let ca_issuer = Issuer::from_params(&ca_params, ca_key);
     let mut params = CertificateParams::default();
-    // rcgen 0.14.7 writes no extensions for a leaf without an AKI, SAN or EKU
+    // rcgen writes no extensions block for a leaf without an AKI, SAN or EKU
     params.use_authority_key_identifier_extension = true;
     params.crl_distribution_points = vec![rcgen::CrlDistributionPoint {
         uris: vec!["https://crl.example.com/issuer.crl".to_string()],
@@ -644,8 +644,8 @@ fn crl_distribution_point(uri: &str) -> Vec<rcgen::CrlDistributionPoint> {
     }]
 }
 
-/// An intermediate CA with a CRL distribution point (the trust anchor) and a leaf it issued,
-/// with one too when `leaf_has_crl_dp`.
+/// An intermediate CA anchor with a CRL distribution point, and a leaf it issued (with one when
+/// `leaf_has_crl_dp`).
 fn anchor_and_leaf(leaf_has_crl_dp: bool) -> (String, String) {
     let (_, root_key, root_params) = create_ca_cert(None);
     let root = Issuer::from_params(&root_params, root_key);
@@ -774,8 +774,8 @@ fn ca_with_ski(ski: &[u8]) -> (Certificate, KeyPair, CertificateParams) {
 
 #[tokio::test]
 async fn no_crl_is_fetched_for_a_path_that_does_not_verify() {
-    // the leaf's intermediate names an anchor with the same name and SKI as its real issuer, but
-    // another key: the leaf's CRL must not be fetched before the intermediate's link is verified
+    // an anchor impersonating the real issuer (same name and SKI, other key): no CRL may be
+    // fetched before every link is verified
     let ski = [7u8; 20];
     let (_, root_key, root_params) = ca_with_ski(&ski);
     let (impostor, _, _) = ca_with_ski(&ski);
