@@ -953,6 +953,7 @@ mod test {
                 valid_until: DateTime(now + Duration::days(1)),
                 expected_update: None,
             },
+            status: None,
         };
         let payload = EmbeddedCbor::new(mso).unwrap().into_bytes();
 

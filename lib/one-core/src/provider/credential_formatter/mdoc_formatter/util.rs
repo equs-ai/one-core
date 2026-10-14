@@ -109,6 +109,76 @@ pub struct MobileSecurityObject {
     pub device_key_info: DeviceKeyInfo,
     pub doc_type: String,
     pub validity_info: ValidityInfo,
+    /// Absent when the MSO has no `status`; a `null` one fails decoding.
+    #[serde(
+        default,
+        deserialize_with = "present_status",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub status: Option<MsoStatus>,
+}
+
+fn present_status<'de, D: de::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<MsoStatus>, D::Error> {
+    MsoStatus::deserialize(deserializer).map(Some)
+}
+
+/// The MSO `status` (ISO/IEC 18013-5 2nd edition; draft-ietf-oauth-status-list section 6.3). It
+/// names at least one mechanism, and a `status_list` that does not decode fails the whole MSO.
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(try_from = "IndexMap<String, Value>")]
+pub struct MsoStatus {
+    pub status_list: Option<MsoStatusList>,
+    /// Other mechanisms, such as `identifier_list`, by name.
+    #[serde(flatten)]
+    pub other: IndexMap<String, Value>,
+}
+
+impl TryFrom<IndexMap<String, Value>> for MsoStatus {
+    type Error = String;
+
+    fn try_from(mut mechanisms: IndexMap<String, Value>) -> Result<Self, Self::Error> {
+        let status_list = mechanisms
+            .shift_remove("status_list")
+            .map(|value| value.deserialized::<MsoStatusList>())
+            .transpose()
+            .map_err(|error| format!("malformed MSO status_list: {error}"))?;
+        if status_list.is_none() && mechanisms.is_empty() {
+            return Err("MSO status names no mechanism".to_owned());
+        }
+        Ok(Self {
+            status_list,
+            other: mechanisms,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(try_from = "RawMsoStatusList")]
+pub struct MsoStatusList {
+    pub idx: usize,
+    /// As the issuer wrote it: the status list token's `sub` must equal it.
+    pub uri: String,
+}
+
+#[derive(Deserialize)]
+struct RawMsoStatusList {
+    idx: usize,
+    uri: String,
+}
+
+impl TryFrom<RawMsoStatusList> for MsoStatusList {
+    type Error = url::ParseError;
+
+    fn try_from(raw: RawMsoStatusList) -> Result<Self, Self::Error> {
+        url::Url::parse(&raw.uri)?;
+        Ok(Self {
+            idx: raw.idx,
+            uri: raw.uri,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]

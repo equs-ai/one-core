@@ -28,6 +28,14 @@ diverged at `7505afb41`.
 - `trust_list_subscriber::{etsi_lote, etsi_lotl}` and `proto::xades` are public,
   so the subscribers can be used with in-memory caching and no database.
 - `ErrorCode::BR_0410` (certificate not trusted).
+- The `mso_mdoc` MSO `status` (ISO/IEC 18013-5 2nd edition): `DetailCredential.status`
+  carries its `status_list` as a `TokenStatusListEntry`, then every other mechanism
+  (e.g. `identifier_list`) as an entry typed by its name, its `uri` kept verbatim.
+  A `status` that is `null`, names no mechanism, or holds a malformed `status_list`
+  fails MSO decoding; issued MSOs are unchanged. One-core's own flows look up a
+  revocation method for each entry, so the OpenID4VP proof validator now refuses an
+  mdoc carrying an `identifier_list` (no revocation method for that type), and the
+  OpenID4VCI draft 13 holder refuses one carrying only an `identifier_list`.
 - Trust-list signer pinning (fork hardening, beyond upstream):
   - every list is authenticated under an explicit pin: root lists against configured `trustAnchors`
     (equal to, or chaining to, an anchor) and member lists against **all** certificates their pointer
