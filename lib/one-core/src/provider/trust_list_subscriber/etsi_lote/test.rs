@@ -216,13 +216,18 @@ async fn resolve_trusted_certificate_authority_identifier() {
 }
 
 fn setup_subscriber(reference: &Url) -> EtsiLoteSubscriber {
+    setup_subscriber_served_as(reference, "application/jwt")
+}
+
+/// The JWT LoTE subscriber, with the list served under `content_type`.
+fn setup_subscriber_served_as(reference: &Url, content_type: &str) -> EtsiLoteSubscriber {
     let mut client = MockHttpClient::new();
     mock_http_get_request(
         &mut client,
         reference.to_string(),
         Response {
             body: SPRIND_LOTE_JWS.as_bytes().to_vec(),
-            headers: hashmap! { "Content-Type".to_string() => "application/jwt".to_string() },
+            headers: hashmap! { "Content-Type".to_string() => content_type.to_string() },
             status: StatusCode(200),
             request: Request {
                 body: None,
@@ -687,6 +692,64 @@ async fn root_without_anchors_is_refused_unless_allowed() {
             FetchError::UnpinnedNotAllowed
         ))
     ));
+}
+
+#[tokio::test]
+async fn jwt_lote_is_accepted_under_generic_media_types() {
+    // the EUDI pilot serves its JWT LoTEs as `application/octet-stream`
+    for content_type in ["application/jose", "application/octet-stream"] {
+        let reference = Url::parse("https://example.com/lote").unwrap();
+        let subscriber = setup_subscriber_served_as(&reference, content_type);
+
+        let result = run_with_mocked_time_async(datetime!(2026-03-01 00:00 UTC), async move {
+            subscriber
+                .validate_subscription(
+                    &reference,
+                    Some(TrustListRoleEnum::NationalRegistryRegistrar),
+                )
+                .await
+        })
+        .await;
+
+        assert!(result.is_ok(), "{content_type}: {result:?}");
+    }
+}
+
+#[tokio::test]
+async fn jwt_lote_under_another_media_type_is_rejected() {
+    let reference = Url::parse("https://example.com/lote").unwrap();
+    let subscriber = setup_subscriber_served_as(&reference, "text/html");
+
+    let result = run_with_mocked_time_async(datetime!(2026-03-01 00:00 UTC), async move {
+        subscriber.validate_subscription(&reference, None).await
+    })
+    .await;
+
+    assert!(result.is_err_and(|error| {
+        error
+            .to_string()
+            .contains("unexpected content type `text/html`")
+    }));
+}
+
+#[tokio::test]
+async fn xml_lote_is_accepted_as_text_xml() {
+    let reference = Url::parse("https://example.com/lote-xml").unwrap();
+    let (_, subscriber) = setup_xml(
+        &reference,
+        XmlSetup {
+            content_type: "text/xml",
+            ..Default::default()
+        },
+    );
+
+    let result = run_with_mocked_time_async(
+        datetime!(2026-04-01 00:00 UTC),
+        subscriber.validate_subscription(&reference, None),
+    )
+    .await;
+
+    assert!(result.is_ok());
 }
 
 #[tokio::test]

@@ -150,19 +150,20 @@ impl EtsiLoteResolver {
         url: &str,
         pin: &SignerPin,
     ) -> Result<json::LoTEPayload, FetchError> {
-        let content_type = self.options.content_type.to_string();
+        let accepted = self.options.content_type.accepted_media_types();
         let document = fetch::fetch_document(
             self.client.as_ref(),
             url,
-            &content_type,
+            &accepted.join(", "),
             &self.options.limits,
         )
         .await?;
         match document.content_type.as_deref() {
-            Some(received) if received == content_type => {}
+            Some(received) if accepted.contains(&received) => {}
             Some(received) => {
                 return Err(FetchError::InvalidDocument(format!(
-                    "unexpected content type `{received}`, expected `{content_type}`"
+                    "unexpected content type `{received}`, expected one of `{}`",
+                    accepted.join("`, `")
                 )));
             }
             None => {
@@ -362,7 +363,11 @@ impl EtsiLoteResolver {
 
             let child_pin = SignerPin::Pointer {
                 pems: pointer_pems,
-                expected_type: Some(pointer.lote_qualifiers.lote_type.clone()),
+                expected_type: pointer
+                    .lote_qualifiers
+                    .first()
+                    .map(|qualifier| qualifier.lote_type.clone())
+                    .filter(|lote_type| !lote_type.is_empty()),
             };
             let mut child = match deadline
                 .bound(limits, self.fetch_and_verify(&location, &child_pin))

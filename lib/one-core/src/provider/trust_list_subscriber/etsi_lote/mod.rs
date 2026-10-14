@@ -66,6 +66,21 @@ pub enum LoteContentType {
     Jwt,
 }
 
+impl LoteContentType {
+    /// Media types a LoTE of this format is accepted under, preferred first. Published lists are also
+    /// served under generic types; the signature, not the header, authenticates a list.
+    pub(crate) fn accepted_media_types(&self) -> &'static [&'static str] {
+        match self {
+            Self::Jwt => &[
+                "application/jwt",
+                "application/jose",
+                "application/octet-stream",
+            ],
+            Self::Xml => &["application/xml", "text/xml"],
+        }
+    }
+}
+
 pub struct EtsiLoteSubscriber {
     cache: EtsiLoteCache,
     resolver: Arc<EtsiLoteResolver>,

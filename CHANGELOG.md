@@ -100,6 +100,12 @@ diverged at `7505afb41`.
   service's certificates like an issuance service's.
 - A LoTE service is active with TS 119 602's `…/SvcStatus/active` or the TS 119 612 `granted` /
   `recognisedatnationallevel` values that published LoTEs carry; other values still exclude it.
+- A JWT LoTE is also accepted as `application/jose` or `application/octet-stream` (the EUDI pilot serves its
+  LoTEs as the latter), and an XML LoTE as `text/xml`; the signature, not the header, authenticates a list.
+- `LoTEQualifiers` of a JSON `PointersToOtherLoTE` entry is a list, as TS 119 602 and the EUDI pilot lists have it;
+  it was read as a single object, so a JSON LoTE with pointers failed to parse.
+- A PuB-EAA provider with status `…/19602/PubEAAProvidersList/SvcStatus/notified` is active, as the EUDI pilot list
+  publishes it.
 - A trust-list signer chain without Authority Key Identifiers is tried against every configured
   anchor; it was tried against none.
 - `ReqwestClient::for_revocation_data`: a client for CRL distribution points, with `http`

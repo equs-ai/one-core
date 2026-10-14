@@ -168,10 +168,12 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
         .then_some(first)
 }
 
-/// `ServiceStatus` values of a trusted LoTE service: TS 119 602's `active` and the TS 119 612
-/// values published LoTEs use.
-pub(crate) const ACTIVE_SERVICE_STATUSES: [&str; 3] = [
+/// `ServiceStatus` values of a trusted LoTE service: TS 119 602's `active` and `notified`, and the
+/// TS 119 612 values published LoTEs use.
+pub(crate) const ACTIVE_SERVICE_STATUSES: [&str; 4] = [
     "http://uri.etsi.org/19602/SvcStatus/active",
+    // a notified PuB-EAA provider (TS 119 602 Annex H), as the EUDI pilot list publishes it
+    "http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/notified",
     "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
     "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/recognisedatnationallevel",
 ];
@@ -447,6 +449,7 @@ mod test {
     fn only_active_status_is_trusted() {
         for active in [
             "http://uri.etsi.org/19602/SvcStatus/active",
+            "http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/notified",
             "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
             "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/recognisedatnationallevel",
         ] {
@@ -456,6 +459,7 @@ mod test {
             "http://uri.etsi.org/19602/SvcStatus/withdrawn",
             "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/withdrawn",
             "http://uri.etsi.org/19602/SvcStatus/active/",
+            "http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/withdrawn",
         ] {
             assert!(!is_active_service_status(inactive), "{inactive}");
         }
