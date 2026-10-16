@@ -1881,13 +1881,14 @@ dependencies = [
 
 [[package]]
 name = "equs-one-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "asn1-rs",
  "assert2",
  "async-trait",
+ "aws-lc-rs",
  "bincode",
  "bit-vec",
  "bon",
@@ -1972,7 +1973,7 @@ dependencies = [
 
 [[package]]
 name = "equs-one-core-crypto"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -2011,7 +2012,7 @@ dependencies = [
 
 [[package]]
 name = "equs-one-core-dcql"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bon",
  "equs-one-core-standardized-types",
@@ -2023,7 +2024,7 @@ dependencies = [
 
 [[package]]
 name = "equs-one-core-portable"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "assert2",
@@ -2088,7 +2089,7 @@ dependencies = [
 
 [[package]]
 name = "equs-one-core-standardized-types"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "ct-codecs",

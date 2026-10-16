@@ -310,12 +310,30 @@ async fn verify_returns_signer_chain() {
 
 // DSS LoTE test vector (RSA-SHA256 signed).
 // https://github.com/esig/dss/blob/master/specs-lote-xml/src/test/resources/valid-signed.xml
-// Verifies decompose + canonicalization and digest matching works for a third-party LoTE document.
-// RSA signature verification is mocked (unsupported algorithm).
+// Canonicalization, digests and the RSA-SHA256 signature of a third-party LoTE; RSA is verified
+// with the signer certificate's key, not the mocked key handle.
 #[tokio::test]
 async fn dss_lote_verify_digests() {
-    let xml = include_str!("./fixtures/dss-lote-signed.xml");
+    dss_lote_verify(include_str!("./fixtures/dss-lote-signed.xml"))
+        .await
+        .expect("digest and RSA signature verification should succeed");
+}
 
+#[tokio::test]
+async fn dss_lote_forged_rsa_signature_fails() {
+    // corrupt the RSA SignatureValue; the digests still match
+    let xml = include_str!("./fixtures/dss-lote-signed.xml").replacen(
+        ">jT+yo5SxTCbm",
+        ">kT+yo5SxTCbm",
+        1,
+    );
+    let error = dss_lote_verify(&xml)
+        .await
+        .expect_err("forged signature must fail");
+    assert!(matches!(error, Error::InvalidSignature(_)), "{error}");
+}
+
+async fn dss_lote_verify(xml: &str) -> Result<XAdESVerified, Error> {
     let mut cert_validator = MockCertificateValidator::new();
 
     let decomposed: XAdESSignedXML<LoTEPayload> =
@@ -352,7 +370,6 @@ async fn dss_lote_verify_digests() {
         .envelope()
         .verify_signature(&cert_validator)
         .await
-        .expect("digest verification should succeed");
 }
 
 #[tokio::test]

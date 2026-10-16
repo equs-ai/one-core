@@ -5,7 +5,6 @@ use crate::config::core_config::{CoreConfig, TrustListSubscriberConfig};
 use crate::proto::certificate_validator::MockCertificateValidator;
 use crate::proto::http_client::MockHttpClient;
 use crate::proto::xades::MockXAdESProto;
-use crate::provider::did_method::provider::MockDidMethodProvider;
 use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
 use crate::repository::remote_entity_cache_repository::MockRemoteEntityCacheRepository;
 
@@ -25,7 +24,6 @@ fn build(
         config,
         Arc::new(crate::proto::clock::DefaultClock),
         Arc::new(MockHttpClient::new()),
-        Arc::new(MockDidMethodProvider::new()),
         Arc::new(MockKeyAlgorithmProvider::new()),
         Arc::new(MockCertificateValidator::new()),
         Arc::new(MockXAdESProto::new()),

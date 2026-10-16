@@ -19,6 +19,10 @@ pub enum TrustListSubscriberError {
     MappingError(String),
     #[error("Unsupported identifier type: {0}")]
     UnsupportedIdentifierType(IdentifierType),
+    #[error("Trust list subscriber cannot resolve under a signer pin")]
+    PinningNotSupported,
+    #[error(transparent)]
+    Fetch(#[from] super::fetch::FetchError),
     #[error(transparent)]
     Nested(#[from] NestedError),
 }
@@ -46,7 +50,10 @@ impl ErrorCodeMixin for TrustListSubscriberError {
         match self {
             Self::InvalidContent(_) => ErrorCode::BR_0393,
             Self::MultipleActiveCertificates(_) => ErrorCode::BR_0394,
-            Self::UnknownTrustListRole | Self::MappingError(_) => ErrorCode::BR_0047,
+            Self::UnknownTrustListRole | Self::MappingError(_) | Self::PinningNotSupported => {
+                ErrorCode::BR_0047
+            }
+            Self::Fetch(fetch) => fetch.error_code(),
             Self::UnsupportedIdentifierType(_) => ErrorCode::BR_0396,
             Self::Encoding(_) => ErrorCode::BR_0397,
             Self::Nested(nested) => nested.error_code(),

@@ -283,3 +283,27 @@ fn optional_fields_absent_when_none() {
     assert!(!json.contains("\"DistributionPoints\""));
     assert!(!json.contains("\"SchemeExtensions\""));
 }
+
+#[test]
+fn pointer_qualifiers_are_a_list() {
+    // the shape the EUDI pilot PID providers LoTE publishes
+    let pointer: OtherLoTEPointer = serde_json::from_value(serde_json::json!({
+        "LoTELocation": "https://lote.example/PID",
+        "ServiceDigitalIdentities": [{ "X509Certificates": [{ "val": "MIIB" }] }],
+        "LoTEQualifiers": [{
+            "LoTEType": "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList",
+            "SchemeOperatorName": [{ "lang": "en", "value": "Operator" }],
+            "MimeType": "application/jwt",
+            "SchemeTerritory": "EU"
+        }]
+    }))
+    .unwrap();
+
+    assert_eq!(pointer.lote_qualifiers.len(), 1);
+    assert_eq!(
+        pointer.lote_qualifiers[0].lote_type,
+        "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList"
+    );
+    let json = serde_json::to_value(&pointer).unwrap();
+    assert!(json["LoTEQualifiers"].is_array());
+}

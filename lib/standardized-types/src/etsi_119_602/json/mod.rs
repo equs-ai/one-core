@@ -4,7 +4,7 @@
 //! Spec: <https://www.etsi.org/deliver/etsi_ts/119600_119699/119602/01.01.01_60/ts_119602v010101p.pdf>
 
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none};
+use serde_with::skip_serializing_none;
 use strum::Display;
 use time::OffsetDateTime;
 
@@ -419,15 +419,13 @@ pub enum PolicyOrLegalNoticeItem {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde_as]
 pub struct OtherLoTEPointer {
     #[serde(rename = "LoTELocation")]
     pub lote_location: String,
     #[serde(rename = "ServiceDigitalIdentities")]
     pub service_digital_identities: Vec<ServiceDigitalIdentity>,
     #[serde(rename = "LoTEQualifiers")]
-    #[serde_as(as = "Vec<_>")]
-    pub lote_qualifiers: LoTEQualifier,
+    pub lote_qualifiers: Vec<LoTEQualifier>,
 }
 
 #[skip_serializing_none]

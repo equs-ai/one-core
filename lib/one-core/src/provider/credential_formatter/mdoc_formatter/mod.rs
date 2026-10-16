@@ -60,6 +60,7 @@ use crate::provider::data_type::provider::DataTypeProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::revocation::bitstring_status_list::model::StatusPurpose;
+use crate::provider::revocation::token_status_list::credential_status_from_mso_status;
 use crate::service::credential_schema::dto::CreateCredentialSchemaRequestDTO;
 
 pub(crate) mod util;
@@ -161,7 +162,7 @@ impl MdocFormatter {
             issuer: IdentifierDetails::Certificate(issuer_cert),
             subject: Some(IdentifierDetails::Key(holder_jwk)),
             claims: CredentialSubject { claims, id: None },
-            status: vec![],
+            status: credential_status_from_mso_status(mso.status.as_ref()),
             credential_schema: Some(CredentialSchema {
                 id: mso.doc_type,
                 r#type: "mdoc".to_string(),
@@ -268,6 +269,7 @@ impl CredentialFormatter for MdocFormatter {
             device_key_info,
             doc_type: credential_schema.id,
             validity_info,
+            status: None,
         };
         let mso = EmbeddedCbor::<MobileSecurityObject>::new(mso)?.into_bytes();
 

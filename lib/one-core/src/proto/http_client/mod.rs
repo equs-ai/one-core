@@ -73,6 +73,8 @@ pub enum Error {
     InvalidHeaderValue(#[from] InvalidHeaderValue),
     #[error("Invalid time conversion: {0}")]
     ConversionRange(#[from] time::error::ConversionRange),
+    #[error("HTTP transport error: {0}")]
+    Transport(String),
 }
 
 impl Error {
@@ -88,9 +90,10 @@ impl ErrorCodeMixin for Error {
     fn error_code(&self) -> ErrorCode {
         match self {
             Error::StatusCodeError(status) if status.is_client_error() => ErrorCode::BR_0395,
-            Error::HttpError(_) | Error::StatusCodeError(_) | Error::JsonError(_) => {
-                ErrorCode::BR_0347
-            }
+            Error::HttpError(_)
+            | Error::StatusCodeError(_)
+            | Error::JsonError(_)
+            | Error::Transport(_) => ErrorCode::BR_0347,
             Error::UrlEncode(_)
             | Error::ToStrError(_)
             | Error::InvalidHeaderName(_)
