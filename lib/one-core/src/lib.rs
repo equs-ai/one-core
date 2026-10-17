@@ -369,6 +369,7 @@ impl OneCore {
             data_provider.get_identifier_repository(),
         )?;
 
+        let xades_proto = Arc::new(proto::xades::XAdES::new(certificate_validator.clone()));
         let trust_list_subscriber_provider = trust_list_subscriber_provider_from_config(
             &mut config,
             clock.clone(),
@@ -376,6 +377,7 @@ impl OneCore {
             did_method_provider.clone(),
             key_algorithm_provider.clone(),
             certificate_validator.clone(),
+            xades_proto,
             data_provider.get_remote_entity_cache_repository(),
         )?;
 

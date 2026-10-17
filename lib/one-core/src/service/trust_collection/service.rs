@@ -25,6 +25,7 @@ use crate::model::trust_list_subscription::{
     TrustListSubscription, TrustListSubscriptionFilterValue, TrustListSubscriptionListQuery,
     TrustListSubscriptionRelations, TrustListSubscriptionState,
 };
+use crate::provider::trust_list_subscriber::error::TrustListSubscriberError;
 use crate::provider::trust_list_subscriber::{
     TrustListSubscriber, TrustListSubscriberCapabilities, TrustListValidationSuccess,
 };
@@ -349,5 +350,9 @@ async fn validate_subscription(
         .validate_subscription(&request.reference, request.role)
         .await
         .error_while("validating subscription")?;
-    Ok(role)
+    // A list may not declare its role (e.g. a LoTL); fall back to the requested one.
+    Ok(role
+        .or(request.role)
+        .ok_or(TrustListSubscriberError::UnknownTrustListRole)
+        .error_while("validating subscription")?)
 }
