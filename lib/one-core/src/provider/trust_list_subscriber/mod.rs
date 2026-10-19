@@ -12,8 +12,8 @@ use crate::model::trust_list_role::TrustListRoleEnum;
 
 pub(crate) mod cert_index;
 pub mod error;
-pub mod etsi_lote;
-pub mod etsi_lotl;
+pub(crate) mod etsi_lote;
+pub(crate) mod etsi_lotl;
 pub mod provider;
 
 pub use etsi_lotl::model::TslServiceEntry;
