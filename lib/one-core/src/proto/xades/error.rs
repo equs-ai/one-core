@@ -8,6 +8,7 @@ use crate::provider::key_algorithm::key::KeyHandleError;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[expect(dead_code, reason = "kept as upstream defines it; nothing constructs it yet")]
     #[error("Signing time is in the future")]
     SigningTimeInFuture,
     #[error("Document contains no enveloped signature")]
@@ -16,6 +17,7 @@ pub enum Error {
     InvalidDocument(String),
     #[error("Signature suite not supported: `{0}`")]
     UnsupportedSuite(String),
+    #[expect(dead_code, reason = "kept as upstream defines it; nothing constructs it yet")]
     #[error("SignedInfo contains no Reference for {0}")]
     MissingReference(String),
     #[error("Incorrect Reference Transform algorithms: {0}")]

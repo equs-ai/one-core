@@ -43,6 +43,8 @@ fn signature_suite(value: KeyAlgorithmType) -> Result<xades::SignatureSuite, Err
 #[async_trait]
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait XAdESProto: Send + Sync {
+    // Ported from upstream with no caller in the fork yet; the tests sign their fixtures with it.
+    #[cfg_attr(not(test), allow(dead_code))]
     async fn create_enveloped_signature(
         &self,
         unsigned_xml: &str,
