@@ -1,3 +1,5 @@
+use sea_orm::DbBackend;
+
 use crate::fixtures::{ColumnType, get_schema};
 
 #[tokio::test]
@@ -59,7 +61,11 @@ async fn test_db_schema_history() {
         .foreign_key("fk-History-OrganisationId-new", "organisation", "id");
     history
         .column("metadata")
-        .r#type(ColumnType::String(None))
+        .r#type(if schema.backend() == DbBackend::MySql {
+            ColumnType::Text
+        } else {
+            ColumnType::String(None)
+        })
         .nullable(true);
     history
         .column("name")

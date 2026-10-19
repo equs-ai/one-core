@@ -25,8 +25,6 @@ diverged at `7505afb41`.
 - `ETSI_LOTE` subscriber brought to upstream: XAdES-signed XML LoTEs alongside
   JWT, `PointersToOtherLoTE` following bounded by `maxPointerDepth`, and
   `resolve_certificate` / `resolve_public_key` on `TrustListSubscriber`.
-- `trust_list_subscriber::{etsi_lote, etsi_lotl}` and `proto::xades` are public,
-  so the subscribers can be used with in-memory caching and no database.
 - `ErrorCode::BR_0410` (certificate not trusted).
 - The `mso_mdoc` MSO `status` (ISO/IEC 18013-5 2nd edition): `DetailCredential.status`
   carries its `status_list` as a `TokenStatusListEntry`, then every other mechanism
