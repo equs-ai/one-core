@@ -72,6 +72,8 @@ diverged at `7505afb41`.
   (with its member TSLs and the LoTEs it points to) or a TS 119 602 LoTE grants. Each anchor carries its PEM,
   SKI, `notAfter`, entity name, role, service status and the URL and `NextUpdate` of the list that granted it;
   the export carries the root sequence number, issue date, skipped members and whether the root was pinned.
+  `export` and `fetch` are its public surface, with `LoteContentType` re-exported from `export`; the
+  subscriber modules, `proto::xades` and `proto::spki_signature` stay crate-visible.
 - EUDI pilot service type `http://uri.etsi.org/Svc/Svctype/Provider/PID` maps to the PID-provider role.
 
 ### Changed

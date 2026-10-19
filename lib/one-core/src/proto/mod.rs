@@ -20,7 +20,7 @@ pub(crate) mod oauth_client;
 pub(crate) mod openid4vp_proof_validator;
 pub(crate) mod os_provider;
 pub mod session_provider;
-pub mod spki_signature;
+pub(crate) mod spki_signature;
 pub mod transaction_manager;
 pub(crate) mod trust_collection;
 pub(crate) mod trust_list_subscription_sync;

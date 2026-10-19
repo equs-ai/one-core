@@ -6,7 +6,7 @@ use standardized_types::etsi_119_612::ServiceStatus;
 use time::OffsetDateTime;
 use url::Url;
 
-use super::etsi_lote::LoteContentType;
+pub use super::etsi_lote::LoteContentType;
 use super::etsi_lote::preprocessing::{is_active_lote_service, requires_explicit_status};
 use super::etsi_lote::resolver::{EtsiLoteResolver, EtsiLoteResolverOptions};
 use super::etsi_lotl::model::DelegatedMember;
@@ -156,7 +156,7 @@ impl TrustListExporter {
         )
     }
 
-    pub fn with_xades(
+    pub(crate) fn with_xades(
         clock: Arc<dyn Clock>,
         client: Arc<dyn HttpClient>,
         key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
