@@ -9,15 +9,23 @@ use super::{Error, Headers, HttpClient, Method, Request, RequestBuilder, Respons
 #[derive(Clone)]
 pub struct ReqwestClient {
     pub client: reqwest::Client,
-    max_body_bytes: Option<usize>,
+    options: ReqwestClientOptions,
+}
+
+/// What a [`ReqwestClient`] enforces on top of its `reqwest::Client`.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ReqwestClientOptions {
+    /// The largest response body accepted; a larger one fails with [`Error::BodyTooLarge`].
+    pub max_body_bytes: Option<usize>,
 }
 
 impl ReqwestClient {
     pub fn new(client: reqwest::Client) -> Self {
-        Self {
-            client,
-            max_body_bytes: None,
-        }
+        Self::with_options(client, ReqwestClientOptions::default())
+    }
+
+    pub fn with_options(client: reqwest::Client, options: ReqwestClientOptions) -> Self {
+        Self { client, options }
     }
 
     pub fn hardened(max_body_bytes: usize) -> Result<Self, Error> {
@@ -26,10 +34,15 @@ impl ReqwestClient {
             .redirect(reqwest::redirect::Policy::none())
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .build()?;
-        Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
+        Ok(Self::with_options(
+            client,
+            ReqwestClientOptions {
+                max_body_bytes: Some(max_body_bytes),
+            },
+        ))
     }
 
-    /// A client for revocation data, such as a CRL distribution point
+    /// A client for revocation data, such as a CRL distribution point.
     pub fn for_revocation_data(
         max_body_bytes: usize,
         timeout: std::time::Duration,
@@ -39,12 +52,12 @@ impl ReqwestClient {
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .timeout(timeout)
             .build()?;
-        Ok(Self::new(client).with_max_body_bytes(max_body_bytes))
-    }
-
-    pub fn with_max_body_bytes(mut self, max_body_bytes: usize) -> Self {
-        self.max_body_bytes = Some(max_body_bytes);
-        self
+        Ok(Self::with_options(
+            client,
+            ReqwestClientOptions {
+                max_body_bytes: Some(max_body_bytes),
+            },
+        ))
     }
 }
 
@@ -117,8 +130,8 @@ impl HttpClient for ReqwestClient {
             })
             .collect::<Result<Headers, Error>>()?;
         let status_code = response.status().as_u16();
-        let body = match self.max_body_bytes {
-            Some(max_body_bytes) => read_capped(response, max_body_bytes).await?,
+        let body = match self.options.max_body_bytes {
+            Some(max_body_bytes) => read_within(response, max_body_bytes).await?,
             None => response.bytes().await?.to_vec(),
         };
 
@@ -131,26 +144,30 @@ impl HttpClient for ReqwestClient {
     }
 }
 
-/// The body of `response`, cut off once it exceeds `max_body_bytes`.
-async fn read_capped(
+/// The body of `response`, or [`Error::BodyTooLarge`] once it exceeds `max_body_bytes`.
+async fn read_within(
     mut response: reqwest::Response,
     max_body_bytes: usize,
 ) -> Result<Vec<u8>, Error> {
+    if response
+        .content_length()
+        .is_some_and(|length| length > max_body_bytes as u64)
+    {
+        return Err(Error::BodyTooLarge(max_body_bytes));
+    }
     let mut body = Vec::new();
     while let Some(chunk) = response.chunk().await? {
-        if append_capped(&mut body, &chunk, max_body_bytes) {
-            break;
-        }
+        append_within(&mut body, &chunk, max_body_bytes)?;
     }
     Ok(body)
 }
 
-/// Appends `chunk` up to one byte past `max_body_bytes`; returns whether that point is reached.
-fn append_capped(body: &mut Vec<u8>, chunk: &[u8], max_body_bytes: usize) -> bool {
-    let cap = max_body_bytes.saturating_add(1);
-    let room = cap.saturating_sub(body.len());
-    body.extend(chunk.iter().take(room));
-    body.len() >= cap
+fn append_within(body: &mut Vec<u8>, chunk: &[u8], max_body_bytes: usize) -> Result<(), Error> {
+    if body.len().saturating_add(chunk.len()) > max_body_bytes {
+        return Err(Error::BodyTooLarge(max_body_bytes));
+    }
+    body.extend_from_slice(chunk);
+    Ok(())
 }
 
 fn to_header_map(headers: HashMap<String, String>) -> Result<HeaderMap, Error> {
@@ -169,24 +186,27 @@ fn to_header_map(headers: HashMap<String, String>) -> Result<HeaderMap, Error> {
 mod test {
     use similar_asserts::assert_eq;
 
-    use super::append_capped;
+    use super::append_within;
+    use crate::proto::http_client::Error;
 
     #[test]
-    fn body_within_the_cap_is_kept_whole() {
+    fn body_up_to_the_limit_is_kept_whole() {
         let mut body = vec![];
 
-        assert!(!append_capped(&mut body, b"01", 4));
-        assert!(!append_capped(&mut body, b"23", 4));
+        append_within(&mut body, b"01", 4).unwrap();
+        append_within(&mut body, b"23", 4).unwrap();
         assert_eq!(body, b"0123");
     }
 
     #[test]
-    fn body_over_the_cap_is_cut_one_byte_past_it() {
+    fn body_over_the_limit_is_an_error() {
         let mut body = vec![];
 
-        assert!(!append_capped(&mut body, b"012", 4));
-        assert!(append_capped(&mut body, b"3456789", 4));
-        assert_eq!(body, b"01234");
+        append_within(&mut body, b"012", 4).unwrap();
+        assert!(matches!(
+            append_within(&mut body, b"34", 4),
+            Err(Error::BodyTooLarge(4))
+        ));
     }
 
     #[tokio::test]
@@ -226,6 +246,9 @@ mod test {
             .mount(&server)
             .await;
         let client =
+            super::ReqwestClient::for_revocation_data(10, std::time::Duration::from_secs(5))
+                .unwrap();
+        let small_client =
             super::ReqwestClient::for_revocation_data(4, std::time::Duration::from_secs(5))
                 .unwrap();
 
@@ -239,9 +262,20 @@ mod test {
             .send()
             .await
             .unwrap();
+        let too_large = small_client
+            .get(&format!("{}/ca.crl", server.uri()))
+            .send()
+            .await;
 
-        // the body is cut one byte past the cap
-        assert_eq!(crl.body, b"01234");
+        assert_eq!(crl.body, b"0123456789");
         assert_eq!(moved.status.0, 302);
+        assert!(
+            matches!(
+                too_large,
+                Err(crate::proto::http_client::Error::BodyTooLarge(4))
+            ),
+            "{:?}",
+            too_large.err()
+        );
     }
 }

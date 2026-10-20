@@ -54,8 +54,9 @@ diverged at `7505afb41`.
   with a reason (`signer_mismatch`, `invalid_signature`, `unsupported_algorithm`, `expired`, `closed`,
   `unreachable`, `invalid_document`, `size_limit`, `pointer_limit`, `deadline`).
 - `ReqwestClient::hardened(max_body_bytes)` for documents from locations the caller does not control
-  (`https` only, no redirects, TLS 1.2 or later, at most one byte past the limit read), and
-  `ReqwestClient::with_max_body_bytes`.
+  (`https` only, no redirects, TLS 1.2 or later, body size limited), and
+  `ReqwestClient::with_options(client, ReqwestClientOptions)`. A body over `max_body_bytes` fails
+  with `http_client::Error::BodyTooLarge`.
 - `http_client::Error::Transport`, for an adapted client's failure with its cause.
 - LoTE services whose `ServiceStatus` is present and not `active` are not indexed.
 - `CachingLoader::with_clock`, so cache freshness follows an injected `Clock`.
@@ -64,7 +65,7 @@ diverged at `7505afb41`.
   P-384 keys a verify-only key handle; XAdES (`rsa-sha*`, `sha*-rsa-MGF1`, `ecdsa-sha384`) and LoTE JWS
   (`RS*`, `PS*`, `ES384`) verify them with the certificate key. There is no RSA key algorithm, key
   storage or DID support; credentials signed with RSA are still rejected. SHA-384 hasher and XML-DSig
-  digest.
+  digest (`standardized_types::xades::SHA384_DIGEST_URI`).
 - A pointed-to LoTE must be of the type its pointer declares (LoTE pointer qualifier, or the LoTL
   pointer's `TSLType`).
 - Trust-list cache keys also cover the resolving subscriber (kind, content type, depth, limits).

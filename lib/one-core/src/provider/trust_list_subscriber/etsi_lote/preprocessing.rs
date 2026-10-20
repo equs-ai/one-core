@@ -440,7 +440,6 @@ mod test {
     use similar_asserts::assert_eq;
 
     use super::*;
-
     use crate::proto::certificate_validator::MockCertificateValidator;
     use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
     use crate::provider::trust_list_subscriber::fetch::jws_payload;
@@ -463,6 +462,34 @@ mod test {
         ] {
             assert!(!is_active_service_status(inactive), "{inactive}");
         }
+    }
+
+    #[test]
+    fn a_missing_status_is_trusted_only_where_the_profile_forbids_one() {
+        for lote_type in [
+            None,
+            Some(LoTEType::EuPidProvidersList),
+            Some(LoTEType::EuWalletProvidersList),
+            Some(LoTEType::EuWrpAcProvidersList),
+            Some(LoTEType::EuWrpRcProvidersList),
+            Some(LoTEType::EuRegistrarsAndRegistersList),
+        ] {
+            assert!(
+                is_active_lote_service(requires_explicit_status(lote_type.as_ref()), None),
+                "{lote_type:?}"
+            );
+        }
+
+        let pub_eaa = requires_explicit_status(Some(&LoTEType::EuPubEaaProvidersList));
+        assert!(!is_active_lote_service(pub_eaa, None));
+        assert!(is_active_lote_service(
+            pub_eaa,
+            Some("http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/notified")
+        ));
+        assert!(!is_active_lote_service(
+            pub_eaa,
+            Some("http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/withdrawn")
+        ));
     }
 
     #[tokio::test]

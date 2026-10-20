@@ -11,7 +11,7 @@ use crate::mapper::x509::{get_akis_for_pem_chain, pem_to_subject_key_identifier}
 use crate::proto::certificate_validator::{
     CertSelection, CertificateValidationOptions, CertificateValidator, EnforceKeyUsage,
 };
-use crate::proto::http_client::HttpClient;
+use crate::proto::http_client::{self, HttpClient};
 use crate::proto::xades;
 use crate::provider::caching_loader::ResolverError;
 
@@ -314,7 +314,10 @@ pub(crate) async fn fetch_document(
         .send()
         .await
         .and_then(|response| response.error_for_status())
-        .map_err(FetchError::Http)?;
+        .map_err(|error| match error {
+            http_client::Error::BodyTooLarge(limit) => FetchError::SizeLimit(limit),
+            other => FetchError::Http(other),
+        })?;
 
     if let Some(length) = response
         .header_get("Content-Length")
@@ -615,8 +618,7 @@ mod test {
         use wiremock::matchers::{headers, method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
-        use crate::proto::http_client::StatusCode;
-        use crate::proto::http_client::reqwest_client::ReqwestClient;
+        use crate::proto::http_client::reqwest_client::{ReqwestClient, ReqwestClientOptions};
 
         const ACCEPT: &str = "application/vnd.etsi.tsl+xml, application/xml, text/xml";
         let server = MockServer::start().await;
@@ -638,14 +640,14 @@ mod test {
             .mount(&server)
             .await;
         let url = format!("{}/tl.xml", server.uri());
-        let client = ReqwestClient::new(reqwest::Client::new()).with_max_body_bytes(100);
+        let client = ReqwestClient::with_options(
+            reqwest::Client::new(),
+            ReqwestClientOptions {
+                max_body_bytes: Some(100),
+            },
+        );
 
-        let response = client
-            .get(&url)
-            .header("Accept", ACCEPT)
-            .send()
-            .await
-            .unwrap();
+        let response = client.get(&url).header("Accept", ACCEPT).send().await;
         let fetched = fetch_document(
             &client,
             &url,
@@ -657,8 +659,11 @@ mod test {
         )
         .await;
 
-        assert_eq!(response.status, StatusCode(200));
-        assert_eq!(response.body.len(), 101);
+        assert!(
+            matches!(response, Err(http_client::Error::BodyTooLarge(100))),
+            "{:?}",
+            response.err()
+        );
         assert!(
             matches!(fetched, Err(FetchError::SizeLimit(100))),
             "{:?}",

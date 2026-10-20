@@ -64,8 +64,17 @@ impl SpkiSignatureAlgorithm {
         })
     }
 
-    fn is_rsa(self) -> bool {
-        !matches!(self, Self::EcdsaP384Sha384)
+    /// The key family this algorithm verifies with.
+    fn key_family(self) -> SpkiKeyFamily {
+        match self {
+            Self::RsaPkcs1Sha256
+            | Self::RsaPkcs1Sha384
+            | Self::RsaPkcs1Sha512
+            | Self::RsaPssSha256
+            | Self::RsaPssSha384
+            | Self::RsaPssSha512 => SpkiKeyFamily::Rsa,
+            Self::EcdsaP384Sha384 => SpkiKeyFamily::EcP384,
+        }
     }
 }
 
@@ -116,7 +125,7 @@ pub fn verify(
     let family = key_family(&spki).ok_or_else(|| {
         SpkiSignatureError::UnsupportedKey(spki.algorithm.algorithm.to_id_string())
     })?;
-    if (family == SpkiKeyFamily::Rsa) != algorithm.is_rsa() {
+    if family != algorithm.key_family() {
         return Err(SpkiSignatureError::KeyMismatch);
     }
     UnparsedPublicKey::new(

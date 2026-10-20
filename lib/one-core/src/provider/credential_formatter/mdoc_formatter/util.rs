@@ -156,29 +156,18 @@ impl TryFrom<IndexMap<String, Value>> for MsoStatus {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(try_from = "RawMsoStatusList")]
 pub struct MsoStatusList {
     pub idx: usize,
     /// As the issuer wrote it: the status list token's `sub` must equal it.
+    #[serde(deserialize_with = "parsable_uri")]
     pub uri: String,
 }
 
-#[derive(Deserialize)]
-struct RawMsoStatusList {
-    idx: usize,
-    uri: String,
-}
-
-impl TryFrom<RawMsoStatusList> for MsoStatusList {
-    type Error = url::ParseError;
-
-    fn try_from(raw: RawMsoStatusList) -> Result<Self, Self::Error> {
-        url::Url::parse(&raw.uri)?;
-        Ok(Self {
-            idx: raw.idx,
-            uri: raw.uri,
-        })
-    }
+/// A URI kept as written, once it parses; `Url` would normalise it.
+fn parsable_uri<'de, D: de::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+    let uri = String::deserialize(deserializer)?;
+    url::Url::parse(&uri).map_err(de::Error::custom)?;
+    Ok(uri)
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]

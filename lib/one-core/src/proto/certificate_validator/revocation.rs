@@ -30,10 +30,10 @@ impl CertificateValidatorImpl {
                     let downloaded_crl = self
                         .download_crl_from_points(crl)
                         .await
-                        .map_err(revocation_unknown)?;
+                        .map_err(into_crl_check_failed)?;
                     if self
                         .check_crl_revocation(&downloaded_crl, certificate, parent)
-                        .map_err(revocation_unknown)?
+                        .map_err(into_crl_check_failed)?
                     {
                         return Err(Error::CertificateRevoked);
                     }
@@ -214,7 +214,7 @@ impl CertificateValidatorImpl {
     }
 }
 
-fn revocation_unknown(error: Error) -> Error {
+fn into_crl_check_failed(error: Error) -> Error {
     match error {
         Error::CRLCheckFailed(_) | Error::CRLOutdated | Error::CRLSignatureInvalid => error,
         other => Error::CRLCheckFailed(other.to_string()),

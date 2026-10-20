@@ -75,6 +75,8 @@ pub enum Error {
     ConversionRange(#[from] time::error::ConversionRange),
     #[error("HTTP transport error: {0}")]
     Transport(String),
+    #[error("Response body exceeds {0} bytes")]
+    BodyTooLarge(usize),
 }
 
 impl Error {
@@ -93,7 +95,8 @@ impl ErrorCodeMixin for Error {
             Error::HttpError(_)
             | Error::StatusCodeError(_)
             | Error::JsonError(_)
-            | Error::Transport(_) => ErrorCode::BR_0347,
+            | Error::Transport(_)
+            | Error::BodyTooLarge(_) => ErrorCode::BR_0347,
             Error::UrlEncode(_)
             | Error::ToStrError(_)
             | Error::InvalidHeaderName(_)

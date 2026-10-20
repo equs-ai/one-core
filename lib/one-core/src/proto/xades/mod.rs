@@ -14,7 +14,7 @@ use one_crypto::hasher::sha384::SHA384;
 use one_crypto::hasher::sha512::SHA512;
 use serde::de::DeserializeOwned;
 use standardized_types::xades::{
-    self, EXC_C14N, INC_C14N, SHA256_DIGEST_URI, SHA512_DIGEST_URI, XMLDSIG_NS,
+    self, EXC_C14N, INC_C14N, SHA256_DIGEST_URI, SHA384_DIGEST_URI, SHA512_DIGEST_URI, XMLDSIG_NS,
 };
 use time::OffsetDateTime;
 use xades::Transform::*;
@@ -55,11 +55,6 @@ pub trait XAdESProto: Send + Sync {
         x5c: Vec<String>,
     ) -> Result<String, Error>;
 
-    /// Profile checks (which references must exist, signing-time freshness, ...)
-    /// are left to the caller.
-    ///
-    /// The signer chain is checked for integrity and validity only; the caller must pin the
-    /// returned signer, which also checks revocation.
     async fn verify_enveloped_signature(
         &self,
         signed: &XAdESEnvelopedSignature,
@@ -187,6 +182,12 @@ impl XAdESProto for XAdES {
         Ok(signed_xml)
     }
 
+    /// Profile checks (which references must exist, signing-time freshness, ...)
+    /// are left to the caller.
+    ///
+    /// Checks the signer chain's integrity and validity period only. Revocation is not checked
+    /// here, because the CRL signer is known only once the chain is anchored. Callers must pin the
+    /// returned signer before trusting the document; pinning runs the revocation check.
     async fn verify_enveloped_signature(
         &self,
         signed: &XAdESEnvelopedSignature,
@@ -494,9 +495,6 @@ fn interpret_ref_transforms(
         ))),
     }
 }
-
-/// RFC 6931 §2.1.3
-const SHA384_DIGEST_URI: &str = "http://www.w3.org/2001/04/xmldsig-more#sha384";
 
 fn resolve_hasher(digest_uri: &str) -> Result<Arc<dyn Hasher>, Error> {
     match digest_uri {
