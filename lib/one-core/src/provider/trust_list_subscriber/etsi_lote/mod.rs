@@ -112,11 +112,11 @@ impl EtsiLoteSubscriber {
         if pin.is_unpinned() {
             tracing::warn!(url = %reference, "resolving a LoTE whose root signer is not pinned");
         }
-        self.get_list_pinned(reference, &pin).await
+        self.get_list_under(reference, &pin).await
     }
 
     /// The list at `reference`, authenticated under `pin`; cached per pin.
-    async fn get_list_pinned(
+    async fn get_list_under(
         &self,
         reference: &Url,
         pin: &SignerPin,
@@ -207,7 +207,7 @@ impl TrustListSubscriber for EtsiLoteSubscriber {
         pem_chain: &str,
         pin: &SignerPin,
     ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
-        let list = self.get_list_pinned(reference, pin).await?;
+        let list = self.get_list_under(reference, pin).await?;
         find_matching_for_certificate(&list, pem_chain, self.certificate_validator.as_ref()).await
     }
 

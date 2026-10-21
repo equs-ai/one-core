@@ -158,18 +158,13 @@ impl EtsiLotlResolver {
             &self.options.limits,
         )
         .await?;
-        match document.content_type.as_deref() {
-            Some(received) if TSL_XML_MEDIA_TYPES.contains(&received) => {}
-            Some(received) => {
-                return Err(FetchError::InvalidDocument(format!(
-                    "unexpected content type `{received}`"
-                )));
-            }
-            None => {
-                return Err(FetchError::InvalidDocument(
-                    "header Content-Type not present".to_string(),
-                ));
-            }
+        let received = document.content_type.as_deref().ok_or_else(|| {
+            FetchError::InvalidDocument("header Content-Type not present".to_string())
+        })?;
+        if !TSL_XML_MEDIA_TYPES.contains(&received) {
+            return Err(FetchError::InvalidDocument(format!(
+                "unexpected content type `{received}`"
+            )));
         }
         let body = str::from_utf8(&document.body)
             .map_err(|e| FetchError::InvalidDocument(e.to_string()))?;

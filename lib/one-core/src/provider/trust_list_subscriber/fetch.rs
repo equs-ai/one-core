@@ -21,6 +21,11 @@ pub const DEFAULT_DEADLINE: StdDuration = StdDuration::from_secs(300);
 pub const DEFAULT_DOCUMENT_TIMEOUT: StdDuration = StdDuration::from_secs(30);
 
 /// How the signer of a fetched list is authenticated.
+///
+/// Resolution starts from the root pin ([`Self::for_root`]): `Anchors` from configuration, or
+/// `Unpinned` when `allowUnpinnedRoot` is set. Each pointer a list follows pins the list it points
+/// to with `Pointer`, built from the certificates the pointer names. Lists are cached per pin, so
+/// a list accepted under a weaker pin never answers a stricter lookup.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SignerPin {
@@ -640,12 +645,12 @@ mod test {
             .mount(&server)
             .await;
         let url = format!("{}/tl.xml", server.uri());
-        let client = ReqwestClient::with_options(
-            reqwest::Client::new(),
-            ReqwestClientOptions {
+        let client = ReqwestClient {
+            client: reqwest::Client::new(),
+            options: ReqwestClientOptions {
                 max_body_bytes: Some(100),
             },
-        );
+        };
 
         let response = client.get(&url).header("Accept", ACCEPT).send().await;
         let fetched = fetch_document(

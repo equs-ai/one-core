@@ -9,7 +9,7 @@ use super::{Error, Headers, HttpClient, Method, Request, RequestBuilder, Respons
 #[derive(Clone)]
 pub struct ReqwestClient {
     pub client: reqwest::Client,
-    options: ReqwestClientOptions,
+    pub options: ReqwestClientOptions,
 }
 
 /// What a [`ReqwestClient`] enforces on top of its `reqwest::Client`.
@@ -21,11 +21,10 @@ pub struct ReqwestClientOptions {
 
 impl ReqwestClient {
     pub fn new(client: reqwest::Client) -> Self {
-        Self::with_options(client, ReqwestClientOptions::default())
-    }
-
-    pub fn with_options(client: reqwest::Client, options: ReqwestClientOptions) -> Self {
-        Self { client, options }
+        Self {
+            client,
+            options: ReqwestClientOptions::default(),
+        }
     }
 
     pub fn hardened(max_body_bytes: usize) -> Result<Self, Error> {
@@ -34,12 +33,12 @@ impl ReqwestClient {
             .redirect(reqwest::redirect::Policy::none())
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .build()?;
-        Ok(Self::with_options(
+        Ok(Self {
             client,
-            ReqwestClientOptions {
+            options: ReqwestClientOptions {
                 max_body_bytes: Some(max_body_bytes),
             },
-        ))
+        })
     }
 
     /// A client for revocation data, such as a CRL distribution point.
@@ -52,12 +51,12 @@ impl ReqwestClient {
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .timeout(timeout)
             .build()?;
-        Ok(Self::with_options(
+        Ok(Self {
             client,
-            ReqwestClientOptions {
+            options: ReqwestClientOptions {
                 max_body_bytes: Some(max_body_bytes),
             },
-        ))
+        })
     }
 }
 
