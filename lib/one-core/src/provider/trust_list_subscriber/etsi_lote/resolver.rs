@@ -264,7 +264,7 @@ impl EtsiLoteResolver {
             })?;
         } else {
             // an RSA or P-384 key only signs under the `alg`s handled above
-            if spki_signature::key_family(&leaf.tbs_certificate.subject_pki).is_some()
+            if spki_signature::key_type(&leaf.tbs_certificate.subject_pki).is_some()
                 || self
                     .key_algorithm_provider
                     .key_algorithm_from_jose_alg(algorithm)

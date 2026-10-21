@@ -184,7 +184,7 @@ impl CertificateValidatorImpl {
 
     fn extract_public_key(&self, certificate: &X509Certificate) -> Result<KeyHandle, Error> {
         // RSA and P-384 keys get a verify-only handle; the key algorithm provider supports neither
-        if spki_signature::key_family(&certificate.subject_pki).is_some() {
+        if spki_signature::key_type(&certificate.subject_pki).is_some() {
             let handle =
                 spki_signature::SpkiPublicKeyHandle::from_spki_der(certificate.subject_pki.raw)
                     .error_while("parsing certificate public key")?;

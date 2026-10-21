@@ -64,16 +64,16 @@ impl SpkiSignatureAlgorithm {
         })
     }
 
-    /// The key family this algorithm verifies with.
-    fn key_family(self) -> SpkiKeyFamily {
+    /// The key type this algorithm verifies with.
+    fn key_type(self) -> SpkiKeyType {
         match self {
             Self::RsaPkcs1Sha256
             | Self::RsaPkcs1Sha384
             | Self::RsaPkcs1Sha512
             | Self::RsaPssSha256
             | Self::RsaPssSha384
-            | Self::RsaPssSha512 => SpkiKeyFamily::Rsa,
-            Self::EcdsaP384Sha384 => SpkiKeyFamily::EcP384,
+            | Self::RsaPssSha512 => SpkiKeyType::Rsa,
+            Self::EcdsaP384Sha384 => SpkiKeyType::EcP384,
         }
     }
 }
@@ -88,17 +88,18 @@ pub enum SpkiSignatureError {
     InvalidSignature,
 }
 
-/// The key family a SubjectPublicKeyInfo carries, when it is one handled here.
+/// A SubjectPublicKeyInfo key type this module verifies with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SpkiKeyFamily {
+pub enum SpkiKeyType {
     Rsa,
     EcP384,
 }
 
-pub fn key_family(spki: &SubjectPublicKeyInfo<'_>) -> Option<SpkiKeyFamily> {
+/// The key type `spki` carries, when it is one handled here.
+pub fn key_type(spki: &SubjectPublicKeyInfo<'_>) -> Option<SpkiKeyType> {
     let algorithm = &spki.algorithm.algorithm;
     if algorithm == &OID_PKCS1_RSAENCRYPTION || algorithm == &OID_PKCS1_RSASSAPSS {
-        return Some(SpkiKeyFamily::Rsa);
+        return Some(SpkiKeyType::Rsa);
     }
     if algorithm == &OID_KEY_TYPE_EC_PUBLIC_KEY
         && spki
@@ -108,7 +109,7 @@ pub fn key_family(spki: &SubjectPublicKeyInfo<'_>) -> Option<SpkiKeyFamily> {
             .and_then(|p| p.as_oid().ok())
             .is_some_and(|curve| curve == OID_NIST_EC_P384)
     {
-        return Some(SpkiKeyFamily::EcP384);
+        return Some(SpkiKeyType::EcP384);
     }
     None
 }
@@ -122,10 +123,10 @@ pub fn verify(
 ) -> Result<(), SpkiSignatureError> {
     let (_, spki) = SubjectPublicKeyInfo::from_der(spki_der)
         .map_err(|e| SpkiSignatureError::UnsupportedKey(e.to_string()))?;
-    let family = key_family(&spki).ok_or_else(|| {
+    let key_type = key_type(&spki).ok_or_else(|| {
         SpkiSignatureError::UnsupportedKey(spki.algorithm.algorithm.to_id_string())
     })?;
-    if family != algorithm.key_family() {
+    if key_type != algorithm.key_type() {
         return Err(SpkiSignatureError::KeyMismatch);
     }
     UnparsedPublicKey::new(
@@ -136,8 +137,8 @@ pub fn verify(
     .map_err(|_| SpkiSignatureError::InvalidSignature)
 }
 
-/// Verify-only handle for an RSA or P-384 key, using the family's default algorithm; callers that
-/// know the algorithm call [`verify`] directly.
+/// Verify-only handle for an RSA or P-384 key, using its key type's default algorithm; callers
+/// that know the algorithm call [`verify`] directly.
 pub struct SpkiPublicKeyHandle {
     spki_der: Vec<u8>,
     key_bytes: Vec<u8>,
@@ -148,9 +149,9 @@ impl SpkiPublicKeyHandle {
     pub fn from_spki_der(spki_der: &[u8]) -> Result<Self, KeyAlgorithmError> {
         let (_, spki) = SubjectPublicKeyInfo::from_der(spki_der)
             .map_err(|e| KeyAlgorithmError::InvalidEncoding(e.to_string()))?;
-        let default_algorithm = match key_family(&spki) {
-            Some(SpkiKeyFamily::Rsa) => SpkiSignatureAlgorithm::RsaPkcs1Sha256,
-            Some(SpkiKeyFamily::EcP384) => SpkiSignatureAlgorithm::EcdsaP384Sha384,
+        let default_algorithm = match key_type(&spki) {
+            Some(SpkiKeyType::Rsa) => SpkiSignatureAlgorithm::RsaPkcs1Sha256,
+            Some(SpkiKeyType::EcP384) => SpkiSignatureAlgorithm::EcdsaP384Sha384,
             None => {
                 return Err(KeyAlgorithmError::NotSupported(format!(
                     "unsupported public key algorithm {}",
