@@ -32,7 +32,7 @@ pub(crate) mod x509_extension;
 pub use trust_anchor::validate_chain_against_trust_anchors;
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -145,6 +145,10 @@ pub enum CrlMode {
     X509,
     /// <https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status>
     AndroidAttestation,
+    /// Validity period only; no revocation source is consulted.
+    ValidityOnly,
+    /// [CrlMode::X509] below the topmost certificate, which is the configured trust anchor.
+    X509BelowAnchor,
 }
 
 pub enum EnforceKeyUsage {
@@ -198,6 +202,31 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+        }
+    }
+
+    /// Signatures, critical extensions, validity periods and leaf key usage, without revocation.
+    pub fn signature_and_validity(
+        required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
+    ) -> Self {
+        Self {
+            require_root_termination: false,
+            integrity_check: true,
+            validity_check: Some(CrlMode::ValidityOnly),
+            required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
+            leaf_only_extensions: Default::default(),
+            leaf_validations: Default::default(),
+        }
+    }
+
+    /// [CertificateValidationOptions::signature_and_revocation] for a chain ending in its trust
+    /// anchor; the anchor itself is not checked for revocation.
+    pub fn signature_and_revocation_below_anchor(
+        required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
+    ) -> Self {
+        Self {
+            validity_check: Some(CrlMode::X509BelowAnchor),
+            ..Self::signature_and_revocation(required_leaf_cert_key_usage)
         }
     }
 

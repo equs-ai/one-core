@@ -108,16 +108,18 @@ impl From<xml::PolicyOrLegalNoticeItem> for json::PolicyOrLegalNoticeItem {
 
 impl From<json::OtherLoTEPointer> for xml::OtherLoTEPointer {
     fn from(p: json::OtherLoTEPointer) -> Self {
-        let q = p.lote_qualifiers;
+        // the XML pointer holds one set of qualifiers
         Self {
             service_digital_identities: p.service_digital_identities.into(),
             lote_location: p.lote_location,
-            additional_information: Some(xml::AdditionalInformation {
-                lote_type: Some(q.lote_type),
-                scheme_operator_name: Some(q.scheme_operator_name.into()),
-                mime_type: Some(q.mime_type),
-                scheme_type_community_rules: q.scheme_type_community_rules.map(Into::into),
-                scheme_territory: q.scheme_territory,
+            additional_information: p.lote_qualifiers.into_iter().next().map(|q| {
+                xml::AdditionalInformation {
+                    lote_type: Some(q.lote_type),
+                    scheme_operator_name: Some(q.scheme_operator_name.into()),
+                    mime_type: Some(q.mime_type),
+                    scheme_type_community_rules: q.scheme_type_community_rules.map(Into::into),
+                    scheme_territory: q.scheme_territory,
+                }
             }),
         }
     }
@@ -125,25 +127,23 @@ impl From<json::OtherLoTEPointer> for xml::OtherLoTEPointer {
 
 impl From<xml::OtherLoTEPointer> for json::OtherLoTEPointer {
     fn from(p: xml::OtherLoTEPointer) -> Self {
-        let a = p
-            .additional_information
-            .unwrap_or(xml::AdditionalInformation {
-                lote_type: None,
-                scheme_operator_name: None,
-                mime_type: None,
-                scheme_type_community_rules: None,
-                scheme_territory: None,
-            });
         Self {
             service_digital_identities: p.service_digital_identities.into(),
             lote_location: p.lote_location,
-            lote_qualifiers: json::LoTEQualifier {
-                lote_type: a.lote_type.unwrap_or_default(),
-                scheme_operator_name: a.scheme_operator_name.map(Into::into).unwrap_or_default(),
-                mime_type: a.mime_type.unwrap_or_default(),
-                scheme_type_community_rules: a.scheme_type_community_rules.map(Into::into),
-                scheme_territory: a.scheme_territory,
-            },
+            lote_qualifiers: p
+                .additional_information
+                .map(|a| json::LoTEQualifier {
+                    lote_type: a.lote_type.unwrap_or_default(),
+                    scheme_operator_name: a
+                        .scheme_operator_name
+                        .map(Into::into)
+                        .unwrap_or_default(),
+                    mime_type: a.mime_type.unwrap_or_default(),
+                    scheme_type_community_rules: a.scheme_type_community_rules.map(Into::into),
+                    scheme_territory: a.scheme_territory,
+                })
+                .into_iter()
+                .collect(),
         }
     }
 }

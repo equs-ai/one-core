@@ -14,7 +14,7 @@ use crate::config::core_config::KeyAlgorithmType;
 use crate::error::{ErrorCode, ErrorCodeMixin};
 use crate::proto::certificate_validator::{
     CertSelection, CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl,
-    CrlMode,
+    CrlMode, Error,
 };
 use crate::proto::clock::DefaultClock;
 use crate::proto::http_client::reqwest_client::ReqwestClient;
@@ -516,4 +516,302 @@ async fn trust_anchors_do_not_treat_leaf_sharing_issuer_dn_as_self_signed() {
     )
     .await
     .unwrap();
+}
+
+/// A validator whose CRL downloads go to `http_client`.
+pub(crate) fn certificate_validator_fetching_with(
+    http_client: MockHttpClient,
+) -> CertificateValidatorImpl {
+    let mut key_algorithm_provider = MockKeyAlgorithmProvider::new();
+    key_algorithm_provider
+        .expect_key_algorithm_from_type()
+        .with(eq(KeyAlgorithmType::Ecdsa))
+        .returning(|_| Some(Arc::new(crate::provider::key_algorithm::ecdsa::Ecdsa)));
+    let http_client = Arc::new(http_client);
+    CertificateValidatorImpl::new(
+        Arc::new(key_algorithm_provider),
+        Arc::new(X509CrlCache::new(
+            Arc::new(X509CrlResolver::new(Some(http_client.clone()))),
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            100,
+            Duration::minutes(1),
+            Duration::minutes(1),
+        )),
+        Arc::new(DefaultClock),
+        Duration::minutes(1),
+        Arc::new(AndroidAttestationCrlCache::new(
+            Arc::new(AndroidAttestationCrlResolver::new(http_client)),
+            Arc::new(InMemoryStorage::new(HashMap::new())),
+            1,
+            Duration::days(1),
+            Duration::days(1),
+        )),
+    )
+}
+
+/// A leaf with a CRL distribution point, presented without its issuer.
+fn leaf_with_crl_distribution_point() -> String {
+    let (_, ca_key, ca_params) = create_ca_cert(None);
+    let ca_issuer = Issuer::from_params(&ca_params, ca_key);
+    let mut params = CertificateParams::default();
+    // rcgen writes no extensions block for a leaf without an AKI, SAN or EKU
+    params.use_authority_key_identifier_extension = true;
+    params.crl_distribution_points = vec![rcgen::CrlDistributionPoint {
+        uris: vec!["https://crl.example.com/issuer.crl".to_string()],
+    }];
+    let (leaf, _) = create_cert(&mut params, &ca_issuer, &ca_params);
+    leaf.pem()
+}
+
+#[tokio::test]
+async fn signature_and_validity_fetches_no_crl_for_an_unanchored_chain() {
+    let mut http_client = MockHttpClient::new();
+    http_client.expect_get().never();
+    let validator = certificate_validator_fetching_with(http_client);
+
+    let result = validator
+        .parse_pem_chain(
+            &leaf_with_crl_distribution_point(),
+            CertificateValidationOptions::signature_and_validity(None),
+        )
+        .await;
+
+    assert!(result.is_ok(), "{:?}", result.err());
+}
+
+#[tokio::test]
+async fn signature_and_revocation_needs_the_crl_signer_in_the_chain() {
+    let (_, other_key, other_params) = create_ca_cert(None);
+    let crl = crl_signed_by(&Issuer::from_params(&other_params, other_key));
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+    let validator = certificate_validator_fetching_with(crl_host(200, crl, fetched.clone()));
+
+    let result = validator
+        .parse_pem_chain(
+            &leaf_with_crl_distribution_point(),
+            CertificateValidationOptions::signature_and_revocation(None),
+        )
+        .await;
+
+    assert!(
+        matches!(&result, Err(Error::CRLCheckFailed(reason)) if reason.contains("not present")),
+        "{result:?}"
+    );
+}
+
+/// An empty CRL, current for a day either side of now.
+fn crl_signed_by(issuer: &Issuer<'_, impl SigningKey>) -> Vec<u8> {
+    let now = crate::clock::now_utc();
+    crl_revoking(
+        issuer,
+        &[],
+        now - Duration::days(1),
+        now + Duration::days(1),
+    )
+}
+
+/// A CRL revoking the certificates with `serials`, current from `this_update` to `next_update`.
+pub(crate) fn crl_revoking(
+    issuer: &Issuer<'_, impl SigningKey>,
+    serials: &[u64],
+    this_update: time::OffsetDateTime,
+    next_update: time::OffsetDateTime,
+) -> Vec<u8> {
+    rcgen::CertificateRevocationListParams {
+        this_update,
+        next_update,
+        crl_number: rcgen::SerialNumber::from(1u64),
+        issuing_distribution_point: None,
+        revoked_certs: (serials.iter())
+            .map(|serial| rcgen::RevokedCertParams {
+                serial_number: rcgen::SerialNumber::from(*serial),
+                revocation_time: this_update,
+                reason_code: None,
+                invalidity_date: None,
+            })
+            .collect(),
+        key_identifier_method: rcgen::KeyIdMethod::Sha256,
+    }
+    .signed_by(issuer)
+    .unwrap()
+    .der()
+    .to_vec()
+}
+
+fn crl_distribution_point(uri: &str) -> Vec<rcgen::CrlDistributionPoint> {
+    vec![rcgen::CrlDistributionPoint {
+        uris: vec![uri.to_string()],
+    }]
+}
+
+/// An intermediate CA anchor with a CRL distribution point, and a leaf it issued (with one when
+/// `leaf_has_crl_dp`).
+fn anchor_and_leaf(leaf_has_crl_dp: bool) -> (String, String) {
+    let (_, root_key, root_params) = create_ca_cert(None);
+    let root = Issuer::from_params(&root_params, root_key);
+    let mut anchor_params = CertificateParams::default();
+    anchor_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    anchor_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+    anchor_params.use_authority_key_identifier_extension = true;
+    anchor_params.crl_distribution_points =
+        crl_distribution_point("https://crl.example.com/root.crl");
+    let (anchor, anchor_key) = create_cert(&mut anchor_params, &root, &root_params);
+    let anchor_issuer = Issuer::from_params(&anchor_params, anchor_key);
+    let mut leaf_params = CertificateParams::default();
+    leaf_params.use_authority_key_identifier_extension = true;
+    if leaf_has_crl_dp {
+        leaf_params.crl_distribution_points =
+            crl_distribution_point("https://crl.example.com/anchor.crl");
+    }
+    let (leaf, _) = create_cert(&mut leaf_params, &anchor_issuer, &anchor_params);
+    (anchor.pem(), leaf.pem())
+}
+
+/// Answers every CRL download with 404 and records the URLs asked for.
+fn crl_host_answering_404(fetched: Arc<std::sync::Mutex<Vec<String>>>) -> MockHttpClient {
+    crl_host(404, vec![], fetched)
+}
+
+/// Answers every CRL download with `status` and `body`, recording the URLs asked for.
+pub(crate) fn crl_host(
+    status: u16,
+    body: Vec<u8>,
+    fetched: Arc<std::sync::Mutex<Vec<String>>>,
+) -> MockHttpClient {
+    let mut http_client = MockHttpClient::new();
+    http_client.expect_get().returning(move |url| {
+        fetched.lock().unwrap().push(url.to_string());
+        let body = body.clone();
+        let mut client = MockHttpClient::new();
+        client.expect_send().returning(move |url, _, _, _, _| {
+            Ok(Response {
+                body: body.clone(),
+                headers: Default::default(),
+                status: StatusCode(status),
+                request: Request {
+                    body: None,
+                    headers: Default::default(),
+                    method: Method::Get,
+                    url: url.to_owned(),
+                    timeout: None,
+                },
+            })
+        });
+        RequestBuilder::new(Arc::new(client), Method::Get, url)
+    });
+    http_client
+}
+
+#[tokio::test]
+async fn revocation_below_anchor_does_not_check_the_anchor() {
+    let (anchor, leaf) = anchor_and_leaf(false);
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+    let validator = certificate_validator_fetching_with(crl_host_answering_404(fetched.clone()));
+
+    let below_anchor = validator
+        .validate_chain_against_ca_chain(
+            &leaf,
+            &anchor,
+            CertificateValidationOptions::signature_and_revocation_below_anchor(None),
+            CertSelection::Leaf,
+        )
+        .await;
+    let whole_chain = validator
+        .validate_chain_against_ca_chain(
+            &leaf,
+            &anchor,
+            CertificateValidationOptions::signature_and_revocation(None),
+            CertSelection::Leaf,
+        )
+        .await;
+
+    assert!(below_anchor.is_ok(), "{:?}", below_anchor.err());
+    // the anchor's own CRL is only consulted when the whole chain is checked
+    assert!(
+        matches!(whole_chain, Err(Error::CRLCheckFailed(_))),
+        "{whole_chain:?}"
+    );
+    assert_eq!(
+        *fetched.lock().unwrap(),
+        ["https://crl.example.com/root.crl"]
+    );
+}
+
+#[tokio::test]
+async fn revocation_below_anchor_checks_the_certificates_under_it() {
+    let (anchor, leaf) = anchor_and_leaf(true);
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+    let validator = certificate_validator_fetching_with(crl_host_answering_404(fetched.clone()));
+
+    let result = validator
+        .validate_chain_against_ca_chain(
+            &leaf,
+            &anchor,
+            CertificateValidationOptions::signature_and_revocation_below_anchor(None),
+            CertSelection::Leaf,
+        )
+        .await;
+
+    // the leaf's CRL is unavailable, so its revocation status is unknown
+    assert!(
+        matches!(result, Err(Error::CRLCheckFailed(_))),
+        "{result:?}"
+    );
+    assert_eq!(
+        *fetched.lock().unwrap(),
+        ["https://crl.example.com/anchor.crl"]
+    );
+}
+
+/// A CA whose Subject Key Identifier is `ski`, whatever its key.
+fn ca_with_ski(ski: &[u8]) -> (Certificate, KeyPair, CertificateParams) {
+    let (_, _, mut params) = create_ca_cert(None);
+    params.key_identifier_method = rcgen::KeyIdMethod::PreSpecified(ski.to_vec());
+    let keys = KeyPair::generate().unwrap();
+    let cert = params.self_signed(&keys).unwrap();
+    (cert, keys, params)
+}
+
+#[tokio::test]
+async fn no_crl_is_fetched_for_a_path_that_does_not_verify() {
+    // an anchor impersonating the real issuer (same name and SKI, other key): no CRL may be
+    // fetched before every link is verified
+    let ski = [7u8; 20];
+    let (_, root_key, root_params) = ca_with_ski(&ski);
+    let (impostor, _, _) = ca_with_ski(&ski);
+    let mut intermediate_params = CertificateParams::default();
+    intermediate_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    intermediate_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+    intermediate_params.use_authority_key_identifier_extension = true;
+    let (intermediate, intermediate_key) = create_cert(
+        &mut intermediate_params,
+        &Issuer::from_params(&root_params, root_key),
+        &root_params,
+    );
+    let mut leaf_params = CertificateParams::default();
+    leaf_params.use_authority_key_identifier_extension = true;
+    leaf_params.crl_distribution_points =
+        crl_distribution_point("https://crl.example.com/intermediate.crl");
+    let (leaf, _) = create_cert(
+        &mut leaf_params,
+        &Issuer::from_params(&intermediate_params, intermediate_key),
+        &intermediate_params,
+    );
+    let fetched = Arc::new(std::sync::Mutex::new(vec![]));
+    let validator = certificate_validator_fetching_with(crl_host_answering_404(fetched.clone()));
+
+    let result = validator
+        .validate_chain_against_ca_chain(
+            &format!("{}{}", leaf.pem(), intermediate.pem()),
+            &impostor.pem(),
+            CertificateValidationOptions::signature_and_revocation_below_anchor(None),
+            CertSelection::Leaf,
+        )
+        .await;
+
+    assert!(
+        matches!(result, Err(Error::CertificateSignatureInvalid)),
+        "{result:?}"
+    );
+    assert!(fetched.lock().unwrap().is_empty());
 }

@@ -4,7 +4,8 @@ use std::slice::from_ref;
 use ct_codecs::{Base64, Encoder};
 use one_dto_mapper::try_convert_inner;
 use standardized_types::etsi_119_602::{
-    LoTEPayload, MultiLangString, ServiceDigitalIdentity, TrustedEntity, TrustedEntityInformation,
+    LoTEPayload, LoTEType, MultiLangString, ServiceDigitalIdentity, TrustedEntity,
+    TrustedEntityInformation,
 };
 use standardized_types::jwk::PublicJwk;
 use standardized_types::x509::KeyIdentifier;
@@ -13,7 +14,7 @@ use x509_parser::oid_registry::OID_X509_EXT_SUBJECT_KEY_IDENTIFIER;
 
 use super::model::{LoteEntity, PreprocessedLote};
 use crate::error::{ContextWithErrorCode, ErrorCode, ErrorCodeMixin, NestedError};
-use crate::mapper::x509::{pem_to_subject_key_identifier, x5c_into_pem_chain};
+use crate::mapper::x509::{pem_to_subject_key_identifier, wrapped_certs_into_pem_chain};
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::certificate_validator::{
@@ -84,6 +85,8 @@ pub(super) async fn preprocess_lote(
             tracing::warn!("Discarding unsupported LoTE type: `{err}`");
             None
         });
+    let requires_explicit_status =
+        requires_explicit_status(lote.list_and_scheme_information.lote_type.as_ref());
     let mut preprocessed_lote = PreprocessedLote {
         role: lote_type,
         ..Default::default()
@@ -100,6 +103,7 @@ pub(super) async fn preprocess_lote(
             public_keys,
         } = match preprocess_trusted_entity(
             trusted_entity,
+            requires_explicit_status,
             certificate_validator,
             key_algorithm_provider,
         )
@@ -164,6 +168,33 @@ fn aggregate_role(entities: &[LoteEntity]) -> Option<TrustListRoleEnum> {
         .then_some(first)
 }
 
+/// `ServiceStatus` values of a trusted LoTE service: TS 119 602's `active` and `notified`, and the
+/// TS 119 612 values published LoTEs use.
+pub(crate) const ACTIVE_SERVICE_STATUSES: [&str; 4] = [
+    "http://uri.etsi.org/19602/SvcStatus/active",
+    // a notified PuB-EAA provider (TS 119 602 Annex H), as the EUDI pilot list publishes it
+    "http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/notified",
+    "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+    "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/recognisedatnationallevel",
+];
+
+pub(crate) fn is_active_service_status(status: &str) -> bool {
+    ACTIVE_SERVICE_STATUSES.contains(&status)
+}
+
+/// Whether a list of `lote_type` must state each service's status.
+pub(crate) fn requires_explicit_status(lote_type: Option<&LoTEType>) -> bool {
+    matches!(lote_type, Some(LoTEType::EuPubEaaProvidersList))
+}
+
+/// Whether a LoTE service with `status` is trusted: a stated status must be an active one.
+pub(crate) fn is_active_lote_service(requires_explicit_status: bool, status: Option<&str>) -> bool {
+    match status {
+        Some(status) => is_active_service_status(status),
+        None => !requires_explicit_status,
+    }
+}
+
 struct PreprocessingResult {
     entity: TrustedEntityInformation,
     certificates: Vec<PreprocessedCertificate>,
@@ -178,6 +209,7 @@ struct PreprocessedCertificate {
 
 async fn preprocess_trusted_entity(
     trusted_entity: TrustedEntity,
+    requires_explicit_status: bool,
     certificate_validator: &dyn CertificateValidator,
     key_algorithm_provider: &dyn KeyAlgorithmProvider,
 ) -> Result<PreprocessingResult, LotePreprocessingError> {
@@ -185,6 +217,12 @@ async fn preprocess_trusted_entity(
     let mut public_keys = HashSet::new();
 
     for service in trusted_entity.trusted_entity_services {
+        if !is_active_lote_service(
+            requires_explicit_status,
+            service.service_information.service_status.as_deref(),
+        ) {
+            continue;
+        }
         let Some(identity) = service.service_information.service_digital_identity else {
             continue;
         };
@@ -262,16 +300,17 @@ async fn preprocess_certificate_identity(
     }
 
     for lote_cert in lote_certs {
-        let pem_chain = x5c_into_pem_chain(from_ref(&lote_cert.val))
+        let pem_chain = wrapped_certs_into_pem_chain(from_ref(&lote_cert.val))
             .error_while("encoding certificate to PEM")?;
 
         let subject_key_identifier =
             pem_to_subject_key_identifier(&pem_chain).error_while("parsing PEM chain SKI")?;
 
+        // trusted for being listed; its CRL issuer is not in the list
         let fingerprint = match certificate_validator
             .parse_pem_chain(
                 &pem_chain,
-                CertificateValidationOptions::signature_and_revocation(None),
+                CertificateValidationOptions::signature_and_validity(None),
             )
             .await
         {
@@ -285,8 +324,7 @@ async fn preprocess_certificate_identity(
         let pem = extract_leaf_pem_from_chain(pem_chain.as_bytes())
             .error_while("parsing certificate value")?;
         let cert = pem.parse_x509()?;
-        // Keys are indexed in the key algorithm provider's raw form (the fork has no
-        // `public_key_as_der`); algorithms it can't parse (e.g. RSA) are not indexed.
+        // Keys are indexed in the key algorithm provider's raw form.
         match key_algorithm_provider.parse_raw(cert.public_key().raw) {
             Ok(parsed_key) => {
                 public_keys.insert(Base64::encode_to_string(
@@ -402,6 +440,80 @@ mod test {
     use similar_asserts::assert_eq;
 
     use super::*;
+    use crate::proto::certificate_validator::MockCertificateValidator;
+    use crate::provider::key_algorithm::provider::MockKeyAlgorithmProvider;
+    use crate::provider::trust_list_subscriber::fetch::jws_payload;
+
+    #[test]
+    fn only_active_status_is_trusted() {
+        for active in [
+            "http://uri.etsi.org/19602/SvcStatus/active",
+            "http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/notified",
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/granted",
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/recognisedatnationallevel",
+        ] {
+            assert!(is_active_service_status(active), "{active}");
+        }
+        for inactive in [
+            "http://uri.etsi.org/19602/SvcStatus/withdrawn",
+            "http://uri.etsi.org/TrstSvc/TrustedList/Svcstatus/withdrawn",
+            "http://uri.etsi.org/19602/SvcStatus/active/",
+            "http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/withdrawn",
+        ] {
+            assert!(!is_active_service_status(inactive), "{inactive}");
+        }
+    }
+
+    #[test]
+    fn a_missing_status_is_trusted_only_where_the_profile_forbids_one() {
+        for lote_type in [
+            None,
+            Some(LoTEType::EuPidProvidersList),
+            Some(LoTEType::EuWalletProvidersList),
+            Some(LoTEType::EuWrpAcProvidersList),
+            Some(LoTEType::EuWrpRcProvidersList),
+            Some(LoTEType::EuRegistrarsAndRegistersList),
+        ] {
+            assert!(
+                is_active_lote_service(requires_explicit_status(lote_type.as_ref()), None),
+                "{lote_type:?}"
+            );
+        }
+
+        let pub_eaa = requires_explicit_status(Some(&LoTEType::EuPubEaaProvidersList));
+        assert!(!is_active_lote_service(pub_eaa, None));
+        assert!(is_active_lote_service(
+            pub_eaa,
+            Some("http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/notified")
+        ));
+        assert!(!is_active_lote_service(
+            pub_eaa,
+            Some("http://uri.etsi.org/19602/PubEAAProvidersList/SvcStatus/withdrawn")
+        ));
+    }
+
+    #[tokio::test]
+    async fn services_with_a_non_active_status_yield_no_anchors() {
+        let mut payload = jws_payload(super::super::test::SPRIND_LOTE_JWS).unwrap();
+        for service in payload["TrustedEntitiesList"][0]["TrustedEntityServices"]
+            .as_array_mut()
+            .unwrap()
+        {
+            service["ServiceInformation"]["ServiceStatus"] =
+                "http://uri.etsi.org/19602/SvcStatus/withdrawn".into();
+        }
+        let lote: LoTEPayload = serde_json::from_value(payload).unwrap();
+
+        let preprocessed = preprocess_lote(
+            lote,
+            &MockCertificateValidator::new(),
+            &MockKeyAlgorithmProvider::new(),
+        )
+        .await
+        .unwrap();
+
+        assert!(preprocessed.trusted_entities.is_empty());
+    }
 
     fn entity(role: Option<TrustListRoleEnum>) -> LoteEntity {
         LoteEntity {
