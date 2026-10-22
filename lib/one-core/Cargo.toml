@@ -7,7 +7,7 @@ license                = "Apache-2.0"
 name                   = "equs-one-core"
 repository.workspace   = true
 rust-version.workspace = true
-version                = "0.1.1"
+version                = "0.1.2"
 
 [lib]
 name = "one_core"
@@ -88,7 +88,7 @@ uuid                         = { workspace = true, features = ["serde"] }
 x25519-dalek                 = { version = "2.0", features = ["reusable_secrets", "serde"] }
 x509-parser.workspace        = true
 yasna                        = { version = "0.5" }
-zip                          = { version = "7.0", default-features = false, features = ["lzma", "deflate"] }
+zip                          = { version = "9.0", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 one-core-portable                = { package = "equs-one-core-portable", path = "../one-core-portable", features = ["test-utils"] }
