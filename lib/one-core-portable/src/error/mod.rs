@@ -867,6 +867,9 @@ pub enum ErrorCode {
         message = "Certificates on the same identifier must not be duplicates and must not have the same name and expiry"
     )]
     BR_0408,
+
+    #[strum(message = "Certificate not trusted")]
+    BR_0410,
 }
 
 pub trait ErrorCodeMixin: Error + Send + Sync + 'static {

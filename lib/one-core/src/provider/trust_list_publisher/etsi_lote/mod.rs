@@ -405,7 +405,7 @@ fn build_trusted_entity(
         .into_iter()
         .map(|(uri, display_name)| TrustedEntityService {
             service_information: ServiceInformation {
-                service_type_identifier: uri.to_string(),
+                service_type_identifier: Some(uri.to_string()),
                 service_name: params.service.name.clone().unwrap_or_else(|| {
                     vec![MultiLangString {
                         lang: "en".into(),
@@ -486,9 +486,11 @@ fn build_lote_payload(
                 })?
                 .to_string(),
         }]),
-        scheme_territory: list_params
-            .scheme_territory
-            .unwrap_or_else(|| lote_type.scheme_territory().to_string()),
+        scheme_territory: Some(
+            list_params
+                .scheme_territory
+                .unwrap_or_else(|| lote_type.scheme_territory().to_string()),
+        ),
         scheme_operator_address: list_params.scheme_operator_address,
         scheme_name: list_params.scheme_name.or_else(|| {
             Some(vec![MultiLangString {

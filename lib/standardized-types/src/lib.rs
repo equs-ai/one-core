@@ -16,6 +16,7 @@
 //! * must not contain any non-standard elements (e.g. EUDI / swiyu adjustments)
 
 pub mod etsi_119_602;
+pub mod etsi_119_612;
 pub mod jades;
 pub mod jwa;
 pub mod jwk;
@@ -23,3 +24,4 @@ pub mod mapper;
 pub mod oauth2;
 pub mod openid4vp;
 pub mod x509;
+pub mod xades;

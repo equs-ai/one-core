@@ -13,8 +13,10 @@ name = "standardized_types"
 
 [dependencies]
 anyhow.workspace     = true
+one-dto-mapper.workspace = true
 ct-codecs.workspace  = true
 proc-macros          = { package = "equs-one-core-proc-macros", version = "0.1.0", path = "../../lib/proc-macros" }
+quick-xml.workspace  = true
 secrecy.workspace    = true
 serde                = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -23,6 +25,9 @@ strum.workspace      = true
 time.workspace       = true
 utoipa               = { workspace = true, optional = true }
 uuid.workspace       = true
+
+[dev-dependencies]
+similar-asserts.workspace = true
 
 [lints]
 workspace = true
