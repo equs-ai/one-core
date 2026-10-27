@@ -63,6 +63,8 @@ diverged at `7505afb41`.
 - A pointed-to LoTE must be of the type its pointer declares ([#10]).
 - Trust-list cache keys cover location, pin and resolver settings; `m20261007_120000_clear_trust_list_cache` drops old entries ([#10]).
 - LoTE service status follows TS 119 602: a missing status is trusted except on a PuB-EAA providers list ([#10]).
+- A LoTE `…/Revocation` service grants trust only while its entity has an active `…/Issuance` service of the same kind ([#10]).
+- `CertificateValidationOptions::verify_only_keys` (`with_verify_only_keys`): RSA and P-384 leaf keys parse only where asked for, on the trust-list paths ([#10]).
 - Revocation is checked only where the CRL signer is known (`CrlMode::ValidityOnly`, `CrlMode::X509BelowAnchor`) ([#10]).
 - Revocation runs after every chain link verifies; an unusable CRL fails as `CRLCheckFailed` ([#10]).
 - Trust-list signers are checked for integrity and validity, and for revocation once pinned ([#10]).

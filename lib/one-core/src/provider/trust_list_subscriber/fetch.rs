@@ -378,7 +378,8 @@ pub(crate) async fn verify_signer(
                     anchor,
                     CertificateValidationOptions::signature_and_revocation_below_anchor(Some(
                         vec![EnforceKeyUsage::DigitalSignature],
-                    )),
+                    ))
+                    .with_verify_only_keys(),
                     CertSelection::Leaf,
                 )
                 .await
@@ -396,7 +397,10 @@ async fn fingerprint_of(
     pem: &str,
 ) -> Option<String> {
     certificate_validator
-        .parse_pem_chain(pem, CertificateValidationOptions::no_validation())
+        .parse_pem_chain(
+            pem,
+            CertificateValidationOptions::no_validation().with_verify_only_keys(),
+        )
         .await
         .ok()
         .map(|parsed| parsed.attributes.fingerprint)

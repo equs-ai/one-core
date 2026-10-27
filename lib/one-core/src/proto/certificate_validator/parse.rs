@@ -1,6 +1,7 @@
+use std::sync::Arc;
+
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
-use std::sync::Arc;
 use time::Duration;
 use x509_parser::oid_registry::{OID_EC_P256, OID_KEY_TYPE_EC_PUBLIC_KEY, OID_SIG_ED25519};
 use x509_parser::pem::Pem;
@@ -37,8 +38,9 @@ impl CertificateValidator for CertificateValidatorImpl {
             .map(|pem| pem.parse_x509())
             .collect::<Result<Vec<_>, _>>()?;
 
+        let verify_only_keys = validation.verify_only_keys;
         let leaf_certificate = self.parse_chain(&certs, validation).await?;
-        self.to_parsed_certificate(leaf_certificate, &leaf_pem.contents)
+        self.to_parsed_certificate(leaf_certificate, &leaf_pem.contents, verify_only_keys)
     }
 
     async fn validate_chain_against_ca_chain(
@@ -63,6 +65,7 @@ impl CertificateValidator for CertificateValidatorImpl {
             .collect::<Result<Vec<_>, _>>()?;
 
         let connected = connect_chains(&certs, &ca_certs)?;
+        let verify_only_keys = validation.verify_only_keys;
         let parsed = self.parse_chain(&connected, validation).await?;
 
         let (selected_cert, pem) = match cert_selection {
@@ -72,7 +75,7 @@ impl CertificateValidator for CertificateValidatorImpl {
             ),
             CertSelection::Leaf => (parsed, pems.first().ok_or(Error::EmptyChain)?),
         };
-        self.to_parsed_certificate(selected_cert, &pem.contents)
+        self.to_parsed_certificate(selected_cert, &pem.contents, verify_only_keys)
     }
 }
 
@@ -165,6 +168,7 @@ impl CertificateValidatorImpl {
         &self,
         certificate: &X509Certificate,
         der_representation: &[u8],
+        verify_only_keys: bool,
     ) -> Result<ParsedCertificate, Error> {
         let subject_common_name = certificate
             .subject
@@ -178,13 +182,18 @@ impl CertificateValidatorImpl {
             subject_common_name,
             subject_key_identifier: subject_key_identifier(certificate)
                 .error_while("parsing subject_key_identifier")?,
-            public_key: self.extract_public_key(certificate)?,
+            public_key: self.extract_public_key(certificate, verify_only_keys)?,
         })
     }
 
-    fn extract_public_key(&self, certificate: &X509Certificate) -> Result<KeyHandle, Error> {
-        // RSA and P-384 keys get a verify-only handle; the key algorithm provider supports neither
-        if spki_signature::key_type(&certificate.subject_pki).is_some() {
+    fn extract_public_key(
+        &self,
+        certificate: &X509Certificate,
+        verify_only_keys: bool,
+    ) -> Result<KeyHandle, Error> {
+        // RSA and P-384 keys get a verify-only handle where asked for; the key algorithm provider
+        // supports neither, so they stay unsupported elsewhere
+        if verify_only_keys && spki_signature::key_type(&certificate.subject_pki).is_some() {
             let handle =
                 spki_signature::SpkiPublicKeyHandle::from_spki_der(certificate.subject_pki.raw)
                     .error_while("parsing certificate public key")?;

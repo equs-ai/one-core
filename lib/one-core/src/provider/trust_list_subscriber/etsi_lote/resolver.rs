@@ -2,7 +2,6 @@ use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder};
-
 use standardized_types::etsi_119_602::json::OtherLoTEPointer;
 use standardized_types::etsi_119_602::{json, xml};
 use standardized_types::xades::{SIGNED_PROPERTIES_TYPE, Transform};
@@ -232,7 +231,7 @@ impl EtsiLoteResolver {
             .certificate_validator
             .parse_pem_chain(
                 &signer_pem,
-                CertificateValidationOptions::signature_and_validity(None),
+                CertificateValidationOptions::signature_and_validity(None).with_verify_only_keys(),
             )
             .await
             .map_err(|e| FetchError::InvalidSignature(e.to_string()))?;

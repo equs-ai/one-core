@@ -815,3 +815,34 @@ async fn no_crl_is_fetched_for_a_path_that_does_not_verify() {
     );
     assert!(fetched.lock().unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn rsa_and_p384_leaf_keys_parse_only_where_verify_only_keys_are_asked_for() {
+    let validator = CertificateValidatorImpl::default();
+    for algorithm in [&rcgen::PKCS_RSA_SHA256, &rcgen::PKCS_ECDSA_P384_SHA384] {
+        let key_pair = KeyPair::generate_for(algorithm).unwrap();
+        let pem = CertificateParams::new(vec!["leaf.test".to_string()])
+            .unwrap()
+            .self_signed(&key_pair)
+            .unwrap()
+            .pem();
+
+        // a token verifier does not match the key to the token's `alg`
+        let unsupported = validator
+            .parse_pem_chain(&pem, CertificateValidationOptions::no_validation())
+            .await;
+        assert!(unsupported.is_err(), "{algorithm:?}");
+
+        let verify_only = validator
+            .parse_pem_chain(
+                &pem,
+                CertificateValidationOptions::no_validation().with_verify_only_keys(),
+            )
+            .await
+            .unwrap();
+        assert!(
+            verify_only.public_key.signature().is_some(),
+            "{algorithm:?}"
+        );
+    }
+}

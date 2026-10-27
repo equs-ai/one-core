@@ -4,8 +4,8 @@ use std::slice::from_ref;
 use ct_codecs::{Base64, Encoder};
 use one_dto_mapper::try_convert_inner;
 use standardized_types::etsi_119_602::{
-    LoTEPayload, LoTEType, MultiLangString, ServiceDigitalIdentity, TrustedEntity,
-    TrustedEntityInformation,
+    LoTEPayload, LoTEType, MultiLangString, ServiceDigitalIdentity, ServiceInformation,
+    TrustedEntity, TrustedEntityInformation, TrustedEntityService,
 };
 use standardized_types::jwk::PublicJwk;
 use standardized_types::x509::KeyIdentifier;
@@ -195,6 +195,34 @@ pub(crate) fn is_active_lote_service(requires_explicit_status: bool, status: Opt
     }
 }
 
+/// Whether `service`, one of an entity's `entity_services`, is trusted: its status is active and, if
+/// it is a `…/Revocation` service, the entity has an active `…/Issuance` service of the same kind.
+pub(crate) fn is_trusted_lote_service(
+    service: &ServiceInformation,
+    entity_services: &[TrustedEntityService],
+    requires_explicit_status: bool,
+) -> bool {
+    if !is_active_lote_service(requires_explicit_status, service.service_status.as_deref()) {
+        return false;
+    }
+    let Some(kind) = service_kind(service, "/Revocation") else {
+        return true;
+    };
+    entity_services.iter().any(|other| {
+        let other = &other.service_information;
+        service_kind(other, "/Issuance") == Some(kind)
+            && is_active_lote_service(requires_explicit_status, other.service_status.as_deref())
+    })
+}
+
+/// The `ServiceTypeIdentifier` of `service` without `suffix`, if it ends with it.
+fn service_kind<'a>(service: &'a ServiceInformation, suffix: &str) -> Option<&'a str> {
+    service
+        .service_type_identifier
+        .as_deref()
+        .and_then(|service_type| service_type.strip_suffix(suffix))
+}
+
 struct PreprocessingResult {
     entity: TrustedEntityInformation,
     certificates: Vec<PreprocessedCertificate>,
@@ -216,14 +244,16 @@ async fn preprocess_trusted_entity(
     let mut certificates = vec![];
     let mut public_keys = HashSet::new();
 
-    for service in trusted_entity.trusted_entity_services {
-        if !is_active_lote_service(
+    let services = &trusted_entity.trusted_entity_services;
+    for service in services {
+        if !is_trusted_lote_service(
+            &service.service_information,
+            services,
             requires_explicit_status,
-            service.service_information.service_status.as_deref(),
         ) {
             continue;
         }
-        let Some(identity) = service.service_information.service_digital_identity else {
+        let Some(identity) = &service.service_information.service_digital_identity else {
             continue;
         };
 
@@ -233,7 +263,7 @@ async fn preprocess_trusted_entity(
         if identity.x509_certificates.is_some() {
             certificates.extend(
                 preprocess_certificate_identity(
-                    &identity,
+                    identity,
                     entity_name,
                     service_name,
                     certificate_validator,
@@ -243,7 +273,7 @@ async fn preprocess_trusted_entity(
             );
         } else if identity.public_key_values.is_some() {
             public_keys.extend(preprocess_public_key_identity(
-                &identity,
+                identity,
                 entity_name,
                 service_name,
                 key_algorithm_provider,
@@ -310,7 +340,7 @@ async fn preprocess_certificate_identity(
         let fingerprint = match certificate_validator
             .parse_pem_chain(
                 &pem_chain,
-                CertificateValidationOptions::signature_and_validity(None),
+                CertificateValidationOptions::signature_and_validity(None).with_verify_only_keys(),
             )
             .await
         {
@@ -502,6 +532,35 @@ mod test {
             service["ServiceInformation"]["ServiceStatus"] =
                 "http://uri.etsi.org/19602/SvcStatus/withdrawn".into();
         }
+        let lote: LoTEPayload = serde_json::from_value(payload).unwrap();
+
+        let preprocessed = preprocess_lote(
+            lote,
+            &MockCertificateValidator::new(),
+            &MockKeyAlgorithmProvider::new(),
+        )
+        .await
+        .unwrap();
+
+        assert!(preprocessed.trusted_entities.is_empty());
+    }
+
+    #[tokio::test]
+    async fn revocation_service_without_an_active_issuance_service_yields_no_anchors() {
+        let mut payload = jws_payload(super::super::test::SPRIND_LOTE_JWS).unwrap();
+        let services = payload["TrustedEntitiesList"][0]["TrustedEntityServices"]
+            .as_array_mut()
+            .unwrap();
+        assert!(
+            services[1]["ServiceInformation"]["ServiceTypeIdentifier"]
+                .as_str()
+                .unwrap()
+                .ends_with("/Revocation")
+        );
+        services[0]["ServiceInformation"]["ServiceStatus"] =
+            "http://uri.etsi.org/19602/SvcStatus/withdrawn".into();
+        services[1]["ServiceInformation"]["ServiceStatus"] =
+            "http://uri.etsi.org/19602/SvcStatus/active".into();
         let lote: LoTEPayload = serde_json::from_value(payload).unwrap();
 
         let preprocessed = preprocess_lote(

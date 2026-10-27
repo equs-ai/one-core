@@ -47,7 +47,10 @@ pub async fn preprocess_services(
             {
                 // no_validation here; the chain/revocation check runs at match time
                 if let Ok(parsed) = certificate_validator
-                    .parse_pem_chain(&pem, CertificateValidationOptions::no_validation())
+                    .parse_pem_chain(
+                        &pem,
+                        CertificateValidationOptions::no_validation().with_verify_only_keys(),
+                    )
                     .await
                 {
                     let ski = crate::mapper::x509::pem_to_subject_key_identifier(&pem)

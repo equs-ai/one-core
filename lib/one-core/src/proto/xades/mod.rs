@@ -309,7 +309,7 @@ impl XAdESEnvelopedSignature {
         let parsed = certificate_validator
             .parse_pem_chain(
                 &pem_chain,
-                CertificateValidationOptions::signature_and_validity(None),
+                CertificateValidationOptions::signature_and_validity(None).with_verify_only_keys(),
             )
             .await
             .error_while("validating signer certificate chain")?;

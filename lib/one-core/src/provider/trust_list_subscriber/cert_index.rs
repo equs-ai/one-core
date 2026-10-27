@@ -84,7 +84,8 @@ impl CertIndex {
                     .validate_chain_against_ca_chain(
                         pem_chain,
                         &entry.pem,
-                        CertificateValidationOptions::signature_and_revocation_below_anchor(None),
+                        CertificateValidationOptions::signature_and_revocation_below_anchor(None)
+                            .with_verify_only_keys(),
                         CertSelection::Leaf,
                     )
                     .await
@@ -106,7 +107,8 @@ impl CertIndex {
             let parsed = certificate_validator
                 .parse_pem_chain(
                     pem_chain,
-                    CertificateValidationOptions::signature_and_validity(None),
+                    CertificateValidationOptions::signature_and_validity(None)
+                        .with_verify_only_keys(),
                 )
                 .await
                 .error_while("parsing input PEM chain")?;

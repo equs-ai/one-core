@@ -3,11 +3,10 @@
 use std::sync::Arc;
 
 use similar_asserts::assert_eq;
+use standardized_types::etsi_119_602::json::{LoTEPayload, LoTEType};
 use standardized_types::etsi_119_612::xml::TrustServiceStatusList;
 use time::macros::datetime;
 use url::Url;
-
-use standardized_types::etsi_119_602::json::{LoTEPayload, LoTEType};
 
 use super::{AnchorRole, ExportPolicy, TrustListExporter, TrustListKind};
 use crate::proto::clock::{TaskLocalClock, run_with_mocked_time_async};
@@ -564,6 +563,54 @@ fn lote_services_with_a_tl_style_status_are_anchors_and_others_are_reported() {
             service_type: Some("http://uri.etsi.org/19602/SvcType/PID/Revocation".to_string()),
             service_status: Some("http://uri.etsi.org/19602/SvcStatus/withdrawn".to_string()),
         }]
+    );
+}
+
+#[test]
+fn revocation_service_without_an_active_issuance_service_of_its_kind_is_reported() {
+    let services = "/LoTE/TrustedEntitiesList/0/TrustedEntityServices";
+    let issuance_withdrawn = eu_pid_lote(|payload| {
+        payload.pointer_mut(services).unwrap()[0]["ServiceInformation"]["ServiceStatus"] =
+            "http://uri.etsi.org/19602/SvcStatus/withdrawn".into();
+    });
+    let issuance_of_another_kind = eu_pid_lote(|payload| {
+        payload.pointer_mut(services).unwrap()[0]["ServiceInformation"]["ServiceTypeIdentifier"] =
+            "http://uri.etsi.org/19602/SvcType/PubEAA/Issuance".into();
+    });
+
+    let withdrawn = grants(&issuance_withdrawn);
+    let other_kind = grants(&issuance_of_another_kind);
+
+    // the revocation service is active, but its key is no anchor once issuance is withdrawn
+    assert!(withdrawn.anchors.is_empty(), "{:?}", withdrawn.anchors);
+    let excluded: Vec<_> = withdrawn
+        .excluded
+        .iter()
+        .map(|service| service.service_type.as_deref())
+        .collect();
+    assert_eq!(
+        excluded,
+        [
+            Some("http://uri.etsi.org/19602/SvcType/PID/Issuance"),
+            Some("http://uri.etsi.org/19602/SvcType/PID/Revocation"),
+        ]
+    );
+
+    assert_eq!(
+        other_kind
+            .anchors
+            .iter()
+            .map(|anchor| anchor.service_type.as_deref())
+            .collect::<Vec<_>>(),
+        [Some("http://uri.etsi.org/19602/SvcType/PubEAA/Issuance")]
+    );
+    assert_eq!(
+        other_kind
+            .excluded
+            .iter()
+            .map(|service| service.service_type.as_deref())
+            .collect::<Vec<_>>(),
+        [Some("http://uri.etsi.org/19602/SvcType/PID/Revocation")]
     );
 }
 

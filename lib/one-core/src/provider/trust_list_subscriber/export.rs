@@ -7,7 +7,7 @@ use time::OffsetDateTime;
 use url::Url;
 
 pub use super::etsi_lote::LoteContentType;
-use super::etsi_lote::preprocessing::{is_active_lote_service, requires_explicit_status};
+use super::etsi_lote::preprocessing::{is_trusted_lote_service, requires_explicit_status};
 use super::etsi_lote::resolver::{EtsiLoteResolver, EtsiLoteResolverOptions};
 use super::etsi_lotl::model::DelegatedMember;
 use super::etsi_lotl::resolver::{CollectedTsl, EtsiLotlResolver, EtsiLotlResolverOptions};
@@ -79,7 +79,8 @@ pub struct TrustListAnchor {
     pub source_next_update: OffsetDateTime,
 }
 
-/// A LoTE service that granted no anchor because of its status.
+/// A LoTE service that granted no anchor: its status is not active, or it is a `…/Revocation`
+/// service whose entity has no active `…/Issuance` service of the same kind.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExcludedService {
     /// The list that names the service.
@@ -98,7 +99,7 @@ pub struct TrustListExport {
     /// `NextUpdate` of the root list; an anchor is stale at the earlier of this and its own.
     pub next_update: OffsetDateTime,
     pub skipped_members: Vec<SkippedMember>,
-    /// LoTE services left out for their status (TSL services are not listed).
+    /// LoTE services that granted no anchor (TSL services are not listed).
     pub excluded_services: Vec<ExcludedService>,
     /// The root was accepted on its own embedded signer.
     pub unpinned: bool,
@@ -242,7 +243,7 @@ impl TrustListExporter {
             tracing::info!(
                 %url,
                 excluded = grants.excluded.len(),
-                "LoTE services left out for their status"
+                "LoTE services left out of the export"
             );
         }
         Ok((
@@ -407,7 +408,7 @@ fn tsl_anchors(member: &CollectedTsl) -> Vec<TrustListAnchor> {
     anchors
 }
 
-/// What a list export grants, and the LoTE services it leaves out for their status.
+/// What a list export grants, and the LoTE services it leaves out.
 #[derive(Default)]
 struct Grants {
     anchors: Vec<TrustListAnchor>,
@@ -430,9 +431,10 @@ fn lote_anchors(url: &str, lote: &LoTEPayload, grants: &mut Grants) {
             .te_name
             .first()
             .map(|name| name.value.clone());
-        for service in &entity.trusted_entity_services {
+        let services = &entity.trusted_entity_services;
+        for service in services {
             let info = &service.service_information;
-            if !is_active_lote_service(requires_explicit_status, info.service_status.as_deref()) {
+            if !is_trusted_lote_service(info, services, requires_explicit_status) {
                 grants.excluded.push(ExcludedService {
                     source_url: url.to_string(),
                     entity_name: entity_name.clone(),

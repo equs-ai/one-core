@@ -172,6 +172,9 @@ pub struct CertificateValidationOptions {
     /// This is specifically used in the Android App integrity check.
     pub leaf_only_extensions: Vec<String>,
     pub leaf_validations: Vec<LeafValidation>,
+    /// Parse an RSA or P-384 leaf key, which the key algorithm provider lacks, into a verify-only
+    /// handle instead of failing
+    pub verify_only_keys: bool,
 }
 
 impl CertificateValidationOptions {
@@ -184,6 +187,7 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: Default::default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
         }
     }
 
@@ -202,6 +206,7 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
         }
     }
 
@@ -216,6 +221,7 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
         }
     }
 
@@ -230,6 +236,15 @@ impl CertificateValidationOptions {
         }
     }
 
+    /// Also accept an RSA or P-384 leaf key, as a verify-only handle. Only for trust-list signers
+    /// and entities, whose signatures are checked against the algorithm they name.
+    pub fn with_verify_only_keys(self) -> Self {
+        Self {
+            verify_only_keys: true,
+            ..self
+        }
+    }
+
     /// Only signature and revocation checks are performed
     pub fn signature_and_revocation(
         required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
@@ -241,6 +256,7 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
         }
     }
 }
