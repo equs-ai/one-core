@@ -26,9 +26,9 @@ diverged at `7505afb41`.
   JWT, `PointersToOtherLoTE` following bounded by `maxPointerDepth`, and
   `resolve_certificate` / `resolve_public_key` on `TrustListSubscriber`.
 - `ErrorCode::BR_0410` (certificate not trusted).
-- `mso_mdoc` MSO `status` is decoded: `status_list` becomes a `TokenStatusListEntry`, other mechanisms are kept by name ([#10]).
+- `mso_mdoc` MSO `status` is decoded: `status_list` becomes a `TokenStatusListEntry`; other mechanisms are kept in the MSO but not checked ([#10]).
 - Trust-list signer pinning: roots against `trustAnchors`, members against their pointer's certificates ([#10]).
-- Trust-list fetch limits: document size, pointer budget, https-only pointers, per-document timeout, export deadline ([#10]).
+- Trust-list fetch limits: document size, pointer budget, https-only pointers, per-document timeout (also for a pointed-to list a collection starts from), export deadline ([#10]).
 - `trust_list_subscriber::export::TrustListExporter`: database-free export of the anchors a LoTL or LoTE grants ([#10]).
 - `proto::spki_signature`: verification-only RSA and ECDSA P-384 for trust-list signatures; RSA credentials stay rejected ([#10]).
 - `ReqwestClient::hardened`, `ReqwestClient::for_revocation_data` and `ReqwestClientOptions` ([#10]).
@@ -38,7 +38,7 @@ diverged at `7505afb41`.
 
 ### Changed
 
-- Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.1.1 ([#10]).
+- Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.1.1, which `equs-one-core` requires ([#10]).
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.

@@ -211,7 +211,9 @@ impl EtsiLotlResolver {
     pub async fn collect(&self, url: &str, pin: &SignerPin) -> Result<LotlCollection, FetchError> {
         let limits = &self.options.limits;
         let deadline = Deadline::after(limits);
-        let (lotl, next_update) = deadline.bound_root(self.fetch_and_verify(url, pin)).await?;
+        let (lotl, next_update) = deadline
+            .bound_list(limits, pin, self.fetch_and_verify(url, pin))
+            .await?;
         if lotl.scheme_information.tsl_type != TslType::ListOfLists {
             return Err(FetchError::InvalidDocument(format!(
                 "expected {}, got {}",

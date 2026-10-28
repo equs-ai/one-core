@@ -147,6 +147,21 @@ impl Deadline {
             .map_err(|_| FetchError::Deadline)?
     }
 
+    /// Runs `work` on the list a collection starts from, fetched under `pin`: one reached through a
+    /// pointer is a member document ([Deadline::bound]), a root has until the deadline
+    /// ([Deadline::bound_root]).
+    pub(crate) async fn bound_list<T>(
+        &self,
+        limits: &FetchLimits,
+        pin: &SignerPin,
+        work: impl Future<Output = Result<T, FetchError>>,
+    ) -> Result<T, FetchError> {
+        match pin {
+            SignerPin::Pointer { .. } => self.bound(limits, work).await,
+            SignerPin::Anchors { .. } | SignerPin::Unpinned => self.bound_root(work).await,
+        }
+    }
+
     /// Runs `work` on the root list until the deadline.
     pub(crate) async fn bound_root<T>(
         &self,

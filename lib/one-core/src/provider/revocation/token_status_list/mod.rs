@@ -835,25 +835,25 @@ pub(crate) fn credential_status_from_sdjwt_status(
         .collect()
 }
 
-/// The `status_list` of an MSO `status` first, then every other mechanism (e.g. `identifier_list`)
-/// as an entry typed by its name, so an unsupported mechanism is not mistaken for no status.
+/// The `status_list` of an MSO `status`. Other mechanisms (e.g. `identifier_list`) have no
+/// revocation method, so they are left out rather than failing issuance and presentation.
 pub(crate) fn credential_status_from_mso_status(
     mso_status: Option<&MsoStatus>,
 ) -> Vec<CredentialStatus> {
     let Some(mso_status) = mso_status else {
         return vec![];
     };
-    let status_list = mso_status
+    if !mso_status.other.is_empty() {
+        tracing::info!(
+            mechanisms = ?mso_status.other.keys().collect::<Vec<_>>(),
+            "MSO status mechanisms without a revocation method are not checked"
+        );
+    }
+    mso_status
         .status_list
         .iter()
-        .map(|status_list| token_status_list_entry(status_list.uri.clone(), status_list.idx));
-    let other = mso_status.other.keys().map(|mechanism| CredentialStatus {
-        id: None,
-        r#type: mechanism.to_owned(),
-        status_purpose: None,
-        additional_fields: HashMap::new(),
-    });
-    status_list.chain(other).collect()
+        .map(|status_list| token_status_list_entry(status_list.uri.clone(), status_list.idx))
+        .collect()
 }
 
 fn token_status_list_entry(uri: String, index: usize) -> CredentialStatus {

@@ -309,9 +309,18 @@ impl HttpClient for Hanging {
 
 /// Exports the LoTL with the delegated LoTE at DE while the FR member host never answers.
 async fn export_with_fr_hanging(deadline: u64, document_timeout: u64) -> super::TrustListExport {
+    export_with_hanging(FR_URL, deadline, document_timeout).await
+}
+
+/// Exports the LoTL with the delegated LoTE at DE while the host at `hang_url` never answers.
+async fn export_with_hanging(
+    hang_url: &'static str,
+    deadline: u64,
+    document_timeout: u64,
+) -> super::TrustListExport {
     let client = Hanging {
         inner: client(&lotl_with_delegated_lote(REGISTRARS_LOTE_TYPE), true),
-        hang_url: FR_URL,
+        hang_url,
     };
     let url = Url::parse(LOTL_URL).unwrap();
 
@@ -354,6 +363,23 @@ async fn member_host_that_never_answers_is_skipped_and_the_rest_exported() {
             .anchors
             .iter()
             .any(|anchor| anchor.source_url == DE_URL)
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn delegated_lote_host_that_never_answers_is_skipped_after_the_document_timeout() {
+    let started = tokio::time::Instant::now();
+
+    let export = export_with_hanging(DE_URL, 300, 30).await;
+
+    // not held until the deadline: a pointed-to LoTE is one member document
+    assert_eq!(skip_reason(&export, DE_URL), Some(SkipReason::Unreachable));
+    assert!(started.elapsed() < std::time::Duration::from_secs(60));
+    assert!(
+        export
+            .anchors
+            .iter()
+            .any(|anchor| anchor.source_url == FR_URL)
     );
 }
 

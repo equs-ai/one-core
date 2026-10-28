@@ -158,7 +158,6 @@ impl TryFrom<IndexMap<String, Value>> for MsoStatus {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct MsoStatusList {
     pub idx: usize,
-    /// As the issuer wrote it: the status list token's `sub` must equal it.
     #[serde(deserialize_with = "parsable_uri")]
     pub uri: String,
 }

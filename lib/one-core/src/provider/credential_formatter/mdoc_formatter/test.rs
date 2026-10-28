@@ -1186,13 +1186,13 @@ fn test_mso_without_status_omits_it() {
 }
 
 #[test]
-fn test_mso_status_list_is_a_token_status_list_entry_and_other_mechanisms_are_named() {
+fn test_mso_status_list_is_a_token_status_list_entry_and_other_mechanisms_are_left_out() {
     let status = Value::Map(vec![status_list(6482.into()), identifier_list()]);
     let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
 
     let entries = credential_status_from_mso_status(mso.status.as_ref());
 
-    assert_eq!(entries.len(), 2);
+    assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].r#type, "TokenStatusListEntry");
     assert_eq!(
         entries[0].additional_fields.get("uri"),
@@ -1202,18 +1202,17 @@ fn test_mso_status_list_is_a_token_status_list_entry_and_other_mechanisms_are_na
         entries[0].additional_fields.get("idx"),
         Some(&json!("6482"))
     );
-    assert_eq!(entries[1].r#type, "identifier_list");
 }
 
 #[test]
-fn test_mso_identifier_list_only_is_not_read_as_no_status() {
+fn test_mso_identifier_list_only_yields_no_credential_status() {
     let status = Value::Map(vec![identifier_list()]);
     let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
 
-    let entries = credential_status_from_mso_status(mso.status.as_ref());
-
-    assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].r#type, "identifier_list");
+    // no revocation method checks it; an entry would fail issuance and presentation
+    assert!(credential_status_from_mso_status(mso.status.as_ref()).is_empty());
+    // still decoded, so it round-trips
+    assert!(mso.status.unwrap().other.contains_key("identifier_list"));
 }
 
 #[test]
