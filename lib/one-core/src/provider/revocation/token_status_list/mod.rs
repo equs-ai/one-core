@@ -835,24 +835,35 @@ pub(crate) fn credential_status_from_sdjwt_status(
         .collect()
 }
 
-/// The `status_list` of an MSO `status`. Other mechanisms (e.g. `identifier_list`) have no
-/// revocation method, so they are left out rather than failing issuance and presentation.
+/// The `status_list` of an MSO `status`, or else every other mechanism by name, so a status
+/// that cannot be checked is not read as none.
 pub(crate) fn credential_status_from_mso_status(
     mso_status: Option<&MsoStatus>,
 ) -> Vec<CredentialStatus> {
     let Some(mso_status) = mso_status else {
         return vec![];
     };
-    if !mso_status.other.is_empty() {
-        tracing::info!(
-            mechanisms = ?mso_status.other.keys().collect::<Vec<_>>(),
-            "MSO status mechanisms without a revocation method are not checked"
-        );
+    if let Some(status_list) = &mso_status.status_list {
+        if !mso_status.other.is_empty() {
+            tracing::info!(
+                mechanisms = ?mso_status.other.keys().collect::<Vec<_>>(),
+                "MSO status mechanisms beside status_list are not checked"
+            );
+        }
+        return vec![token_status_list_entry(
+            status_list.uri.clone(),
+            status_list.idx,
+        )];
     }
     mso_status
-        .status_list
-        .iter()
-        .map(|status_list| token_status_list_entry(status_list.uri.clone(), status_list.idx))
+        .other
+        .keys()
+        .map(|mechanism| CredentialStatus {
+            id: None,
+            r#type: mechanism.to_owned(),
+            status_purpose: None,
+            additional_fields: HashMap::new(),
+        })
         .collect()
 }
 

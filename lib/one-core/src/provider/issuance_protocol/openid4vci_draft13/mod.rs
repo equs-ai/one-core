@@ -13,6 +13,7 @@ use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use shared_types::{
     BlobId, CredentialFormat, CredentialId, DidValue, HolderWalletUnitId, InteractionId,
+    RevocationMethodId,
 };
 use standardized_types::jwk::PublicJwk;
 use time::{Duration, OffsetDateTime};
@@ -58,7 +59,7 @@ use crate::provider::caching_loader::openid_metadata::OpenIDMetadataFetcher;
 use crate::provider::credential_formatter::mapper::credential_data_from_credential_detail_response;
 use crate::provider::credential_formatter::mdoc_formatter;
 use crate::provider::credential_formatter::model::{
-    AuthenticationFn, CertificateDetails, IdentifierDetails,
+    AuthenticationFn, CertificateDetails, CredentialStatus, IdentifierDetails,
 };
 use crate::provider::credential_formatter::provider::CredentialFormatterProvider;
 use crate::provider::did_method::provider::DidMethodProvider;
@@ -522,19 +523,8 @@ impl OpenID4VCI13 {
 
         // Revocation method must be updated based on the issued credential (unknown in credential offer).
         // Revocation method should be the same for every credential in list.
-        let revocation_method = if let Some(credential_status) = response_credential.status.first()
-        {
-            let (_, revocation_method) = self
-                .revocation_provider
-                .get_revocation_method_by_status_type(&credential_status.r#type)
-                .ok_or(IssuanceProtocolError::Failed(format!(
-                    "Revocation method not found for status type {}",
-                    credential_status.r#type
-                )))?;
-            Some(revocation_method)
-        } else {
-            None
-        };
+        let revocation_method =
+            holder_revocation_method(&*self.revocation_provider, &response_credential.status);
 
         let organisation = schema
             .organisation
@@ -1898,6 +1888,25 @@ async fn prepare_issuance_interaction_and_credentials_with_claims(
             credential_config,
         ),
     })
+}
+
+/// The revocation method of the first status that has one; a status without one is not checked.
+fn holder_revocation_method(
+    revocation_provider: &dyn RevocationMethodProvider,
+    statuses: &[CredentialStatus],
+) -> Option<RevocationMethodId> {
+    let method = statuses.iter().find_map(|status| {
+        revocation_provider
+            .get_revocation_method_by_status_type(&status.r#type)
+            .map(|(_, method)| method)
+    });
+    if method.is_none() && !statuses.is_empty() {
+        tracing::info!(
+            types = ?statuses.iter().map(|status| &status.r#type).collect::<Vec<_>>(),
+            "Credential status types without a revocation method are not checked"
+        );
+    }
+    method
 }
 
 fn has_matching_format(

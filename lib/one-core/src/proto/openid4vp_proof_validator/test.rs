@@ -245,6 +245,48 @@ async fn test_validate_submission_suspended_dcql() {
 }
 
 #[tokio::test]
+async fn test_validate_submission_rejects_a_status_without_a_revocation_method() {
+    let mut test_data = test_data(None, Some(dummy_dcql_query(true)));
+    test_data.mock_data.revocation_check = None;
+    for extraction in [
+        &mut test_data.mock_data.credential_extraction,
+        &mut test_data.mock_data.credential_extraction_unverified,
+    ] {
+        if let Some(Ok(credential)) = extraction {
+            credential.status[0].r#type = "identifier_list".to_string();
+        }
+    }
+    let mut mocks = mocks_with_test_data(test_data.mock_data);
+    mocks
+        .revocation_method_provider
+        .expect_get_revocation_method_by_status_type()
+        .returning(|_| None);
+    let proto = setup_proto(mocks);
+
+    let submission_data = SubmissionRequestData {
+        submission_data: VpSubmissionData::Dcql(DcqlSubmission {
+            vp_token: hashmap! {"a83dabc3-1601-4642-84ec-7a5ad8a70d36".to_string() => vec!["vp_token".to_string()]},
+        }),
+        state: "a83dabc3-1601-4642-84ec-7a5ad8a70d36".parse().unwrap(),
+        mdoc_generated_nonce: None,
+        encryption_key: None,
+    };
+    let err = proto
+        .validate_submission(
+            submission_data,
+            test_data.proof,
+            test_data.interaction_data,
+            VerificationProtocolType::OpenId4VpFinal1_0,
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, OpenID4VCError::MissingRevocationProviderForType(ref t) if t == "identifier_list"),
+        "{err:?}"
+    );
+}
+
+#[tokio::test]
 async fn test_validate_submission_incompatible_did_method() {
     let mut test_data = test_data(None, Some(dummy_dcql_query(true)));
     test_data

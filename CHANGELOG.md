@@ -26,7 +26,7 @@ diverged at `7505afb41`.
   JWT, `PointersToOtherLoTE` following bounded by `maxPointerDepth`, and
   `resolve_certificate` / `resolve_public_key` on `TrustListSubscriber`.
 - `ErrorCode::BR_0410` (certificate not trusted).
-- `mso_mdoc` MSO `status` is decoded: `status_list` becomes a `TokenStatusListEntry`; other mechanisms are kept in the MSO but not checked ([#10]).
+- `mso_mdoc` MSO `status` is decoded: `status_list` becomes a `TokenStatusListEntry`. Without one, other mechanisms (e.g. `identifier_list`) become entries typed by their name, which a verifier rejects as unsupported; a holder accepts the credential without a revocation method ([#10]).
 - Trust-list signer pinning: roots against `trustAnchors`, members against their pointer's certificates ([#10]).
 - Trust-list fetch limits: document size, pointer budget, https-only pointers, per-document timeout (also for a pointed-to list a collection starts from), export deadline ([#10]).
 - `trust_list_subscriber::export::TrustListExporter`: database-free export of the anchors a LoTL or LoTE grants ([#10]).
