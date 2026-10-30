@@ -5,7 +5,7 @@ license                = "Apache-2.0"
 name                   = "equs-one-core-dcql"
 repository.workspace   = true
 rust-version.workspace = true
-version                = "0.1.0"
+version                = "0.2.0"
 
 [lib]
 name = "dcql"

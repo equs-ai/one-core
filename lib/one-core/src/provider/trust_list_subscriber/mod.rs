@@ -14,6 +14,8 @@ pub(crate) mod cert_index;
 pub mod error;
 pub(crate) mod etsi_lote;
 pub(crate) mod etsi_lotl;
+pub mod export;
+pub mod fetch;
 pub mod provider;
 
 pub use etsi_lotl::model::TslServiceEntry;
@@ -29,8 +31,7 @@ pub trait TrustListSubscriber: Send + Sync {
         role: Option<TrustListRoleEnum>,
     ) -> Result<TrustListValidationSuccess, TrustListSubscriberError>;
 
-    /// All trust entries each identifier resolves to; identifiers with no match
-    /// are omitted.
+    /// All trust entries each identifier resolves to; identifiers with no match are omitted.
     async fn resolve_entries(
         &self,
         reference: &Url,
@@ -43,6 +44,17 @@ pub trait TrustListSubscriber: Send + Sync {
         reference: &Url,
         pem_chain: &str,
     ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError>;
+
+    /// [`Self::resolve_certificate`] with the list authenticated under `pin`, for lists reached
+    /// through a pointer.
+    async fn resolve_certificate_pinned(
+        &self,
+        _reference: &Url,
+        _pem_chain: &str,
+        _pin: &fetch::SignerPin,
+    ) -> Result<Vec<TrustEntityResponse>, TrustListSubscriberError> {
+        Err(TrustListSubscriberError::PinningNotSupported)
+    }
 
     /// All trust entries a public key resolves to (empty if none).
     async fn resolve_public_key(
@@ -71,9 +83,6 @@ pub struct TrustListValidationSuccess {
     pub role: Option<TrustListRoleEnum>,
 }
 
-/// Standard-agnostic result of resolving an identifier. `derived_role` is the
-/// per-entity role (`None` → the subscription's own role applies); `metadata` is
-/// the standard-specific payload, surfaced for display only.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrustEntityResponse {
     pub derived_role: Option<TrustListRoleEnum>,

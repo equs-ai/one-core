@@ -5,7 +5,7 @@ edition.workspace    = true
 license.workspace    = true
 name                 = "equs-one-core-portable"
 repository.workspace = true
-version.workspace    = true
+version            = "0.2.0"
 
 [lib]
 name = "one_core_portable"
@@ -16,7 +16,7 @@ async-trait.workspace        = true
 bs58.workspace               = true
 ciborium                     = { version = "0.2" }
 ct-codecs.workspace          = true
-dcql                         = { package = "equs-one-core-dcql", version = "0.1.0", path = "../dcql" }
+dcql                         = { package = "equs-one-core-dcql", version = "0.2.0", path = "../dcql" }
 figment                      = { version = "0.10", default-features = false }
 hex.workspace                = true
 hex-literal.workspace        = true

@@ -32,7 +32,7 @@ pub(crate) mod x509_extension;
 pub use trust_anchor::validate_chain_against_trust_anchors;
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -145,6 +145,10 @@ pub enum CrlMode {
     X509,
     /// <https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status>
     AndroidAttestation,
+    /// Validity period only; no revocation source is consulted.
+    ValidityOnly,
+    /// [CrlMode::X509] below the topmost certificate, which is the configured trust anchor.
+    X509BelowAnchor,
 }
 
 pub enum EnforceKeyUsage {
@@ -168,6 +172,9 @@ pub struct CertificateValidationOptions {
     /// This is specifically used in the Android App integrity check.
     pub leaf_only_extensions: Vec<String>,
     pub leaf_validations: Vec<LeafValidation>,
+    /// Parse an RSA or P-384 leaf key, which the key algorithm provider lacks, into a verify-only
+    /// handle instead of failing
+    pub verify_only_keys: bool,
 }
 
 impl CertificateValidationOptions {
@@ -180,6 +187,7 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: Default::default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
         }
     }
 
@@ -198,6 +206,42 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
+        }
+    }
+
+    /// Signatures, critical extensions, validity periods and leaf key usage, without revocation.
+    pub fn signature_and_validity(
+        required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
+    ) -> Self {
+        Self {
+            require_root_termination: false,
+            integrity_check: true,
+            validity_check: Some(CrlMode::ValidityOnly),
+            required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
+            leaf_only_extensions: Default::default(),
+            leaf_validations: Default::default(),
+            verify_only_keys: false,
+        }
+    }
+
+    /// [CertificateValidationOptions::signature_and_revocation] for a chain ending in its trust
+    /// anchor; the anchor itself is not checked for revocation.
+    pub fn signature_and_revocation_below_anchor(
+        required_leaf_cert_key_usage: Option<Vec<EnforceKeyUsage>>,
+    ) -> Self {
+        Self {
+            validity_check: Some(CrlMode::X509BelowAnchor),
+            ..Self::signature_and_revocation(required_leaf_cert_key_usage)
+        }
+    }
+
+    /// Also accept an RSA or P-384 leaf key, as a verify-only handle. Only for trust-list signers
+    /// and entities, whose signatures are checked against the algorithm they name.
+    pub fn with_verify_only_keys(self) -> Self {
+        Self {
+            verify_only_keys: true,
+            ..self
         }
     }
 
@@ -212,6 +256,7 @@ impl CertificateValidationOptions {
             required_leaf_cert_key_usage: required_leaf_cert_key_usage.unwrap_or_default(),
             leaf_only_extensions: Default::default(),
             leaf_validations: Default::default(),
+            verify_only_keys: false,
         }
     }
 }

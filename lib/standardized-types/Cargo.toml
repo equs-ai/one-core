@@ -6,7 +6,7 @@ license.workspace      = true
 name                   = "equs-one-core-standardized-types"
 repository.workspace   = true
 rust-version.workspace = true
-version.workspace      = true
+version              = "0.2.0"
 
 [lib]
 name = "standardized_types"

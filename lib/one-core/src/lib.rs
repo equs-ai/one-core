@@ -374,7 +374,6 @@ impl OneCore {
             &mut config,
             clock.clone(),
             client.clone(),
-            did_method_provider.clone(),
             key_algorithm_provider.clone(),
             certificate_validator.clone(),
             xades_proto,

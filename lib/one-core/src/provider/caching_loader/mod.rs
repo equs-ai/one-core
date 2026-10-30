@@ -17,6 +17,8 @@ use async_trait::async_trait;
 use time::OffsetDateTime;
 use tokio::sync::Mutex;
 
+use crate::proto::clock::{Clock, DefaultClock};
+
 use super::remote_entity_storage::{
     RemoteEntity, RemoteEntityStorage, RemoteEntityStorageError, RemoteEntityType,
 };
@@ -118,6 +120,7 @@ pub struct CachingLoader<E = ResolverError> {
     refresh_after: time::Duration,
 
     clean_old_mutex: Arc<Mutex<()>>,
+    clock: Arc<dyn Clock>,
 
     _marker: std::marker::PhantomData<E>,
 }
@@ -131,6 +134,7 @@ impl<E> Clone for CachingLoader<E> {
             cache_refresh_timeout: self.cache_refresh_timeout,
             refresh_after: self.refresh_after,
             clean_old_mutex: self.clean_old_mutex.clone(),
+            clock: self.clock.clone(),
             _marker: Default::default(),
         }
     }
@@ -151,8 +155,15 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
             cache_refresh_timeout,
             refresh_after,
             clean_old_mutex: Arc::new(Mutex::new(())),
+            clock: Arc::new(DefaultClock),
             _marker: Default::default(),
         }
+    }
+
+    /// Use `clock` for expiry and freshness decisions instead of the system clock.
+    pub fn with_clock(mut self, clock: Arc<dyn Clock>) -> Self {
+        self.clock = clock;
+        self
     }
 
     pub async fn get(
@@ -214,6 +225,7 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
         };
 
         let requires_update = context_requires_update(
+            self.clock.now_utc(),
             cached_entry.last_modified,
             expiration_date,
             self.refresh_after,
@@ -231,7 +243,7 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
                         media_type,
                         expiry_date,
                     } => {
-                        context.last_modified = crate::clock::now_utc();
+                        context.last_modified = self.clock.now_utc();
                         context.value = content;
                         context.media_type = media_type;
                         context.expiration_date = self.effective_expiry(expiry_date)
@@ -248,7 +260,7 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
             }
         }
 
-        context.last_used = crate::clock::now_utc();
+        context.last_used = self.clock.now_utc();
 
         if let Err(error) = self.storage.insert(context.to_owned()).await {
             match error {
@@ -277,7 +289,7 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
                 media_type,
                 expiry_date,
             } => {
-                let now = crate::clock::now_utc();
+                let now = self.clock.now_utc();
                 if let Err(err) = self
                     .storage
                     .insert(RemoteEntity {
@@ -309,7 +321,7 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
     /// Calculates the effective expiry date to use based on the value suggested by the resolver (if any)
     /// and the cache configuration.
     fn effective_expiry(&self, resolved_expiry: Option<OffsetDateTime>) -> Option<OffsetDateTime> {
-        let default_exp = crate::clock::now_utc() + self.cache_refresh_timeout;
+        let default_exp = self.clock.now_utc() + self.cache_refresh_timeout;
         resolved_expiry
             .map(|exp| min(exp, default_exp))
             .or(Some(default_exp))
@@ -328,12 +340,11 @@ impl<E: From<NestedError> + ErrorCodeMixin> CachingLoader<E> {
 }
 
 fn context_requires_update(
+    now: OffsetDateTime,
     last_modified: OffsetDateTime,
     expiration_date: OffsetDateTime,
     refresh_after: time::Duration,
 ) -> ContextRequiresUpdate {
-    let now = crate::clock::now_utc();
-
     if expiration_date < now {
         return ContextRequiresUpdate::MustBeUpdated;
     };

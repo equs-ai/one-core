@@ -18,7 +18,6 @@ pub(crate) struct CertEntry {
 
 /// Certificate matching index shared by the LoTL and LoTE subscribers, mapping a
 /// CA SubjectKeyIdentifier and a leaf fingerprint to the entries they back.
-/// Multi-valued so a CA backing services of different roles is not collapsed.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(crate) struct CertIndex {
     pub ca_ski_to_entries: HashMap<KeyIdentifier, Vec<CertEntry>>,
@@ -85,7 +84,8 @@ impl CertIndex {
                     .validate_chain_against_ca_chain(
                         pem_chain,
                         &entry.pem,
-                        CertificateValidationOptions::signature_and_revocation(None),
+                        CertificateValidationOptions::signature_and_revocation_below_anchor(None)
+                            .with_verify_only_keys(),
                         CertSelection::Leaf,
                     )
                     .await
@@ -103,10 +103,12 @@ impl CertIndex {
         }
 
         if matched.is_empty() {
+            // a listed leaf is its own anchor: nothing below it to check for revocation
             let parsed = certificate_validator
                 .parse_pem_chain(
                     pem_chain,
-                    CertificateValidationOptions::signature_and_revocation(None),
+                    CertificateValidationOptions::signature_and_validity(None)
+                        .with_verify_only_keys(),
                 )
                 .await
                 .error_while("parsing input PEM chain")?;

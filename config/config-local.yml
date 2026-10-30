@@ -329,3 +329,9 @@ verifierProvider:
             link: https//example.com
         featureFlags:
           trustEcosystemsEnabled: true
+trustListSubscriber:
+  LOTE_SUBSCRIBER:
+    params:
+      private:
+        # local/test only: accept root LoTEs on their own embedded signer
+        allowUnpinnedRoot: true

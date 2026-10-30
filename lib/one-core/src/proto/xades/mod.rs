@@ -10,10 +10,11 @@ use async_trait::async_trait;
 use ct_codecs::{Base64, Decoder};
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
+use one_crypto::hasher::sha384::SHA384;
 use one_crypto::hasher::sha512::SHA512;
 use serde::de::DeserializeOwned;
 use standardized_types::xades::{
-    self, EXC_C14N, INC_C14N, SHA256_DIGEST_URI, SHA512_DIGEST_URI, XMLDSIG_NS,
+    self, EXC_C14N, INC_C14N, SHA256_DIGEST_URI, SHA384_DIGEST_URI, SHA512_DIGEST_URI, XMLDSIG_NS,
 };
 use time::OffsetDateTime;
 use xades::Transform::*;
@@ -22,8 +23,10 @@ use xades::XPathFilter2Op;
 use self::error::Error;
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::x5c_into_pem_chain;
+use crate::mapper::x509::wrapped_certs_into_pem_chain;
+use crate::proto::certificate_validator::parse::extract_leaf_pem_from_chain;
 use crate::proto::certificate_validator::{CertificateValidationOptions, CertificateValidator};
+use crate::proto::spki_signature::{self, SpkiSignatureAlgorithm};
 use crate::provider::credential_formatter::model::SignatureProvider;
 
 /// Whitespace bytes to skip when decoding base64: XML-DSig `base64Binary`
@@ -43,6 +46,8 @@ fn signature_suite(value: KeyAlgorithmType) -> Result<xades::SignatureSuite, Err
 #[async_trait]
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait XAdESProto: Send + Sync {
+    // Ported from upstream with no caller in the fork yet; the tests sign their fixtures with it.
+    #[cfg_attr(not(test), allow(dead_code))]
     async fn create_enveloped_signature(
         &self,
         unsigned_xml: &str,
@@ -50,8 +55,6 @@ pub trait XAdESProto: Send + Sync {
         x5c: Vec<String>,
     ) -> Result<String, Error>;
 
-    /// Profile checks (which references must exist, signing-time freshness, ...)
-    /// are left to the caller.
     async fn verify_enveloped_signature(
         &self,
         signed: &XAdESEnvelopedSignature,
@@ -179,6 +182,12 @@ impl XAdESProto for XAdES {
         Ok(signed_xml)
     }
 
+    /// Profile checks (which references must exist, signing-time freshness, ...)
+    /// are left to the caller.
+    ///
+    /// Checks the signer chain's integrity and validity period only. Revocation is not checked
+    /// here, because the CRL signer is known only once the chain is anchored. Callers must pin the
+    /// returned signer before trusting the document; pinning runs the revocation check.
     async fn verify_enveloped_signature(
         &self,
         signed: &XAdESEnvelopedSignature,
@@ -262,8 +271,11 @@ impl XAdESEnvelopedSignature {
             )));
         }
 
-        if xades::SignatureSuite::try_from_sig_uri(&signed_info.signature_method.algorithm)
-            .is_none()
+        let signature_method = signed_info.signature_method.algorithm.as_str();
+        // RSA and P-384 are verified with the certificate key directly
+        let spki_algorithm = SpkiSignatureAlgorithm::from_xmldsig_uri(signature_method);
+        if spki_algorithm.is_none()
+            && xades::SignatureSuite::try_from_sig_uri(signature_method).is_none()
         {
             return Err(Error::UnsupportedSuite(format!(
                 "unknown SignatureMethod algorithm: {}",
@@ -291,11 +303,13 @@ impl XAdESEnvelopedSignature {
         let signing_chain = self
             .find_signing_certificate_chain()
             .error_while("matching signing certificate")?;
-        let pem_chain = x5c_into_pem_chain(signing_chain).error_while("parsing signer X509Data")?;
+        let pem_chain =
+            wrapped_certs_into_pem_chain(signing_chain).error_while("parsing signer X509Data")?;
+        // integrity and validity only; revocation is checked once the caller pins the signer
         let parsed = certificate_validator
             .parse_pem_chain(
                 &pem_chain,
-                CertificateValidationOptions::signature_and_revocation(None),
+                CertificateValidationOptions::signature_and_validity(None).with_verify_only_keys(),
             )
             .await
             .error_while("validating signer certificate chain")?;
@@ -312,10 +326,25 @@ impl XAdESEnvelopedSignature {
         let sig_value_bytes = Base64::decode_to_vec(&sig.signature_value.value, B64_IGNORE_WS)
             .map_err(Error::from)
             .error_while("decoding signature value")?;
-        parsed
-            .public_key
-            .verify(&si_canonical, &sig_value_bytes)
-            .error_while("verifying document signature")?;
+        match spki_algorithm {
+            Some(algorithm) => {
+                let leaf = extract_leaf_pem_from_chain(pem_chain.as_bytes())
+                    .error_while("parsing signer certificate")?;
+                let (_, certificate) = x509_parser::parse_x509_certificate(&leaf.contents)
+                    .map_err(|e| Error::InvalidSignature(e.to_string()))?;
+                spki_signature::verify(
+                    algorithm,
+                    certificate.tbs_certificate.subject_pki.raw,
+                    &si_canonical,
+                    &sig_value_bytes,
+                )
+                .map_err(|e| Error::InvalidSignature(e.to_string()))?;
+            }
+            None => parsed
+                .public_key
+                .verify(&si_canonical, &sig_value_bytes)
+                .error_while("verifying document signature")?,
+        }
 
         Ok(XAdESVerified {
             signer_chain_pem: pem_chain,
@@ -470,6 +499,7 @@ fn interpret_ref_transforms(
 fn resolve_hasher(digest_uri: &str) -> Result<Arc<dyn Hasher>, Error> {
     match digest_uri {
         SHA256_DIGEST_URI => Ok(Arc::new(SHA256)),
+        SHA384_DIGEST_URI => Ok(Arc::new(SHA384)),
         SHA512_DIGEST_URI => Ok(Arc::new(SHA512)),
         other => Err(Error::UnsupportedSuite(format!(
             "unsupported digest algorithm URI: {other}"

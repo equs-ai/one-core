@@ -39,7 +39,7 @@ use crate::provider::caching_loader::ResolverError;
 use crate::provider::caching_loader::openid_metadata::MockOpenIDMetadataFetcher;
 use crate::provider::credential_formatter::MockCredentialFormatter;
 use crate::provider::credential_formatter::model::{
-    CredentialSubject, DetailCredential, IdentifierDetails, MockSignatureProvider,
+    CredentialStatus, CredentialSubject, DetailCredential, IdentifierDetails, MockSignatureProvider,
 };
 use crate::provider::credential_formatter::provider::MockCredentialFormatterProvider;
 use crate::provider::did_method::provider::MockDidMethodProvider;
@@ -71,6 +71,7 @@ use crate::provider::key_algorithm::provider::{MockKeyAlgorithmProvider, ParsedK
 use crate::provider::key_algorithm::{KeyAlgorithm, MockKeyAlgorithm};
 use crate::provider::key_security_level::provider::MockKeySecurityLevelProvider;
 use crate::provider::key_storage::provider::MockKeyProvider;
+use crate::provider::revocation::MockRevocationMethod;
 use crate::provider::revocation::provider::MockRevocationMethodProvider;
 use crate::repository::credential_repository::MockCredentialRepository;
 use crate::repository::key_repository::MockKeyRepository;
@@ -2664,4 +2665,57 @@ fn test_params(issuance_url_scheme: &str) -> OpenID4VCIDraft13Params {
         enable_credential_preview: true,
         common: CommonParams { webhook_task: None },
     }
+}
+
+fn status_of_type(r#type: &str) -> CredentialStatus {
+    CredentialStatus {
+        id: None,
+        r#type: r#type.to_string(),
+        status_purpose: None,
+        additional_fields: HashMap::new(),
+    }
+}
+
+/// Resolves only `TokenStatusListEntry`.
+fn token_status_list_only_provider() -> MockRevocationMethodProvider {
+    let mut provider = MockRevocationMethodProvider::new();
+    provider
+        .expect_get_revocation_method_by_status_type()
+        .returning(|status_type| {
+            (status_type == "TokenStatusListEntry").then(|| {
+                (
+                    Arc::new(MockRevocationMethod::new()) as _,
+                    "TOKENSTATUSLIST".into(),
+                )
+            })
+        });
+    provider
+}
+
+#[test]
+fn test_holder_revocation_method_is_none_without_a_status() {
+    assert_eq!(
+        super::holder_revocation_method(&token_status_list_only_provider(), &[]),
+        None
+    );
+}
+
+#[test]
+fn test_holder_revocation_method_is_the_method_of_a_known_status() {
+    let statuses = [status_of_type("TokenStatusListEntry")];
+
+    assert_eq!(
+        super::holder_revocation_method(&token_status_list_only_provider(), &statuses),
+        Some("TOKENSTATUSLIST".into())
+    );
+}
+
+#[test]
+fn test_holder_revocation_method_does_not_fail_on_a_status_without_a_method() {
+    let statuses = [status_of_type("identifier_list")];
+
+    assert_eq!(
+        super::holder_revocation_method(&token_status_list_only_provider(), &statuses),
+        None
+    );
 }

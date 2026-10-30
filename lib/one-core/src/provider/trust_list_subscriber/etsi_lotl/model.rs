@@ -16,6 +16,24 @@ pub struct PreprocessedLotl {
     pub entries: Vec<TslServiceEntry>,
     /// Map of SKI / fingerprint to indices into `entries`.
     pub cert_index: CertIndex,
-    /// Member-list URLs handed to delegate subscribers at resolve time.
-    pub delegated_member_urls: Vec<String>,
+    /// Member lists for delegate subscribers, each pinned to its pointer's certificates.
+    #[serde(default)]
+    pub delegated_members: Vec<DelegatedMember>,
+    /// The root was accepted on its own embedded signer.
+    #[serde(default)]
+    pub unpinned: bool,
+}
+
+/// A non-TSL member list (e.g. a TS 119 602 LoTE) reached through a LoTL pointer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DelegatedMember {
+    pub url: String,
+    /// PEMs of the certificates the pointer names; the member's signer must be one of them.
+    pub signer_pems: Vec<String>,
+    /// The list type the pointer declares (its `TSLType`), which the member must match.
+    #[serde(default)]
+    pub declared_type: Option<String>,
+    /// The media type the pointer declares, if any.
+    #[serde(default)]
+    pub mime_type: Option<String>,
 }
