@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use standardized_types::etsi_119_602::{
-    MultiLangString, MultiLangUri, OtherLoTEPointer, PolicyOrLegalNoticeItem,
+    Extension, MultiLangString, MultiLangUri, OtherLoTEPointer, PolicyOrLegalNoticeItem,
     SchemeOperatorAddress, ServiceSupplyPoint, TEAddress,
 };
 
@@ -11,6 +12,7 @@ pub(crate) struct AddEntryParams {
     pub service: ServiceInfoParams,
 }
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub(crate) struct EntityInfoParams {
@@ -18,9 +20,10 @@ pub(crate) struct EntityInfoParams {
     pub information_uri: Option<Vec<MultiLangUri>>,
     pub trade_name: Option<Vec<MultiLangString>>,
     pub address: Option<TEAddress>,
-    pub extensions: Option<Vec<serde_json::Value>>,
+    pub extensions: Option<Vec<Extension>>,
 }
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub(crate) struct ServiceInfoParams {
@@ -28,9 +31,10 @@ pub(crate) struct ServiceInfoParams {
     pub supply_points: Option<Vec<ServiceSupplyPoint>>,
     pub definition_uri: Option<Vec<MultiLangUri>>,
     pub scheme_definition_uri: Option<Vec<MultiLangUri>>,
-    pub extensions: Option<Vec<serde_json::Value>>,
+    pub extensions: Option<Vec<Extension>>,
 }
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub(crate) struct CreateTrustListParams {
@@ -43,5 +47,5 @@ pub(crate) struct CreateTrustListParams {
     pub historical_information_period: Option<u64>,
     pub pointers_to_other_lote: Option<Vec<OtherLoTEPointer>>,
     pub distribution_points: Option<Vec<String>>,
-    pub scheme_extensions: Option<Vec<serde_json::Value>>,
+    pub scheme_extensions: Option<Vec<Extension>>,
 }

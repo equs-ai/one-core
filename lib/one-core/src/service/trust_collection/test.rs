@@ -395,13 +395,15 @@ async fn test_create_trust_list_subscription_success() {
         .expect_validate_subscription()
         .returning(|_, role| {
             Ok(TrustListValidationSuccess {
-                role: role.unwrap_or(TrustListRoleEnum::Verifier),
+                role: Some(role.unwrap_or(TrustListRoleEnum::Verifier)),
             })
         });
     trust_list_subscriber
         .expect_get_capabilities()
         .returning(|| TrustListSubscriberCapabilities {
             roles: vec![TrustListRoleEnum::Verifier],
+            resolvable_identifier_types: vec![],
+            features: vec![],
         });
 
     let trust_list_subscriber_arc: Arc<

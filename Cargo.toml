@@ -46,12 +46,14 @@ maplit                   = { version = "1.0" }
 mockall                  = { version = "0.14" }
 multihash                = { version = "0.19" }
 one-dto-mapper           = { version = "0.1.10" }
+quick-xml                = { version = "0.41", features = ["serialize"] }
 rand                     = { version = "0.8" }
 rcgen                    = { version = "0.14", default-features = false, features = ["pem", "aws_lc_rs", "x509-parser"] }
 regex                    = { version = "1.10" }
 reqwest                  = { version = "0.13", default-features = false, features = ["rustls", "json", "http2"] }
 rustls-platform-verifier = { version = "0.6" }
 sea-orm                  = { version = "1.1", default-features = false }
+roxmltree                = { version = "0.20" }
 secrecy                  = { version = "0.10.3", features = ["serde"] }
 serde                    = { version = "1.0" }
 serde_json               = { version = "1.0" }

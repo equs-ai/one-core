@@ -23,7 +23,7 @@ use crate::repository::trust_list_subscription_repository::MockTrustListSubscrip
 #[tokio::test]
 async fn test_trust_list_subscription_update_active() {
     let validation_result = TrustListValidationSuccess {
-        role: TrustListRoleEnum::PidProvider,
+        role: Some(TrustListRoleEnum::PidProvider),
     };
     let now = crate::clock::now_utc();
     let collection = TrustCollection {
@@ -190,7 +190,7 @@ async fn test_trust_list_subscription_update_active_to_error() {
 #[tokio::test]
 async fn test_trust_list_subscription_update_error_to_active() {
     let validation_result = TrustListValidationSuccess {
-        role: TrustListRoleEnum::PidProvider,
+        role: Some(TrustListRoleEnum::PidProvider),
     };
     let now = crate::clock::now_utc();
     let collection = TrustCollection {

@@ -12,7 +12,9 @@ use crate::config::core_config::{
 use crate::proto::certificate_validator::CertificateValidator;
 use crate::proto::clock::Clock;
 use crate::proto::http_client::HttpClient;
+use crate::proto::xades::XAdESProto;
 use crate::provider::caching_loader::etsi_lote::EtsiLoteCache;
+use crate::provider::caching_loader::etsi_lotl::EtsiLotlCache;
 use crate::provider::did_method::provider::DidMethodProvider;
 use crate::provider::key_algorithm::provider::KeyAlgorithmProvider;
 use crate::provider::remote_entity_storage::RemoteEntityStorage;
@@ -21,6 +23,8 @@ use crate::provider::remote_entity_storage::in_memory::InMemoryStorage;
 use crate::provider::trust_list_subscriber::TrustListSubscriber;
 use crate::provider::trust_list_subscriber::etsi_lote::resolver::EtsiLoteResolver;
 use crate::provider::trust_list_subscriber::etsi_lote::{EtsiLoteParams, EtsiLoteSubscriber};
+use crate::provider::trust_list_subscriber::etsi_lotl::resolver::EtsiLotlResolver;
+use crate::provider::trust_list_subscriber::etsi_lotl::{EtsiLotlParams, EtsiLotlSubscriber};
 use crate::repository::remote_entity_cache_repository::RemoteEntityCacheRepository;
 
 #[cfg_attr(test, mockall::automock)]
@@ -38,6 +42,7 @@ impl TrustListSubscriberProvider for TrustListSubscriberProviderImpl {
     }
 }
 
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn trust_list_subscriber_provider_from_config(
     config: &mut CoreConfig,
     clock: Arc<dyn Clock>,
@@ -45,11 +50,14 @@ pub(crate) fn trust_list_subscriber_provider_from_config(
     did_method_provider: Arc<dyn DidMethodProvider>,
     key_algorithm_provider: Arc<dyn KeyAlgorithmProvider>,
     certificate_validator: Arc<dyn CertificateValidator>,
+    xades_proto: Arc<dyn XAdESProto>,
     remote_entity_cache_repository: Arc<dyn RemoteEntityCacheRepository>,
 ) -> Result<Arc<dyn TrustListSubscriberProvider>, ConfigValidationError> {
     let mut subscribers: HashMap<TrustListSubscriberId, Arc<dyn TrustListSubscriber>> =
         HashMap::new();
 
+    // pass 1: build non-LOTL subscribers. LOTL is deferred to pass 2 since it may
+    // delegate to a subscriber built here
     for (key, fields) in config.trust_list_subscriber.iter() {
         if !fields.enabled {
             continue;
@@ -63,18 +71,78 @@ pub(crate) fn trust_list_subscriber_provider_from_config(
                     did_method_provider.clone(),
                     key_algorithm_provider.clone(),
                     certificate_validator.clone(),
+                    xades_proto.clone(),
                     params.accepts,
-                    params.leeway,
+                    params.leeway_seconds,
+                    params.max_pointer_depth,
                 );
                 let etsi_lote_cache = initialize_etsi_lote_cache(
                     config,
                     remote_entity_cache_repository.clone(),
                     resolver,
                 );
-                Arc::new(EtsiLoteSubscriber::new(etsi_lote_cache)) as _
+                Arc::new(EtsiLoteSubscriber::new(
+                    etsi_lote_cache,
+                    certificate_validator.clone(),
+                    key_algorithm_provider.clone(),
+                )) as _
             }
+            // built in pass 2, once its delegates are available
+            TrustListSubscriberType::EtsiLotl => continue,
         };
         subscribers.insert(key.clone(), subscriber);
+    }
+
+    // pass 2: build LOTL subscribers, wiring their delegates from pass 1
+    let lotl_keys: Vec<TrustListSubscriberId> = config
+        .trust_list_subscriber
+        .iter()
+        .filter(|(_, fields)| fields.enabled && fields.r#type == TrustListSubscriberType::EtsiLotl)
+        .map(|(key, _)| key.clone())
+        .collect();
+
+    for key in lotl_keys {
+        let params: EtsiLotlParams = config.trust_list_subscriber.get(&key)?;
+
+        // delegates are tried in their configured order
+        let delegate_order = |id: &TrustListSubscriberId| {
+            config
+                .trust_list_subscriber
+                .get_fields(id)
+                .ok()
+                .and_then(|fields| fields.order)
+                .unwrap_or(0)
+        };
+        let mut delegate_ids = params.delegate_subscribers.clone();
+        delegate_ids.sort_by_key(|id| delegate_order(id));
+        let delegates = delegate_ids
+            .iter()
+            .map(|id| {
+                subscribers
+                    .get(id)
+                    .cloned()
+                    .ok_or_else(|| ConfigValidationError::EntryNotFound(id.to_string()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let resolver = EtsiLotlResolver::new(
+            clock.clone(),
+            client.clone(),
+            certificate_validator.clone(),
+            xades_proto.clone(),
+            params.trust_anchors.clone(),
+            params.leeway_seconds,
+        );
+        let cache =
+            initialize_etsi_lotl_cache(config, remote_entity_cache_repository.clone(), resolver);
+        subscribers.insert(
+            key,
+            Arc::new(EtsiLotlSubscriber::new(
+                cache,
+                certificate_validator.clone(),
+                delegates,
+            )) as _,
+        );
     }
 
     for (key, value) in config.trust_list_subscriber.iter_mut() {
@@ -86,12 +154,8 @@ pub(crate) fn trust_list_subscriber_provider_from_config(
     Ok(Arc::new(TrustListSubscriberProviderImpl { subscribers }))
 }
 
-fn initialize_etsi_lote_cache(
-    config: &CoreConfig,
-    remote_entity_cache_repository: Arc<dyn RemoteEntityCacheRepository>,
-    resolver: EtsiLoteResolver,
-) -> EtsiLoteCache {
-    let config = config
+fn trust_list_cache_config(config: &CoreConfig) -> CacheEntityConfig {
+    config
         .cache_entities
         .entities
         .get("TRUST_LIST")
@@ -101,17 +165,48 @@ fn initialize_etsi_lote_cache(
             cache_size: 100,
             cache_type: CacheEntityCacheType::Db,
             refresh_after: Duration::minutes(5),
-        });
+        })
+}
 
-    let storage: Arc<dyn RemoteEntityStorage> = match config.cache_type {
+fn trust_list_storage(
+    config: &CacheEntityConfig,
+    remote_entity_cache_repository: Arc<dyn RemoteEntityCacheRepository>,
+) -> Arc<dyn RemoteEntityStorage> {
+    match config.cache_type {
         CacheEntityCacheType::Db => Arc::new(DbStorage::new(remote_entity_cache_repository)),
         CacheEntityCacheType::InMemory => Arc::new(InMemoryStorage::new(HashMap::new())),
-    };
+    }
+}
+
+fn initialize_etsi_lote_cache(
+    config: &CoreConfig,
+    remote_entity_cache_repository: Arc<dyn RemoteEntityCacheRepository>,
+    resolver: EtsiLoteResolver,
+) -> EtsiLoteCache {
+    let config = trust_list_cache_config(config);
     EtsiLoteCache::new(
         Arc::new(resolver),
-        storage,
+        trust_list_storage(&config, remote_entity_cache_repository),
         config.cache_size as usize,
         config.cache_refresh_timeout,
         config.refresh_after,
     )
 }
+
+fn initialize_etsi_lotl_cache(
+    config: &CoreConfig,
+    remote_entity_cache_repository: Arc<dyn RemoteEntityCacheRepository>,
+    resolver: EtsiLotlResolver,
+) -> EtsiLotlCache {
+    let config = trust_list_cache_config(config);
+    EtsiLotlCache::new(
+        Arc::new(resolver),
+        trust_list_storage(&config, remote_entity_cache_repository),
+        config.cache_size as usize,
+        config.cache_refresh_timeout,
+        config.refresh_after,
+    )
+}
+
+#[cfg(test)]
+mod test;

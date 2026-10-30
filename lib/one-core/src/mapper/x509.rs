@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use ct_codecs::{Base64, Decoder, Encoder};
 use one_crypto::signer::ecdsa::ECDSASigner;
-use standardized_types::x509::AuthorityKeyIdentifier;
+use standardized_types::x509::{AuthorityKeyIdentifier, KeyIdentifier};
 use x509_parser::certificate::X509Certificate;
 use x509_parser::extensions::ParsedExtension;
 use x509_parser::oid_registry::{
@@ -60,7 +60,8 @@ pub fn pem_chain_to_authority_key_identifiers(
 
 pub fn x5c_into_pem_chain(x5c: &[String]) -> Result<String, CertificateParsingError> {
     let der_chain = x5c.iter().try_fold(Vec::new(), |mut aggr, item| {
-        aggr.push(Base64::decode_to_vec(item, None)?);
+        // base64 cert content may be line-wrapped (XML-DSig X509Certificate); ignore whitespace.
+        aggr.push(Base64::decode_to_vec(item, Some(b"\n\r\t "))?);
         Ok::<_, CertificateParsingError>(aggr)
     })?;
     Ok(der_chain_into_pem_chain(der_chain))
@@ -134,6 +135,33 @@ pub fn authority_key_identifier(
         })
         .transpose()?
         .map(|key_id| format!("{key_id:x}")))
+}
+
+/// Extracts the Subject key identifier from the leaf certificate (if any)
+/// Consumes either PEM chain or a single PEM certificate
+pub fn pem_to_subject_key_identifier(
+    pem: &str,
+) -> Result<Option<KeyIdentifier>, CertificateParsingError> {
+    let leaf = Pem::iter_from_buffer(pem.as_bytes()).next();
+    let Some(leaf) = leaf else {
+        return Ok(None);
+    };
+
+    let pem = leaf?;
+    let cert = pem.parse_x509()?;
+    let Some(ski) = cert
+        .get_extension_unique(&OID_X509_EXT_SUBJECT_KEY_IDENTIFIER)?
+        .map(|ext| ext.parsed_extension())
+        .map(|ext| match ext {
+            ParsedExtension::SubjectKeyIdentifier(key_identifier) => Ok(key_identifier),
+            _ => Err(CertificateParsingError::UnexpectedExtension),
+        })
+        .transpose()?
+    else {
+        return Ok(None);
+    };
+
+    Ok(Some(ski.0.to_vec().into()))
 }
 
 pub fn get_akis_for_pem_chain(

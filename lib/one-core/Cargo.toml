@@ -53,9 +53,11 @@ one-crypto                   = { package = "equs-one-core-crypto", version = "0.
 one-dto-mapper.workspace     = true
 ouroboros                    = { version = "0.18" }
 pem                          = { version = "3" }
+quick-xml.workspace          = true
 rand.workspace               = true
 rcgen.workspace              = true
 regex.workspace              = true
+roxmltree.workspace          = true
 reqwest.workspace            = true
 rumqttc-next                 = { version = "0.27", default-features = false, features = ["use-rustls"] }
 rustls                       = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }

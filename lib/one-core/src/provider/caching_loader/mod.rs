@@ -26,6 +26,7 @@ use crate::error::{
 
 pub mod android_attestation_crl;
 pub mod etsi_lote;
+pub mod etsi_lotl;
 pub mod json_ld_context;
 pub mod openid_metadata;
 pub mod trust_list;

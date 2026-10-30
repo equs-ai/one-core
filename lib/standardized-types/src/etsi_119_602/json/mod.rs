@@ -4,33 +4,63 @@
 //! Spec: <https://www.etsi.org/deliver/etsi_ts/119600_119699/119602/01.01.01_60/ts_119602v010101p.pdf>
 
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use serde_with::{serde_as, skip_serializing_none};
 use strum::Display;
 use time::OffsetDateTime;
 
 /// LoTE type URIs per ETSI TS 119 602 Annex C.
-#[derive(Clone, Debug, PartialEq, Eq, Display, Serialize, Deserialize)]
+///
+/// Uses `#[serde(from/into)]` instead of derived Deserialize to work around
+/// quick-xml not supporting untagged enum variants (<https://github.com/tafia/quick-xml/issues/203>).
+#[derive(Clone, Debug, PartialEq, Eq, Display, Serialize)]
+#[serde(into = "String")]
 pub enum LoTEType {
     #[strum(to_string = "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList")]
-    #[serde(rename = "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList")]
     EuPidProvidersList,
     #[strum(to_string = "http://uri.etsi.org/19602/LoTEType/EUWalletProvidersList")]
-    #[serde(rename = "http://uri.etsi.org/19602/LoTEType/EUWalletProvidersList")]
     EuWalletProvidersList,
     #[strum(to_string = "http://uri.etsi.org/19602/LoTEType/EUWRPACProvidersList")]
-    #[serde(rename = "http://uri.etsi.org/19602/LoTEType/EUWRPACProvidersList")]
     EuWrpAcProvidersList,
     #[strum(to_string = "http://uri.etsi.org/19602/LoTEType/EUWRPRCProvidersList")]
-    #[serde(rename = "http://uri.etsi.org/19602/LoTEType/EUWRPRCProvidersList")]
     EuWrpRcProvidersList,
     #[strum(to_string = "http://uri.etsi.org/19602/LoTEType/EUPubEAAProvidersList")]
-    #[serde(rename = "http://uri.etsi.org/19602/LoTEType/EUPubEAAProvidersList")]
     EuPubEaaProvidersList,
     #[strum(to_string = "http://uri.etsi.org/19602/LoTEType/EURegistrarsAndRegistersList")]
-    #[serde(rename = "http://uri.etsi.org/19602/LoTEType/EURegistrarsAndRegistersList")]
     EuRegistrarsAndRegistersList,
-    #[serde(untagged)]
+    #[strum(to_string = "{0}")]
     Other(String),
+}
+
+impl From<String> for LoTEType {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "http://uri.etsi.org/19602/LoTEType/EUPIDProvidersList" => Self::EuPidProvidersList,
+            "http://uri.etsi.org/19602/LoTEType/EUWalletProvidersList" => {
+                Self::EuWalletProvidersList
+            }
+            "http://uri.etsi.org/19602/LoTEType/EUWRPACProvidersList" => Self::EuWrpAcProvidersList,
+            "http://uri.etsi.org/19602/LoTEType/EUWRPRCProvidersList" => Self::EuWrpRcProvidersList,
+            "http://uri.etsi.org/19602/LoTEType/EUPubEAAProvidersList" => {
+                Self::EuPubEaaProvidersList
+            }
+            "http://uri.etsi.org/19602/LoTEType/EURegistrarsAndRegistersList" => {
+                Self::EuRegistrarsAndRegistersList
+            }
+            _ => Self::Other(s),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for LoTEType {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::from)
+    }
+}
+
+impl From<LoTEType> for String {
+    fn from(t: LoTEType) -> Self {
+        t.to_string()
+    }
 }
 
 impl LoTEType {
@@ -155,7 +185,6 @@ impl LoTEType {
 #[serde(rename_all = "PascalCase")]
 pub struct LoTEPayload {
     pub list_and_scheme_information: ListAndSchemeInformation,
-    #[serde(rename = "TrustedEntitiesList")]
     pub trusted_entities_list: Option<Vec<TrustedEntity>>,
 }
 
@@ -184,7 +213,7 @@ pub struct ListAndSchemeInformation {
     pub scheme_type_community_rules: Option<Vec<MultiLangUri>>,
 
     #[serde(rename = "SchemeTerritory")]
-    pub scheme_territory: String,
+    pub scheme_territory: Option<String>,
 
     #[serde(rename = "SchemeOperatorAddress")]
     pub scheme_operator_address: Option<SchemeOperatorAddress>,
@@ -205,7 +234,7 @@ pub struct ListAndSchemeInformation {
     pub distribution_points: Option<Vec<String>>,
 
     #[serde(rename = "SchemeExtensions")]
-    pub scheme_extensions: Option<Vec<serde_json::Value>>,
+    pub scheme_extensions: Option<Vec<Extension>>,
 
     #[serde(rename = "ListIssueDateTime", with = "time::serde::rfc3339")]
     pub list_issue_date_time: OffsetDateTime,
@@ -225,6 +254,7 @@ pub struct TrustedEntity {
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct TrustedEntityInformation {
     #[serde(rename = "TEName")]
     pub te_name: Vec<MultiLangString>,
@@ -239,11 +269,12 @@ pub struct TrustedEntityInformation {
     pub te_trade_name: Option<Vec<MultiLangString>>,
 
     #[serde(rename = "TEInformationExtensions")]
-    pub te_information_extensions: Option<Vec<serde_json::Value>>,
+    pub te_information_extensions: Option<Vec<Extension>>,
 }
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct TEAddress {
     #[serde(rename = "TEElectronicAddress")]
     pub te_electronic_address: Option<Vec<MultiLangUri>>,
@@ -254,6 +285,7 @@ pub struct TEAddress {
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct PostalAddress {
     pub lang: String,
     #[serde(rename = "Country")]
@@ -282,7 +314,7 @@ pub struct TrustedEntityService {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ServiceInformation {
     #[serde(rename = "ServiceTypeIdentifier")]
-    pub service_type_identifier: String,
+    pub service_type_identifier: Option<String>,
 
     #[serde(rename = "ServiceName")]
     pub service_name: Vec<MultiLangString>,
@@ -293,8 +325,12 @@ pub struct ServiceInformation {
     #[serde(rename = "ServiceStatus")]
     pub service_status: Option<String>,
 
-    #[serde(rename = "StatusStartingTime")]
-    pub status_starting_time: Option<String>,
+    #[serde(
+        rename = "StatusStartingTime",
+        default,
+        with = "time::serde::rfc3339::option"
+    )]
+    pub status_starting_time: Option<OffsetDateTime>,
 
     #[serde(rename = "SchemeServiceDefinitionURI")]
     pub scheme_service_definition_uri: Option<Vec<MultiLangUri>>,
@@ -306,7 +342,16 @@ pub struct ServiceInformation {
     pub service_definition_uri: Option<Vec<MultiLangUri>>,
 
     #[serde(rename = "ServiceInformationExtensions")]
-    pub service_information_extensions: Option<Vec<serde_json::Value>>,
+    pub service_information_extensions: Option<Vec<Extension>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub struct Extension {
+    pub critical: bool,
+
+    #[serde(flatten)]
+    pub content: serde_json::Value,
 }
 
 #[skip_serializing_none]
@@ -338,12 +383,14 @@ pub struct PkiObject {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct MultiLangString {
     pub lang: String,
     pub value: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct MultiLangUri {
     pub lang: String,
@@ -372,13 +419,15 @@ pub enum PolicyOrLegalNoticeItem {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde_as]
 pub struct OtherLoTEPointer {
     #[serde(rename = "LoTELocation")]
     pub lote_location: String,
     #[serde(rename = "ServiceDigitalIdentities")]
     pub service_digital_identities: Vec<ServiceDigitalIdentity>,
     #[serde(rename = "LoTEQualifiers")]
-    pub lote_qualifiers: Vec<LoTEQualifier>,
+    #[serde_as(as = "Vec<_>")]
+    pub lote_qualifiers: LoTEQualifier,
 }
 
 #[skip_serializing_none]
@@ -419,5 +468,8 @@ pub struct ServiceHistoryInstance {
     #[serde(rename = "ServiceTypeIdentifier")]
     pub service_type_identifier: Option<String>,
     #[serde(rename = "ServiceInformationExtensions")]
-    pub service_information_extensions: Option<Vec<serde_json::Value>>,
+    pub service_information_extensions: Option<Vec<Extension>>,
 }
+
+#[cfg(test)]
+mod test;
