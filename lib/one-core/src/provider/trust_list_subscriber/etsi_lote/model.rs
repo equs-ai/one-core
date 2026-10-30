@@ -6,9 +6,7 @@ use standardized_types::etsi_119_602::TrustedEntityInformation;
 use crate::model::trust_list_role::TrustListRoleEnum;
 use crate::provider::trust_list_subscriber::cert_index::CertIndex;
 
-/// A trusted entity together with the role derived from its source list, so a
-/// roleless aggregate (e.g. one built by following `PointersToOtherLoTE`) can be
-/// gated per entity at resolve time.
+/// A trusted entity together with the role derived from its source list.
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct LoteEntity {
     pub info: TrustedEntityInformation,
@@ -26,4 +24,7 @@ pub(super) struct PreprocessedLote {
     /// Map of DER-encoded public keys to indices into `trusted_entities`.
     #[serde(default)]
     pub public_keys: HashMap<String, Vec<usize>>,
+    /// The root was accepted on its own embedded signer.
+    #[serde(default)]
+    pub unpinned: bool,
 }

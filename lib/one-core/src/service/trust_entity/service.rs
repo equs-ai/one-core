@@ -393,6 +393,7 @@ impl TrustEntityService {
                             required_leaf_cert_key_usage: Default::default(),
                             leaf_only_extensions: Default::default(),
                             leaf_validations: Default::default(),
+                            verify_only_keys: false,
                         },
                     )
                     .await

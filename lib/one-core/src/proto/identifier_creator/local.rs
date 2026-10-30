@@ -567,6 +567,7 @@ impl IdentifierCreatorProto {
                     required_leaf_cert_key_usage: Default::default(),
                     leaf_only_extensions: Default::default(),
                     leaf_validations: vec![validate_ca],
+                    verify_only_keys: false,
                 },
             )
             .await

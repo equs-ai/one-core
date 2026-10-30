@@ -16,11 +16,6 @@ pub mod secret_string {
 }
 
 /// XML date-time (de)serialization for ETSI trusted-list formats.
-///
-/// ETSI TS 119 612 §5.1.3 / TS 119 602 require ISO 8601 UTC with the `Z`
-/// designator, but real EUDI test data emits timezone-less timestamps
-/// (`2026-04-30T14:28:34`). RFC 3339 is accepted as-is; a naive value is
-/// parsed and treated as UTC (which the spec guarantees it to be).
 pub mod xml_datetime {
     use serde::{Deserializer, Serializer};
     use time::OffsetDateTime;

@@ -41,12 +41,16 @@ pub async fn preprocess_services(
             // only index certificate-bearing identities; AKI→CA matching needs the
             // CA PEM, which a bare <X509SKI> lacks
             if let Some(cert_b64) = x509_certificate
-                && let Ok(pem) =
-                    crate::mapper::x509::x5c_into_pem_chain(std::slice::from_ref(&cert_b64))
+                && let Ok(pem) = crate::mapper::x509::wrapped_certs_into_pem_chain(
+                    std::slice::from_ref(&cert_b64),
+                )
             {
                 // no_validation here; the chain/revocation check runs at match time
                 if let Ok(parsed) = certificate_validator
-                    .parse_pem_chain(&pem, CertificateValidationOptions::no_validation())
+                    .parse_pem_chain(
+                        &pem,
+                        CertificateValidationOptions::no_validation().with_verify_only_keys(),
+                    )
                     .await
                 {
                     let ski = crate::mapper::x509::pem_to_subject_key_identifier(&pem)

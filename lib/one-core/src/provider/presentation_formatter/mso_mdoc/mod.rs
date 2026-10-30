@@ -468,7 +468,7 @@ async fn try_verify_issuer_auth(
                 pem_chain,
                 trusted_certs,
                 || {
-                    CertificateValidationOptions::signature_and_revocation(Some(vec![
+                    CertificateValidationOptions::signature_and_revocation_below_anchor(Some(vec![
                         EnforceKeyUsage::DigitalSignature,
                     ]))
                 },
@@ -953,6 +953,7 @@ mod test {
                 valid_until: DateTime(now + Duration::days(1)),
                 expected_update: None,
             },
+            status: None,
         };
         let payload = EmbeddedCbor::new(mso).unwrap().into_bytes();
 

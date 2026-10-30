@@ -13,6 +13,7 @@ pub const EXC_C14N: &str = "http://www.w3.org/2001/10/xml-exc-c14n#";
 pub const INC_C14N: &str = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
 pub const XPATH_FILTER2: &str = "http://www.w3.org/2002/06/xmldsig-filter2";
 pub const SHA256_DIGEST_URI: &str = "http://www.w3.org/2001/04/xmlenc#sha256";
+pub const SHA384_DIGEST_URI: &str = "http://www.w3.org/2001/04/xmldsig-more#sha384";
 pub const SHA512_DIGEST_URI: &str = "http://www.w3.org/2001/04/xmlenc#sha512";
 
 fn default_xmldsig_ns() -> String {

@@ -109,6 +109,64 @@ pub struct MobileSecurityObject {
     pub device_key_info: DeviceKeyInfo,
     pub doc_type: String,
     pub validity_info: ValidityInfo,
+    /// Absent when the MSO has no `status`; a `null` one fails decoding.
+    #[serde(
+        default,
+        deserialize_with = "present_status",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub status: Option<MsoStatus>,
+}
+
+fn present_status<'de, D: de::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<MsoStatus>, D::Error> {
+    MsoStatus::deserialize(deserializer).map(Some)
+}
+
+/// The MSO `status` (ISO/IEC 18013-5 2nd edition; draft-ietf-oauth-status-list section 6.3). It
+/// names at least one mechanism, and a `status_list` that does not decode fails the whole MSO.
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(try_from = "IndexMap<String, Value>")]
+pub struct MsoStatus {
+    pub status_list: Option<MsoStatusList>,
+    /// Other mechanisms, such as `identifier_list`, by name.
+    #[serde(flatten)]
+    pub other: IndexMap<String, Value>,
+}
+
+impl TryFrom<IndexMap<String, Value>> for MsoStatus {
+    type Error = String;
+
+    fn try_from(mut mechanisms: IndexMap<String, Value>) -> Result<Self, Self::Error> {
+        let status_list = mechanisms
+            .shift_remove("status_list")
+            .map(|value| value.deserialized::<MsoStatusList>())
+            .transpose()
+            .map_err(|error| format!("malformed MSO status_list: {error}"))?;
+        if status_list.is_none() && mechanisms.is_empty() {
+            return Err("MSO status names no mechanism".to_owned());
+        }
+        Ok(Self {
+            status_list,
+            other: mechanisms,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct MsoStatusList {
+    pub idx: usize,
+    #[serde(deserialize_with = "parsable_uri")]
+    pub uri: String,
+}
+
+/// A URI kept as written, once it parses; `Url` would normalise it.
+fn parsable_uri<'de, D: de::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+    let uri = String::deserialize(deserializer)?;
+    url::Url::parse(&uri).map_err(de::Error::custom)?;
+    Ok(uri)
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -327,8 +385,9 @@ pub(crate) async fn extract_certificate_from_x5chain_header(
             })?;
     let chain = encode_many_config(&pems, EncodeConfig::new().set_line_ending(LineEnding::LF));
 
+    // no anchor yet, so no CRL can be authenticated: revocation is checked once anchored
     let validation_context = if verify {
-        CertificateValidationOptions::signature_and_revocation(Some(vec![
+        CertificateValidationOptions::signature_and_validity(Some(vec![
             EnforceKeyUsage::DigitalSignature,
         ]))
     } else {

@@ -1,21 +1,22 @@
 use std::sync::Arc;
 
 use crate::error::ContextWithErrorCode;
+use crate::proto::clock::Clock;
 use crate::provider::caching_loader::{CacheError, CachingLoader, Resolver, ResolverError};
 use crate::provider::remote_entity_storage::{RemoteEntityStorage, RemoteEntityType};
 
+/// Cache of pre-processed ETSI LoTE lists.
 pub struct EtsiLoteCache {
     inner: CachingLoader,
-    resolver: Arc<dyn Resolver<Error = ResolverError>>,
 }
 
 impl EtsiLoteCache {
     pub fn new(
-        resolver: Arc<dyn Resolver<Error = ResolverError>>,
         storage: Arc<dyn RemoteEntityStorage>,
         cache_size: usize,
         cache_refresh_timeout: time::Duration,
         refresh_after: time::Duration,
+        clock: Arc<dyn Clock>,
     ) -> Self {
         Self {
             inner: CachingLoader::new(
@@ -24,18 +25,21 @@ impl EtsiLoteCache {
                 cache_size,
                 cache_refresh_timeout,
                 refresh_after,
-            ),
-            resolver,
+            )
+            .with_clock(clock),
         }
     }
 
-    pub async fn get(&self, key: &str) -> Result<Vec<u8>, CacheError> {
-        let (lote, _) = self
+    pub async fn get_with(
+        &self,
+        key: &str,
+        resolver: Arc<dyn Resolver<Error = ResolverError>>,
+    ) -> Result<Vec<u8>, CacheError> {
+        let (content, _) = self
             .inner
-            .get(key, self.resolver.clone(), false)
+            .get(key, resolver, false)
             .await
             .error_while("getting ETSI LoTE")?;
-
-        Ok(lote)
+        Ok(content)
     }
 }

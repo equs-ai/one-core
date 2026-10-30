@@ -433,9 +433,9 @@ async fn test_create_certificate_identifier_crl_not_available() {
         .create_certificate_identifier("test-identifier", key.id, organisation.id, &chain)
         .await;
 
-    // http client error
+    // an unavailable CRL leaves revocation unknown, which fails as a CRL check failure
     assert_eq!(result.status(), 400);
-    assert_eq!(result.error_code().await, "BR_0395");
+    assert_eq!(result.error_code().await, "BR_0233");
 }
 
 #[tokio::test]

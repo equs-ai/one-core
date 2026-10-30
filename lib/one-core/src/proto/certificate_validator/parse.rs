@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use one_crypto::Hasher;
 use one_crypto::hasher::sha256::SHA256;
 use time::Duration;
@@ -10,13 +12,14 @@ use super::x509_extension::{
 };
 use super::{
     CertSelection, CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl,
-    Error, ParsedCertificate, x509_extension,
+    CrlMode, Error, ParsedCertificate, x509_extension,
 };
 use crate::config::core_config::KeyAlgorithmType;
 use crate::error::ContextWithErrorCode;
 use crate::mapper::x509::{authority_key_identifier, subject_key_identifier};
+use crate::proto::spki_signature;
 use crate::provider::key_algorithm::error::KeyAlgorithmProviderError;
-use crate::provider::key_algorithm::key::KeyHandle;
+use crate::provider::key_algorithm::key::{KeyHandle, SignatureKeyHandle};
 use crate::service::certificate::dto::CertificateX509AttributesDTO;
 
 #[async_trait::async_trait]
@@ -35,8 +38,9 @@ impl CertificateValidator for CertificateValidatorImpl {
             .map(|pem| pem.parse_x509())
             .collect::<Result<Vec<_>, _>>()?;
 
+        let verify_only_keys = validation.verify_only_keys;
         let leaf_certificate = self.parse_chain(&certs, validation).await?;
-        self.to_parsed_certificate(leaf_certificate, &leaf_pem.contents)
+        self.to_parsed_certificate(leaf_certificate, &leaf_pem.contents, verify_only_keys)
     }
 
     async fn validate_chain_against_ca_chain(
@@ -61,6 +65,7 @@ impl CertificateValidator for CertificateValidatorImpl {
             .collect::<Result<Vec<_>, _>>()?;
 
         let connected = connect_chains(&certs, &ca_certs)?;
+        let verify_only_keys = validation.verify_only_keys;
         let parsed = self.parse_chain(&connected, validation).await?;
 
         let (selected_cert, pem) = match cert_selection {
@@ -70,7 +75,7 @@ impl CertificateValidator for CertificateValidatorImpl {
             ),
             CertSelection::Leaf => (parsed, pems.first().ok_or(Error::EmptyChain)?),
         };
-        self.to_parsed_certificate(selected_cert, &pem.contents)
+        self.to_parsed_certificate(selected_cert, &pem.contents, verify_only_keys)
     }
 }
 
@@ -89,6 +94,8 @@ impl CertificateValidatorImpl {
         }
 
         let mut result: Option<&X509Certificate<'a>> = None;
+        // after every link is verified, so no CRL is fetched for an invalid path
+        let mut revocation_checks = Vec::new();
         let mut chain = chain.iter().peekable();
         while let Some(current) = chain.next() {
             if result.is_none() {
@@ -121,8 +128,11 @@ impl CertificateValidatorImpl {
 
             if let Some(crl_mode) = validation.validity_check {
                 self.check_validity_with_leeway(current, self.clock_leeway)?;
-                self.check_revocation(current, chain.peek().copied(), crl_mode)
-                    .await?;
+                let parent = chain.peek().copied();
+                let is_anchor = matches!(crl_mode, CrlMode::X509BelowAnchor) && parent.is_none();
+                if !is_anchor {
+                    revocation_checks.push((current, parent, crl_mode));
+                }
             }
 
             if !validation.leaf_only_extensions.is_empty()
@@ -147,6 +157,10 @@ impl CertificateValidatorImpl {
             }
         }
 
+        for (certificate, parent, crl_mode) in revocation_checks {
+            self.check_revocation(certificate, parent, crl_mode).await?;
+        }
+
         result.ok_or(Error::EmptyChain)
     }
 
@@ -154,6 +168,7 @@ impl CertificateValidatorImpl {
         &self,
         certificate: &X509Certificate,
         der_representation: &[u8],
+        verify_only_keys: bool,
     ) -> Result<ParsedCertificate, Error> {
         let subject_common_name = certificate
             .subject
@@ -167,11 +182,26 @@ impl CertificateValidatorImpl {
             subject_common_name,
             subject_key_identifier: subject_key_identifier(certificate)
                 .error_while("parsing subject_key_identifier")?,
-            public_key: self.extract_public_key(certificate)?,
+            public_key: self.extract_public_key(certificate, verify_only_keys)?,
         })
     }
 
-    fn extract_public_key(&self, certificate: &X509Certificate) -> Result<KeyHandle, Error> {
+    fn extract_public_key(
+        &self,
+        certificate: &X509Certificate,
+        verify_only_keys: bool,
+    ) -> Result<KeyHandle, Error> {
+        // RSA and P-384 keys get a verify-only handle where asked for; the key algorithm provider
+        // supports neither, so they stay unsupported elsewhere
+        if verify_only_keys && spki_signature::key_type(&certificate.subject_pki).is_some() {
+            let handle =
+                spki_signature::SpkiPublicKeyHandle::from_spki_der(certificate.subject_pki.raw)
+                    .error_while("parsing certificate public key")?;
+            return Ok(KeyHandle::SignatureOnly(SignatureKeyHandle::PublicKeyOnly(
+                Arc::new(handle),
+            )));
+        }
+
         let alg_type = get_public_key_type(certificate)?;
 
         let key_algorithm = self

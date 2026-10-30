@@ -38,6 +38,7 @@ use crate::proto::key_verification::KeyVerification;
 use crate::proto::transaction_manager::TransactionManager;
 use crate::provider::credential_formatter::CredentialFormatter;
 use crate::provider::credential_formatter::jwt_formatter::model::TokenStatusListContent;
+use crate::provider::credential_formatter::mdoc_formatter::util::MsoStatus;
 use crate::provider::credential_formatter::model::{
     CredentialStatus, IdentifierDetails, TokenVerifier,
 };
@@ -826,25 +827,58 @@ impl TokenStatusList {
 pub(crate) fn credential_status_from_sdjwt_status(
     sd_jwt_status: &Option<SdJwtVcStatus>,
 ) -> Vec<CredentialStatus> {
-    match sd_jwt_status {
-        None => vec![],
-        Some(value) => {
-            vec![CredentialStatus {
-                id: None,
-                r#type: CREDENTIAL_STATUS_TYPE.to_string(),
-                status_purpose: Some("revocation".to_string()),
-                additional_fields: HashMap::from([
-                    (
-                        URI_KEY.to_string(),
-                        serde_json::Value::String(value.status_list.uri.to_string()),
-                    ),
-                    (
-                        INDEX_KEY.to_string(),
-                        serde_json::Value::String(value.status_list.index.to_string()),
-                    ),
-                ]),
-            }]
+    sd_jwt_status
+        .iter()
+        .map(|value| {
+            token_status_list_entry(value.status_list.uri.to_string(), value.status_list.index)
+        })
+        .collect()
+}
+
+/// The `status_list` of an MSO `status`, or else every other mechanism by name, so a status
+/// that cannot be checked is not read as none.
+pub(crate) fn credential_status_from_mso_status(
+    mso_status: Option<&MsoStatus>,
+) -> Vec<CredentialStatus> {
+    let Some(mso_status) = mso_status else {
+        return vec![];
+    };
+    if let Some(status_list) = &mso_status.status_list {
+        if !mso_status.other.is_empty() {
+            tracing::info!(
+                mechanisms = ?mso_status.other.keys().collect::<Vec<_>>(),
+                "MSO status mechanisms beside status_list are not checked"
+            );
         }
+        return vec![token_status_list_entry(
+            status_list.uri.clone(),
+            status_list.idx,
+        )];
+    }
+    mso_status
+        .other
+        .keys()
+        .map(|mechanism| CredentialStatus {
+            id: None,
+            r#type: mechanism.to_owned(),
+            status_purpose: None,
+            additional_fields: HashMap::new(),
+        })
+        .collect()
+}
+
+fn token_status_list_entry(uri: String, index: usize) -> CredentialStatus {
+    CredentialStatus {
+        id: None,
+        r#type: CREDENTIAL_STATUS_TYPE.to_string(),
+        status_purpose: Some("revocation".to_string()),
+        additional_fields: HashMap::from([
+            (URI_KEY.to_string(), serde_json::Value::String(uri)),
+            (
+                INDEX_KEY.to_string(),
+                serde_json::Value::String(index.to_string()),
+            ),
+        ]),
     }
 }
 
