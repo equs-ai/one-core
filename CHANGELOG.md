@@ -83,5 +83,8 @@ diverged at `7505afb41`.
   not interoperable with the previous build, and the `bbs-2023` data integrity
   suite no longer parses the example proof from the W3C VC-DI-BBS specification.
   `test_verify_derived_proof` is ignored for that reason.
+- `zip` raised from 7 to 9 for RUSTSEC-2026-0367, -0368 and -0369, without the
+  `lzma` feature. Backups are written with Deflate; an LZMA-compressed backup
+  can no longer be restored.
 
 [#10]: https://github.com/equs-ai/one-core/pull/10
