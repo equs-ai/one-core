@@ -38,7 +38,8 @@ diverged at `7505afb41`.
 
 ### Changed
 
-- Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.1.1, which `equs-one-core` requires ([#10]).
+- Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.2.0, which `equs-one-core` requires ([#10]).
+- `equs-one-core` 0.2.1, for the `mso_mdoc` `issuerAuth` fix below; the other crates are unchanged.
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.
@@ -86,5 +87,15 @@ diverged at `7505afb41`.
 - `zip` raised from 7 to 9 for RUSTSEC-2026-0367, -0368 and -0369, without the
   `lzma` feature. Backups are written with Deflate; an LZMA-compressed backup
   can no longer be restored.
+
+### Fixed
+
+- `mso_mdoc` without trust anchors verifies `issuerAuth` with the Document
+  Signer key checked for its links, validity and `digitalSignature` usage, no
+  longer through `KeyVerification`'s revocation check. That check needs the
+  IACA that signs the DS CRL, which an `x5chain` does not carry (ISO/IEC
+  18013-5 §9.1.2.4), so every DS naming a CRL failed with `CRL signer
+  certificate is not present in the chain`. Revocation is still checked once
+  the chain reaches an anchor.
 
 [#10]: https://github.com/equs-ai/one-core/pull/10
