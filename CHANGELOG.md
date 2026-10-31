@@ -39,8 +39,7 @@ diverged at `7505afb41`.
 ### Changed
 
 - Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.2.0, which `equs-one-core` requires ([#10]).
-- `equs-one-core` 0.2.1, for the `mso_mdoc` `issuerAuth` fix below; the other crates are unchanged. The
-  workspace declares `equs-one-core-crypto` 0.2.0, the version 0.2.0 was published against.
+- `equs-one-core` 0.2.1, for the `mso_mdoc` `issuerAuth` fix below; the other crates are unchanged.
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.
