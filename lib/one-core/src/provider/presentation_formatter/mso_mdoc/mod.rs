@@ -19,7 +19,6 @@ use self::session_transcript::iso_18013_7::OID4VPDraftHandover;
 use self::session_transcript::{Handover, SessionTranscript};
 use crate::config::core_config::{FormatType, KeyAlgorithmType, VerificationProtocolType};
 use crate::error::ContextWithErrorCode;
-use crate::mapper::x509::pem_chain_into_x5c;
 use crate::mapper::{decode_cbor_base64, encode_cbor_base64};
 use crate::proto::certificate_validator::{
     CertificateValidationOptions, CertificateValidator, CertificateValidatorImpl, EnforceKeyUsage,
@@ -460,32 +459,36 @@ async fn try_verify_issuer_auth(
     trusted_certs: Option<&HashMap<String, String>>,
     verifier: &dyn TokenVerifier,
 ) -> Result<(), FormatterError> {
-    // the Document Signer chain must validate up to a trusted IACA anchor; no anchor skips the check
-    let trusted_leaf = match trusted_certs.filter(|certs| !certs.is_empty()) {
-        Some(trusted_certs) => Some(
-            validate_chain_against_trust_anchors(
-                certificate_validator,
+    // the IACA issues its CRL. With anchors the chain must reach one of them; without, the DS is
+    // checked for its links, validity and key usage only, since no CRL can be authenticated before
+    // the chain reaches an IACA and an `x5chain` holds no IACA (§9.1.2.4).
+    let leaf = match trusted_certs.filter(|certs| !certs.is_empty()) {
+        Some(trusted_certs) => validate_chain_against_trust_anchors(
+            certificate_validator,
+            pem_chain,
+            trusted_certs,
+            || {
+                CertificateValidationOptions::signature_and_revocation_below_anchor(Some(vec![
+                    EnforceKeyUsage::DigitalSignature,
+                ]))
+            },
+        )
+        .await
+        .map_err(|e| {
+            FormatterError::CouldNotVerify(format!("Issuer certificate chain is not trusted: {e}"))
+        })?,
+        None => certificate_validator
+            .parse_pem_chain(
                 pem_chain,
-                trusted_certs,
-                || {
-                    CertificateValidationOptions::signature_and_revocation_below_anchor(Some(vec![
-                        EnforceKeyUsage::DigitalSignature,
-                    ]))
-                },
+                CertificateValidationOptions::signature_and_validity(Some(vec![
+                    EnforceKeyUsage::DigitalSignature,
+                ])),
             )
             .await
             .map_err(|e| {
-                FormatterError::CouldNotVerify(format!(
-                    "Issuer certificate chain is not trusted: {e}"
-                ))
+                FormatterError::CouldNotVerify(format!("Issuer certificate chain is not valid: {e}"))
             })?,
-        ),
-        None => None,
     };
-
-    let x5c = pem_chain_into_x5c(pem_chain).map_err(|err| {
-        FormatterError::CouldNotExtractPresentation(format!("Failed to create x5c: {err}"))
-    })?;
 
     let token = coset::sig_structure_data(
         SignatureContext::CoseSign1,
@@ -499,13 +502,10 @@ async fn try_verify_issuer_auth(
         FormatterError::CouldNotVerify("IssuerAuth is missing algorithm information".to_owned())
     })?;
 
-    let params = match trusted_leaf {
-        Some(leaf) => PublicKeySource::Jwk {
-            jwk: Cow::Owned(leaf.public_key.public_key_as_jwk().map_err(|e| {
-                FormatterError::CouldNotVerify(format!("Failed to read the DS public key: {e}"))
-            })?),
-        },
-        None => PublicKeySource::X5c { x5c: &x5c },
+    let params = PublicKeySource::Jwk {
+        jwk: Cow::Owned(leaf.public_key.public_key_as_jwk().map_err(|e| {
+            FormatterError::CouldNotVerify(format!("Failed to read the DS public key: {e}"))
+        })?),
     };
     Ok(verifier
         .verify(params, algorithm, &token, &cose_sign1.signature)
@@ -843,13 +843,13 @@ mod test {
             .to_vec()
     }
 
+    /// The DS key verifies `issuerAuth` either way; its CRL is fetched only once an IACA anchors the
+    /// chain, since a DS-only `x5chain` cannot authenticate it.
     #[rstest]
     #[case::trusted_iaca(true)]
     #[case::no_trust_anchors(false)]
     #[tokio::test]
-    async fn issuer_signature_is_verified_with_the_ds_key_the_trusted_iaca_vouches_for(
-        #[case] with_anchor: bool,
-    ) {
+    async fn issuer_signature_is_verified_with_the_ds_key(#[case] with_anchor: bool) {
         let crl_server = MockServer::start().await;
         let pki = test_pki(&crl_server, false, u64::from(with_anchor)).await;
         let trusted_certs = HashMap::from([(pki.iaca_skid.clone(), pki.iaca_pem.clone())]);
@@ -865,9 +865,8 @@ mod test {
         verifier
             .expect_verify()
             .withf(move |source, _, _, _| match source {
-                PublicKeySource::Jwk { jwk } => with_anchor && **jwk == ds_jwk,
-                PublicKeySource::X5c { .. } => !with_anchor,
-                PublicKeySource::Did { .. } => false,
+                PublicKeySource::Jwk { jwk } => **jwk == ds_jwk,
+                PublicKeySource::X5c { .. } | PublicKeySource::Did { .. } => false,
             })
             .once()
             .return_once(|_, _, _, _| Ok(()));
@@ -881,6 +880,47 @@ mod test {
         )
         .await
         .unwrap();
+    }
+
+    #[tokio::test]
+    async fn without_trust_anchors_an_expired_ds_does_not_verify() {
+        let iaca_key = KeyPair::generate().unwrap();
+        let mut iaca_params = CertificateParams::default();
+        iaca_params.distinguished_name = common_name("Test IACA");
+        iaca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+        iaca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+        let iaca_issuer = Issuer::new(iaca_params, iaca_key);
+
+        let now = crate::clock::now_utc();
+        let mut ds_params = CertificateParams::default();
+        ds_params.distinguished_name = common_name("Test Document Signer");
+        ds_params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
+        ds_params.use_authority_key_identifier_extension = true;
+        ds_params.not_before = now - Duration::days(30);
+        ds_params.not_after = now - Duration::days(1);
+        let ds = ds_params
+            .signed_by(&KeyPair::generate().unwrap(), &iaca_issuer)
+            .unwrap();
+
+        let mut verifier = MockTokenVerifier::new();
+        verifier.expect_verify().never();
+
+        let error = try_verify_issuer_auth(
+            &CertificateValidatorImpl::default(),
+            &issuer_auth(ds.der().to_vec()),
+            &ds.pem(),
+            None,
+            &verifier,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("Issuer certificate chain is not valid"),
+            "unexpected error: {error}"
+        );
     }
 
     #[rstest]

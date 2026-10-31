@@ -87,4 +87,14 @@ diverged at `7505afb41`.
   `lzma` feature. Backups are written with Deflate; an LZMA-compressed backup
   can no longer be restored.
 
+### Fixed
+
+- `mso_mdoc` without trust anchors verifies `issuerAuth` with the Document
+  Signer key checked for its links, validity and `digitalSignature` usage, no
+  longer through `KeyVerification`'s revocation check. That check needs the
+  IACA that signs the DS CRL, which an `x5chain` does not carry (ISO/IEC
+  18013-5 §9.1.2.4), so every DS naming a CRL failed with `CRL signer
+  certificate is not present in the chain`. Revocation is still checked once
+  the chain reaches an anchor.
+
 [#10]: https://github.com/equs-ai/one-core/pull/10
