@@ -397,3 +397,23 @@ async fn verify_verification_method(
     }
     Ok(handle)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn document_id_must_carry_the_log_scid() {
+        let line = include_str!("test_data/success/did.jsonl");
+        let mut entry: DidLogEntry = serde_json::from_str(line.trim()).unwrap();
+        let scid = entry.parameters.scid.clone().unwrap();
+        assert!(verify_document_scid(&scid, &entry).is_ok());
+
+        entry.state.value.document.id =
+            "did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com"
+                .parse()
+                .unwrap();
+
+        assert!(verify_document_scid(&scid, &entry).is_err());
+    }
+}

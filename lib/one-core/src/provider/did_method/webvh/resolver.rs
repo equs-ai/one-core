@@ -419,12 +419,12 @@ mod test {
         assert!(matches!(document, Err(ResolutionError(_))));
     }
 
-    /// A log created under another SCID whose last entry switches its id to the resolved did.
+    /// A log whose SCID differs from the SCID in the resolved did.
     #[tokio::test]
     async fn test_didwebvh_resolver_fail_log_scid_differs_from_did_scid() {
         let did_method_provider = test_did_method_provider();
-        let did_log = include_str!("test_data/failure/entry_id_scid_mismatch.jsonl");
-        let did: DidValue = "did:webvh:Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9:example.com"
+        let did_log = include_str!("test_data/success/did.jsonl");
+        let did: DidValue = "did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com"
             .parse()
             .unwrap();
         let url = "https://example.com/.well-known/did.jsonl";
@@ -457,7 +457,7 @@ mod test {
         assert2::let_assert!(Err(error) = result);
         assert_eq!(
             error.to_string(),
-            ResolutionError("SCID mismatch: did has Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9, did log has QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6".to_owned()).to_string()
+            ResolutionError("SCID mismatch: did has QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6, did log has Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9".to_owned()).to_string()
         );
     }
 
@@ -496,8 +496,6 @@ mod test {
             "challenge_mismatch.jsonl" => ResolutionError("Proof challenge mismatch, expected 2-QmedUFuV35pJHskk7xTCB5EPE8NY5Mjg1GDHwHVyjaMvdc, got 1-QmedUFuV35pJHskk7xTCB5EPE8NY5Mjg1GDHwHVyjaMvdc.".to_owned()),
             "invalid_update_key_for_prerotation.jsonl" => ResolutionError("Update key z6MkfrBuadijZeorSayJDG9LQi6BBh3Cn73zhqYucWErRjXV not found in nextKeyHashes".to_owned()),
             "deactivated.jsonl" => Deactivated,
-            "did_scid_mismatch.jsonl" => ResolutionError("SCID mismatch: did has Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9, did log has QmWv5KN93Lg3sACtsKkJCfh9VxGwNBmG9WKu93FCejvA8y".to_owned()),
-            "entry_id_scid_mismatch.jsonl" => ResolutionError("Invalid log entry 2-QmZg7HBFqdMkdHtvtyH4oY6jd6Xs2ffVf1ziyXBdxBdwTX: document id did:webvh:Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9:example.com does not carry SCID QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6".to_owned()),
         };
         let folder = fs::read_dir("src/provider/did_method/webvh/test_data/failure").unwrap();
         resolve_log_files(folder, |result, file_name| {
