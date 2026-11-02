@@ -97,5 +97,8 @@ diverged at `7505afb41`.
   18013-5 §9.1.2.4), so every DS naming a CRL failed with `CRL signer
   certificate is not present in the chain`. Revocation is still checked once
   the chain reaches an anchor.
+- `did:webvh` resolution requires the SCID in the resolved DID to equal the
+  log's `scid` and the SCID in every entry's document `id` (did:webvh v1.0,
+  Read step 6), so a log for another SCID cannot resolve as this DID.
 
 [#10]: https://github.com/equs-ai/one-core/pull/10
