@@ -19,7 +19,7 @@ pub async fn resolve(
     use_http: bool,
     params: &Params,
 ) -> Result<DidDocument, DidMethodError> {
-    let TransformedDid { mut url, .. } = transform_did_to_https(did.as_str())?;
+    let TransformedDid { scid, mut url } = transform_did_to_https(did.as_str())?;
     if use_http {
         #[allow(clippy::expect_used)]
         url.set_scheme("http").expect("http is a valid scheme");
@@ -49,7 +49,7 @@ pub async fn resolve(
         })
         .collect::<Result<_, DidMethodError>>()?;
 
-    verify_did_log(&entries, did_method_provider, params).await?;
+    verify_did_log(&entries, scid, did_method_provider, params).await?;
 
     let Some((entry, _)) = entries.into_iter().next_back() else {
         return Err(DidMethodError::ResolutionError(
@@ -68,7 +68,6 @@ pub async fn resolve(
 }
 
 struct TransformedDid<'a> {
-    #[allow(dead_code)]
     scid: &'a str,
     url: Url,
 }
@@ -418,6 +417,78 @@ mod test {
         )
         .await;
         assert!(matches!(document, Err(ResolutionError(_))));
+    }
+
+    /// A log whose SCID differs from the SCID in the resolved did.
+    #[tokio::test]
+    async fn test_didwebvh_resolver_fail_log_scid_differs_from_did_scid() {
+        let did_method_provider = test_did_method_provider();
+        let did_log = include_str!("test_data/success/did.jsonl");
+        let did: DidValue = "did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com"
+            .parse()
+            .unwrap();
+        let url = "https://example.com/.well-known/did.jsonl";
+        let mut http_client = MockHttpClient::new();
+        mock_http_get_request(
+            &mut http_client,
+            url.to_string(),
+            Response {
+                body: did_log.as_bytes().to_vec(),
+                headers: Default::default(),
+                status: StatusCode(200),
+                request: Request {
+                    body: None,
+                    headers: Default::default(),
+                    method: Method::Get,
+                    url: url.to_string(),
+                    timeout: None,
+                },
+            },
+        );
+
+        let result = resolve(
+            &did,
+            &http_client,
+            did_method_provider.as_ref(),
+            false,
+            &Default::default(),
+        )
+        .await;
+        assert2::let_assert!(Err(error) = result);
+        assert_eq!(
+            error.to_string(),
+            ResolutionError("SCID mismatch: did has QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6, did log has Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9".to_owned()).to_string()
+        );
+    }
+
+    /// An entry before the last whose document id carries another SCID.
+    #[tokio::test]
+    async fn test_didwebvh_verify_fail_entry_id_scid_differs_from_log_scid() {
+        let did_method_provider = test_did_method_provider();
+        let mut entries: Vec<(DidLogEntry, String)> =
+            include_str!("test_data/success/did_long_log.jsonl")
+                .lines()
+                .map(|line| (serde_json::from_str(line).unwrap(), line.to_owned()))
+                .collect();
+        let (entry, _) = &mut entries[1];
+        entry.state.value.document.id =
+            "did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com"
+                .parse()
+                .unwrap();
+        let version_id = entry.version_id.clone();
+
+        let result = verify_did_log(
+            &entries,
+            "Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9",
+            did_method_provider.as_ref(),
+            &Default::default(),
+        )
+        .await;
+        assert2::let_assert!(Err(error) = result);
+        assert_eq!(
+            error.to_string(),
+            ResolutionError(format!("Invalid log entry {version_id}: document id did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com does not carry SCID Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9")).to_string()
+        );
     }
 
     /// Test that runs through the files in the success test data folder and checks everything resolves.

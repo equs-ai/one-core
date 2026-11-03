@@ -18,8 +18,10 @@ use crate::provider::key_algorithm::KeyAlgorithm;
 use crate::provider::key_algorithm::eddsa::Eddsa;
 use crate::provider::key_algorithm::key::KeyHandle;
 
+/// `did_scid` is the SCID segment of the DID being resolved; the log must be for that SCID.
 pub async fn verify_did_log(
     log: &[(DidLogEntry, String)],
+    did_scid: &str,
     did_method_provider: &dyn DidMethodProvider,
     params: &Params,
 ) -> Result<(), DidMethodError> {
@@ -41,6 +43,11 @@ pub async fn verify_did_log(
     let Some(ref scid) = first_entry.parameters.scid else {
         return Err(ResolutionError("missing SCID".to_string()));
     };
+    if scid != did_scid {
+        return Err(ResolutionError(format!(
+            "SCID mismatch: did has {did_scid}, did log has {scid}"
+        )));
+    }
     verify_scid(scid, first_line_raw)?;
 
     let mut active_parameters = first_entry.parameters.clone();
@@ -51,6 +58,7 @@ pub async fn verify_did_log(
     for (index, (entry, raw_line)) in log_iter.enumerate() {
         // did log uses 1-based indices
         verify_version_id(scid_or_version_id, index + 1, raw_line)?;
+        verify_document_scid(scid, entry)?;
         verify_proof(&active_parameters, entry, did_method_provider).await?;
         scid_or_version_id = &entry.version_id;
 
@@ -194,6 +202,23 @@ fn verify_scid(scid: &str, first_line_raw: &str) -> Result<(), DidMethodError> {
             "Invalid SCID: expected {scid}, got {derived_scid}"
         )));
     };
+    Ok(())
+}
+
+// https://identity.foundation/didwebvh/v1.0/#read-resolve
+// The SCID segment of every entry's DIDDoc id must be the log's SCID.
+fn verify_document_scid(scid: &str, entry: &DidLogEntry) -> Result<(), DidMethodError> {
+    let id = &entry.state.value.document.id;
+    let id_scid = id
+        .as_str()
+        .strip_prefix("did:webvh:")
+        .and_then(|suffix| suffix.split(':').next());
+    if id_scid != Some(scid) {
+        return Err(ResolutionError(format!(
+            "Invalid log entry {}: document id {id} does not carry SCID {scid}",
+            entry.version_id
+        )));
+    }
     Ok(())
 }
 
@@ -371,4 +396,24 @@ async fn verify_verification_method(
         )));
     }
     Ok(handle)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn document_id_must_carry_the_log_scid() {
+        let line = include_str!("test_data/success/did.jsonl");
+        let mut entry: DidLogEntry = serde_json::from_str(line.trim()).unwrap();
+        let scid = entry.parameters.scid.clone().unwrap();
+        assert!(verify_document_scid(&scid, &entry).is_ok());
+
+        entry.state.value.document.id =
+            "did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com"
+                .parse()
+                .unwrap();
+
+        assert!(verify_document_scid(&scid, &entry).is_err());
+    }
 }
