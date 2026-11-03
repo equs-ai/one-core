@@ -461,6 +461,36 @@ mod test {
         );
     }
 
+    /// An entry before the last whose document id carries another SCID.
+    #[tokio::test]
+    async fn test_didwebvh_verify_fail_entry_id_scid_differs_from_log_scid() {
+        let did_method_provider = test_did_method_provider();
+        let mut entries: Vec<(DidLogEntry, String)> =
+            include_str!("test_data/success/did_long_log.jsonl")
+                .lines()
+                .map(|line| (serde_json::from_str(line).unwrap(), line.to_owned()))
+                .collect();
+        let (entry, _) = &mut entries[1];
+        entry.state.value.document.id =
+            "did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com"
+                .parse()
+                .unwrap();
+        let version_id = entry.version_id.clone();
+
+        let result = verify_did_log(
+            &entries,
+            "Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9",
+            did_method_provider.as_ref(),
+            &Default::default(),
+        )
+        .await;
+        assert2::let_assert!(Err(error) = result);
+        assert_eq!(
+            error.to_string(),
+            ResolutionError(format!("Invalid log entry {version_id}: document id did:webvh:QmZuiotSUXcouuqaFaxPci5vEr87Yr4jK1PGdEySXb8yL6:example.com does not carry SCID Qmcnf4kjGbU3uW3fde3DmFEYjFfYkjcP4nw1kzwoybGqb9")).to_string()
+        );
+    }
+
     /// Test that runs through the files in the success test data folder and checks everything resolves.
     ///
     /// Note, the following keys were used to sign the entries:
