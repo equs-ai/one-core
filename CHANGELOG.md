@@ -40,6 +40,7 @@ diverged at `7505afb41`.
 
 - Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.2.0, which `equs-one-core` requires ([#10]).
 - `equs-one-core` 0.2.1, for the `mso_mdoc` `issuerAuth` fix below; the other crates are unchanged.
+- `equs-one-core` 0.2.2, for the `did:webvh` SCID fix below; the other crates are unchanged.
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.
@@ -97,5 +98,8 @@ diverged at `7505afb41`.
   18013-5 §9.1.2.4), so every DS naming a CRL failed with `CRL signer
   certificate is not present in the chain`. Revocation is still checked once
   the chain reaches an anchor.
+- `did:webvh` resolution requires the SCID in the resolved DID to equal the
+  log's `scid` and the SCID in every entry's document `id` (did:webvh v1.0,
+  Read step 6), so a log for another SCID cannot resolve as this DID.
 
 [#10]: https://github.com/equs-ai/one-core/pull/10

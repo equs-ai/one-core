@@ -474,9 +474,10 @@ mod test {
             next: &[],
         };
 
-        let (_did, log) = create("test-domain.ch", did_doc_keys, update_keys, &key_provider)
+        let (did, log) = create("test-domain.ch", did_doc_keys, update_keys, &key_provider)
             .await
             .unwrap();
+        let did_scid = did.as_str().split(':').nth(2).unwrap();
         let entry: deserialize::DidLogEntry = serde_json::from_str(&log).unwrap();
 
         let mut did_method_provider = MockDidMethodProvider::new();
@@ -508,7 +509,7 @@ mod test {
             Ok(doc)
         });
 
-        assert2::assert!(let Ok(()) = verify_did_log(&[(entry, log)], &did_method_provider, &Params::default()).await);
+        assert2::assert!(let Ok(()) = verify_did_log(&[(entry, log)], did_scid, &did_method_provider, &Params::default()).await);
     }
 
     #[track_caller]
