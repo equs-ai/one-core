@@ -35,12 +35,22 @@ diverged at `7505afb41`.
 - `http_client::Error::Transport` and `http_client::Error::BodyTooLarge` ([#10]).
 - `CachingLoader::with_clock` ([#10]).
 - SHA-384 XML-DSig digest, `standardized_types::xades::SHA384_DIGEST_URI` ([#10]).
+- The `identifier_list` entry made from an `mso_mdoc` MSO `status` carries the
+  list's `uri` and the credential's `id` as base64url without padding
+  (`provider::revocation::token_status_list::IDENTIFIER_LIST_ENTRY_TYPE`,
+  `IDENTIFIER_LIST_URI_KEY`, `IDENTIFIER_LIST_ID_KEY`), so a verifier can check
+  it against the Identifier List (ISO/IEC 18013-5 2nd ed.). The MSO
+  `certificate` is not carried. One with a missing, empty, repeated or
+  mistyped `id` or `uri`, or a `uri` that is not a URL, keeps only its type.
+  one-core still reads no Identifier List itself, and `status_list` still wins
+  when both are present.
 
 ### Changed
 
 - Versions: `equs-one-core`, `-portable`, `-standardized-types`, `-dcql` 0.2.0; `equs-one-core-crypto` 0.2.0, which `equs-one-core` requires ([#10]).
 - `equs-one-core` 0.2.1, for the `mso_mdoc` `issuerAuth` fix below; the other crates are unchanged.
 - `equs-one-core` 0.2.2, for the `did:webvh` SCID fix below; the other crates are unchanged.
+- `equs-one-core` 0.2.3, for the `identifier_list` status fields above; the other crates are unchanged.
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.

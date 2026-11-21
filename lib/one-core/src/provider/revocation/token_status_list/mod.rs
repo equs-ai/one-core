@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
+use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
 use futures::FutureExt;
 use itertools::Itertools;
 use rcgen::KeyUsagePurpose;
@@ -69,6 +70,13 @@ mod test;
 pub(crate) const URI_KEY: &str = "uri";
 pub(crate) const INDEX_KEY: &str = "idx";
 const CREDENTIAL_STATUS_TYPE: &str = "TokenStatusListEntry";
+
+/// Type of an identifier list status entry.
+pub const IDENTIFIER_LIST_ENTRY_TYPE: &str = "identifier_list";
+/// Identifier list URI field.
+pub const IDENTIFIER_LIST_URI_KEY: &str = "uri";
+/// Credential identifier field, base64url without padding.
+pub const IDENTIFIER_LIST_ID_KEY: &str = "id";
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -836,7 +844,8 @@ pub(crate) fn credential_status_from_sdjwt_status(
 }
 
 /// The `status_list` of an MSO `status`, or else every other mechanism by name, so a status
-/// that cannot be checked is not read as none.
+/// that cannot be checked is not read as none. An `identifier_list` also carries its `uri` and
+/// `id`.
 pub(crate) fn credential_status_from_mso_status(
     mso_status: Option<&MsoStatus>,
 ) -> Vec<CredentialStatus> {
@@ -857,14 +866,48 @@ pub(crate) fn credential_status_from_mso_status(
     }
     mso_status
         .other
-        .keys()
-        .map(|mechanism| CredentialStatus {
-            id: None,
-            r#type: mechanism.to_owned(),
-            status_purpose: None,
-            additional_fields: HashMap::new(),
+        .iter()
+        .map(|(mechanism, info)| {
+            let mut entry = CredentialStatus {
+                id: None,
+                r#type: mechanism.to_owned(),
+                status_purpose: None,
+                additional_fields: HashMap::new(),
+            };
+            if mechanism == IDENTIFIER_LIST_ENTRY_TYPE {
+                entry.additional_fields = identifier_list_fields(info);
+            }
+            entry
         })
         .collect()
+}
+
+/// The `uri` and `id` of an `identifier_list`, or none if either is invalid.
+fn identifier_list_fields(info: &ciborium::Value) -> HashMap<String, serde_json::Value> {
+    let fields = info.as_map().and_then(|entries| {
+        let field = |name: &str| {
+            entries
+                .iter()
+                .filter(|(key, _)| key.as_text() == Some(name))
+                .exactly_one()
+                .ok()
+                .map(|(_, value)| value)
+        };
+        let id = field(IDENTIFIER_LIST_ID_KEY)?
+            .as_bytes()
+            .filter(|id| !id.is_empty())?;
+        let uri = field(IDENTIFIER_LIST_URI_KEY)?.as_text()?;
+        url::Url::parse(uri).ok()?;
+        let id = Base64UrlSafeNoPadding::encode_to_string(id).ok()?;
+        Some(HashMap::from([
+            (IDENTIFIER_LIST_URI_KEY.to_string(), uri.into()),
+            (IDENTIFIER_LIST_ID_KEY.to_string(), id.into()),
+        ]))
+    });
+    if fields.is_none() {
+        tracing::info!("MSO identifier_list has no usable id and uri");
+    }
+    fields.unwrap_or_default()
 }
 
 fn token_status_list_entry(uri: String, index: usize) -> CredentialStatus {
