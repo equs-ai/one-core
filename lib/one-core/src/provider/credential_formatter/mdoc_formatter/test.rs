@@ -1164,13 +1164,14 @@ fn status_list(idx: Value) -> (Value, Value) {
 }
 
 fn identifier_list() -> (Value, Value) {
-    (
-        "identifier_list".into(),
-        Value::Map(vec![
-            ("id".into(), Value::Bytes(b"6482".to_vec())),
-            ("uri".into(), "https://issuer.example/identifiers/1".into()),
-        ]),
-    )
+    identifier_list_with(vec![
+        ("id".into(), Value::Bytes(b"6482".to_vec())),
+        ("uri".into(), "https://issuer.example/identifiers/1".into()),
+    ])
+}
+
+fn identifier_list_with(fields: Vec<(Value, Value)>) -> (Value, Value) {
+    ("identifier_list".into(), Value::Map(fields))
 }
 
 #[test]
@@ -1213,6 +1214,134 @@ fn test_mso_identifier_list_only_is_not_read_as_no_status() {
 
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].r#type, "identifier_list");
+}
+
+#[test]
+fn test_mso_identifier_list_id_is_base64url_without_padding() {
+    let status = Value::Map(vec![identifier_list()]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(
+        entries[0].additional_fields.get("id"),
+        Some(&json!("NjQ4Mg"))
+    );
+}
+
+#[test]
+fn test_mso_identifier_list_uri_is_kept_verbatim() {
+    let status = Value::Map(vec![identifier_list_with(vec![
+        ("id".into(), Value::Bytes(b"6482".to_vec())),
+        ("uri".into(), "https://Issuer.Example".into()),
+    ])]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(
+        entries[0].additional_fields.get("uri"),
+        Some(&json!("https://Issuer.Example"))
+    );
+}
+
+#[test]
+fn test_mso_identifier_list_beside_an_unknown_mechanism_carries_its_fields() {
+    let status = Value::Map(vec![
+        identifier_list(),
+        ("future_list".into(), Value::Map(vec![])),
+    ]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].r#type, "identifier_list");
+    assert_eq!(
+        entries[0].additional_fields.get("id"),
+        Some(&json!("NjQ4Mg"))
+    );
+    assert_eq!(entries[1].r#type, "future_list");
+    assert!(entries[1].additional_fields.is_empty());
+}
+
+#[test]
+fn test_mso_identifier_list_carries_its_uri_and_base64url_id() {
+    let status = Value::Map(vec![identifier_list_with(vec![
+        ("id".into(), Value::Bytes(vec![0xfb, 0xff, 0x01])),
+        ("uri".into(), "https://issuer.example/identifiers/1".into()),
+        ("certificate".into(), Value::Bytes(vec![0x30, 0x82])),
+    ])]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].r#type, "identifier_list");
+    assert_eq!(
+        entries[0].additional_fields,
+        std::collections::HashMap::from([
+            (
+                "uri".to_owned(),
+                json!("https://issuer.example/identifiers/1")
+            ),
+            ("id".to_owned(), json!("-_8B")),
+        ])
+    );
+}
+
+#[test]
+fn test_mso_malformed_identifier_list_carries_only_its_type() {
+    let uri = || ("uri".into(), "https://issuer.example/identifiers/1".into());
+    let id = || ("id".into(), Value::Bytes(b"6482".to_vec()));
+    for fields in [
+        vec![uri()],
+        vec![id()],
+        vec![("id".into(), "6482".into()), uri()],
+        vec![id(), ("uri".into(), 1.into())],
+        vec![id(), ("uri".into(), "/identifiers/1".into())],
+        vec![("id".into(), Value::Bytes(vec![])), uri()],
+        vec![id(), id(), uri()],
+        vec![id(), uri(), uri()],
+    ] {
+        let status = Value::Map(vec![identifier_list_with(fields.clone())]);
+        let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+        let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+        assert_eq!(entries.len(), 1, "{fields:?}");
+        assert_eq!(entries[0].r#type, "identifier_list", "{fields:?}");
+        assert!(entries[0].additional_fields.is_empty(), "{fields:?}");
+    }
+}
+
+#[test]
+fn test_mso_identifier_list_that_is_not_a_map_carries_only_its_type() {
+    let status = Value::Map(vec![("identifier_list".into(), "6482".into())]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(entries.len(), 1);
+    assert!(entries[0].additional_fields.is_empty());
+}
+
+#[test]
+fn test_mso_mechanism_other_than_identifier_list_carries_only_its_type() {
+    let status = Value::Map(vec![(
+        "future_list".into(),
+        Value::Map(vec![
+            ("id".into(), Value::Bytes(b"6482".to_vec())),
+            ("uri".into(), "https://issuer.example/future/1".into()),
+        ]),
+    )]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].r#type, "future_list");
+    assert!(entries[0].additional_fields.is_empty());
 }
 
 #[test]
