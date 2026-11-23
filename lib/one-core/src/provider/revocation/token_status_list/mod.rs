@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
+use ciborium::Value;
 use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
 use futures::FutureExt;
 use itertools::Itertools;
@@ -885,18 +886,10 @@ pub(crate) fn credential_status_from_mso_status(
 /// The `uri` and `id` of an `identifier_list`, or none if either is invalid.
 fn identifier_list_fields(info: &ciborium::Value) -> HashMap<String, serde_json::Value> {
     let fields = info.as_map().and_then(|entries| {
-        let field = |name: &str| {
-            entries
-                .iter()
-                .filter(|(key, _)| key.as_text() == Some(name))
-                .exactly_one()
-                .ok()
-                .map(|(_, value)| value)
-        };
-        let id = field(IDENTIFIER_LIST_ID_KEY)?
+        let id = identifier_list_field(entries, IDENTIFIER_LIST_ID_KEY)?
             .as_bytes()
             .filter(|id| !id.is_empty())?;
-        let uri = field(IDENTIFIER_LIST_URI_KEY)?.as_text()?;
+        let uri = identifier_list_field(entries, IDENTIFIER_LIST_URI_KEY)?.as_text()?;
         url::Url::parse(uri).ok()?;
         let id = Base64UrlSafeNoPadding::encode_to_string(id).ok()?;
         Some(HashMap::from([
@@ -908,6 +901,16 @@ fn identifier_list_fields(info: &ciborium::Value) -> HashMap<String, serde_json:
         tracing::info!("MSO identifier_list has no usable id and uri");
     }
     fields.unwrap_or_default()
+}
+
+/// The value under `name`, or none if the key is missing or repeated.
+fn identifier_list_field<'a>(entries: &'a [(Value, Value)], name: &str) -> Option<&'a Value> {
+    entries
+        .iter()
+        .filter(|(key, _)| key.as_text() == Some(name))
+        .exactly_one()
+        .ok()
+        .map(|(_, value)| value)
 }
 
 fn token_status_list_entry(uri: String, index: usize) -> CredentialStatus {
