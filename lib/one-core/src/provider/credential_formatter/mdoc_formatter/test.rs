@@ -1416,3 +1416,57 @@ fn test_mso_status_list_with_a_relative_uri_fails_to_decode() {
             .is_err()
     );
 }
+
+#[test]
+fn digest_algorithm_uses_iso_names() {
+    for (algorithm, name) in [
+        (DigestAlgorithm::Sha256, "SHA-256"),
+        (DigestAlgorithm::Sha384, "SHA-384"),
+        (DigestAlgorithm::Sha512, "SHA-512"),
+    ] {
+        assert_eq!(Value::serialized(&algorithm).unwrap(), Value::from(name));
+        assert_eq!(
+            Value::from(name).deserialized::<DigestAlgorithm>().unwrap(),
+            algorithm
+        );
+    }
+    assert!(
+        Value::from("SHA-348")
+            .deserialized::<DigestAlgorithm>()
+            .is_err()
+    );
+}
+
+#[test]
+fn sha384_mso_decodes_and_its_digests_verify() {
+    let namespaces: Namespaces = IndexMap::from([(
+        "org.iso.18013.5.1".to_owned(),
+        vec![
+            EmbeddedCbor::new(IssuerSignedItem {
+                digest_id: 0,
+                random: Bstr(vec![7; 32]),
+                element_identifier: "family_name".to_owned(),
+                element_value: "Doe".into(),
+            })
+            .unwrap(),
+        ],
+    )]);
+    let value_digests = try_build_value_digests(&namespaces, DigestAlgorithm::Sha384).unwrap();
+    let Value::Map(mut entries) = mso_with_status(None) else {
+        panic!("an MSO is a map");
+    };
+    for (key, value) in &mut entries {
+        match key.as_text() {
+            Some("digestAlgorithm") => *value = "SHA-384".into(),
+            Some("valueDigests") => *value = Value::serialized(&value_digests).unwrap(),
+            _ => {}
+        }
+    }
+
+    let mso = Value::Map(entries)
+        .deserialized::<MobileSecurityObject>()
+        .unwrap();
+
+    assert_eq!(mso.digest_algorithm, DigestAlgorithm::Sha384);
+    verify_digests(&mso, &namespaces).unwrap();
+}

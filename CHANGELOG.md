@@ -51,6 +51,7 @@ diverged at `7505afb41`.
 - `equs-one-core` 0.2.1, for the `mso_mdoc` `issuerAuth` fix below; the other crates are unchanged.
 - `equs-one-core` 0.2.2, for the `did:webvh` SCID fix below; the other crates are unchanged.
 - `equs-one-core` 0.2.3, for the `identifier_list` status fields above; the other crates are unchanged.
+- `equs-one-core` 0.2.4, for the `mso_mdoc` SHA-384 fix below; the other crates are unchanged.
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.
@@ -111,5 +112,8 @@ diverged at `7505afb41`.
 - `did:webvh` resolution requires the SCID in the resolved DID to equal the
   log's `scid` and the SCID in every entry's document `id` (did:webvh v1.0,
   Read step 6), so a log for another SCID cannot resolve as this DID.
+- `mso_mdoc` MSO `digestAlgorithm` `SHA-384` decodes. It was named `SHA-348`,
+  so every MSO with SHA-384 digests failed to decode. one-core issues with
+  SHA-256, so it never wrote the misspelling.
 
 [#10]: https://github.com/equs-ai/one-core/pull/10
