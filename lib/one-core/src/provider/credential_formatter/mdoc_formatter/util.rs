@@ -60,7 +60,7 @@ pub enum MobileSecurityObjectVersion {
 pub enum DigestAlgorithm {
     #[serde(rename = "SHA-256")]
     Sha256,
-    #[serde(rename = "SHA-348")]
+    #[serde(rename = "SHA-384")]
     Sha384,
     #[serde(rename = "SHA-512")]
     Sha512,
@@ -160,6 +160,25 @@ pub struct MsoStatusList {
     pub idx: usize,
     #[serde(deserialize_with = "parsable_uri")]
     pub uri: String,
+    /// Trust anchor of the list's `x5chain`, validated when the status is read.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_value"
+    )]
+    pub certificate: Option<ciborium::Value>,
+}
+
+/// Any present value, `null` included.
+fn present_value<'de, D: de::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<ciborium::Value>, D::Error> {
+    ciborium::Value::deserialize(deserializer).map(Some)
+}
+
+/// Whether `der` is exactly one X.509 certificate, with nothing after it.
+pub(crate) fn is_single_der_certificate(der: &[u8]) -> bool {
+    matches!(x509_parser::parse_x509_certificate(der), Ok((rest, _)) if rest.is_empty())
 }
 
 /// A URI kept as written, once it parses; `Url` would normalise it.

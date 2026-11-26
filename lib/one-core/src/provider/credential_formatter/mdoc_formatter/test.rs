@@ -1270,7 +1270,6 @@ fn test_mso_identifier_list_carries_its_uri_and_base64url_id() {
     let status = Value::Map(vec![identifier_list_with(vec![
         ("id".into(), Value::Bytes(vec![0xfb, 0xff, 0x01])),
         ("uri".into(), "https://issuer.example/identifiers/1".into()),
-        ("certificate".into(), Value::Bytes(vec![0x30, 0x82])),
     ])]);
     let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
 
@@ -1303,6 +1302,21 @@ fn test_mso_malformed_identifier_list_carries_only_its_type() {
         vec![("id".into(), Value::Bytes(vec![])), uri()],
         vec![id(), id(), uri()],
         vec![id(), uri(), uri()],
+        vec![id(), uri(), certificate(Value::Bytes(vec![0x30, 0x82]))],
+        vec![id(), uri(), certificate(Value::Bytes(vec![]))],
+        vec![id(), uri(), certificate("certificate".into())],
+        vec![id(), uri(), certificate(Value::Bytes(two_certificates()))],
+        vec![
+            id(),
+            uri(),
+            certificate(Value::Bytes(certificate_with_trailing_byte())),
+        ],
+        vec![
+            id(),
+            uri(),
+            certificate(Value::Bytes(certificate_der())),
+            certificate(Value::Bytes(certificate_der())),
+        ],
     ] {
         let status = Value::Map(vec![identifier_list_with(fields.clone())]);
         let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
@@ -1407,6 +1421,222 @@ fn test_mso_status_list_with_a_relative_uri_fails_to_decode() {
         Value::Map(vec![
             ("idx".into(), 1.into()),
             ("uri".into(), "/status/1".into()),
+        ]),
+    )]);
+
+    assert!(
+        mso_with_status(Some(status))
+            .deserialized::<MobileSecurityObject>()
+            .is_err()
+    );
+}
+
+#[test]
+fn digest_algorithm_uses_iso_names() {
+    for (algorithm, name) in [
+        (DigestAlgorithm::Sha256, "SHA-256"),
+        (DigestAlgorithm::Sha384, "SHA-384"),
+        (DigestAlgorithm::Sha512, "SHA-512"),
+    ] {
+        assert_eq!(Value::serialized(&algorithm).unwrap(), Value::from(name));
+        assert_eq!(
+            Value::from(name).deserialized::<DigestAlgorithm>().unwrap(),
+            algorithm
+        );
+    }
+    assert!(
+        Value::from("SHA-348")
+            .deserialized::<DigestAlgorithm>()
+            .is_err()
+    );
+}
+
+#[test]
+fn sha384_mso_decodes_and_its_digests_verify() {
+    let namespaces: Namespaces = IndexMap::from([(
+        "org.iso.18013.5.1".to_owned(),
+        vec![
+            EmbeddedCbor::new(IssuerSignedItem {
+                digest_id: 0,
+                random: Bstr(vec![7; 32]),
+                element_identifier: "family_name".to_owned(),
+                element_value: "Doe".into(),
+            })
+            .unwrap(),
+        ],
+    )]);
+    let value_digests = try_build_value_digests(&namespaces, DigestAlgorithm::Sha384).unwrap();
+    let Value::Map(mut entries) = mso_with_status(None) else {
+        panic!("an MSO is a map");
+    };
+    for (key, value) in &mut entries {
+        match key.as_text() {
+            Some("digestAlgorithm") => *value = "SHA-384".into(),
+            Some("valueDigests") => *value = Value::serialized(&value_digests).unwrap(),
+            _ => {}
+        }
+    }
+
+    let mso = Value::Map(entries)
+        .deserialized::<MobileSecurityObject>()
+        .unwrap();
+
+    assert_eq!(mso.digest_algorithm, DigestAlgorithm::Sha384);
+    verify_digests(&mso, &namespaces).unwrap();
+}
+
+fn certificate_der() -> Vec<u8> {
+    let key_pair = rcgen::KeyPair::generate().unwrap();
+    rcgen::CertificateParams::new(vec!["status-list-ca.test".to_string()])
+        .unwrap()
+        .self_signed(&key_pair)
+        .unwrap()
+        .der()
+        .to_vec()
+}
+
+fn two_certificates() -> Vec<u8> {
+    [certificate_der(), certificate_der()].concat()
+}
+
+fn certificate_with_trailing_byte() -> Vec<u8> {
+    let mut der = certificate_der();
+    der.push(0);
+    der
+}
+
+fn certificate(value: Value) -> (Value, Value) {
+    ("certificate".into(), value)
+}
+
+fn base64url(bytes: &[u8]) -> serde_json::Value {
+    use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
+    Base64UrlSafeNoPadding::encode_to_string(bytes)
+        .unwrap()
+        .into()
+}
+
+fn status_list_with_certificate(value: Value) -> Value {
+    Value::Map(vec![(
+        "status_list".into(),
+        Value::Map(vec![
+            ("idx".into(), 1.into()),
+            ("uri".into(), "https://issuer.example/status/1".into()),
+            certificate(value),
+        ]),
+    )])
+}
+
+#[test]
+fn test_mso_status_list_carries_its_certificate() {
+    let der = certificate_der();
+    let status = status_list_with_certificate(Value::Bytes(der.clone()));
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].r#type, "TokenStatusListEntry");
+    assert_eq!(
+        entries[0].additional_fields.get("certificate"),
+        Some(&base64url(&der))
+    );
+}
+
+#[test]
+fn test_mso_status_list_without_certificate_carries_none() {
+    let status = Value::Map(vec![status_list(1.into())]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert!(!entries[0].additional_fields.contains_key("certificate"));
+}
+
+fn malformed_certificates() -> Vec<Value> {
+    vec![
+        Value::Bytes(vec![0x30, 0x82]),
+        Value::Bytes(vec![]),
+        Value::Bytes(two_certificates()),
+        Value::Bytes(certificate_with_trailing_byte()),
+        "certificate".into(),
+        Value::Null,
+        Value::Array(vec![
+            Value::Bytes(certificate_der()),
+            Value::Bytes(certificate_der()),
+        ]),
+    ]
+}
+
+#[test]
+fn test_mso_status_list_with_malformed_certificate_decodes_without_its_fields() {
+    for value in malformed_certificates() {
+        let mso: MobileSecurityObject =
+            mso_with_status(Some(status_list_with_certificate(value.clone())))
+                .deserialized()
+                .unwrap_or_else(|err| panic!("{value:?} failed to decode: {err}"));
+
+        let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+        assert_eq!(entries.len(), 1, "{value:?}");
+        assert_eq!(entries[0].r#type, "TokenStatusListEntry", "{value:?}");
+        assert!(entries[0].additional_fields.is_empty(), "{value:?}");
+    }
+}
+
+#[test]
+fn test_mso_status_list_with_malformed_certificate_round_trips() {
+    for value in malformed_certificates() {
+        let status = status_list_with_certificate(value.clone());
+        let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+        let again: MobileSecurityObject = Value::serialized(&mso).unwrap().deserialized().unwrap();
+
+        assert_eq!(mso, again, "{value:?}");
+    }
+}
+
+#[test]
+fn test_mso_identifier_list_carries_its_certificate() {
+    let der = certificate_der();
+    let status = Value::Map(vec![identifier_list_with(vec![
+        ("id".into(), Value::Bytes(b"6482".to_vec())),
+        ("uri".into(), "https://issuer.example/identifiers/1".into()),
+        certificate(Value::Bytes(der.clone())),
+    ])]);
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+    assert_eq!(
+        entries[0].additional_fields.get("certificate"),
+        Some(&base64url(&der))
+    );
+    assert_eq!(
+        entries[0].additional_fields.get("id"),
+        Some(&json!("NjQ4Mg"))
+    );
+}
+
+#[test]
+fn test_mso_status_with_certificate_round_trips() {
+    let status = status_list_with_certificate(Value::Bytes(certificate_der()));
+    let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+    let again: MobileSecurityObject = Value::serialized(&mso).unwrap().deserialized().unwrap();
+
+    assert_eq!(mso, again);
+}
+
+#[test]
+fn test_mso_status_list_with_a_repeated_certificate_fails_to_decode() {
+    let status = Value::Map(vec![(
+        "status_list".into(),
+        Value::Map(vec![
+            ("idx".into(), 1.into()),
+            ("uri".into(), "https://issuer.example/status/1".into()),
+            certificate(Value::Bytes(certificate_der())),
+            certificate(Value::Bytes(certificate_der())),
         ]),
     )]);
 

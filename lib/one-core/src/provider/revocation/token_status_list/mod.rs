@@ -40,7 +40,9 @@ use crate::proto::key_verification::KeyVerification;
 use crate::proto::transaction_manager::TransactionManager;
 use crate::provider::credential_formatter::CredentialFormatter;
 use crate::provider::credential_formatter::jwt_formatter::model::TokenStatusListContent;
-use crate::provider::credential_formatter::mdoc_formatter::util::MsoStatus;
+use crate::provider::credential_formatter::mdoc_formatter::util::{
+    MsoStatus, is_single_der_certificate,
+};
 use crate::provider::credential_formatter::model::{
     CredentialStatus, IdentifierDetails, TokenVerifier,
 };
@@ -78,6 +80,8 @@ pub const IDENTIFIER_LIST_ENTRY_TYPE: &str = "identifier_list";
 pub const IDENTIFIER_LIST_URI_KEY: &str = "uri";
 /// Credential identifier field, base64url without padding.
 pub const IDENTIFIER_LIST_ID_KEY: &str = "id";
+/// Trust anchor of an mso_mdoc list's `x5chain`, a DER certificate as base64url without padding.
+pub const MSO_STATUS_CERTIFICATE_KEY: &str = "certificate";
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -846,7 +850,7 @@ pub(crate) fn credential_status_from_sdjwt_status(
 
 /// The `status_list` of an MSO `status`, or else every other mechanism by name, so a status
 /// that cannot be checked is not read as none. An `identifier_list` also carries its `uri` and
-/// `id`.
+/// `id`; either list carries its `certificate` when the MSO has one.
 pub(crate) fn credential_status_from_mso_status(
     mso_status: Option<&MsoStatus>,
 ) -> Vec<CredentialStatus> {
@@ -860,10 +864,25 @@ pub(crate) fn credential_status_from_mso_status(
                 "MSO status mechanisms beside status_list are not checked"
             );
         }
-        return vec![token_status_list_entry(
-            status_list.uri.clone(),
-            status_list.idx,
-        )];
+        let mut entry = token_status_list_entry(status_list.uri.clone(), status_list.idx);
+        if let Some(certificate) = &status_list.certificate {
+            let encoded = certificate
+                .as_bytes()
+                .filter(|der| is_single_der_certificate(der))
+                .and_then(|der| Base64UrlSafeNoPadding::encode_to_string(der).ok());
+            match encoded {
+                Some(encoded) => {
+                    entry
+                        .additional_fields
+                        .insert(MSO_STATUS_CERTIFICATE_KEY.to_string(), encoded.into());
+                }
+                None => {
+                    tracing::warn!("MSO status_list certificate is not one DER certificate");
+                    entry.additional_fields.clear();
+                }
+            }
+        }
+        return vec![entry];
     }
     mso_status
         .other
@@ -892,13 +911,23 @@ fn identifier_list_fields(info: &ciborium::Value) -> HashMap<String, serde_json:
         let uri = identifier_list_field(entries, IDENTIFIER_LIST_URI_KEY)?.as_text()?;
         url::Url::parse(uri).ok()?;
         let id = Base64UrlSafeNoPadding::encode_to_string(id).ok()?;
-        Some(HashMap::from([
+        let mut fields = HashMap::from([
             (IDENTIFIER_LIST_URI_KEY.to_string(), uri.into()),
             (IDENTIFIER_LIST_ID_KEY.to_string(), id.into()),
-        ]))
+        ]);
+        if let Some(certificate) =
+            optional_identifier_list_field(entries, MSO_STATUS_CERTIFICATE_KEY)?
+        {
+            let certificate = certificate
+                .as_bytes()
+                .filter(|der| is_single_der_certificate(der))?;
+            let certificate = Base64UrlSafeNoPadding::encode_to_string(certificate).ok()?;
+            fields.insert(MSO_STATUS_CERTIFICATE_KEY.to_string(), certificate.into());
+        }
+        Some(fields)
     });
     if fields.is_none() {
-        tracing::info!("MSO identifier_list has no usable id and uri");
+        tracing::info!("MSO identifier_list has no usable id, uri or certificate");
     }
     fields.unwrap_or_default()
 }
@@ -911,6 +940,22 @@ fn identifier_list_field<'a>(entries: &'a [(Value, Value)], name: &str) -> Optio
         .exactly_one()
         .ok()
         .map(|(_, value)| value)
+}
+
+/// `Some(None)` if `name` is missing, `Some(value)` if present once, none if repeated.
+fn optional_identifier_list_field<'a>(
+    entries: &'a [(Value, Value)],
+    name: &str,
+) -> Option<Option<&'a Value>> {
+    let mut values = entries
+        .iter()
+        .filter(|(key, _)| key.as_text() == Some(name))
+        .map(|(_, value)| value);
+    let first = values.next();
+    if values.next().is_some() {
+        return None;
+    }
+    Some(first)
 }
 
 fn token_status_list_entry(uri: String, index: usize) -> CredentialStatus {
