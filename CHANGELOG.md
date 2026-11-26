@@ -39,11 +39,16 @@ diverged at `7505afb41`.
   list's `uri` and the credential's `id` as base64url without padding
   (`provider::revocation::token_status_list::IDENTIFIER_LIST_ENTRY_TYPE`,
   `IDENTIFIER_LIST_URI_KEY`, `IDENTIFIER_LIST_ID_KEY`), so a verifier can check
-  it against the Identifier List (ISO/IEC 18013-5 2nd ed.). The MSO
-  `certificate` is not carried. One with a missing, empty, repeated or
-  mistyped `id` or `uri`, or a `uri` that is not a URL, keeps only its type.
-  one-core still reads no Identifier List itself, and `status_list` still wins
-  when both are present.
+  it against the Identifier List (ISO/IEC 18013-5 2nd ed.). One with a
+  missing, empty, repeated or mistyped `id` or `uri`, or a `uri` that is not a
+  URL, keeps only its type. one-core still reads no Identifier List itself, and
+  `status_list` still wins when both are present.
+- The `status_list` and `identifier_list` entries made from an `mso_mdoc` MSO
+  `status` carry its optional `certificate`, the trust anchor of the list's
+  `x5chain` (ISO/IEC 18013-5 2nd ed. §12.3.6.2), as base64url DER under
+  `token_status_list::MSO_STATUS_CERTIFICATE_KEY`. A `certificate` that is not
+  exactly one DER certificate fails closed: the MSO does not decode for a
+  `status_list`, and an `identifier_list` keeps only its type.
 
 ### Changed
 
@@ -52,6 +57,7 @@ diverged at `7505afb41`.
 - `equs-one-core` 0.2.2, for the `did:webvh` SCID fix below; the other crates are unchanged.
 - `equs-one-core` 0.2.3, for the `identifier_list` status fields above; the other crates are unchanged.
 - `equs-one-core` 0.2.4, for the `mso_mdoc` SHA-384 fix below; the other crates are unchanged.
+- `equs-one-core` 0.2.5, for the MSO status `certificate` above; the other crates are unchanged.
 - `did:tdw` renamed to `did:webvh`, with the old prefix normalized for
   compatibility.
 - CRL signer check tolerates a missing key identifier on either side.

@@ -160,6 +160,31 @@ pub struct MsoStatusList {
     pub idx: usize,
     #[serde(deserialize_with = "parsable_uri")]
     pub uri: String,
+    /// DER certificate that is the trust anchor of the list's `x5chain` (ISO/IEC 18013-5 2nd ed.).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "der_certificate"
+    )]
+    pub certificate: Option<Bstr>,
+}
+
+/// A present `certificate` must be one DER certificate, or the MSO does not decode.
+fn der_certificate<'de, D: de::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Bstr>, D::Error> {
+    let certificate = Bstr::deserialize(deserializer)?;
+    if !is_single_der_certificate(&certificate.0) {
+        return Err(de::Error::custom(
+            "MSO status `certificate` is not one DER certificate",
+        ));
+    }
+    Ok(Some(certificate))
+}
+
+/// Whether `der` is exactly one X.509 certificate, with nothing after it.
+pub(crate) fn is_single_der_certificate(der: &[u8]) -> bool {
+    matches!(x509_parser::parse_x509_certificate(der), Ok((rest, _)) if rest.is_empty())
 }
 
 /// A URI kept as written, once it parses; `Url` would normalise it.
