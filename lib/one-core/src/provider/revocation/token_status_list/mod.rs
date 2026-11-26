@@ -866,14 +866,18 @@ pub(crate) fn credential_status_from_mso_status(
         }
         let mut entry = token_status_list_entry(status_list.uri.clone(), status_list.idx);
         if let Some(certificate) = &status_list.certificate {
-            match Base64UrlSafeNoPadding::encode_to_string(&certificate.0) {
-                Ok(encoded) => {
+            let encoded = certificate
+                .as_bytes()
+                .filter(|der| is_single_der_certificate(der))
+                .and_then(|der| Base64UrlSafeNoPadding::encode_to_string(der).ok());
+            match encoded {
+                Some(encoded) => {
                     entry
                         .additional_fields
                         .insert(MSO_STATUS_CERTIFICATE_KEY.to_string(), encoded.into());
                 }
-                Err(_) => {
-                    tracing::warn!("MSO status_list certificate could not be encoded");
+                None => {
+                    tracing::warn!("MSO status_list certificate is not one DER certificate");
                     entry.additional_fields.clear();
                 }
             }

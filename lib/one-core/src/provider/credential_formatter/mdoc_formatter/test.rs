@@ -1553,9 +1553,8 @@ fn test_mso_status_list_without_certificate_carries_none() {
     assert!(!entries[0].additional_fields.contains_key("certificate"));
 }
 
-#[test]
-fn test_mso_status_list_with_malformed_certificate_fails_to_decode() {
-    for value in [
+fn malformed_certificates() -> Vec<Value> {
+    vec![
         Value::Bytes(vec![0x30, 0x82]),
         Value::Bytes(vec![]),
         Value::Bytes(two_certificates()),
@@ -1566,13 +1565,34 @@ fn test_mso_status_list_with_malformed_certificate_fails_to_decode() {
             Value::Bytes(certificate_der()),
             Value::Bytes(certificate_der()),
         ]),
-    ] {
-        assert!(
+    ]
+}
+
+#[test]
+fn test_mso_status_list_with_malformed_certificate_decodes_without_its_fields() {
+    for value in malformed_certificates() {
+        let mso: MobileSecurityObject =
             mso_with_status(Some(status_list_with_certificate(value.clone())))
-                .deserialized::<MobileSecurityObject>()
-                .is_err(),
-            "{value:?} decoded"
-        );
+                .deserialized()
+                .unwrap_or_else(|err| panic!("{value:?} failed to decode: {err}"));
+
+        let entries = credential_status_from_mso_status(mso.status.as_ref());
+
+        assert_eq!(entries.len(), 1, "{value:?}");
+        assert_eq!(entries[0].r#type, "TokenStatusListEntry", "{value:?}");
+        assert!(entries[0].additional_fields.is_empty(), "{value:?}");
+    }
+}
+
+#[test]
+fn test_mso_status_list_with_malformed_certificate_round_trips() {
+    for value in malformed_certificates() {
+        let status = status_list_with_certificate(value.clone());
+        let mso: MobileSecurityObject = mso_with_status(Some(status)).deserialized().unwrap();
+
+        let again: MobileSecurityObject = Value::serialized(&mso).unwrap().deserialized().unwrap();
+
+        assert_eq!(mso, again, "{value:?}");
     }
 }
 

@@ -47,8 +47,8 @@ diverged at `7505afb41`.
   `status` carry its optional `certificate`, the trust anchor of the list's
   `x5chain` (ISO/IEC 18013-5 2nd ed. §12.3.6.2), as base64url DER under
   `token_status_list::MSO_STATUS_CERTIFICATE_KEY`. A `certificate` that is not
-  exactly one DER certificate fails closed: the MSO does not decode for a
-  `status_list`, and an `identifier_list` keeps only its type.
+  exactly one DER certificate fails closed: the entry keeps only its type, so
+  a verifier rejects it, while the MSO still decodes for holder use.
 
 ### Changed
 
